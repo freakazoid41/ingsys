@@ -252,7 +252,7 @@ class ReportServiceProvider extends ServiceProvider
                         inner join sys_options as st on st.id = t.type_id
 
                             where   so.op_key = 'op-doc-target' and  t.status = 1 and
-                                    st.op_key in ('doc_acc_aidat','doc_acc_other','doc_acc_rent','doc_acc_sometinguntransable') ";
+                                    st.group_key in ('op-trans-payment') ";
 
 
                 

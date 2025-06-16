@@ -628,6 +628,13 @@ class SysSeeder extends Seeder
                 'op_key'    => 'doc_acc_rent',
             ],[
                 'parent_id' => 0,                   
+                'title'     => 'Yakıt',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans-payment',
+                'op_key'    => 'doc_acc_fuel',
+            ],[
+                'parent_id' => 0,                   
                 'title'     => 'Diğer',
                 'ttitle'    => 'Transactions',
                 'ctitle'    => 'type_id',

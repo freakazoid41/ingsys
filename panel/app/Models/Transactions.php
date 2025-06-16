@@ -100,7 +100,7 @@ class Transactions extends Model
         $join = '   inner join sys_options as st on st.id = i.type_id 
                     inner join sys_options as cr on cr.id = i.cur_id ';
         
-        $where = " where st.op_key in ('doc_acc_aidat','doc_acc_other','doc_acc_rent','doc_acc_transfer','doc_acc_sometinguntransable','doc_acc_dept') and i.status = 1 ";   
+        $where = " where st.group_key in ('op-trans-payment') and i.status = 1 ";   
         
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);

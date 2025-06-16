@@ -153,6 +153,7 @@
                                         <select class="form-select trans-form" name="type" required > 
                                             <option selected="" value="">İşlem Tipi</option> 
                                             <option value="doc_acc_rent">Kira</option> 
+                                            <option value="doc_acc_fuel">Yakıt</option> 
                                             <option value="doc_acc_aidat">Aidat</option> 
                                             <option value="doc_acc_sometinguntransable">Demirbaş</option> 
                                             <option value="doc_acc_other">Diğer</option> 
