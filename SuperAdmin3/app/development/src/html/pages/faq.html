@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-page="sample-pages-faq">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "FAQ" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<div class="text-center my-10">
+				<h2 class="fs-4 text-body-emphasis fw-medium mt-0 mb-3">How can we help you?</h2>
+				<div>Find all the support-related questions and answers here. Type a keyword below to get started!</div>
+			</div>
+
+			<div class="mw-1200 mx-auto w-100">
+				<div class="grid gap-3" id="faq"></div>
+			</div>
+		</div>
+
+		<!-- FAQ details modal -->
+		<div class="modal fade" id="faq-details" tabindex="-1" aria-labelledby="faqDetails" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content">
+					<div class="modal-header pb-0">
+						<h1 class="modal-title fs-5" id="exampleModalLabel">How do I create an account?</h1>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<p class="mb-5">To create an account on our platform and unlock a world of possibilities, follow these simple steps:</p>
+
+						<ul class="mb-5">
+							<li>
+								Look for the 'Sign Up' or 'Register' button, typically located at the top right corner of the page. Click on it to initiate the
+								registration process.
+							</li>
+							<li>
+								A registration form will appear, asking for your basic information such as Name, Email Address, Password etc. Fill up the form
+								with correct input details.
+							</li>
+							<li>Carefully read and accept our Terms of Service and Privacy Policy by checking the respective boxes.</li>
+							<li>
+								You may receive a verification email at the address you provided. Click on the verification link within the email to confirm
+								your account. If you don't receive an email, check your spam folder.
+							</li>
+							<li>
+								Once your account is verified, log in with your email and password. You may be prompted to complete your profile by adding a
+								profile picture, personal information, or additional settings.
+							</li>
+						</ul>
+
+						<p>
+							Congratulations, you've successfully created an account! You can now explore and enjoy all the features and services available to
+							our registered users.
+						</p>
+
+						<div class="d-flex align-items-center fs-7 text-body-secondary">
+							Was this section helpful?
+							<a class="icon ms-3 link-body ph ph-thumbs-up" href=""></a>
+							<a class="icon ms-1 link-body ph ph-thumbs-down" href=""></a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

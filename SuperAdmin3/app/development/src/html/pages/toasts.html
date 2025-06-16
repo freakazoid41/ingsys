@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-toasts">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Toasts" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Site sidebar -->
+		<module href="./src/html/partials/_sidebar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Toasts</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Basic example</h3>
+						<p class="card-subtitle mb-6">
+							To encourage extensible and predictable toasts, we recommend a header and body. Toast headers use <code>display: flex</code>,
+							allowing easy alignment of content thanks to our margin and flexbox utilities.
+						</p>
+
+						<div class="toast d-block" role="alert" aria-live="assertive" aria-atomic="true">
+							<div class="toast-header fs-8">
+								<div class="text-body-emphasis me-auto">Linear Admin</div>
+								<small class="ts-none">11 mins ago</small>
+								<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+							</div>
+							<div class="toast-body">Hello, world! This is a toast message.</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Live example</h3>
+						<p class="card-subtitle mb-6">
+							Click the button below to show a toast (positioned with our utilities in the lower right corner) that has been hidden by default.
+						</p>
+
+						<button type="button" class="btn btn-secondary" id="liveToastBtn">Show live toast</button>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Stacking</h3>
+						<p class="card-subtitle mb-6">You can stack toasts by wrapping them in a toast container, which will vertically add some spacing.</p>
+
+						<div class="toast-container position-static">
+							<div class="toast d-block" role="alert" aria-live="assertive" aria-atomic="true">
+								<div class="toast-header fs-8">
+									<div class="me-auto text-body-emphasis">Linear Admin</div>
+									<small class="ts-none">just now</small>
+									<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+								</div>
+								<div class="toast-body">See? Just like this.</div>
+							</div>
+
+							<div class="toast d-block" role="alert" aria-live="assertive" aria-atomic="true">
+								<div class="toast-header fs-8">
+									<div class="me-auto text-body-emphasis">Linear Admin</div>
+									<small class="ts-none">2 seconds ago</small>
+									<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+								</div>
+								<div class="toast-body">Heads up, toasts will stack automatically</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Custom content</h3>
+						<p class="card-subtitle mb-6">
+							Customize your toasts by removing sub-components, tweaking them with utilities, or by adding your own markup.
+						</p>
+
+						<div class="toast mb-3 align-items-center d-block" role="alert" aria-live="assertive" aria-atomic="true">
+							<div class="d-flex">
+								<div class="toast-body">Hello, world! This is a toast message.</div>
+								<button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+							</div>
+						</div>
+
+						<div class="toast d-block" role="alert" aria-live="assertive" aria-atomic="true">
+							<div class="toast-body">
+								Hello, world! This is a toast message.
+								<div class="mt-2 pt-2">
+									<button type="button" class="btn btn-secondary btn-sm">Take action</button>
+									<button type="button" class="btn btn-link btn-sm" data-bs-dismiss="toast">Close</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Color schemes</h3>
+						<p class="card-subtitle mb-6">
+							Building on the above example, you can create different toast color schemes with our color and background utilities.
+						</p>
+
+						<div class="toast d-block align-items-center text-bg-secondary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+							<div class="d-flex">
+								<div class="toast-body">Hello, world! This is a toast message.</div>
+								<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Live demo toast -->
+		<div class="toast-container position-fixed bottom-0 end-0 p-3">
+			<div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+				<div class="toast-header">
+					<div class="text-body-emphasis me-auto">Linear Admin</div>
+					<small class="ts-none">11 mins ago</small>
+					<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+				</div>
+				<div class="toast-body">Hello, world! This is a toast message.</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-page="user-connections">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "User Connections" }'></module>
+
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">User Connections</h2>
+
+			<nav aria-label="breadcrumb" class="ms-6 d-none d-xl-flex">
+				<ol class="breadcrumb fs-7 mt-0.5">
+					  <li class="breadcrumb-item"><a href="#">Super Admin</a></li>
+					  <li class="breadcrumb-item"><a href="#">Application Views</a></li>
+					  <li class="breadcrumb-item active" aria-current="page">User</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div class="d-flex ms-6 gap-2">
+				<a href="" class="icon icon-subtle ph ph-arrow-clockwise"></a>
+				<a href="" class="icon icon-subtle ph ph-gear"></a>
+			</div>
+		</div>
+
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Body -->
+			<div class="mw-1200 w-100 mx-auto">
+				<div class="card mb-3">
+					<module
+						href="./src/html/partials/user/_cover.html"
+						locals='{
+							"aboutActive": "",
+							"timelineActive": "",
+							"connectionsActive": "active",
+							"photosActive": ""
+						}'
+					></module>
+
+					<nav class="nav nav-pills nav-scroll fs-7 p-1.5 border-top">
+						<a class="nav-link active" href="#">All Connections</a>
+						<a class="nav-link" href="#">Work</a>
+						<a class="nav-link" href="#">College</a>
+						<a class="nav-link" href="#">Current City</a>
+						<a class="nav-link" href="#">Following</a>
+						<a class="nav-link text-body-secondary ms-auto d-none d-md-block" href="#">Requests</a>
+						<a class="nav-link text-body-secondary d-none d-md-block" href="#">Find Connections</a>
+					</nav>
+				</div>
+
+				<div id="user-connections" class="grid gap-3"></div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

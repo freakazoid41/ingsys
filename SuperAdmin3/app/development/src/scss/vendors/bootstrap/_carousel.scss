@@ -1,0 +1,9 @@
+.carousel-indicators {
+	[data-bs-target] {
+		transition: width 300ms;
+
+		&.active {
+			width: 2rem;
+		}
+	}
+}

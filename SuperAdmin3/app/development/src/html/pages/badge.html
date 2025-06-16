@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-badge">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Badge" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Badge</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+			
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Buttons</h3>
+						<p class="card-subtitle mb-6">Badges can be used as part of links or buttons to provide a counter.</p>
+
+						<button type="button" class="btn btn-secondary d-flex align-items-center">
+							Notifications <span class="badge bg-white bg-opacity-25 ms-3 me-n1.5">32</span>
+						</button>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Positioned</h3>
+						<p class="card-subtitle mb-6">Use utilities to modify a <code>.badge</code> and position it in the corner of a link or button.</p>
+
+						<button type="button" class="btn btn-secondary position-relative">
+							Inbox
+							<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+								99+
+								<span class="visually-hidden">unread messages</span>
+							</span>
+						</button>
+
+						<div class="my-6"></div>
+
+						<p class="mb-6">
+							You can also replace the <code>.badge</code> class with a few more utilities without a count for a more generic indicator.
+						</p>
+
+						<button type="button" class="btn btn-secondary position-relative">
+							Profile
+							<span class="position-absolute top-0 start-100 translate-middle p-1.5 bg-danger rounded-circle">
+								<span class="visually-hidden">New alerts</span>
+							</span>
+						</button>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Background colors</h3>
+						<p class="card-subtitle mb-6">Set a background-color with contrasting foreground color.</p>
+
+						<span class="badge text-bg-primary">Primary</span>
+						<span class="badge text-bg-success">Success</span>
+						<span class="badge text-bg-danger">Danger</span>
+						<span class="badge text-bg-warning">Warning</span>
+						<span class="badge text-bg-info">Info</span>
+						<span class="badge text-bg-light bg-opacity-50">Light</span>
+						<span class="badge text-bg-dark badge bg-opacity-50">Dark</span>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Pill badges</h3>
+						<p class="card-subtitle mb-6">
+							Use the <code>.rounded-pill</code> utility class to make badges more rounded with a larger border-radius.
+						</p>
+
+						<span class="badge rounded-pill bg-primary">Primary</span>
+						<span class="badge rounded-pill bg-success">Success</span>
+						<span class="badge rounded-pill bg-danger">Danger</span>
+						<span class="badge rounded-pill bg-warning">Warning</span>
+						<span class="badge rounded-pill bg-info">Info</span>
+						<span class="badge rounded-pill text-bg-light bg-opacity-50">Light</span>
+						<span class="badge rounded-pill text-bg-dark badge bg-opacity-50">Dark</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

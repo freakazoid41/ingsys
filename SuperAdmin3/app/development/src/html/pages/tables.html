@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en" data-page="content-tables">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Tables" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Site sidebar -->
+		<module href="./src/html/partials/_sidebar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Tables</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Content</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Basic example</h3>
+						<p class="card-subtitle mb-6">Using the most basic table markup, here’s how <code>.table</code>-based tables look in Bootstrap.</p>
+
+						<table class="table mb-0">
+							<thead>
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">First</th>
+									<th scope="col">Last</th>
+									<th scope="col">Handle</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th scope="row">1</th>
+									<td>Katherine</td>
+									<td>Joel</td>
+									<td>@Commodo</td>
+								</tr>
+								<tr>
+									<th scope="row">2</th>
+									<td>Meyer</td>
+									<td>Warner</td>
+									<td>@a</td>
+								</tr>
+								<tr>
+									<th scope="row">3</th>
+									<td>Hannah</td>
+									<td>Fitzgerald</td>
+									<td>@cillum</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5 mb-6">Accented tables</h3>
+
+						<h4 class="text-body-emphasis mb-6 fs-6">Striped rows</h4>
+						<p class="card-subtitle mb-6">
+							Use <code>.table-striped</code> to add zebra-striping to any table row within the <code>&lt;tbody&gt;</code>.
+						</p>
+
+						<table class="table table-striped mb-0">
+							<thead>
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">First</th>
+									<th scope="col">Last</th>
+									<th scope="col">Handle</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th scope="row">1</th>
+									<td>Katherine</td>
+									<td>Joel</td>
+									<td>@Commodo</td>
+								</tr>
+								<tr>
+									<th scope="row">2</th>
+									<td>Meyer</td>
+									<td>Warner</td>
+									<td>@a</td>
+								</tr>
+								<tr>
+									<th scope="row">3</th>
+									<td>Hannah</td>
+									<td>Fitzgerald</td>
+									<td>@cillum</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<div class="my-10"></div>
+
+						<h4 class="text-body-emphasis mb-6 fs-6">Striped columns</h4>
+						<p class="card-subtitle mb-6">Use <code>.table-striped-columns</code> to add zebra-striping to any table column.</p>
+
+						<table class="table table-striped-columns mb-0">
+							<thead>
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">First</th>
+									<th scope="col">Last</th>
+									<th scope="col">Handle</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th scope="row">1</th>
+									<td>Katherine</td>
+									<td>Joel</td>
+									<td>@Commodo</td>
+								</tr>
+								<tr>
+									<th scope="row">2</th>
+									<td>Meyer</td>
+									<td>Warner</td>
+									<td>@a</td>
+								</tr>
+								<tr>
+									<th scope="row">3</th>
+									<td>Hannah</td>
+									<td>Fitzgerald</td>
+									<td>@cillum</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<div class="my-10"></div>
+
+						<h4 class="text-body-emphasis mb-6 fs-6">Hoverable rows</h4>
+						<p class="card-subtitle mb-6">
+							Add <code>.table-hover</code> to enable a hover state on table rows within a <code>&lt;tbody&gt;</code>.
+						</p>
+
+						<table class="table table-hover mb-0">
+							<thead>
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">First</th>
+									<th scope="col">Last</th>
+									<th scope="col">Handle</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th scope="row">1</th>
+									<td>Katherine</td>
+									<td>Joel</td>
+									<td>@Commodo</td>
+								</tr>
+								<tr>
+									<th scope="row">2</th>
+									<td>Meyer</td>
+									<td>Warner</td>
+									<td>@a</td>
+								</tr>
+								<tr>
+									<th scope="row">3</th>
+									<td>Hannah</td>
+									<td>Fitzgerald</td>
+									<td>@cillum</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<div class="my-10"></div>
+
+						<h4 class="text-body-emphasis mb-6 fs-6">Active tables</h4>
+						<p class="card-subtitle mb-6">Highlight a table row or cell by adding a <code>.table-active</code> class.</p>
+
+						<table class="table mb-0">
+							<thead>
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">First</th>
+									<th scope="col">Last</th>
+									<th scope="col">Handle</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th scope="row">1</th>
+									<td>Katherine</td>
+									<td>Joel</td>
+									<td>@Commodo</td>
+								</tr>
+								<tr class="table-active">
+									<th scope="row">2</th>
+									<td>Meyer</td>
+									<td>Warner</td>
+									<td>@a</td>
+								</tr>
+								<tr>
+									<th scope="row">3</th>
+									<td>Hannah</td>
+									<td>Fitzgerald</td>
+									<td>@cillum</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5 mb-6">Table borders</h3>
+
+						<h4 class="text-body-emphasis mb-6 fs-6">Bordered tables</h4>
+						<p class="card-subtitle mb-6">Add <code>.table-bordered</code> for borders on all sides of the table and cells.</p>
+
+						<table class="table table-bordered mb-0">
+							<thead>
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">First</th>
+									<th scope="col">Last</th>
+									<th scope="col">Handle</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th scope="row">1</th>
+									<td>Katherine</td>
+									<td>Joel</td>
+									<td>@Commodo</td>
+								</tr>
+								<tr>
+									<th scope="row">2</th>
+									<td>Meyer</td>
+									<td>Warner</td>
+									<td>@a</td>
+								</tr>
+								<tr>
+									<th scope="row">3</th>
+									<td>Hannah</td>
+									<td>Fitzgerald</td>
+									<td>@cillum</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<div class="my-10"></div>
+
+						<h4 class="text-body-emphasis mb-6 fs-6">Borderless Table</h4>
+						<p class="card-subtitle mb-6">Add <code>.table-borderless</code> for a table without borders.</p>
+
+						<table class="table table-borderless mb-0">
+							<thead>
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">First</th>
+									<th scope="col">Last</th>
+									<th scope="col">Handle</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th scope="row">1</th>
+									<td>Katherine</td>
+									<td>Joel</td>
+									<td>@Commodo</td>
+								</tr>
+								<tr>
+									<th scope="row">2</th>
+									<td>Meyer</td>
+									<td>Warner</td>
+									<td>@a</td>
+								</tr>
+								<tr>
+									<th scope="row">3</th>
+									<td>Hannah</td>
+									<td>Fitzgerald</td>
+									<td>@cillum</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Small tables</h3>
+						<p class="card-subtitle mb-6">
+							Add <code>.table-sm</code> to make any <code>.table</code> more compact by cutting all cell <code>padding</code> in half.
+						</p>
+
+						<table class="table table-sm mb-0">
+							<thead>
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">First</th>
+									<th scope="col">Last</th>
+									<th scope="col">Handle</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th scope="row">1</th>
+									<td>Katherine</td>
+									<td>Joel</td>
+									<td>@Commodo</td>
+								</tr>
+								<tr>
+									<th scope="row">2</th>
+									<td>Meyer</td>
+									<td>Warner</td>
+									<td>@a</td>
+								</tr>
+								<tr>
+									<th scope="row">3</th>
+									<td>Hannah</td>
+									<td>Fitzgerald</td>
+									<td>@cillum</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5 mb-6">Responsive tables</h3>
+
+						<h4 class="text-body-emphasis mb-6 fs-6">Always responsive</h4>
+						<p class="card-subtitle mb-6">Across every breakpoint, use <code>.table-responsive</code> for horizontally scrolling tables.</p>
+
+						<div class="table-responsive">
+							<table class="table mb-0">
+								<thead>
+									<tr>
+										<th scope="col">#</th>
+										<th scope="col">Heading</th>
+										<th scope="col">Heading</th>
+										<th scope="col">Heading</th>
+										<th scope="col">Heading</th>
+										<th scope="col">Heading</th>
+										<th scope="col">Heading</th>
+										<th scope="col">Heading</th>
+										<th scope="col">Heading</th>
+										<th scope="col">Heading</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<th scope="row">1</th>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+									</tr>
+									<tr>
+										<th scope="row">2</th>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+									</tr>
+									<tr>
+										<th scope="row">3</th>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+										<td>Cell</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div class="my-10"></div>
+
+						<h4 class="text-body-emphasis mb-6 fs-6">Breakpoint specific</h4>
+						<p class="card-subtitle mb-6">
+							Use <code>.table-responsive{-sm|-md|-lg|-xl|-xxl}</code> as needed to create responsive tables up to a particular breakpoint. From
+							that breakpoint and up, the table will behave normally and not scroll horizontally.
+						</p>
+
+						<pre class="pre mb-0"><code>&lt;div class=&quot;table-responsive-{breakpoint}&quot;&gt;
+    &lt;table class=&quot;table&quot;&gt;
+        ...
+    &lt;/table&gt;
+&lt;/div&gt;</code></pre>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

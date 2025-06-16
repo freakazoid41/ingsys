@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-pagination">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Pagination" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Content header -->
+			<div class="content-header">
+				<h2 class="m-0 ps-3 text-body-emphasis fs-6">Pagination</h2>
+
+				<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+					<ol class="breadcrumb fs-7">
+						<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+						<li class="breadcrumb-item active" aria-current="page">Components</li>
+					</ol>
+				</nav>
+
+				<i class="ms-auto"></i>
+
+				<div id="toc-wrapper"></div>
+			</div>
+
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Basic example</h3>
+						<p class="card-subtitle mb-6">
+							Basic pagination is created by adding the <code>.pagination</code> class to any <code>ul</code> element.
+						</p>
+
+						<nav aria-label="Page navigation example">
+							<ul class="pagination">
+								<li class="page-item"><a class="page-link" href="#">Previous</a></li>
+								<li class="page-item"><a class="page-link" href="#">1</a></li>
+								<li class="page-item"><a class="page-link" href="#">2</a></li>
+								<li class="page-item"><a class="page-link" href="#">3</a></li>
+								<li class="page-item"><a class="page-link" href="#">Next</a></li>
+							</ul>
+						</nav>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Working with icons</h3>
+						<p class="card-subtitle mb-6">
+							Looking to use an icon or symbol in place of text for some pagination links? Be sure to provide proper screen reader support with
+							<code>aria</code> attributes.
+						</p>
+
+						<nav aria-label="Page navigation example">
+							<ul class="pagination">
+								<li class="page-item">
+									<a class="page-link" href="#" aria-label="Previous">
+										<i class="ph ph-arrow-left"></i>
+									</a>
+								</li>
+								<li class="page-item"><a class="page-link" href="#">1</a></li>
+								<li class="page-item"><a class="page-link" href="#">2</a></li>
+								<li class="page-item"><a class="page-link" href="#">3</a></li>
+								<li class="page-item">
+									<a class="page-link" href="#" aria-label="Next">
+										<i class="ph ph-arrow-right"></i>
+									</a>
+								</li>
+							</ul>
+						</nav>
+
+						<nav aria-label="Page navigation example">
+							<ul class="pagination">
+								<li class="page-item">
+									<a class="page-link" href="#" aria-label="Previous">
+										<i class="ph ph-caret-left"></i>
+									</a>
+								</li>
+								<li class="page-item"><a class="page-link" href="#">1</a></li>
+								<li class="page-item"><a class="page-link" href="#">2</a></li>
+								<li class="page-item"><a class="page-link" href="#">3</a></li>
+								<li class="page-item">
+									<a class="page-link" href="#" aria-label="Next">
+										<i class="ph ph-caret-right"></i>
+									</a>
+								</li>
+							</ul>
+						</nav>
+
+						<nav aria-label="Page navigation example">
+							<ul class="pagination">
+								<li class="page-item">
+									<a class="page-link" href="#" aria-label="First">
+										<i class="ph ph-caret-double-left"></i>
+									</a>
+								</li>
+								<li class="page-item">
+									<a class="page-link" href="#" aria-label="Previous">
+										<i class="ph ph-caret-left"></i>
+									</a>
+								</li>
+								<li class="page-item"><a class="page-link" href="#">1</a></li>
+								<li class="page-item"><a class="page-link" href="#">2</a></li>
+								<li class="page-item"><a class="page-link" href="#">3</a></li>
+								<li class="page-item">
+									<a class="page-link" href="#" aria-label="Next">
+										<i class="ph ph-caret-right"></i>
+									</a>
+								</li>
+								<li class="page-item">
+									<a class="page-link" href="#" aria-label="Last">
+										<i class="ph ph-caret-double-right"></i>
+									</a>
+								</li>
+							</ul>
+						</nav>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Disabled and active states</h3>
+						<p class="card-subtitle mb-6">
+							Pagination links are customizable for different circumstances. Use <code>.disabled</code> for links that appear un-clickable and
+							<code>.active</code> to indicate the current page.
+						</p>
+
+						<nav aria-label="...">
+							<ul class="pagination">
+								<li class="page-item disabled">
+									<a class="page-link">Previous</a>
+								</li>
+								<li class="page-item"><a class="page-link" href="#">1</a></li>
+								<li class="page-item active" aria-current="page">
+									<a class="page-link" href="#">2</a>
+								</li>
+								<li class="page-item"><a class="page-link" href="#">3</a></li>
+								<li class="page-item">
+									<a class="page-link" href="#">Next</a>
+								</li>
+							</ul>
+						</nav>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Sizing</h3>
+						<p class="card-subtitle mb-6">
+							Fancy larger or smaller pagination? Add <code>.pagination-lg</code> or <code>.pagination-sm</code> for additional sizes.
+						</p>
+
+						<nav aria-label="...">
+							<ul class="pagination pagination-lg">
+								<li class="page-item active" aria-current="page">
+									<span class="page-link">1</span>
+								</li>
+								<li class="page-item"><a class="page-link" href="#">2</a></li>
+								<li class="page-item"><a class="page-link" href="#">3</a></li>
+							</ul>
+						</nav>
+
+						<nav aria-label="...">
+							<ul class="pagination pagination-sm m-0">
+								<li class="page-item active" aria-current="page">
+									<span class="page-link">1</span>
+								</li>
+								<li class="page-item"><a class="page-link" href="#">2</a></li>
+								<li class="page-item"><a class="page-link" href="#">3</a></li>
+							</ul>
+						</nav>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Alignment</h3>
+						<p class="card-subtitle mb-6">
+							Use <a target="_blank" href="https://getbootstrap.com/docs/5.3/utilities/flex/">flexbox utilities</a> to align the Pagination.
+						</p>
+
+						<div class="border rounded p-5">
+							<nav aria-label="Page navigation example">
+								<ul class="pagination justify-content-center">
+									<li class="page-item disabled">
+										<a class="page-link">Previous</a>
+									</li>
+									<li class="page-item"><a class="page-link" href="#">1</a></li>
+									<li class="page-item"><a class="page-link" href="#">2</a></li>
+									<li class="page-item"><a class="page-link" href="#">3</a></li>
+									<li class="page-item">
+										<a class="page-link" href="#">Next</a>
+									</li>
+								</ul>
+							</nav>
+
+							<nav aria-label="Page navigation example">
+								<ul class="pagination justify-content-end m-0">
+									<li class="page-item disabled">
+										<a class="page-link">Previous</a>
+									</li>
+									<li class="page-item"><a class="page-link" href="#">1</a></li>
+									<li class="page-item"><a class="page-link" href="#">2</a></li>
+									<li class="page-item"><a class="page-link" href="#">3</a></li>
+									<li class="page-item">
+										<a class="page-link" href="#">Next</a>
+									</li>
+								</ul>
+							</nav>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

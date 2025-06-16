@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-buttons">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Buttons" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+		
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Buttons</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Variants</h3>
+						<p class="card-subtitle mb-6">
+							Bootstrap includes several button variants, each serving its own semantic purpose, with a few extras thrown in for more control.
+						</p>
+
+						<button type="button" class="btn btn-primary me-1">Primary</button>
+						<button type="button" class="btn btn-secondary me-1">Secondary</button>
+						<button type="button" class="btn btn-success me-1">Success</button>
+						<button type="button" class="btn btn-danger me-1">Danger</button>
+						<button type="button" class="btn btn-warning me-1">Warning</button>
+						<button type="button" class="btn btn-info me-1">Info</button>
+
+						<button type="button" class="btn btn-link">Link</button>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Button tags</h3>
+						<p class="card-subtitle mb-6">
+							The <code>.btn</code> classes are designed to be used with the <code>&lt;button&gt;</code> element. However, you can also use these
+							classes on <code>&lt;a&gt;</code> or <code>&lt;input&gt;</code> elements (though some browsers may apply a slightly different
+							rendering).
+						</p>
+
+						<a class="btn btn-secondary me-1" href="#" role="button">Link</a>
+						<button class="btn btn-secondary me-1" type="submit">Button</button>
+						<input class="btn btn-secondary me-1" type="button" value="Input" />
+						<input class="btn btn-secondary me-1" type="submit" value="Submit" />
+						<input class="btn btn-secondary me-1" type="reset" value="Reset" />
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Outline buttons</h3>
+						<p class="card-subtitle mb-6">
+							In need of a button, but not the hefty background colors they bring? Replace the default modifier classes with the
+							<code>.btn-outline-*</code> ones to remove all background images and colors on any button.
+						</p>
+
+						<button type="button" class="me-1 btn btn-outline-primary">Primary</button>
+						<button type="button" class="me-1 btn btn-outline-success">Success</button>
+						<button type="button" class="me-1 btn btn-outline-danger">Danger</button>
+						<button type="button" class="me-1 btn btn-outline-warning">Warning</button>
+						<button type="button" class="me-1 btn btn-outline-info">Info</button>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Sizes</h3>
+						<p class="card-subtitle mb-6">
+							Fancy larger or smaller buttons? Add <code>.btn-lg</code> or <code>.btn-sm</code> for additional sizes.
+						</p>
+
+						<button type="button" class="btn btn-secondary btn-sm me-1">Small button</button>
+						<button type="button" class="btn btn-secondary me-1">Default button</button>
+						<button type="button" class="btn btn-secondary btn-lg">Large button</button>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Disabled state</h3>
+						<p class="card-subtitle mb-6">
+							Make buttons look inactive by adding the <code>disabled</code> boolean attribute to any <code>&lt;button&gt;</code> element.
+							Disabled buttons have <code>pointer-events: none</code> applied to, preventing hover and active states from triggering.
+						</p>
+
+						<button type="button" class="btn btn-secondary me-1" disabled>Disabled button</button>
+						<button type="button" class="btn btn-outline-theme" disabled>Disabled button</button>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Block buttons</h3>
+						<p class="card-subtitle mb-6">
+							Create responsive stacks of full-width, “block buttons” like those in Bootstrap 4 with a mix of our display and gap utilities. By
+							using utilities instead of button-specific classes, we have much greater control over spacing, alignment, and responsive behaviors.
+						</p>
+
+						<div class="d-grid gap-3">
+							<button class="btn btn-secondary" type="button">Button</button>
+							<button class="btn btn-secondary" type="button">Button</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Toggle states</h3>
+						<p class="card-subtitle mb-6">
+							Add <code>data-bs-toggle="button"</code> to toggle a button’s <code>active</code> state. If you’re pre-toggling a button, you must
+							manually add the <code>.active</code> class and <code>aria-pressed="true"</code> to ensure that it is conveyed appropriately to
+							assistive technologies.
+						</p>
+
+						<div class="flex gap-1">
+							<button type="button" class="btn btn-secondary me-1" data-bs-toggle="button">Toggle button</button>
+							<button type="button" class="btn btn-secondary me-1 active" data-bs-toggle="button" aria-pressed="true">Active toggle button</button>
+							<button type="button" class="btn btn-secondary me-1" disabled data-bs-toggle="button">Disabled toggle button</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

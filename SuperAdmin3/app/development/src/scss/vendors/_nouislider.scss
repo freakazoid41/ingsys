@@ -1,0 +1,40 @@
+.input-slider {
+	&.noUi-horizontal {
+		height: 0.3rem;
+
+		.noUi-handle {
+			right: -0.5rem;
+			top: -0.35rem;
+			height: 1rem;
+			width: 1rem;
+		}
+	}
+
+	.noUi-handle {
+		border-radius: 50%;
+		border: 0;
+		box-shadow: none;
+		background-color: $secondary-color;
+		transition: transform 200ms;
+
+		&:before,
+		&:after {
+			display: none;
+		}
+
+		&.noUi-active {
+			transform: scale(1.2);
+		}
+	}
+
+	.noUi-connect {
+		background-color: $secondary-color;
+		opacity: 0.7;
+	}
+
+	&.noUi-target {
+		border: 0;
+		box-shadow: none;
+		background-color: $border-color;
+	}
+}

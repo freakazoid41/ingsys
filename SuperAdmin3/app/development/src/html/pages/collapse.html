@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-collapse">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Collapse" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Collapse</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Basic example</h3>
+						<p class="card-subtitle mb-6">
+							The collapse JavaScript plugin is used to show and hide content. Buttons or anchors are used as triggers that are mapped to specific
+							elements you toggle.
+						</p>
+
+						<div class="d-inline-flex gap-2">
+							<a
+								class="btn btn-secondary"
+								data-bs-toggle="collapse"
+								href="#collapseExample"
+								role="button"
+								aria-expanded="false"
+								aria-controls="collapseExample"
+							>
+								Link with href
+							</a>
+							<button
+								class="btn btn-secondary"
+								type="button"
+								data-bs-toggle="collapse"
+								data-bs-target="#collapseExample"
+								aria-expanded="false"
+								aria-controls="collapseExample"
+							>
+								Button with data-bs-target
+							</button>
+						</div>
+						<div class="collapse" id="collapseExample">
+							<div class="pt-5">
+								Dolore non non ad elit ut deserunt nisi est tempor ad adipisicing ut consequat adipisicing. Laborum commodo labore irure elit
+								reprehenderit adipisicing tempor nisi laborum tempor do esse occaecat nulla. Lorem enim sunt velit est consectetur dolore. Elit
+								minim exercitation commodo proident dolore nostrud proident non aute esse magna ex.
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Horizontal</h3>
+						<p class="card-subtitle mb-6">
+							The collapse plugin supports horizontal collapsing. Add the <code>.collapse-horizontal</code> modifier class to transition the width
+							instead of height and set a width on the immediate child element.
+						</p>
+
+						<div>
+							<button
+								class="btn btn-secondary"
+								type="button"
+								data-bs-toggle="collapse"
+								data-bs-target="#collapseWidthExample"
+								aria-expanded="false"
+								aria-controls="collapseWidthExample"
+							>
+								Toggle width collapse
+							</button>
+						</div>
+						<div class="collapse collapse-horizontal" id="collapseWidthExample">
+							<div class="w-72 pt-5">
+								This is some placeholder content for a horizontal collapse. It's hidden by default and shown when triggered.
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Multiple toggles and targets</h3>
+						<p class="card-subtitle mb-6">
+							A <code>&lt;button&gt;</code> or <code>&lt;a&gt;</code> element can show and hide multiple elements by referencing them with a
+							selector in its data-bs-target or href attribute.
+						</p>
+
+						<div class="d-inline-flex flex-wrap gap-2">
+							<a
+								class="btn btn-secondary"
+								data-bs-toggle="collapse"
+								href="#multiCollapseExample1"
+								role="button"
+								aria-expanded="false"
+								aria-controls="multiCollapseExample1"
+								>Toggle first element</a
+							>
+							<button
+								class="btn btn-secondary"
+								type="button"
+								data-bs-toggle="collapse"
+								data-bs-target="#multiCollapseExample2"
+								aria-expanded="false"
+								aria-controls="multiCollapseExample2"
+							>
+								Toggle second element
+							</button>
+							<button
+								class="btn btn-secondary"
+								type="button"
+								data-bs-toggle="collapse"
+								data-bs-target=".multi-collapse"
+								aria-expanded="false"
+								aria-controls="multiCollapseExample1 multiCollapseExample2"
+							>
+								Toggle both elements
+							</button>
+						</div>
+						<div class="row">
+							<div class="col">
+								<div class="collapse multi-collapse" id="multiCollapseExample1">
+									<div class="pt-5">
+										Some placeholder content for the first collapse component of this multi-collapse example. This panel is hidden by
+										default but revealed when the user activates the relevant trigger.
+									</div>
+								</div>
+							</div>
+							<div class="col">
+								<div class="collapse multi-collapse" id="multiCollapseExample2">
+									<div class="pt-5">
+										Some placeholder content for the second collapse component of this multi-collapse example. This panel is hidden by
+										default but revealed when the user activates the relevant trigger.
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

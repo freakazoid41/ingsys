@@ -1,0 +1,96 @@
+@import "variables";
+
+//-----------------------------------------------
+// Font icon (for before/after content)
+//-----------------------------------------------
+@mixin font-icon($content, $font-size) {
+	font-family: $font-family-icon-light;
+	content: $content;
+	font-size: $font-size;
+}
+
+//-----------------------------------------------
+// Placeholder
+//-----------------------------------------------
+@mixin placeholder {
+	&::-webkit-input-placeholder {
+		@content;
+	}
+	&:-moz-placeholder {
+		opacity: 1;
+		@content;
+	}
+	&::-moz-placeholder {
+		opacity: 1;
+		@content;
+	}
+	&:-ms-input-placeholder {
+		@content;
+	}
+}
+
+//-----------------------------------------------
+// Scrollbar
+//-----------------------------------------------
+// Custom styled scrollbar
+@mixin scrollbar($bg: transparent, $thumb: rgba($black, 0.35)) {
+    scrollbar-color: $thumb $bg;
+    scrollbar-width: thin;
+	overflow-y: scroll;
+	overflow-x: hidden;
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        background-color: $bg;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: $thumb;
+        border-radius: $border-radius;
+    }
+}
+
+
+// Hide scrollbar
+@mixin hide-scrollbar {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+	overflow-y: scroll;
+	-webkit-overflow-scrolling: touch;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
+//---------------------------------------------------
+// Color mode switch for theme variables.
+// This uses Bootstrap's color mode mixin to
+// generate CSS variables for each color mode.
+//---------------------------------------------------
+@mixin generate-custom-properties($map) {
+	@include color-mode(light) {
+		@each $property, $value in $map {
+			--#{$prefix}#{$property}: #{nth($value, 1)};
+		}
+	}
+
+	@include color-mode(dark) {
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+
+		@each $property, $value in $map {
+			--#{$prefix}#{$property}: #{nth($value, 2)};
+		}
+	}
+}
+
+//-----------------------------------------------
+// Active link color
+//-----------------------------------------------
+@mixin active-link-color() {
+	background: linear-gradient(to right, #076dd2 0%, #09d494 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}

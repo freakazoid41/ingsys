@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+		<title>Form Templates | Super Admin Documentation</title>
+		<meta name="viewport" content="width=device-width,minimum-scale=1" />
+		<meta
+			name="description"
+			content="
+				Login form Sample login form with basic input fields.
+&lt;form class=&#34;col-md-6&#34;&gt; &lt;div class=&#34;mb-3&#34;&gt; &lt;input type=&#34;text&#34; class=&#34;form-control&#34; id=&#34;login-username&#34; placeholder=&#34;Username&#34; /&gt; &lt;/div&gt; &lt;div class=&#34;mb-3&#34;&gt; &lt;input type=&#34;password&#34; class=&#34;form-control&#34; id=&#34;login-password&#34; placeholder=&#34;Password&#34; /&gt; &lt;/div&gt; &lt;div class=&#34;form-check mb-5&#34;&gt; &lt;input class=&#34;form-check-input&#34; type=&#34;checkbox&#34; value=&#34;&#34; id=&#34;login-cb&#34; /&gt; &lt;label class=&#34;form-check-label&#34; for=&#34;login-cb&#34;&gt;Stay logged in&lt;/label&gt; &lt;/div&gt; &lt;button type=&#34;submit&#34; class=&#34;btn btn-theme&#34;&gt;Login&lt;/button&gt; &lt;/form&gt; Registration form Sample sign up form basic with names, email and password fields.
+&lt;form class=&#34;row g-4 col-md-7&#34;&gt; &lt;div class=&#34;col-md-6&#34;&gt; &lt;input type=&#34;text&#34; class=&#34;form-control&#34; id=&#34;reg-firstname&#34; placeholder=&#34;First Name&#34; /&gt; &lt;/div&gt; &lt;div class=&#34;col-md-6&#34;&gt; &lt;input type=&#34;text&#34; class=&#34;form-control&#34; id=&#34;reg-lastname&#34; placeholder=&#34;Last Name&#34; /&gt; &lt;/div&gt; &lt;div class=&#34;col-md-12&#34;&gt; &lt;input type=&#34;email&#34; class=&#34;form-control&#34; id=&#34;reg-email&#34; placeholder=&#34;Email Address&#34; /&gt; &lt;/div&gt; &lt;div class=&#34;col-md-6&#34;&gt; &lt;input type=&#34;password&#34; class=&#34;form-control&#34; id=&#34;reg-password&#34; placeholder=&#34;Password&#34; /&gt; &lt;/div&gt; &lt;div class=&#34;col-md-6&#34;&gt; &lt;input type=&#34;password&#34; class=&#34;form-control&#34; id=&#34;reg-cpassword&#34; placeholder=&#34;Confirm Password&#34; /&gt; &lt;/div&gt; &lt;div class=&#34;col-md-12&#34;&gt; &lt;div class=&#34;form-check mb-8&#34;&gt; &lt;input class=&#34;form-check-input&#34; type=&#34;checkbox&#34; value=&#34;&#34; id=&#34;reg-cb&#34; /&gt; &lt;label class=&#34;form-check-label&#34; for=&#34;red-cb&#34;&gt;I have read and accept the agreement&lt;/label&gt; &lt;/div&gt; &lt;button type=&#34;submit&#34; class=&#34;btn btn-theme&#34;&gt;Create Account&lt;/button&gt; &lt;/div&gt; &lt;/form&gt; Contact form Sample contact form name, email and message fields.
+			
+			"
+		/>
+
+		
+
+
+	
+	<link rel="stylesheet" href="./dist/style.min.b09d6822522fd5042bac92985823b1841e167aef0b9991cc901385d73cb77be3.css" />
+
+
+	</head>
+
+	<body class="flex h-screen flex-col overflow-hidden font-sans">
+		<header class="z-20 flex h-20 flex-shrink-0 items-center border-b border-slate-100 bg-white px-6">
+	<button class="-ml-3.5 mr-2 grid h-12 w-14 place-items-center rounded hover:bg-slate-100 lg:hidden" id="sidebar-open">
+		<svg class="text-cyan-500" width="30" fill="#000000" viewBox="0 0 256 256">
+			<path d="M88,48V208H40a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8Z" opacity="0.5" fill="currentColor"></path>
+			<path
+				d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,152H56a8,8,0,0,0,0-16H40V120H56a8,8,0,0,0,0-16H40V88H56a8,8,0,0,0,0-16H40V56H80V200H40Zm176,48H96V56H216V200Z"
+			></path>
+		</svg>
+	</button>
+
+	<a href="./index.html" class="text-xl font-bold pr-5">
+		<span class="max-sm:hidden">Super Admin Documentation</span>
+		<span class="sm:hidden">Documentation</span>
+	</a>
+	
+	
+</header>
+
+
+
+		<div class="flex flex-1 overflow-hidden">
+			<aside class="fixed left-0 top-0 z-50 hidden h-full w-72 overflow-y-auto border-r border-slate-100 bg-white p-6 lg:relative lg:z-0 lg:block" id="sidebar">
+	
+	<div class="sticky top-0 -mr-3 mb-3 text-right lg:hidden">
+		<button class="-ml-3.5 -mt-4 mr-2 inline-grid h-12 w-14 place-items-center rounded bg-white/75 hover:bg-slate-100 xl:hidden" id="sidebar-close">
+			<svg class="rotate-180 text-cyan-500" width="30" fill="#000000" viewBox="0 0 256 256">
+				<path d="M88,48V208H40a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8Z" opacity="0.5" fill="currentColor"></path>
+				<path
+					d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,152H56a8,8,0,0,0,0-16H40V120H56a8,8,0,0,0,0-16H40V88H56a8,8,0,0,0,0-16H40V56H80V200H40Zm176,48H96V56H216V200Z"
+				></path>
+			</svg>
+		</button>
+	</div>
+
+	
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Getting Started</span>
+
+			
+				<a
+					href="./quick-start.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Quick Start
+
+					
+				</a>
+			
+				<a
+					href="./customization.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Customization
+
+					
+				</a>
+			
+				<a
+					href="./themes.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Themes
+
+					
+				</a>
+			
+				<a
+					href="./page-templates.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Page Templates
+
+					
+				</a>
+			
+				<a
+					href="./dev-dependencies.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Development Dependencies
+
+					
+				</a>
+			
+				<a
+					href="./browser-support.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Browser Support
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Content</span>
+
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/reboot/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Base Styles
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/typography/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Typography
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/images/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Images
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/tables/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Tables
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/figures/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Figures
+
+					
+				</a>
+			
+				<a
+					href="./icons.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Icons
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Forms</span>
+
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/overview/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Overview
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/input-group/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Input Groups
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/layout/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Layouts
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/validation/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Validations
+
+					
+				</a>
+			
+				<a
+					href="./form-templates.html"
+					class="
+						text-cyan-500 font-bold
+					 flex items-center py-1"
+					>Templates
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Bootstrap Components</span>
+
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/accordion/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Accordion
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/alerts/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Alerts
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/badge/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Badge
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/breadcrumb/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Breadcrumb
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/buttons/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Buttons
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/button-group/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Button Groups
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/card/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Card
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/carousel/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Carousel
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/close-button/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Close Button
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/collapse/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Collapse
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/dropdowns/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Dropdowns
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/list-group/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>List Group
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/modal/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Modal
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/navs-tabs/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Navs and Tabs
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/offcanvas/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Offcanvas
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/pagination/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Pagination
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/placeholders/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Placeholders
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/popovers/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Popovers
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/progress/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Progress
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/spinners/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Spinners
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/toasts/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Toasts
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/tooltips/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Tooltips
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Third Party Components</span>
+
+			
+				<a
+					href="./form-components.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Form Related
+
+					
+				</a>
+			
+				<a
+					href="./other-components.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Others
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Charts and Maps</span>
+
+			
+				<a
+					href="./charts.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Charts
+
+					
+				</a>
+			
+				<a
+					href="./maps.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Maps
+
+					
+				</a>
+			
+		</div>
+	
+</aside>
+
+
+
+			<main class="relative z-10 flex flex-1 flex-col overflow-y-auto scroll-smooth p-8 pb-0 xl:pr-[calc(15rem+2rem)]" role="main">
+				
+	<div class="prose mx-auto w-full max-w-7xl flex-1"><h2 id="login-form">Login form</h2>
+<p>Sample login form with basic input fields.</p>
+<div class="my-6 rounded-md border border-slate-200">
+	<div class="p-8">
+		<img src="./images/forms/login.png" class="medium-zoom-image m-0 mx-auto" width="500" alt="Login" />
+	</div>
+
+	
+		<div class="p-2 [&_.tab]:m-0 [&_pre]:m-0">
+			
+				<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">form</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;col-md-6&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;mb-3&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;text&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;login-username&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Username&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;mb-3&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;password&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;login-password&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Password&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check mb-5&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check-input&#34;</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;checkbox&#34;</span> <span style="color:#8fbcbb">value</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;login-cb&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">label</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check-label&#34;</span> <span style="color:#8fbcbb">for</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;login-cb&#34;</span><span style="color:#eceff4">&gt;</span>Stay logged in<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">label</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">button</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;submit&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;btn btn-theme&#34;</span><span style="color:#eceff4">&gt;</span>Login<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">button</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">form</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+	
+</div>
+
+<h2 id="registration-form">Registration form</h2>
+<p>Sample sign up form basic with names, email and password fields.</p>
+<div class="my-6 rounded-md border border-slate-200">
+	<div class="p-8">
+		<img src="./images/forms/register.png" class="medium-zoom-image m-0 mx-auto" width="550" alt="Registration" />
+	</div>
+
+	
+		<div class="p-2 [&_.tab]:m-0 [&_pre]:m-0">
+			
+				<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">form</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;row g-4 col-md-7&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;col-md-6&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;text&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;reg-firstname&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;First Name&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;col-md-6&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;text&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;reg-lastname&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Last Name&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;col-md-12&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;email&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;reg-email&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Email Address&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;col-md-6&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;password&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;reg-password&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Password&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;col-md-6&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;password&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;reg-cpassword&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Confirm Password&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;col-md-12&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check mb-8&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check-input&#34;</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;checkbox&#34;</span> <span style="color:#8fbcbb">value</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;reg-cb&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">label</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check-label&#34;</span> <span style="color:#8fbcbb">for</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;red-cb&#34;</span><span style="color:#eceff4">&gt;</span>I have read and accept the agreement<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">label</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">button</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;submit&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;btn btn-theme&#34;</span><span style="color:#eceff4">&gt;</span>Create Account<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">button</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">form</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+	
+</div>
+
+<h2 id="contact-form">Contact form</h2>
+<p>Sample contact form name, email and message fields.</p>
+<div class="my-6 rounded-md border border-slate-200">
+	<div class="p-8">
+		<img src="./images/forms/contact.png" class="medium-zoom-image m-0 mx-auto" width="450" alt="Contact" />
+	</div>
+
+	
+		<div class="p-2 [&_.tab]:m-0 [&_pre]:m-0">
+			
+				<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">form</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;mb-3&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;text&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;contact-name&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Name&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;mb-3&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;email&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;contact-email&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Email Address&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;mb-3&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">textarea</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;contact-message&#34;</span> <span style="color:#8fbcbb">rows</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;3&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Message&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">textarea</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check mb-5&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check-input&#34;</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;checkbox&#34;</span> <span style="color:#8fbcbb">value</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;reg-cb&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">label</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check-label&#34;</span> <span style="color:#8fbcbb">for</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;red-cb&#34;</span><span style="color:#eceff4">&gt;</span>Agree to privacy policy<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">label</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">button</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;submit&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;btn btn-theme&#34;</span><span style="color:#eceff4">&gt;</span>Send Message<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">button</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">form</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+	
+</div>
+
+<h2 id="newsletter-form">Newsletter form</h2>
+<p>Sample newsletter form with name and email address.</p>
+<div class="my-6 rounded-md border border-slate-200">
+	<div class="p-8">
+		<img src="./images/forms/newsletter.png" class="medium-zoom-image m-0 mx-auto" width="450" alt="Newsletter" />
+	</div>
+
+	
+		<div class="p-2 [&_.tab]:m-0 [&_pre]:m-0">
+			
+				<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">form</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;col-md-6&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;mb-3&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;text&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;newsletter-name&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Name&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;mb-3&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;email&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-control&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;newsletter-email&#34;</span> <span style="color:#8fbcbb">placeholder</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;Email Address&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check mb-5&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">input</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check-input&#34;</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;checkbox&#34;</span> <span style="color:#8fbcbb">value</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;newsletter-cb&#34;</span> <span style="color:#eceff4">/&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">label</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;form-check-label&#34;</span> <span style="color:#8fbcbb">for</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;red-newsletter&#34;</span><span style="color:#eceff4">&gt;</span>I have read and accept the agreement<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">label</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">button</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;submit&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;btn btn-theme&#34;</span><span style="color:#eceff4">&gt;</span>Subscribe<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">button</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">form</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+	
+</div>
+
+</div>
+	
+	
+	<div class="fixed right-0 top-0 hidden h-full w-60 border-l border-slate-100 pt-20 xl:block">
+		<div class="p-6 [&_a]:block [&_a]:py-1 [&_a]:text-slate-500 hover:[&_a]:text-slate-900">
+			<h4 class="mb-4 text-lg font-bold text-slate-900">On this page</h4>
+
+			<nav id="TableOfContents">
+  <ul>
+    <li><a href="#login-form">Login form</a></li>
+    <li><a href="#registration-form">Registration form</a></li>
+    <li><a href="#contact-form">Contact form</a></li>
+    <li><a href="#newsletter-form">Newsletter form</a></li>
+  </ul>
+</nav>
+		</div>
+	</div>
+
+
+
+
+				
+	<footer class="mt-10 border-t border-slate-100 px-8 py-5 text-center text-slate-500">
+		Copyright © 2024 AvidTemplates.
+	</footer>
+
+
+			</main>
+		</div>
+
+		
+
+
+	
+	<script src="./dist/app.min.e212844152cccc12b3375bb287749e18e30151c3ec00e0d562ae026842476b31.js"></script>
+
+
+	</body>
+</html>

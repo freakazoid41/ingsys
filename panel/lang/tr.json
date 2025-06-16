@@ -1,0 +1,59 @@
+{
+    "top.logout": "Çıkış",
+    "menu.home" : "Anasayfa",
+    "menu.transactions" : "Hareketler",
+
+    "menu.projects" : "Projeler",
+    "form.projects" : "Proje Ekle / Güncelle",
+    "form.projects.list" : "Proje Listesi",
+
+    "menu.meetings" : "Toplantılar",
+    "form.meetings" : "Toplantı Sonuç Ekle / Güncelle",
+    "form.meetings.list" : "Toplantı Listesi",
+
+    "menu.periods" : "Dönemler",
+    "form.periods" : "Dönem Bilgisi Ekle / Düzenle",
+    "form.periods.list" : "Dönem Listesi",
+
+    "menu.flats" : "Daireler",
+    "form.flats" : "Apartman Dairesi Ekle / Düzenle",
+    "form.flats.list" : "Apartman Daire Listesi",
+
+    "menu.targets" : "Kasalar",
+    "form.targets" : "Kasa Ekle / Düzenle",
+    "form.targets.list" : "Kasa Listesi",
+
+    "menu.users" : "Kullanıcılar",
+    "menu.users.list" : "Kullanıcı Listesi",
+    "form.users" : "Kullanıcı Ekle / Düzenle",
+
+    "menu.calendar" : "Takvim",
+    "form.calendar" : "Aktivite Ekle / Güncelle",
+    "form.calendar.list" : "Aylık Aktivite Listesi",
+
+    "menu.documentfiles" : "Dosyalar",
+    "form.documentfiles.list" : "Dosya Listesi",
+
+
+    "dashboard.totalflats"      : "Tüm Daireler",
+    "dashboard.monthly.outcome" : "Aylık Toplam Harcama",
+    "dashboard.monthly.income"  : "Aylık Toplam Gelir",
+    "dashboard.totalbalance"    : "Toplam Güncel Bütçe",
+    "dashboard.supervisor"      : "Yönetici",
+    "dashboard.amount"          : "Güncel Aidat",
+    "dashboard.transaction"     : "Hareket Gir",
+    "dashboard.export"          : "İcmal Raporu",
+    "dashboard.ongoingtasks"    : "Devam Eden Projeler",
+    "dashboard.incomewaiting"   : "Aylık Beklenen Aidatlar",
+    "dashboard.health"          : "Güncel Durum",
+
+    "transactions.list" : "Hareket Listesi",
+    "transactions.period" : "Dönem",
+    "transactions.date" : "Tarih",
+    "transactions.source" : "Kaynak",
+    "transactions.target" : "Hedef",
+    "transactions.type" : "Tip",
+    "transactions.amount" : "Miktar",
+    "transactions.currency" : "Kur"
+
+}

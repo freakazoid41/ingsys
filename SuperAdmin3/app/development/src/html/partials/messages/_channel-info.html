@@ -1,0 +1,207 @@
+<!-- Channel detail modal -->
+<div class="modal fade" id="channelDetails" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="d-flex align-items-center">
+				<ul class="nav nav-pills nav-scroll gap-px p-5" id="channel-details" role="tablist">
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link active"
+							id="cd-about"
+							data-bs-toggle="tab"
+							data-bs-target="#cd-about-pane"
+							type="button"
+							role="tab"
+							aria-controls="cd-about-pane"
+							aria-selected="true"
+						>
+							About
+						</button>
+					</li>
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link"
+							id="cd-members"
+							data-bs-toggle="tab"
+							data-bs-target="#cd-members-pane"
+							type="button"
+							role="tab"
+							aria-controls="cd-members-pane"
+							aria-selected="false"
+						>
+							Members
+						</button>
+					</li>
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link"
+							id="cd-files"
+							data-bs-toggle="tab"
+							data-bs-target="#cd-files-pane"
+							type="button"
+							role="tab"
+							aria-controls="cd-files-pane"
+							aria-selected="false"
+						>
+							Files
+						</button>
+					</li>
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link"
+							id="cd-pref"
+							data-bs-toggle="tab"
+							data-bs-target="#cd-pref-pane"
+							type="button"
+							role="tab"
+							aria-controls="cd-pref-pane"
+							aria-selected="false"
+						>
+							Preferences
+						</button>
+					</li>
+				</ul>
+
+				<button type="button" class="btn-close ms-auto me-6 ps-3" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+
+			<div class="modal-body pt-0">
+				<div class="tab-content">
+					<div class="tab-pane fade show active" id="cd-about-pane" role="tabpanel" aria-labelledby="about-tab" tabindex="0">
+						<div class="border rounded">
+							<div class="p-4 border-bottom">
+								<div class="flex-grow-1">
+									<div class="fs-7 text-body-secondary mb-2 d-flex align-items-center">
+										Channel Name
+
+										<button type="button" class="ms-auto link-muted">Edit</button>
+									</div>
+									General
+								</div>
+							</div>
+							<div class="p-4 border-bottom">
+								<div class="flex-grow-1">
+									<div class="fs-7 text-body-secondary mb-2 d-flex align-items-center">
+										Channel Name
+
+										<button type="button" class="ms-auto link-muted">Edit</button>
+									</div>
+									Pariatur culpa ex ea ipsum irure. Sint labore aliqua sunt nulla aliqua laborum qui adipisicing laborum cupidatat. Aute
+									consequat duis sunt anim aliqua esse reprehenderit do pariatur Lorem ullamco excepteur. Ea tempor ut anim proident voluptate
+									proident nostrud ullamco. Laboris esse velit aliqua in culpa Lorem ut fugiat aliqua excepteur in exercitation velit
+									consectetur.
+								</div>
+							</div>
+							<div class="p-4 border-bottom">
+								<div class="flex-grow-1">
+									<div class="fs-7 text-body-secondary mb-2">Created by</div>
+									Malinda Hollaway on 23/10/2020
+								</div>
+							</div>
+							<div class="p-1">
+								<button type="button" class="link-danger w-100 text-center h-10">Leave Channel</button>
+							</div>
+						</div>
+					</div>
+					<div class="tab-pane fade" id="cd-members-pane" role="tabpanel" aria-labelledby="members-tab" tabindex="0">
+						<div class="d-flex align-items-center mb-3">
+							<div class="position-relative flex-grow-1">
+								<i class="ph ph-magnifying-glass position-absolute start-0 top-0 m-3 fs-5"></i>
+								<input type="text" class="form-control ps-9" placeholder="Search members..." />
+							</div>
+						</div>
+						<button type="button" class="w-100 d-flex align-items-center py-2 px-3 rounded">
+							<div class="w-7 h-7 me-3 rounded-circle bg-highlight-inverse ph ph-plus d-grid place-items-center"></div>
+							<div class="flex-grow-1 d-flex align-items-center leading-none">
+								<div class="text-body-secondary fs-7">Add Member</div>
+							</div>
+						</button>
+
+						<div id="channel-members"></div>
+					</div>
+					<div class="tab-pane fade" id="cd-files-pane" role="tabpanel" aria-labelledby="files-tab" tabindex="0">
+						<div class="d-flex align-items-center mb-3">
+							<div class="position-relative flex-grow-1">
+								<i class="ph ph-magnifying-glass position-absolute start-0 top-0 m-3 fs-5"></i>
+								<input type="text" class="form-control ps-9" placeholder="Search files..." />
+							</div>
+						</div>
+						<button type="button" class="w-100 d-flex align-items-center py-2 px-3 rounded bg-hover-emphasis">
+							<div class="w-8 h-8 me-3 rounded-circle bg-highlight-inverse ph ph-plus d-grid place-items-center"></div>
+							<div class="flex-grow-1 d-flex align-items-center leading-none">
+								<div class="text-body-secondary fs-7">Add Files</div>
+							</div>
+						</button>
+
+						<div id="channel-files"></div>
+					</div>
+					<div class="tab-pane fade" id="cd-pref-pane" role="tabpanel" aria-labelledby="preferences-tab" tabindex="0">
+						<div class="border rounded">
+							<div class="p-4 border-bottom d-flex align-items-center">
+								<div class="flex-grow-1 pe-5">
+									<div class="text-body-emphasis mb-1">New Members</div>
+									<div class="fs-7 text-body-secondary">Allow new members to join without invitation</div>
+								</div>
+
+								<div class="form-check form-switch">
+									<input class="form-check-input" type="checkbox" role="switch" id="switch-new-members" />
+									<label class="form-check-label" for="switch-new-members"></label>
+								</div>
+							</div>
+							<div class="p-4 border-bottom d-flex align-items-center">
+								<div class="flex-grow-1 pe-5">
+									<div class="text-body-emphasis mb-1">Clipboard</div>
+									<div class="fs-7 text-body-secondary">Allow members to copy contents</div>
+								</div>
+
+								<div class="form-check form-switch">
+									<input class="form-check-input" type="checkbox" role="switch" id="switch-clipboard" />
+									<label class="form-check-label" for="switch-clipboard"></label>
+								</div>
+							</div>
+							<div class="p-4 border-bottom d-flex align-items-center">
+								<div class="flex-grow-1 pe-5">
+									<div class="text-body-emphasis mb-1">Voice Calls</div>
+									<div class="fs-7 text-body-secondary">Allow members to make voice calls</div>
+								</div>
+
+								<div class="form-check form-switch">
+									<input class="form-check-input" type="checkbox" role="switch" id="switch-voice-calls" />
+									<label class="form-check-label" for="switch-voice-calls"></label>
+								</div>
+							</div>
+							<div class="p-4 border-bottom d-flex align-items-center">
+								<div class="flex-grow-1 pe-5">
+									<div class="text-body-emphasis mb-1">Video Calls</div>
+									<div class="fs-7 text-body-secondary">Allow members to make video calls</div>
+								</div>
+
+								<div class="form-check form-switch">
+									<input class="form-check-input" type="checkbox" role="switch" id="switch-video-calls" />
+									<label class="form-check-label" for="switch-video-calls"></label>
+								</div>
+							</div>
+							<div class="p-4 border-bottom d-flex align-items-center">
+								<div class="text-body-emphasis flex-grow-1">Copy member names</div>
+
+								<button type="button" class="icon ph ph-clipboard-text">
+									<span class="visually-hidden">Copy</span>
+								</button>
+							</div>
+							<div class="p-4 border-bottom d-flex align-items-center">
+								<div class="text-body-emphasis flex-grow-1">Copy member email addresses</div>
+
+								<button type="button" class="icon ph ph-clipboard-text">
+									<span class="visually-hidden">Copy</span>
+								</button>
+							</div>
+							<div class="p-1">
+								<button type="button" class="link-danger w-100 text-center h-10">Archive channel for everyone</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

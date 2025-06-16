@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-offcanvas">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Offcanvas" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Offcanvas</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Basic example</h3>
+						<p class="card-subtitle mb-6">
+							Offcanvas is a sidebar component that can be toggled via JavaScript. The example below shows a simple offcanvas navigation.
+						</p>
+
+						<div class="d-flex flex-wrap gap-2">
+							<a class="btn btn-secondary" data-bs-toggle="offcanvas" href="#offcanvasExample" role="button" aria-controls="offcanvasExample">
+								Link with href
+							</a>
+							<button
+								class="btn btn-secondary"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasExample"
+								aria-controls="offcanvasExample"
+							>
+								Button with data-bs-target
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Body scrolling</h3>
+						<p class="card-subtitle mb-6">
+							Scrolling the <code>&lt;body&gt;</code> element is disabled when an offcanvas and its backdrop are visible. Use the
+							<code>data-bs-scroll</code> attribute to enable <code>&lt;body&gt;</code> scrolling.
+						</p>
+
+						<div class="d-flex flex-wrap gap-2">
+							<button
+								class="btn btn-secondary"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasScrolling"
+								aria-controls="offcanvasScrolling"
+							>
+								Body scrolling
+							</button>
+
+							<button
+								class="btn btn-secondary"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasScrollingBackdrop"
+								aria-controls="offcanvasScrollingBackdrop"
+							>
+								Body scrolling & backdrop
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Static backdrop</h3>
+						<p class="card-subtitle mb-6">When backdrop is set to static, the offcanvas will not close when clicking outside of it.</p>
+
+						<button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#staticBackdrop" aria-controls="staticBackdrop">
+							Toggle static offcanvas
+						</button>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Responsive</h3>
+						<p class="card-subtitle mb-6">
+							Responsive offcanvas classes hide content outside the viewport from a specified breakpoint and down. Above that breakpoint, the
+							contents within will behave as usual.
+						</p>
+
+						<div class="alert alert-dark mb-0" role="alert">Resize your browser to show the responsive offcanvas toggle.</div>
+
+						<div class="d-flex flex-wrap gap-2 mt-5 d-xxl-none">
+							<button
+								class="btn btn-secondary d-xxl-none"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasXxl"
+								aria-controls="offcanvasXxl"
+							>
+								Offcanvas xxl
+							</button>
+
+							<button
+								class="btn btn-secondary d-xl-none"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasXl"
+								aria-controls="offcanvasXl"
+							>
+								Offcanvas xl
+							</button>
+
+							<button
+								class="btn btn-secondary d-lg-none"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasLg"
+								aria-controls="offcanvasLg"
+							>
+								Offcanvas lg
+							</button>
+
+							<button
+								class="btn btn-secondary d-md-none"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasMd"
+								aria-controls="offcanvasMd"
+							>
+								Offcanvas md
+							</button>
+
+							<button
+								class="btn btn-secondary d-sm-none"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasSm"
+								aria-controls="offcanvasSm"
+							>
+								Offcanvas sm
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Placement</h3>
+						<p class="card-subtitle mb-6">Offcanvas can be placed on left, right, top or bottom of your screen.</p>
+
+						<div class="d-flex flex-wrap gap-2">
+							<button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasTop" aria-controls="offcanvasTop">
+								Toggle top offcanvas
+							</button>
+
+							<button
+								class="btn btn-secondary"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasRight"
+								aria-controls="offcanvasRight"
+							>
+								Toggle right offcanvas
+							</button>
+
+							<button
+								class="btn btn-secondary"
+								type="button"
+								data-bs-toggle="offcanvas"
+								data-bs-target="#offcanvasBottom"
+								aria-controls="offcanvasBottom"
+							>
+								Toggle bottom offcanvas
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Basic -->
+		<div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasExample" aria-labelledby="offcanvasExampleLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasExampleLabel">Offcanvas</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				<div class="mb-5">Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+				<div class="dropdown">
+					<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Dropdown button</button>
+					<ul class="dropdown-menu">
+						<li><a class="dropdown-item" href="#">Action</a></li>
+						<li><a class="dropdown-item" href="#">Another action</a></li>
+						<li><a class="dropdown-item" href="#">Something else here</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+
+		<!-- Scrolling -->
+		<div
+			class="offcanvas offcanvas-start"
+			data-bs-scroll="true"
+			data-bs-backdrop="false"
+			tabindex="-1"
+			id="offcanvasScrolling"
+			aria-labelledby="offcanvasScrollingLabel"
+		>
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasScrollingLabel">Offcanvas with body scrolling</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				<p>Try scrolling the rest of the page to see this option in action.</p>
+			</div>
+		</div>
+
+		<!-- Scrolling & backdrop -->
+		<div
+			class="offcanvas offcanvas-start"
+			data-bs-scroll="true"
+			tabindex="-1"
+			id="offcanvasScrollingBackdrop"
+			aria-labelledby="offcanvasScrollingBackdropLabel"
+		>
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasScrollingBackdropLabel">Backdrop with scrolling</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				<p>Try scrolling the rest of the page to see this option in action.</p>
+			</div>
+		</div>
+
+		<!-- Static backdrop -->
+		<div class="offcanvas offcanvas-start" data-bs-backdrop="static" tabindex="-1" id="staticBackdrop" aria-labelledby="staticBackdropLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="staticBackdropLabel">Offcanvas</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				<div>I will not close if you click outside of me.</div>
+			</div>
+		</div>
+
+		<!-- xxl -->
+		<div class="offcanvas offcanvas-xxl offcanvas-start" tabindex="-1" id="offcanvasXxl" aria-labelledby="offcanvasXxlLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasXxlLabel">Responsive offcanvas</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#offcanvasXxl" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				<p class="mb-0">This is content within an <code>.offcanvas-xxl</code>.</p>
+			</div>
+		</div>
+
+		<!-- xl -->
+		<div class="offcanvas offcanvas-xl offcanvas-start" tabindex="-1" id="offcanvasXl" aria-labelledby="offcanvasXlLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasXlLabel">Responsive offcanvas</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#offcanvasXl" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				<p class="mb-0">This is content within an <code>.offcanvas-xl</code>.</p>
+			</div>
+		</div>
+
+		<!-- lg -->
+		<div class="offcanvas offcanvas-lg offcanvas-start" tabindex="-1" id="offcanvasLg" aria-labelledby="offcanvasLgLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasLgLabel">Responsive offcanvas</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#offcanvasLg" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				<p class="mb-0">This is content within an <code>.offcanvas-lg</code>.</p>
+			</div>
+		</div>
+
+		<!-- md -->
+		<div class="offcanvas offcanvas-md offcanvas-start" tabindex="-1" id="offcanvasMd" aria-labelledby="offcanvasMdLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasMdLabel">Responsive offcanvas</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#offcanvasMd" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				<p class="mb-0">This is content within an <code>.offcanvas-md</code>.</p>
+			</div>
+		</div>
+
+		<!-- sm -->
+		<div class="offcanvas offcanvas-sm offcanvas-start" tabindex="-1" id="offcanvasSm" aria-labelledby="offcanvasSmLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasSmLabel">Responsive offcanvas</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#offcanvasSm" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				<p class="mb-0">This is content within an <code>.offcanvas-sm</code>.</p>
+			</div>
+		</div>
+
+		<!-- Top -->
+		<div class="offcanvas offcanvas-top" tabindex="-1" id="offcanvasTop" aria-labelledby="offcanvasTopLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasTopLabel">Offcanvas top</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				Ex pariatur reprehenderit nostrud veniam occaecat magna aliqua ea. Veniam Lorem duis sit quis ex voluptate et dolor. Elit nulla ipsum in
+				cupidatat aute tempor esse enim culpa excepteur voluptate. Adipisicing proident deserunt nulla adipisicing consectetur aliqua laborum. Anim
+				minim minim ad cupidatat enim elit labore ullamco labore magna proident veniam consequat nostrud. Enim nulla officia elit amet proident mollit
+				ipsum sint elit ipsum. Id sit nostrud cillum proident dolore.
+			</div>
+		</div>
+
+		<!-- Right -->
+		<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasRightLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasRightLabel">Offcanvas right</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body">
+				Culpa incididunt sint commodo consequat commodo aliqua Lorem pariatur aliqua culpa aute veniam. Ea Lorem est pariatur elit adipisicing tempor
+				velit quis fugiat laboris est. Laboris ipsum duis veniam occaecat. Pariatur aliqua dolor irure nostrud et anim consectetur laborum nulla commodo
+				fugiat. Nisi elit non occaecat sit exercitation veniam aute nostrud. Cillum aliquip enim et aliqua aute fugiat pariatur et veniam do ipsum
+				pariatur incididunt. Aliqua excepteur ullamco consequat cillum proident in officia dolore culpa occaecat occaecat minim.
+			</div>
+		</div>
+
+		<!-- Bottom -->
+		<div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvasBottom" aria-labelledby="offcanvasBottomLabel">
+			<div class="offcanvas-header pb-0">
+				<h5 class="offcanvas-title" id="offcanvasBottomLabel">Offcanvas bottom</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+			</div>
+			<div class="offcanvas-body small">
+				Excepteur ipsum eiusmod laborum exercitation eu amet duis mollit adipisicing culpa laborum eu culpa. Ex consequat non esse nostrud id officia
+				esse. Aliqua ex ut occaecat commodo sunt enim cupidatat. Sit eiusmod non reprehenderit deserunt magna labore dolor mollit incididunt voluptate
+				velit velit. Voluptate ad ea mollit et dolore in.
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

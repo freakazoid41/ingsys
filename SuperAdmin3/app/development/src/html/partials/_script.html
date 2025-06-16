@@ -1,0 +1,11 @@
+<script>
+	// Get current color mode from LocalStorage or default to light
+	var theme = localStorage.getItem("sa-theme") || "1";
+
+	// Set color mode on page load
+	document.body.setAttribute("data-sa-theme", theme);
+
+</script>
+
+<script src="../../js/index.js" type="module"></script>
+<script src="../../js/vendor.js" type="module"></script>

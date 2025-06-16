@@ -1,0 +1,139 @@
+#content {
+	will-change: padding;
+	display: flex;
+	flex-grow: 1;
+	position: relative;
+	height: 100%;
+	overflow-x: hidden;
+
+	&:not(.content-column) {
+		flex-direction: column;
+		overflow-y: auto;
+		padding: 0 1rem 1rem 1rem;
+
+		@include media-breakpoint-up(xl) {
+			padding-left: $sidebar-width + 1rem;
+		}
+	}
+
+	&.content-column {
+		gap: 0.5rem;
+	}
+}
+
+.sidebar-min {
+	#content {
+		@include media-breakpoint-up(xl) {
+			padding-left: $sidebar-min-bar-width;
+		}
+	}
+}
+
+.content-body {
+	flex: 1;
+	overflow-y: auto;
+	height: 100%;
+	padding: 0 1rem 1rem 1rem;
+}
+
+.content-column {
+	display: flex;
+	align-items: start;
+	overflow: hidden;
+	padding: 0;
+}
+
+.content-inner {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-width: 0;
+}
+
+.content-search {
+	border-radius: $border-radius-pill;
+	background-color: transparent;
+	background-color: rgba($white, 0.075);
+	display: inline-flex;
+	align-items: center;
+	width: 100%;
+	padding: 0 1rem 0 0.85rem;
+	transition: background-color 300ms;
+	max-width: 400px;
+	border: 1px solid rgba($white, 0.1);
+
+	.form-control {
+		border: 0;
+		background-color: transparent;
+		padding-inline: 0.5rem;
+		height: 2.5rem;
+
+		&:focus {
+			box-shadow: none;
+		}
+
+		@include placeholder {
+			color: $text-color;
+		}
+	}
+
+	&:focus-within {
+		background-color: rgba($white, 0.075);
+		border-color: rgba($white, 0.45);
+	}
+}
+
+.content-header {
+    height: 3rem;
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	padding: 0 1rem;
+}
+
+body {
+	& > .content-header {
+		@include media-breakpoint-up(xl) {
+			padding-left: $sidebar-width + 1rem;
+		}
+	}
+}
+
+.content-sidebar {
+	width: $sidebar-width;
+	flex-shrink: 0;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+// Switch blocks in mobile
+// e.g Contacts, Email etc.
+@include media-breakpoint-down(md) {
+	[data-sa-block] {
+		will-change: transform;
+		transition: transform 300ms;
+		width: 100% !important;
+		position: absolute;
+		top: 0;
+		left: 0;
+	}
+
+	[data-sa-block="body"] {
+		transform: translate3d(105%, 0, 0);
+	}
+
+	.content-body-toggled {
+		[data-sa-block="list"] {
+			transform: translate3d(-100%, 0, 0);
+		}
+
+		[data-sa-block="body"] {
+			transform: translate3d(0, 0, 0);
+		}
+	}
+}

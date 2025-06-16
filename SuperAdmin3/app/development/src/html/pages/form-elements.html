@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en" data-page="forms-form-elements">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Form Elements" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Site sidebar -->
+		<module href="./src/html/partials/_sidebar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Form Elements</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Forms</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Inputs</h3>
+						<p class="card-subtitle mb-6">
+							Form controls are styled with a mix of Sass and CSS variables, allowing them to adapt to color modes and support any customization
+							method.
+						</p>
+
+						<div class="col-md-8 mb-8">
+							<div class="mb-3">
+								<label for="input-text" class="form-label">Username</label>
+								<input type="email" class="form-control" id="input-text" placeholder="linearadmin" />
+							</div>
+							<div class="mb-3">
+								<label for="input-email" class="form-label">Email Address</label>
+								<input type="email" class="form-control" id="input-email" placeholder="admin@linear.ln" />
+							</div>
+							<div>
+								<label for="input-password" class="form-label">Password</label>
+								<input type="email" class="form-control" id="input-password" placeholder="************" />
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Sizing</h4>
+						<p>Set heights using classes like <code>.form-control-lg</code> and <code>.form-control-sm</code>.</p>
+
+						<div class="col-md-8 mb-8">
+							<input class="form-control form-control-lg mb-3" type="text" placeholder=".form-control-lg" aria-label=".form-control-lg example" />
+							<input class="form-control mb-3" type="text" placeholder="Default input" aria-label="default input example" />
+							<input class="form-control form-control-sm" type="text" placeholder=".form-control-sm" aria-label=".form-control-sm example" />
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Form text</h4>
+						<p>Block-level or inline-level form text can be created using <code>.form-text.</code></p>
+
+						<div class="rounded border p-5 col-md-8 mb-8">
+							<label for="inputPassword5" class="form-label">Password</label>
+							<input type="password" id="inputPassword5" class="form-control" aria-describedby="passwordHelpBlock" />
+							<div id="passwordHelpBlock" class="form-text">
+								Your password must be 8-20 characters long, contain letters and numbers, and must not contain spaces, special characters, or
+								emoji.
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Disabled</h4>
+						<p>
+							Add the <code>disabled</code> boolean attribute on an input to give it a grayed out appearance, remove pointer events, and prevent
+							focusing.
+						</p>
+
+						<div class="col-md-8 mb-8">
+							<input class="form-control mb-3" type="text" placeholder="Disabled input" aria-label="Disabled input example" disabled />
+							<input class="form-control" type="text" value="Disabled readonly input" aria-label="Disabled input example" disabled readonly />
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Readonly</h4>
+						<p>
+							Add the <code>readonly</code> boolean attribute on an input to prevent modification of the input’s value. readonly inputs can still
+							be focused and selected, while <code>disabled</code> inputs cannot.
+						</p>
+
+						<div class="col-md-8">
+							<input class="form-control mb-8" type="text" value="Readonly input here..." aria-label="readonly input example" readonly />
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Readonly plain text</h4>
+						<p>
+							If you want to have <code>&lt;input readonly /&gt;</code> elements in your form styled as plain text, replace
+							<code>.form-control</code> with <code>.form-control-plaintext</code> to remove the default form field styling and preserve the
+							correct <code>margin</code> and <code>padding</code>.
+						</p>
+
+						<div class="col-md-8">
+							<div class="mb-3 row">
+								<label for="staticEmail" class="col-sm-2 col-form-label">Email</label>
+								<div class="col-sm-10">
+									<input type="text" readonly class="form-control-plaintext" id="staticEmail" value="email@example.com" />
+								</div>
+							</div>
+							<div class="row">
+								<label for="inputPassword" class="col-sm-2 col-form-label">Password</label>
+								<div class="col-sm-10">
+									<input type="password" class="form-control" id="inputPassword" />
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Textarea</h3>
+						<p class="card-subtitle mb-6">Textarea helps the user to input multi-line textual values.</p>
+
+						<div class="col-md-8 mb-8">
+							<textarea class="form-control" id="exampleFormControlTextarea1" rows="3" placeholder="Write something..."></textarea>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Disabled</h4>
+						<p>
+							Add the <code>disabled</code> boolean attribute on a <code>&lt;textarea&gt;</code> to give it a grayed out appearance and remove
+							pointer events.
+						</p>
+
+						<div class="col-md-8">
+							<textarea
+								class="form-control"
+								id="exampleFormControlTextareaDisabled"
+								rows="3"
+								placeholder="Write something..."
+								disabled
+							></textarea>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Select</h3>
+						<p class="card-subtitle mb-6">
+							Custom <code>&lt;select&gt;</code> menus need only a custom class, <code>.form-select</code> to trigger the custom styles. Custom
+							styles are limited to the <code>&lt;select&gt;</code>’s initial appearance and cannot modify the <code>&lt;option&gt;</code>s due to
+							browser limitations.
+						</p>
+
+						<div class="col-md-8 mb-8">
+							<select class="form-select" aria-label="Default select example">
+								<option selected>Open this select menu</option>
+								<option value="1">One</option>
+								<option value="2">Two</option>
+								<option value="3">Three</option>
+							</select>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Sizing</h4>
+						<p>You may also choose from small and large custom selects to match our similarly sized text inputs.</p>
+
+						<div class="col-md-8 mb-8">
+							<select class="form-select form-select-lg mb-3" aria-label="Large select example">
+								<option selected>Open this select menu</option>
+								<option value="1">One</option>
+								<option value="2">Two</option>
+								<option value="3">Three</option>
+							</select>
+
+							<select class="form-select form-select-sm" aria-label="Small select example">
+								<option selected>Open this select menu</option>
+								<option value="1">One</option>
+								<option value="2">Two</option>
+								<option value="3">Three</option>
+							</select>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Disabled</h4>
+						<p>
+							Add the <code>disabled</code> boolean attribute on a <code>&lt;select&gt;</code> to give it a grayed out appearance and remove
+							pointer events.
+						</p>
+
+						<div class="col-md-8">
+							<select class="form-select" aria-label="Disabled select example" disabled>
+								<option selected>Open this select menu</option>
+								<option value="1">One</option>
+								<option value="2">Two</option>
+								<option value="3">Three</option>
+							</select>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Checkboxes and Radios</h3>
+						<p class="card-subtitle mb-6">
+							Create consistent cross-browser and cross-device checkboxes and radios with our completely rewritten checks component.
+						</p>
+
+						<div class="col-md-8 mb-8">
+							<div class="form-check mb-3">
+								<input class="form-check-input" type="checkbox" value="" id="flexCheckDefault" />
+								<label class="form-check-label" for="flexCheckDefault">Default checkbox </label>
+							</div>
+							<div class="form-check mb-3">
+								<input class="form-check-input" type="checkbox" value="" id="flexCheckChecked" checked />
+								<label class="form-check-label" for="flexCheckChecked">Checked checkbox </label>
+							</div>
+							<div class="form-check mb-8">
+								<input class="form-check-input" type="checkbox" value="" id="flexCheckDisabled" disabled />
+								<label class="form-check-label" for="flexCheckDisabled">Disabled checkbox </label>
+							</div>
+
+							<div class="form-check mb-3">
+								<input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" />
+								<label class="form-check-label" for="flexRadioDefault1"> Default radio </label>
+							</div>
+							<div class="form-check mb-3">
+								<input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked />
+								<label class="form-check-label" for="flexRadioDefault2"> Default checked radio </label>
+							</div>
+							<div class="form-check">
+								<input class="form-check-input" type="radio" name="flexRadioDisabled" id="flexRadioDisabled" disabled />
+								<label class="form-check-label" for="flexRadioDisabled"> Disabled radio </label>
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Inline</h4>
+						<p>Group checkboxes or radios on the same horizontal row by adding <code>.form-check-inline</code> to any <code>.form-check</code>.</p>
+
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="checkbox" id="inlineCheckbox1" value="option1" />
+							<label class="form-check-label" for="inlineCheckbox1">1</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="checkbox" id="inlineCheckbox2" value="option2" />
+							<label class="form-check-label" for="inlineCheckbox2">2</label>
+						</div>
+						<div class="form-check form-check-inline mb-8">
+							<input class="form-check-input" type="checkbox" id="inlineCheckbox3" value="option3" disabled />
+							<label class="form-check-label" for="inlineCheckbox3">3 (disabled)</label>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Reverse</h4>
+						<p>Put your checkboxes, radios, and switches on the opposite side with the <code>.form-check-reverse</code> modifier class.</p>
+
+						<div class="col-md-8 border rounded p-5 mb-8">
+							<div class="form-check form-check-reverse mb-3">
+								<input class="form-check-input" type="checkbox" value="" id="reverseCheck1" />
+								<label class="form-check-label" for="reverseCheck1"> Reverse checkbox </label>
+							</div>
+							<div class="form-check form-check-reverse">
+								<input class="form-check-input" type="checkbox" value="" id="reverseCheck2" disabled />
+								<label class="form-check-label" for="reverseCheck2"> Disabled reverse checkbox </label>
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis">Without labels</h4>
+						<p>Omit the wrapping .form-check for checkboxes and radios that have no label text.</p>
+
+						<div class="mb-3">
+							<input class="form-check-input" type="checkbox" id="checkboxNoLabel" value="" aria-label="..." />
+						</div>
+
+						<div>
+							<input class="form-check-input" type="radio" name="radioNoLabel" id="radioNoLabel1" value="" aria-label="..." />
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Switches</h3>
+						<p class="card-subtitle mb-6">
+							A switch has the markup of a custom checkbox but uses the <code>.form-switch</code> class to render a toggle switch. Consider using
+							<code>role="switch"</code>
+							to more accurately convey the nature of the control to assistive technologies that support this role.
+						</p>
+
+						<div class="form-check form-switch mb-3">
+							<input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" />
+							<label class="form-check-label" for="flexSwitchCheckDefault">Default switch checkbox input</label>
+						</div>
+						<div class="form-check form-switch mb-3">
+							<input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked />
+							<label class="form-check-label" for="flexSwitchCheckChecked">Checked switch checkbox input</label>
+						</div>
+						<div class="form-check form-switch mb-3">
+							<input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDisabled" disabled />
+							<label class="form-check-label" for="flexSwitchCheckDisabled">Disabled switch checkbox input</label>
+						</div>
+						<div class="form-check form-switch">
+							<input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckCheckedDisabled" checked disabled />
+							<label class="form-check-label" for="flexSwitchCheckCheckedDisabled">Disabled checked switch checkbox input</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Toggle buttons</h3>
+						<p class="card-subtitle mb-6">
+							Create button-like checkboxes and radio buttons by using <code>.btn</code> styles rather than <code>.form-check-label</code> on the
+							<code>&lt;label&gt;</code> elements. xx
+						</p>
+
+						<h4 class="fs-6 text-body-emphasis mb-3">Checkbox toggle buttons</h4>
+
+						<div class="mb-3">
+							<input type="checkbox" class="btn-check" id="btn-check" autocomplete="off" />
+							<label class="btn btn-secondary" for="btn-check">Single toggle</label>
+
+							<input type="checkbox" class="btn-check" id="btn-check-2" checked autocomplete="off" />
+							<label class="btn btn-secondary" for="btn-check-2">Checked</label>
+
+							<input type="checkbox" class="btn-check" id="btn-check-3" autocomplete="off" disabled />
+							<label class="btn btn-secondary" for="btn-check-3">Disabled</label>
+						</div>
+
+						<div class="mb-8">
+							<input type="checkbox" class="btn-check" id="btn-check-4" autocomplete="off" />
+							<label class="btn" for="btn-check-4">Single toggle</label>
+
+							<input type="checkbox" class="btn-check" id="btn-check-5" checked autocomplete="off" />
+							<label class="btn" for="btn-check-5">Checked</label>
+
+							<input type="checkbox" class="btn-check" id="btn-check-6" autocomplete="off" disabled />
+							<label class="btn" for="btn-check-6">Disabled</label>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis mb-3">Radio toggle buttons</h4>
+
+						<div class="mb-3">
+							<input type="radio" class="btn-check" name="options" id="option1" autocomplete="off" checked />
+							<label class="btn btn-secondary" for="option1">Checked</label>
+
+							<input type="radio" class="btn-check" name="options" id="option2" autocomplete="off" />
+							<label class="btn btn-secondary" for="option2">Radio</label>
+
+							<input type="radio" class="btn-check" name="options" id="option3" autocomplete="off" disabled />
+							<label class="btn btn-secondary" for="option3">Disabled</label>
+
+							<input type="radio" class="btn-check" name="options" id="option4" autocomplete="off" />
+							<label class="btn btn-secondary" for="option4">Radio</label>
+						</div>
+
+						<div>
+							<input type="radio" class="btn-check" name="options-base" id="option5" autocomplete="off" checked />
+							<label class="btn" for="option5">Checked</label>
+
+							<input type="radio" class="btn-check" name="options-base" id="option6" autocomplete="off" />
+							<label class="btn" for="option6">Radio</label>
+
+							<input type="radio" class="btn-check" name="options-base" id="option7" autocomplete="off" disabled />
+							<label class="btn" for="option7">Disabled</label>
+
+							<input type="radio" class="btn-check" name="options-base" id="option8" autocomplete="off" />
+							<label class="btn" for="option8">Radio</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">File input</h3>
+						<p class="card-subtitle mb-6">Basix file input that supports multiple files, custom button text, and more.</p>
+
+						<div class="col-md-8">
+							<div class="mb-5">
+								<label for="formFile" class="form-label">Default file input example</label>
+								<input class="form-control" type="file" id="formFile" />
+							</div>
+							<div class="mb-5">
+								<label for="formFileMultiple" class="form-label">Multiple files input example</label>
+								<input class="form-control" type="file" id="formFileMultiple" multiple />
+							</div>
+							<div class="mb-5">
+								<label for="formFileDisabled" class="form-label">Disabled file input example</label>
+								<input class="form-control" type="file" id="formFileDisabled" disabled />
+							</div>
+							<div class="mb-5">
+								<label for="formFileSm" class="form-label">Small file input example</label>
+								<input class="form-control form-control-sm" id="formFileSm" type="file" />
+							</div>
+							<div>
+								<label for="formFileLg" class="form-label">Large file input example</label>
+								<input class="form-control form-control-lg" id="formFileLg" type="file" />
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

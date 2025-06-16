@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+		<title>Page Templates | Super Admin Documentation</title>
+		<meta name="viewport" content="width=device-width,minimum-scale=1" />
+		<meta
+			name="description"
+			content="
+				Page Templates Super Admin uses 4 different page templates to help you get started with your project. Each template has a different layout and is designed to be used in different scenarios based on the content of the page.
+Two Column - Sidebar and Body The two column template is the most common layout used in Super Admin. It has a sidebar on the left and a body on the right.
+			
+			"
+		/>
+
+		
+
+
+	
+	<link rel="stylesheet" href="./dist/style.min.b09d6822522fd5042bac92985823b1841e167aef0b9991cc901385d73cb77be3.css" />
+
+
+	</head>
+
+	<body class="flex h-screen flex-col overflow-hidden font-sans">
+		<header class="z-20 flex h-20 flex-shrink-0 items-center border-b border-slate-100 bg-white px-6">
+	<button class="-ml-3.5 mr-2 grid h-12 w-14 place-items-center rounded hover:bg-slate-100 lg:hidden" id="sidebar-open">
+		<svg class="text-cyan-500" width="30" fill="#000000" viewBox="0 0 256 256">
+			<path d="M88,48V208H40a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8Z" opacity="0.5" fill="currentColor"></path>
+			<path
+				d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,152H56a8,8,0,0,0,0-16H40V120H56a8,8,0,0,0,0-16H40V88H56a8,8,0,0,0,0-16H40V56H80V200H40Zm176,48H96V56H216V200Z"
+			></path>
+		</svg>
+	</button>
+
+	<a href="./index.html" class="text-xl font-bold pr-5">
+		<span class="max-sm:hidden">Super Admin Documentation</span>
+		<span class="sm:hidden">Documentation</span>
+	</a>
+	
+	
+</header>
+
+
+
+		<div class="flex flex-1 overflow-hidden">
+			<aside class="fixed left-0 top-0 z-50 hidden h-full w-72 overflow-y-auto border-r border-slate-100 bg-white p-6 lg:relative lg:z-0 lg:block" id="sidebar">
+	
+	<div class="sticky top-0 -mr-3 mb-3 text-right lg:hidden">
+		<button class="-ml-3.5 -mt-4 mr-2 inline-grid h-12 w-14 place-items-center rounded bg-white/75 hover:bg-slate-100 xl:hidden" id="sidebar-close">
+			<svg class="rotate-180 text-cyan-500" width="30" fill="#000000" viewBox="0 0 256 256">
+				<path d="M88,48V208H40a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8Z" opacity="0.5" fill="currentColor"></path>
+				<path
+					d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,152H56a8,8,0,0,0,0-16H40V120H56a8,8,0,0,0,0-16H40V88H56a8,8,0,0,0,0-16H40V56H80V200H40Zm176,48H96V56H216V200Z"
+				></path>
+			</svg>
+		</button>
+	</div>
+
+	
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Getting Started</span>
+
+			
+				<a
+					href="./quick-start.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Quick Start
+
+					
+				</a>
+			
+				<a
+					href="./customization.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Customization
+
+					
+				</a>
+			
+				<a
+					href="./themes.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Themes
+
+					
+				</a>
+			
+				<a
+					href="./page-templates.html"
+					class="
+						text-cyan-500 font-bold
+					 flex items-center py-1"
+					>Page Templates
+
+					
+				</a>
+			
+				<a
+					href="./dev-dependencies.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Development Dependencies
+
+					
+				</a>
+			
+				<a
+					href="./browser-support.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Browser Support
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Content</span>
+
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/reboot/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Base Styles
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/typography/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Typography
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/images/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Images
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/tables/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Tables
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/figures/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Figures
+
+					
+				</a>
+			
+				<a
+					href="./icons.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Icons
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Forms</span>
+
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/overview/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Overview
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/input-group/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Input Groups
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/layout/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Layouts
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/validation/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Validations
+
+					
+				</a>
+			
+				<a
+					href="./form-templates.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Templates
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Bootstrap Components</span>
+
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/accordion/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Accordion
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/alerts/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Alerts
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/badge/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Badge
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/breadcrumb/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Breadcrumb
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/buttons/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Buttons
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/button-group/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Button Groups
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/card/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Card
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/carousel/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Carousel
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/close-button/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Close Button
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/collapse/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Collapse
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/dropdowns/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Dropdowns
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/list-group/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>List Group
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/modal/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Modal
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/navs-tabs/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Navs and Tabs
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/offcanvas/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Offcanvas
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/pagination/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Pagination
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/placeholders/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Placeholders
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/popovers/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Popovers
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/progress/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Progress
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/spinners/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Spinners
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/toasts/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Toasts
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/tooltips/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Tooltips
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Third Party Components</span>
+
+			
+				<a
+					href="./form-components.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Form Related
+
+					
+				</a>
+			
+				<a
+					href="./other-components.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Others
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Charts and Maps</span>
+
+			
+				<a
+					href="./charts.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Charts
+
+					
+				</a>
+			
+				<a
+					href="./maps.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Maps
+
+					
+				</a>
+			
+		</div>
+	
+</aside>
+
+
+
+			<main class="relative z-10 flex flex-1 flex-col overflow-y-auto scroll-smooth p-8 pb-0 xl:pr-[calc(15rem+2rem)]" role="main">
+				
+	<div class="prose mx-auto w-full max-w-7xl flex-1"><h1 id="page-templates">Page Templates</h1>
+<p>Super Admin uses 4 different page templates to help you get started with your project. Each template has a different layout and is designed to be used in different scenarios based on the content of the page.</p>
+<h2 id="two-column---sidebar-and-body">Two Column - Sidebar and Body</h2>
+<p>The two column template is the most common layout used in Super Admin. It has a sidebar on the left and a body on the right. The sidebar is used for navigation and the body is used for the main content of the page.</p>
+<div class="my-5 rounded-md border border-slate-200 p-5 pb-2">
+	<div class="scrollbar flex gap-5 overflow-x-auto whitespace-nowrap">
+		 
+
+<div class="w-[350px] flex-shrink-0">
+	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/2-col_1.png" alt="e-commerce.html" />
+	<div class="my-2 text-center text-xs text-slate-500">e-commerce.html</div>
+</div>
+ 
+<div class="w-[350px] flex-shrink-0">
+	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/2-col_2.png" alt="crm.html" />
+	<div class="my-2 text-center text-xs text-slate-500">crm.html</div>
+</div>
+ 
+<div class="w-[350px] flex-shrink-0">
+	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/2-col_3.png" alt="faq.html" />
+	<div class="my-2 text-center text-xs text-slate-500">faq.html</div>
+</div>
+ 
+<div class="w-[350px] flex-shrink-0">
+	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/2-col_4.png" alt="invoice.html" />
+	<div class="my-2 text-center text-xs text-slate-500">invoice.html</div>
+</div>
+ 
+
+
+	</div>
+</div>
+
+<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#5e81ac;font-style:italic">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">html</span> <span style="color:#8fbcbb">lang</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;en&#34;</span> <span style="color:#8fbcbb">data-page</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;[kebab-cased Page Title]&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#616e87;font-style:italic">&lt;!-- Head --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_head.html&#34;</span> <span style="color:#8fbcbb">locals</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#39;{ &#34;pageTitle&#34;: &#34;Page Title&#34; }&#39;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">body</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Page loader --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_page-loader.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Site header --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_header.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Content header --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">header</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-header&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">h2</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;m-0 text-body-emphasis fs-6&#34;</span><span style="color:#eceff4">&gt;</span>E-Commerce<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">h2</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">header</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Content --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#616e87;font-style:italic">&lt;!-- Site sidebar --&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_sidebar.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>			
+</span></span><span style="display:flex;"><span>			<span style="color:#616e87;font-style:italic">&lt;!-- Page content goes here... --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Scripts --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_script.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">body</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">html</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div><h2 id="three-column---sidebar-content-sidebar-and-body">Three Column - Sidebar, Content Sidebar and Body</h2>
+<p>The three-column template is employed when you want to showcase a content-level sidebar on the left side of the page. This is particularly handy when you need to present a list of items on the left and the main content on the right.</p>
+<p><strong>How it works:</strong></p>
+<ul>
+<li>In this layout, the default sidebar that contains the menu, is shrunken to make room for the content level secondary sidebar by adding <code>sidebar-min</code> class to the <code>body</code> tag.</li>
+<li>A helper class <code>content-column</code> is added to the <code>#content</code> div to have the columned layout.</li>
+<li>A distinctive ID is assigned to the content-level sidebar, known as <code>sidebar-secondary</code>.</li>
+<li>A button with <code>sidebar-secondary-toggle</code> ID is placed within <code>_content-header.html</code> to toggle the secondary sidebar in mobile and smaller screens.</li>
+<li>On mobile devices and smaller screens, only the content body is shown, and you can toggle the secondary sidebar by clicking the toggle button mentioned previously.</li>
+</ul>
+<div class="my-5 rounded-md border border-slate-200 p-5 pb-2">
+	<div class="scrollbar flex gap-5 overflow-x-auto whitespace-nowrap">
+		
+    <div class="w-[350px] flex-shrink-0">
+    	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/3-col_1.png" alt="file-manager.html" />
+    	<div class="my-2 text-center text-xs text-slate-500">file-manager.html</div>
+    </div>
+
+    <div class="w-[350px] flex-shrink-0">
+    	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/3-col_2.png" alt="messages.html" />
+    	<div class="my-2 text-center text-xs text-slate-500">messages.html</div>
+    </div>
+
+    <div class="w-[350px] flex-shrink-0">
+    	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/3-col_3.png" alt="photos.html" />
+    	<div class="my-2 text-center text-xs text-slate-500">photos.html</div>
+    </div>
+
+    <div class="w-[350px] flex-shrink-0">
+    	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/3-col_4.png" alt="calendar.html" />
+    	<div class="my-2 text-center text-xs text-slate-500">calendar.html</div>
+    </div>
+
+
+	</div>
+</div>
+
+
+<div class="tab my-8 flex flex-wrap justify-center">
+		<input
+			type="radio"
+			class="hidden [&:checked+*+*]:block [&:checked+*]:text-cyan-500"
+			name="tabs-pt-3cols"
+			id="tabs-pt-3cols-0"
+			checked="checked"
+		/>
+		<label
+			for="tabs-pt-3cols-0"
+			class="relative mr-7 inline-block cursor-pointer py-3 font-bold leading-none text-slate-500 hover:text-slate-900"
+		>
+			main.html
+		</label>
+		<div class="order-[99] hidden w-full pt-2 [&_pre]:mt-0">
+			<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#5e81ac;font-style:italic">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">html</span> <span style="color:#8fbcbb">lang</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;en&#34;</span> <span style="color:#8fbcbb">data-page</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;[kebab-cased Page Title]&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#616e87;font-style:italic">&lt;!-- Head --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_head.html&#34;</span> <span style="color:#8fbcbb">locals</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#39;{ &#34;pageTitle&#34;: &#34;Page Title&#34; }&#39;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">body</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;sidebar-min&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Page loader --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_page-loader.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Site header --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_nav-bar.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-column&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#616e87;font-style:italic">&lt;!-- Site sidebar --&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_sidebar.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#616e87;font-style:italic">&lt;!-- Content sidebar --&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/photos/_content-sidebar.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#616e87;font-style:italic">&lt;!-- Main --&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-inner&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>				<span style="color:#616e87;font-style:italic">&lt;!-- Content header --&gt;</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/photos/_content-header.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>				<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-body&#34;</span> <span style="color:#8fbcbb">data-simplebar</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>					<span style="color:#616e87;font-style:italic">&lt;!-- Page content goes here... --&gt;</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Script --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_script.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">body</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">html</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+		<input
+			type="radio"
+			class="hidden [&:checked+*+*]:block [&:checked+*]:text-cyan-500"
+			name="tabs-pt-3cols"
+			id="tabs-pt-3cols-1"
+			
+		/>
+		<label
+			for="tabs-pt-3cols-1"
+			class="relative mr-7 inline-block cursor-pointer py-3 font-bold leading-none text-slate-500 hover:text-slate-900"
+		>
+			_content-sidebar.html
+		</label>
+		<div class="order-[99] hidden w-full pt-2 [&_pre]:mt-0">
+			<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">aside</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-sidebar&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;sidebar-secondary&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#616e87;font-style:italic">&lt;!-- Close button --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">button</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;button&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;icon sidebar-close d-xl-none&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;sidebar-secondary-close&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">i</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;ph ph-x pe-none fs-5&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">i</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">span</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;visually-hidden&#34;</span><span style="color:#eceff4">&gt;</span>Close<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">span</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">button</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#616e87;font-style:italic">&lt;!-- Body --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-body&#34;</span> <span style="color:#8fbcbb">data-simplebar</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Content goes here... --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">aside</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+		<input
+			type="radio"
+			class="hidden [&:checked+*+*]:block [&:checked+*]:text-cyan-500"
+			name="tabs-pt-3cols"
+			id="tabs-pt-3cols-2"
+			
+		/>
+		<label
+			for="tabs-pt-3cols-2"
+			class="relative mr-7 inline-block cursor-pointer py-3 font-bold leading-none text-slate-500 hover:text-slate-900"
+		>
+			_content-header.html
+		</label>
+		<div class="order-[99] hidden w-full pt-2 [&_pre]:mt-0">
+			<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-header&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#616e87;font-style:italic">&lt;!-- Secondary sidebar toggle --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;../_secondary-sidebar-toggle.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#616e87;font-style:italic">&lt;!-- Title --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">h2</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;fs-5 text-body-emphasis m-0&#34;</span><span style="color:#eceff4">&gt;</span>Title<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">h2</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+</div>
+
+<h2 id="four-column---sidebar-content-sidebar-content-list-and-body">Four Column - Sidebar, Content Sidebar, Content List and Body</h2>
+<p>Like the three column layout, the four column layout is also a combination of the sidebar, content sidebar and body sections. The difference is that the four column layout also includes an additional section for a third sidebar.</p>
+<p><strong>How it works:</strong></p>
+<ul>
+<li>Follow the first 4 steps as described previously in the 3 column layout.</li>
+<li>Both the list level third sidebar and content body sections are labeled with the data-attribute <code>data-sa-block = { list | body }</code>. This is done to ensure that the layout is responsive and properly displayed on mobile devices and smaller screens.</li>
+<li>On mobile devices and smaller screens, one column is displayed at a time and links/buttons with the <code>data-sa-toggle = { list | body }</code> attributes are used to toggle between the columns.</li>
+</ul>
+<div class="my-5 rounded-md border border-slate-200 p-5 pb-2">
+	<div class="scrollbar flex gap-5 overflow-x-auto whitespace-nowrap">
+		
+    <div class="w-[350px] flex-shrink-0">
+    	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/4-col_1.png" alt="contacts.html" />
+    	<div class="my-2 text-center text-xs text-slate-500">contacts.html</div>
+    </div>
+
+    <div class="w-[350px] flex-shrink-0">
+    	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/4-col_2.png" alt="mail.html" />
+    	<div class="my-2 text-center text-xs text-slate-500">mail.html</div>
+    </div>
+
+
+	</div>
+</div>
+
+
+<div class="tab my-8 flex flex-wrap justify-center">
+		<input
+			type="radio"
+			class="hidden [&:checked+*+*]:block [&:checked+*]:text-cyan-500"
+			name="tabs-pt-4cols"
+			id="tabs-pt-4cols-0"
+			checked="checked"
+		/>
+		<label
+			for="tabs-pt-4cols-0"
+			class="relative mr-7 inline-block cursor-pointer py-3 font-bold leading-none text-slate-500 hover:text-slate-900"
+		>
+			main.html
+		</label>
+		<div class="order-[99] hidden w-full pt-2 [&_pre]:mt-0">
+			<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#5e81ac;font-style:italic">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">html</span> <span style="color:#8fbcbb">lang</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;en&#34;</span> <span style="color:#8fbcbb">data-page</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;[kebab-cased Page title]&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#616e87;font-style:italic">&lt;!-- Head --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_head.html&#34;</span> <span style="color:#8fbcbb">locals</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#39;{ &#34;pageTitle&#34;: &#34;Page title&#34; }&#39;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">body</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;sidebar-min&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Page loader --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_page-loader.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Site header --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_nav-bar.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-column&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#616e87;font-style:italic">&lt;!-- Site sidebar --&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_sidebar.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#616e87;font-style:italic">&lt;!-- Content sidebar --&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/contacts/_content-sidebar.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#616e87;font-style:italic">&lt;!-- Content list --&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/contacts/_content-list.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">data-sa-block</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;body&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-inner&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#616e87;font-style:italic">&lt;!-- Content header --&gt;</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/contacts/_content-header.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>				
+</span></span><span style="display:flex;"><span>				<span style="color:#616e87;font-style:italic">&lt;!-- Body --&gt;</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-body&#34;</span> <span style="color:#8fbcbb">data-simplebar</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>					<span style="color:#616e87;font-style:italic">&lt;!-- Page content goes here... --&gt;</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Script --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_script.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">body</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">html</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+		<input
+			type="radio"
+			class="hidden [&:checked+*+*]:block [&:checked+*]:text-cyan-500"
+			name="tabs-pt-4cols"
+			id="tabs-pt-4cols-1"
+			
+		/>
+		<label
+			for="tabs-pt-4cols-1"
+			class="relative mr-7 inline-block cursor-pointer py-3 font-bold leading-none text-slate-500 hover:text-slate-900"
+		>
+			_content-sidebar.html
+		</label>
+		<div class="order-[99] hidden w-full pt-2 [&_pre]:mt-0">
+			<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">aside</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-sidebar&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;sidebar-secondary&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#616e87;font-style:italic">&lt;!-- Close button --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">button</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;button&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;icon sidebar-close d-xl-none&#34;</span> <span style="color:#8fbcbb">id</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;sidebar-secondary-close&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">i</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;ph ph-x pe-none fs-5&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">i</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">span</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;visually-hidden&#34;</span><span style="color:#eceff4">&gt;</span>Close<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">span</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">button</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#616e87;font-style:italic">&lt;!-- Body --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-body&#34;</span> <span style="color:#8fbcbb">data-simplebar</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Content goes here... --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">aside</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+		<input
+			type="radio"
+			class="hidden [&:checked+*+*]:block [&:checked+*]:text-cyan-500"
+			name="tabs-pt-4cols"
+			id="tabs-pt-4cols-2"
+			
+		/>
+		<label
+			for="tabs-pt-4cols-2"
+			class="relative mr-7 inline-block cursor-pointer py-3 font-bold leading-none text-slate-500 hover:text-slate-900"
+		>
+			_content-list.html
+		</label>
+		<div class="order-[99] hidden w-full pt-2 [&_pre]:mt-0">
+			<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">aside</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-sidebar w-md-64 w-lg-80 w-xxl-96&#34;</span> <span style="color:#8fbcbb">data-sa-block</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;list&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#616e87;font-style:italic">&lt;!-- Secondary sidebar toggle --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;../_secondary-sidebar-toggle.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#616e87;font-style:italic">&lt;!-- Content list content --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">ul</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">li</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">a</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;#&#34;</span> <span style="color:#8fbcbb">data-sa-toggle</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;body&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;active&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>                Content List Link 1
+</span></span><span style="display:flex;"><span>            <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">a</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">li</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">li</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">a</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;#&#34;</span> <span style="color:#8fbcbb">data-sa-toggle</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;body&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>                Content List Link 2
+</span></span><span style="display:flex;"><span>            <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">a</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">li</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">li</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">a</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;#&#34;</span> <span style="color:#8fbcbb">data-sa-toggle</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;body&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>                Content List Link 3
+</span></span><span style="display:flex;"><span>            <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">a</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">li</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>        ...
+</span></span><span style="display:flex;"><span>    <span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">ul</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">aside</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+		<input
+			type="radio"
+			class="hidden [&:checked+*+*]:block [&:checked+*]:text-cyan-500"
+			name="tabs-pt-4cols"
+			id="tabs-pt-4cols-3"
+			
+		/>
+		<label
+			for="tabs-pt-4cols-3"
+			class="relative mr-7 inline-block cursor-pointer py-3 font-bold leading-none text-slate-500 hover:text-slate-900"
+		>
+			_content-header.html
+		</label>
+		<div class="order-[99] hidden w-full pt-2 [&_pre]:mt-0">
+			<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">div</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;content-header&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#616e87;font-style:italic">&lt;!-- Content list toggle --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">button</span> <span style="color:#8fbcbb">type</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;button&#34;</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;icon ph ph-arrow-left ms-n2 d-md-none&#34;</span> <span style="color:#8fbcbb">data-sa-toggle</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;list&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">span</span> <span style="color:#8fbcbb">class</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;visually-hidden&#34;</span><span style="color:#eceff4">&gt;</span>Back<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">span</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">button</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#616e87;font-style:italic">&lt;!-- Content goes here... --&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">div</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div>
+			
+		</div>
+</div>
+
+<h2 id="no-columns---body-only">No Columns - Body only</h2>
+<p>No columns layout is a simple layout with only the body content. It is useful for pages that don’t need a sidebar or a list.</p>
+<div class="my-5 rounded-md border border-slate-200 p-5 pb-2">
+	<div class="scrollbar flex gap-5 overflow-x-auto whitespace-nowrap">
+		
+    <div class="w-[350px] flex-shrink-0">
+    	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/body_1.png" alt="login.html" />
+    	<div class="my-2 text-center text-xs text-slate-500">login.html</div>
+    </div>
+
+    <div class="w-[350px] flex-shrink-0">
+    	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/body_2.png" alt="coming-soon.html" />
+    	<div class="my-2 text-center text-xs text-slate-500">coming-soon.html</div>
+    </div>
+
+    <div class="w-[350px] flex-shrink-0">
+    	<img class="medium-zoom-image m-0 w-full !rounded" src="./images/page-templates/body_3.png" alt="forgot-password.html" />
+    	<div class="my-2 text-center text-xs text-slate-500">forgot-password.html</div>
+    </div>
+
+
+	</div>
+</div>
+
+<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#5e81ac;font-style:italic">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">html</span> <span style="color:#8fbcbb">lang</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;en&#34;</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#616e87;font-style:italic">&lt;!-- Head --&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_head.html&#34;</span> <span style="color:#8fbcbb">locals</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#39;{ &#34;pageTitle&#34;: &#34;Login&#34; }&#39;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">body</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Page content goes here... --&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#616e87;font-style:italic">&lt;!-- Scripts --&gt;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#eceff4">&lt;</span><span style="color:#81a1c1">module</span> <span style="color:#8fbcbb">href</span><span style="color:#81a1c1">=</span><span style="color:#a3be8c">&#34;./src/html/partials/_script.html&#34;</span><span style="color:#eceff4">&gt;&lt;/</span><span style="color:#81a1c1">module</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">body</span><span style="color:#eceff4">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">&lt;/</span><span style="color:#81a1c1">html</span><span style="color:#eceff4">&gt;</span>
+</span></span></code></pre></div></div>
+	
+	
+	<div class="fixed right-0 top-0 hidden h-full w-60 border-l border-slate-100 pt-20 xl:block">
+		<div class="p-6 [&_a]:block [&_a]:py-1 [&_a]:text-slate-500 hover:[&_a]:text-slate-900">
+			<h4 class="mb-4 text-lg font-bold text-slate-900">On this page</h4>
+
+			<nav id="TableOfContents">
+  <ul>
+    <li><a href="#two-column---sidebar-and-body">Two Column - Sidebar and Body</a></li>
+    <li><a href="#three-column---sidebar-content-sidebar-and-body">Three Column - Sidebar, Content Sidebar and Body</a></li>
+    <li><a href="#four-column---sidebar-content-sidebar-content-list-and-body">Four Column - Sidebar, Content Sidebar, Content List and Body</a></li>
+    <li><a href="#no-columns---body-only">No Columns - Body only</a></li>
+  </ul>
+</nav>
+		</div>
+	</div>
+
+
+
+
+				
+	<footer class="mt-10 border-t border-slate-100 px-8 py-5 text-center text-slate-500">
+		Copyright © 2024 AvidTemplates.
+	</footer>
+
+
+			</main>
+		</div>
+
+		
+
+
+	
+	<script src="./dist/app.min.e212844152cccc12b3375bb287749e18e30151c3ec00e0d562ae026842476b31.js"></script>
+
+
+	</body>
+</html>

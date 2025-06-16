@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Login" }'></module>
+	<body class="d-flex align-items-center p-5">
+		<div class="card mw-400 w-100 m-auto p-8">
+			<h2 class="fs-6 text-body-emphasis">Welcome to Linear Admin!</h2>
+			<div class="text-body-secondary mb-5">Please sign in to continue to the system</div>
+
+			<form class="mb-5">
+				<div class="mb-3 position-relative">
+					<i class="ph ph-user-circle fs-3 position-absolute left-0 top-0 m-2.5 text-body-secondary"></i>
+					<input type="text" class="form-control ps-10" placeholder="Username" />
+				</div>
+				<div class="mb-5 position-relative">
+					<i class="ph ph-keyhole fs-3 position-absolute left-0 top-0 m-2.5 text-body-secondary"></i>
+					<input type="password" class="form-control ps-10" placeholder="Password" />
+				</div>
+
+				<button type="button" class="btn btn-dark bg-opacity-50 w-100">Sign In</button>
+			</form>
+
+			<div class="text-center fs-7">
+				<a href="register.html" class="link-muted mb-2 d-block">Register for a new account</a>
+				<a href="forgot-password.html" class="link-muted d-block">Forgot password?</a>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

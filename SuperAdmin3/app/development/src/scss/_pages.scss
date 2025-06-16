@@ -1,0 +1,62 @@
+//---------------------------------------
+// Misc
+//---------------------------------------
+.map-common {
+	.jvm-region {
+		&[fill="INITIAL_FILL"] {
+			fill: rgba(254, 119, 76, 0.85);
+		}
+
+		&:not([fill="INITIAL_FILL"]) {
+			fill: rgba($black, 0.25);
+		}
+	}
+}
+
+//---------------------------------------
+// Photos
+//---------------------------------------
+.photos-check {
+	&.form-check-input[type="checkbox"] {
+		&:not(:checked) {
+			border-color: $white;
+			background-color: transparent;
+		}
+	}
+}
+
+.photos-item {
+	&:hover {
+		.photos-check {
+			display: block !important;
+		}
+	}
+}
+
+.photos-highlight {
+	&::before {
+		content: "";
+		left: 0;
+		top: 0;
+		border-radius: 0.355rem;
+		position: absolute;
+		width: 100%;
+		height: 50%;
+		background: linear-gradient(180deg, rgba($black, 0.5) 0%, rgba($black, 0) 100%);
+	}
+}
+
+//---------------------------------------
+// Todo lists
+//---------------------------------------
+.todo-checkbox {
+	& ~ label {
+		transition: color 300ms;
+	}
+	&:checked {
+		& ~ * {
+			text-decoration: line-through;
+			opacity: 0.75;
+		}
+	}
+}

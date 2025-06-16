@@ -1,0 +1,60 @@
+{
+    "top.logout": "Logout",
+    "menu.home" : "Home",
+    "menu.transactions" : "Transactions",
+
+    "menu.projects" : "Projects",
+    "form.projects" : "Project Add / Update",
+    "form.projects.list" : "Project List",
+
+    "menu.meetings" : "Meetings",
+    "form.meetings" : "Meeting Add / Update",
+    "form.meetings.list" : "Meetting List",
+
+    "menu.periods" : "Periods",
+    "form.periods" : "Periods Add / Update",
+    "form.periods.list" : "Period List",
+
+    "menu.flats" : "Flats",
+    "form.flats" : "Flat Add / Edit",
+    "form.flats.list" : "Flat List",
+
+    "menu.targets" : "Accounts",
+    "form.targets" : "Accounts Add / Update",
+    "form.targets.list" : "Accounts List",
+
+    "menu.users" : "Users",
+    "menu.users.list" : "User List",
+    "form.users" : "User Add / Update",
+
+    "menu.calendar" : "Calendar",
+    "form.calendar" : "Event Add / Update",
+    "form.calendar.list" : "Monthly Event List",
+
+    "menu.documentfiles" : "Documents",
+    "form.documentfiles.list" : "Document List",
+
+
+    
+    "dashboard.totalflats"      : "All Flats",
+    "dashboard.monthly.outcome" : "Monthly Outcome",
+    "dashboard.monthly.income"  : "Monthly Income",
+    "dashboard.supervisor"      : "Supervisor",
+    "dashboard.amount"          : "M.Amount",
+    "dashboard.totalbalance"    : "Total Balance",
+    "dashboard.transaction"     : "Enter Transaction",
+    "dashboard.export"          : "Export Report",
+    "dashboard.ongoingtasks"    : "Ongoing Tasks",
+    "dashboard.incomewaiting"   : "Monthly Income Depts",
+    "dashboard.health"          : "Updated Status",
+
+    "transactions.list" : "Transaction List",
+    "transactions.period" : "Period",
+    "transactions.date" : "Date",
+    "transactions.source" : "Source",
+    "transactions.target" : "Target",
+    "transactions.type" : "Type",
+    "transactions.amount" : "Amount",
+    "transactions.currency" : "Cur"
+
+}

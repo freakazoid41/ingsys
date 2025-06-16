@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-nav">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Nav" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Nav</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Base nav</h3>
+						<p class="card-subtitle mb-6">
+							Navigation available in Bootstrap share general markup and styles, from the base <code>.nav</code> class to the active and disabled
+							states. Swap modifier classes to switch between each style.
+						</p>
+
+						<div class="border rounded p-3">
+							<ul class="nav mb-2">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+								</li>
+							</ul>
+
+							<ul class="nav mb-2 justify-content-center">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+								</li>
+							</ul>
+
+							<ul class="nav justify-content-end">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Vertical</h3>
+						<p class="card-subtitle mb-6">
+							Stack your navigation by changing the flex item direction with the <code>.flex-column</code> utility. Need to stack them on some
+							viewports but not others? Use the responsive versions (e.g., <code>.flex-sm-column</code>).
+						</p>
+
+						<div class="border rounded p-2">
+							<ul class="nav flex-column">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Pills</h3>
+						<p class="card-subtitle mb-6">Take that same HTML, but use <code>.nav-pills</code> instead.</p>
+
+						<div class="border rounded p-4">
+							<ul class="nav nav-pills">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Underline</h3>
+						<p class="card-subtitle mb-6">Take that same HTML, but use <code>.nav-underline</code> instead.</p>
+
+						<div class="border rounded py-3 px-5">
+							<ul class="nav nav-underline">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Fill and justify</h3>
+						<p class="card-subtitle mb-6">
+							Force your <code>.nav</code>’s contents to extend the full available width one of two modifier classes. To proportionately fill all
+							available space with your <code>.nav-items</code>, use <code>.nav-fill</code>. Notice that all horizontal space is occupied, but not
+							every nav item has the same width.
+						</p>
+
+						<div class="border rounded p-5 mb-6">
+							<ul class="nav nav-pills nav-fill">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Another link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+								</li>
+							</ul>
+						</div>
+
+						<p class="mb-5">
+							For equal-width elements, use <code></code>. All horizontal space will be occupied by nav links, but unlike the .nav-fill above,
+							every nav item will be the same width.
+						</p>
+
+						<div class="border rounded p-5">
+							<ul class="nav nav-pills nav-fill nav-justified">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Another link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Nav plain</h3>
+						<p class="card-subtitle mb-6">
+							<code>.nav-plain</code> remove the background color on <code>.active</code> and keeps the padding smaller compared to the other
+							variants.
+						</p>
+
+						<div class="border rounded p-5">
+							<ul class="nav nav-plain">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Nav scroll</h3>
+						<p class="card-subtitle mb-6">
+							Add <code>.nav-scroll</code> to <code>.nav</code> to make them responsive and scrollable in smaller devices. Resize the browser
+							window to witness the effect.
+						</p>
+
+						<div class="border rounded py-5">
+							<ul class="nav nav-pills nav-scroll px-5">
+								<li class="nav-item">
+									<a class="nav-link active" aria-current="page" href="#">Active</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" href="#">Link</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

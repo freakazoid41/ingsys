@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>/browser-support.html</loc>
+  </url><url>
+    <loc>/categories.html</loc>
+  </url><url>
+    <loc>/charts.html</loc>
+  </url><url>
+    <loc>/customization.html</loc>
+  </url><url>
+    <loc>/dev-dependencies.html</loc>
+  </url><url>
+    <loc>/form-components.html</loc>
+  </url><url>
+    <loc>/other-components.html</loc>
+  </url><url>
+    <loc>/form-templates.html</loc>
+  </url><url>
+    <loc>/icons.html</loc>
+  </url><url>
+    <loc>/maps.html</loc>
+  </url><url>
+    <loc>/page-templates.html</loc>
+  </url><url>
+    <loc>/quick-start.html</loc>
+  </url><url>
+    <loc>/</loc>
+  </url><url>
+    <loc>/tags.html</loc>
+  </url><url>
+    <loc>/themes.html</loc>
+  </url>
+</urlset>

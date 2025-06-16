@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" data-page="forms-templates">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Form Templates" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Site sidebar -->
+		<module href="./src/html/partials/_sidebar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Form Templates</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Forms</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Login form</h3>
+						<p class="card-subtitle mb-6">Sample login form with basic input fields.</p>
+
+						<form class="col-md-6">
+							<div class="mb-3">
+								<input type="text" class="form-control" id="login-username" placeholder="Username" />
+							</div>
+							<div class="mb-3">
+								<input type="password" class="form-control" id="login-password" placeholder="Password" />
+							</div>
+
+							<div class="form-check mb-5">
+								<input class="form-check-input" type="checkbox" value="" id="login-cb" />
+								<label class="form-check-label" for="login-cb">Stay logged in</label>
+							</div>
+
+							<button type="submit" class="btn btn-secondary">Login</button>
+						</form>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Registration form</h3>
+						<p class="card-subtitle mb-6">Sample sign up form basic with names, email and password fields.</p>
+
+						<form class="row g-4 col-md-7">
+							<div class="col-md-6">
+								<input type="text" class="form-control" id="reg-firstname" placeholder="First Name" />
+							</div>
+							<div class="col-md-6">
+								<input type="text" class="form-control" id="reg-lastname" placeholder="Last Name" />
+							</div>
+							<div class="col-md-12">
+								<input type="email" class="form-control" id="reg-email" placeholder="Email Address" />
+							</div>
+							<div class="col-md-6">
+								<input type="password" class="form-control" id="reg-password" placeholder="Password" />
+							</div>
+							<div class="col-md-6">
+								<input type="password" class="form-control" id="reg-cpassword" placeholder="Confirm Password" />
+							</div>
+
+							<div class="col-md-12">
+								<div class="form-check mb-8">
+									<input class="form-check-input" type="checkbox" value="" id="reg-cb" />
+									<label class="form-check-label" for="red-cb">I have read and accept the agreement</label>
+								</div>
+
+								<button type="submit" class="btn btn-secondary">Create Account</button>
+							</div>
+						</form>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Contact form</h3>
+						<p class="card-subtitle mb-6">Sample contact form name, email and message fields.</p>
+
+						<div class="col-md-6">
+							<form>
+								<div class="mb-3">
+									<input type="text" class="form-control" id="contact-name" placeholder="Name" />
+								</div>
+								<div class="mb-3">
+									<input type="email" class="form-control" id="contact-email" placeholder="Email Address" />
+								</div>
+								<div class="mb-3">
+									<textarea class="form-control" id="contact-message" rows="3" placeholder="Message"></textarea>
+								</div>
+
+								<div class="form-check mb-5">
+									<input class="form-check-input" type="checkbox" value="" id="reg-cb" />
+									<label class="form-check-label" for="red-cb">Agree to privacy policy</label>
+								</div>
+
+								<button type="submit" class="btn btn-secondary">Send Message</button>
+							</form>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Newsletter form</h3>
+						<p class="card-subtitle mb-6">Sample newsletter form with name and email address.</p>
+
+						<form class="col-md-6">
+							<div class="mb-3">
+								<input type="text" class="form-control" id="newsletter-name" placeholder="Name" />
+							</div>
+							<div class="mb-3">
+								<input type="email" class="form-control" id="newsletter-email" placeholder="Email Address" />
+							</div>
+
+							<div class="form-check mb-5">
+								<input class="form-check-input" type="checkbox" value="" id="newsletter-cb" />
+								<label class="form-check-label" for="red-newsletter">I have read and accept the agreement</label>
+							</div>
+
+							<button type="submit" class="btn btn-secondary">Subscribe</button>
+						</form>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5 mb-5">Advanced KYC Form</h3>
+
+						<p>
+							Linear Admin includes an advanced KYC (Know Your Client) form template, comprising a comprehensive array of fields such as account
+							details, personal information, contact details, and more.
+						</p>
+						<p class="mb-0">You can access the demo by visiting <code>user-preferences.html</code></p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

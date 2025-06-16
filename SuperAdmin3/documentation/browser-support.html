@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+		<title>Browser Support | Super Admin Documentation</title>
+		<meta name="viewport" content="width=device-width,minimum-scale=1" />
+		<meta
+			name="description"
+			content="
+				Browser Support Understand which browsers are compatible with Super Admin and how to manage vendor prefixes.
+Supported browsers All major browsers and platforms are supported by Super Admin, including the most recent stable releases. You can find our supported range of browsers and their versions in the browserslist entry in package.json
+&#34;browserslist&#34;: [ &#34;last 2 versions&#34;, &#34;not dead&#34;, &#34;not ie &gt; 0&#34; ], We use Autoprefixer to handle intended browser support via CSS prefixes, which uses Browserslist to manage these browser versions.
+			
+			"
+		/>
+
+		
+
+
+	
+	<link rel="stylesheet" href="./dist/style.min.b09d6822522fd5042bac92985823b1841e167aef0b9991cc901385d73cb77be3.css" />
+
+
+	</head>
+
+	<body class="flex h-screen flex-col overflow-hidden font-sans">
+		<header class="z-20 flex h-20 flex-shrink-0 items-center border-b border-slate-100 bg-white px-6">
+	<button class="-ml-3.5 mr-2 grid h-12 w-14 place-items-center rounded hover:bg-slate-100 lg:hidden" id="sidebar-open">
+		<svg class="text-cyan-500" width="30" fill="#000000" viewBox="0 0 256 256">
+			<path d="M88,48V208H40a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8Z" opacity="0.5" fill="currentColor"></path>
+			<path
+				d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,152H56a8,8,0,0,0,0-16H40V120H56a8,8,0,0,0,0-16H40V88H56a8,8,0,0,0,0-16H40V56H80V200H40Zm176,48H96V56H216V200Z"
+			></path>
+		</svg>
+	</button>
+
+	<a href="./index.html" class="text-xl font-bold pr-5">
+		<span class="max-sm:hidden">Super Admin Documentation</span>
+		<span class="sm:hidden">Documentation</span>
+	</a>
+	
+	
+</header>
+
+
+
+		<div class="flex flex-1 overflow-hidden">
+			<aside class="fixed left-0 top-0 z-50 hidden h-full w-72 overflow-y-auto border-r border-slate-100 bg-white p-6 lg:relative lg:z-0 lg:block" id="sidebar">
+	
+	<div class="sticky top-0 -mr-3 mb-3 text-right lg:hidden">
+		<button class="-ml-3.5 -mt-4 mr-2 inline-grid h-12 w-14 place-items-center rounded bg-white/75 hover:bg-slate-100 xl:hidden" id="sidebar-close">
+			<svg class="rotate-180 text-cyan-500" width="30" fill="#000000" viewBox="0 0 256 256">
+				<path d="M88,48V208H40a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8Z" opacity="0.5" fill="currentColor"></path>
+				<path
+					d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,152H56a8,8,0,0,0,0-16H40V120H56a8,8,0,0,0,0-16H40V88H56a8,8,0,0,0,0-16H40V56H80V200H40Zm176,48H96V56H216V200Z"
+				></path>
+			</svg>
+		</button>
+	</div>
+
+	
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Getting Started</span>
+
+			
+				<a
+					href="./quick-start.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Quick Start
+
+					
+				</a>
+			
+				<a
+					href="./customization.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Customization
+
+					
+				</a>
+			
+				<a
+					href="./themes.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Themes
+
+					
+				</a>
+			
+				<a
+					href="./page-templates.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Page Templates
+
+					
+				</a>
+			
+				<a
+					href="./dev-dependencies.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Development Dependencies
+
+					
+				</a>
+			
+				<a
+					href="./browser-support.html"
+					class="
+						text-cyan-500 font-bold
+					 flex items-center py-1"
+					>Browser Support
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Content</span>
+
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/reboot/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Base Styles
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/typography/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Typography
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/images/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Images
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/tables/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Tables
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/content/figures/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Figures
+
+					
+				</a>
+			
+				<a
+					href="./icons.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Icons
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Forms</span>
+
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/overview/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Overview
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/input-group/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Input Groups
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/layout/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Layouts
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/forms/validation/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Validations
+
+					
+				</a>
+			
+				<a
+					href="./form-templates.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Templates
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Bootstrap Components</span>
+
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/accordion/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Accordion
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/alerts/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Alerts
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/badge/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Badge
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/breadcrumb/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Breadcrumb
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/buttons/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Buttons
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/button-group/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Button Groups
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/card/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Card
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/carousel/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Carousel
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/close-button/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Close Button
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/collapse/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Collapse
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/dropdowns/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Dropdowns
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/list-group/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>List Group
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/modal/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Modal
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/navs-tabs/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Navs and Tabs
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/offcanvas/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Offcanvas
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/pagination/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Pagination
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/placeholders/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Placeholders
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/popovers/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Popovers
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/progress/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Progress
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/spinners/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Spinners
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/toasts/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Toasts
+
+					
+				</a>
+			
+				<a
+					href="https://getbootstrap.com/docs/5.3/components/tooltips/"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Tooltips
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Third Party Components</span>
+
+			
+				<a
+					href="./form-components.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Form Related
+
+					
+				</a>
+			
+				<a
+					href="./other-components.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Others
+
+					
+				</a>
+			
+		</div>
+	
+		<div class="mb-8">
+			<span class="mb-3 block font-bold">Charts and Maps</span>
+
+			
+				<a
+					href="./charts.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Charts
+
+					
+				</a>
+			
+				<a
+					href="./maps.html"
+					class="
+						text-slate-500 hover:text-slate-800
+					 flex items-center py-1"
+					>Maps
+
+					
+				</a>
+			
+		</div>
+	
+</aside>
+
+
+
+			<main class="relative z-10 flex flex-1 flex-col overflow-y-auto scroll-smooth p-8 pb-0 xl:pr-[calc(15rem+2rem)]" role="main">
+				
+	<div class="prose mx-auto w-full max-w-7xl flex-1"><h1 id="browser-support">Browser Support</h1>
+<p>Understand which browsers are compatible with Super Admin and how to manage vendor prefixes.</p>
+
+  <img width="300" src="./images/browser-support.png" class="rounded-none m-0" alt="Browser Support" />
+
+
+<h2 id="supported-browsers">Supported browsers</h2>
+<p>All major browsers and platforms are supported by Super Admin, including the most recent stable releases. You can find our supported range of browsers and their versions in the <code>browserslist</code> entry in <code>package.json</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span><span style="color:#a3be8c">&#34;browserslist&#34;</span><span style="color:#bf616a">:</span> <span style="color:#eceff4">[</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a3be8c">&#34;last 2 versions&#34;</span><span style="color:#eceff4">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a3be8c">&#34;not dead&#34;</span><span style="color:#eceff4">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a3be8c">&#34;not ie &gt; 0&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#eceff4">]</span><span style="color:#bf616a">,</span>
+</span></span></code></pre></div><p>We use <a href="https://github.com/postcss/autoprefixer">Autoprefixer</a> to handle intended browser support via CSS prefixes, which uses <a href="https://github.com/browserslist/browserslist">Browserslist</a> to manage these browser versions.</p>
+<h2 id="mobile-devices">Mobile devices</h2>
+<p>Super Admin supports the latest versions of each major platform’s default browsers including Chrome, Safari, Samsung Internet, Edge, Firefox etc.</p>
+<h2 id="desktop-browsers">Desktop browsers</h2>
+<p>Similarly, the latest versions of most desktop browsers are supported. That includes, Chrome, Firefox, Safari, Edge, Opera etc.</p>
+<h2 id="internet-explorer">Internet Explorer</h2>
+<p>None of the IE versions, including IE 11, are supported.</p>
+</div>
+	
+	
+	<div class="fixed right-0 top-0 hidden h-full w-60 border-l border-slate-100 pt-20 xl:block">
+		<div class="p-6 [&_a]:block [&_a]:py-1 [&_a]:text-slate-500 hover:[&_a]:text-slate-900">
+			<h4 class="mb-4 text-lg font-bold text-slate-900">On this page</h4>
+
+			<nav id="TableOfContents">
+  <ul>
+    <li><a href="#supported-browsers">Supported browsers</a></li>
+    <li><a href="#mobile-devices">Mobile devices</a></li>
+    <li><a href="#desktop-browsers">Desktop browsers</a></li>
+    <li><a href="#internet-explorer">Internet Explorer</a></li>
+  </ul>
+</nav>
+		</div>
+	</div>
+
+
+
+
+				
+	<footer class="mt-10 border-t border-slate-100 px-8 py-5 text-center text-slate-500">
+		Copyright © 2024 AvidTemplates.
+	</footer>
+
+
+			</main>
+		</div>
+
+		
+
+
+	
+	<script src="./dist/app.min.e212844152cccc12b3375bb287749e18e30151c3ec00e0d562ae026842476b31.js"></script>
+
+
+	</body>
+</html>

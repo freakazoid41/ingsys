@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-breadcrumb">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Breadcrumb" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Breadcrumb</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Basic example</h3>
+						<p class="card-subtitle mb-6">
+							Use an ordered or unordered list with linked list items to create a minimally styled breadcrumb. Use our utilities to add additional
+							styles as desired.
+						</p>
+
+						<div class="border border-gray-300 rounded p-5">
+							<nav aria-label="breadcrumb">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item active" aria-current="page">Home</li>
+								</ol>
+							</nav>
+
+							<nav aria-label="breadcrumb" class="my-3">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Library</li>
+								</ol>
+							</nav>
+
+							<nav aria-label="breadcrumb" class="my-3">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item"><a href="#">Library</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Data</li>
+								</ol>
+							</nav>
+							<nav aria-label="breadcrumb">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item"><a href="#">Library</a></li>
+									<li class="breadcrumb-item"><a href="#">Data</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Science</li>
+								</ol>
+							</nav>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Dividers</h3>
+						<p class="card-subtitle mb-6">
+							Dividers are automatically added in CSS through <code>::before</code> and <code>content</code>. They can be changed by modifying a
+							local CSS custom property <code>--bs-breadcrumb-divider</code>, or through the <code>$breadcrumb-divider</code> Sass variable.
+						</p>
+
+						<div class="border rounded p-5">
+							<nav class="mb-5" style="--bs-breadcrumb-divider: '/'" aria-label="breadcrumb">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item"><a href="#">Library</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Data</li>
+								</ol>
+							</nav>
+
+							<nav class="mb-5" style="--bs-breadcrumb-divider: '\E122'" aria-label="breadcrumb">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item"><a href="#">Library</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Data</li>
+								</ol>
+							</nav>
+
+							<nav class="mb-5" style="--bs-breadcrumb-divider: '\E06C'" aria-label="breadcrumb">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item"><a href="#">Library</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Data</li>
+								</ol>
+							</nav>
+
+							<nav style="--bs-breadcrumb-divider: '\E12A'" aria-label="breadcrumb">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item"><a href="#">Library</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Data</li>
+								</ol>
+							</nav>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Alignments</h3>
+						<p class="card-subtitle mb-6">Change the alignment of the breadcrumb items with flexbox utilities.</p>
+
+						<div class="border rounded p-5 mb-2">
+							<nav aria-label="breadcrumb">
+								<ol class="breadcrumb">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item"><a href="#">Library</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Data</li>
+								</ol>
+							</nav>
+						</div>
+						<div class="border rounded p-5 mb-2">
+							<nav aria-label="breadcrumb">
+								<ol class="breadcrumb justify-content-center">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item"><a href="#">Library</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Data</li>
+								</ol>
+							</nav>
+						</div>
+						<div class="border rounded p-5">
+							<nav aria-label="breadcrumb">
+								<ol class="breadcrumb justify-content-end">
+									<li class="breadcrumb-item"><a href="#">Home</a></li>
+									<li class="breadcrumb-item"><a href="#">Library</a></li>
+									<li class="breadcrumb-item active" aria-current="page">Data</li>
+								</ol>
+							</nav>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

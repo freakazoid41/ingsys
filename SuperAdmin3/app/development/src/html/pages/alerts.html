@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-alerts">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Alerts" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Alerts</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+			
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Basic example</h3>
+						<p class="card-subtitle mb-6">
+							Provide contextual feedback messages for typical user actions with the handful of available and flexible alert messages.
+						</p>
+
+						<div class="alert alert-primary" role="alert">A simple primary alert—check it out!</div>
+						<div class="alert alert-secondary" role="alert">A simple secondary alert—check it out!</div>
+						<div class="alert alert-success" role="alert">A simple success alert—check it out!</div>
+						<div class="alert alert-danger" role="alert">A simple danger alert—check it out!</div>
+						<div class="alert alert-warning" role="alert">A simple warning alert—check it out!</div>
+						<div class="alert alert-info" role="alert">A simple info alert—check it out!</div>
+						<div class="alert alert-light" role="alert">A simple light alert—check it out!</div>
+						<div class="alert alert-dark mb-0" role="alert">A simple dark alert—check it out!</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Link color</h3>
+						<p class="card-subtitle mb-6">
+							Use the <code>.alert-link</code> utility class to quickly provide matching colored links within any alert.
+						</p>
+
+						<div class="alert alert-primary" role="alert">
+							A simple primary alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+						</div>
+						<div class="alert alert-secondary" role="alert">
+							A simple secondary alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+						</div>
+						<div class="alert alert-success" role="alert">
+							A simple success alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+						</div>
+						<div class="alert alert-danger" role="alert">
+							A simple danger alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+						</div>
+						<div class="alert alert-warning" role="alert">
+							A simple warning alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+						</div>
+						<div class="alert alert-info" role="alert">
+							A simple info alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+						</div>
+						<div class="alert alert-light" role="alert">
+							A simple light alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+						</div>
+						<div class="alert alert-dark mb-0" role="alert">
+							A simple dark alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Additional content</h3>
+						<p class="card-subtitle mb-6">Alerts can also contain additional HTML elements like headings, paragraphs and dividers.</p>
+
+						<div class="alert alert-success mb-0" role="alert">
+							<h4 class="alert-heading fs-6">Well done!</h4>
+							<p>
+								Aww yeah, you successfully read this important alert message. This example text is going to run a bit longer so that you can see
+								how spacing within an alert works with this kind of content.
+							</p>
+							<p class="mb-0">Whenever you need to, be sure to use margin utilities to keep things nice and tidy.</p>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Icons</h3>
+						<p class="card-subtitle mb-6">
+							Similarly, you can use
+							<a rel="noreferrer noopener" target="_blank" href="https://icons.getbootstrap.com/">flexbox utilities</a> to create alerts with
+							icons. Depending on your icons and content, you may want to add more utilities or custom styles.
+						</p>
+
+						<div class="alert alert-primary d-flex align-items-center" role="alert">
+							<i class="ph ph-info fs-3 me-3"></i>
+							<div>An example primary alert with an icon</div>
+						</div>
+						<div class="alert alert-success d-flex align-items-center" role="alert">
+							<i class="ph ph-check-circle fs-3 me-3"></i>
+							<div>An example success alert with an icon</div>
+						</div>
+						<div class="alert alert-warning d-flex align-items-center" role="alert">
+							<i class="ph ph-seal-warning fs-3 me-3"></i>
+							<div>An example warning alert with an icon</div>
+						</div>
+						<div class="alert alert-danger d-flex align-items-center mb-0" role="alert">
+							<i class="ph ph-minus-circle fs-3 me-3"></i>
+							<div>An example danger alert with an icon</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Dismissing</h3>
+						<p class="card-subtitle mb-6">Using the alert JavaScript plugin, it’s possible to dismiss any alert inline.</p>
+
+						<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+							Holy guacamole! You should check in on some of those fields below.
+							<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

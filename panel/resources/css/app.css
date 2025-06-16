@@ -1,0 +1,48 @@
+.pickletable .orderable:hover,
+.pickletable tr:hover {
+
+    color: var(--bs-table-active-color) !important;
+    background-color: var(--bs-table-active-bg) !important;
+    cursor: pointer;
+}
+
+.pickletable th{
+    background-color: unset !important;
+    color: white !important;
+}
+
+.selectable > *,
+.rmv-btn-form > * {pointer-events: none;}
+
+.selectable:hover,
+.rmv-btn-form:hover{
+    background-color: #0000004d !important;
+    color:white !important;
+    cursor: pointer;
+}
+
+
+
+
+
+.pickletable td,
+.pickletable th,
+.pickletable table {
+    border: 1px solid var(--bs-table-border-color) !important;
+    vertical-align: middle;
+}
+.pickletable .divTable {border-bottom: 1px solid var(--bs-border-color) !important;}
+.pickletable .search-input {background-color: transparent !important;}
+.swal2-popup{
+    background: #00000040 !important;
+    color: #ced4da !important;
+}
+
+.form-switch .form-check-label:after{
+    top:unset !important;
+}
+
+.swal2-success-fix,
+.swal2-success-circular-line-left,
+.swal2-success-circular-line-right{background-color: unset !important;}
+

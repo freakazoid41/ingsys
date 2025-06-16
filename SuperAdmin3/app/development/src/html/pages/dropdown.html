@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-dropdown">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Dropdown" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Dropdown</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+		
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Basic examples</h3>
+						<p class="card-subtitle mb-6">Basic dropdown can be used with either single button or split button.</p>
+
+						<div class="d-flex align-items-center gap-3 flex-wrap">
+							<div class="dropdown">
+								<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+									Single Button
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Another action</a></li>
+									<li><a class="dropdown-item" href="#">Something else here</a></li>
+								</ul>
+							</div>
+
+							<div class="btn-group">
+								<button type="button" class="btn btn-secondary">Split button</button>
+								<button
+									type="button"
+									class="btn btn-secondary dropdown-toggle dropdown-toggle-split"
+									data-bs-toggle="dropdown"
+									aria-expanded="false"
+								>
+									<span class="visually-hidden">Toggle Dropdown</span>
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Another action</a></li>
+									<li><a class="dropdown-item" href="#">Something else here</a></li>
+									<li><hr class="dropdown-divider" /></li>
+									<li><a class="dropdown-item" href="#">Separated link</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Trigger using non-button elements</h3>
+						<p class="card-subtitle mb-6">Dropdown can also be used with <code>&lt;a&gt;</code>, <code>&lt;span&gt;</code> or any other tags.</p>
+
+						<div class="d-flex align-items-start gap-3">
+							<div class="dropdown">
+								<a href="" data-bs-toggle="dropdown" aria-expanded="false"> I'm an anchor tag </a>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Another action</a></li>
+									<li><a class="dropdown-item" href="#">Something else here</a></li>
+								</ul>
+							</div>
+
+							<div class="dropdown">
+								<span data-bs-toggle="dropdown" aria-expanded="false"> I'm a span tag </span>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Another action</a></li>
+									<li><a class="dropdown-item" href="#">Something else here</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Sizing</h3>
+						<p class="card-subtitle mb-6">Button dropdowns work with buttons of all sizes, including default and split dropdown buttons.</p>
+
+						<div class="d-flex align-items-start gap-3 flex-wrap">
+							<div class="btn-group">
+								<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+									Large button
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Another action</a></li>
+									<li><a class="dropdown-item" href="#">Something else here</a></li>
+								</ul>
+							</div>
+							<div class="btn-group">
+								<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+									Large button
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Another action</a></li>
+									<li><a class="dropdown-item" href="#">Something else here</a></li>
+								</ul>
+							</div>
+							<div class="btn-group">
+								<button class="btn btn-secondary btn-lg dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+									Large button
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Another action</a></li>
+									<li><a class="dropdown-item" href="#">Something else here</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Directions</h3>
+						<p class="card-subtitle mb-6">Use dropdown modifier classes to alter the alignment of the dropdowns.</p>
+
+						<div class="d-flex align-items-start gap-3 flex-wrap">
+							<div class="dropdown-center">
+								<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+									Centered dropdown
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Action two</a></li>
+									<li><a class="dropdown-item" href="#">Action three</a></li>
+								</ul>
+							</div>
+
+							<div class="dropup">
+								<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Dropup</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Action two</a></li>
+									<li><a class="dropdown-item" href="#">Action three</a></li>
+								</ul>
+							</div>
+
+							<div class="dropup-center dropup">
+								<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+									Centered dropup
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Action two</a></li>
+									<li><a class="dropdown-item" href="#">Action three</a></li>
+								</ul>
+							</div>
+
+							<div class="dropend">
+								<button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Dropend</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Action two</a></li>
+									<li><a class="dropdown-item" href="#">Action three</a></li>
+								</ul>
+							</div>
+
+							<div class="dropstart">
+								<button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Dropstart</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Action two</a></li>
+									<li><a class="dropdown-item" href="#">Action three</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Menu items</h3>
+						<p class="card-subtitle mb-6">You can use <code>&lt;a&gt;</code> or <code>&lt;button&gt;</code> elements as dropdown items.</p>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Non-interactive dropdown item</h4>
+						<ul class="dropdown-menu d-inline-block position-relative mb-8">
+							<li><span class="dropdown-item-text">Non-interactive dropdown item</span></li>
+							<li><a class="dropdown-item" href="#">Action</a></li>
+							<li><a class="dropdown-item" href="#">Another action</a></li>
+							<li><a class="dropdown-item" href="#">Something else here</a></li>
+						</ul>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Active item</h4>
+						<ul class="dropdown-menu d-inline-block position-relative mb-8">
+							<li><a class="dropdown-item" href="#">Regular link</a></li>
+							<li><a class="dropdown-item active" href="#" aria-current="true">Active link</a></li>
+							<li><a class="dropdown-item" href="#">Another link</a></li>
+						</ul>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Disabled item</h4>
+						<ul class="dropdown-menu d-inline-block position-relative">
+							<li><a class="dropdown-item" href="#">Regular link</a></li>
+							<li><a class="dropdown-item disabled" aria-disabled="true">Disabled link</a></li>
+							<li><a class="dropdown-item" href="#">Another link</a></li>
+						</ul>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Menu alignment</h3>
+						<p class="card-subtitle mb-6">
+							By default, a dropdown menu is automatically positioned 100% from the top and along the left side of its parent. You can change this
+							with the directional <code>.drop*</code> classes, but you can also control them with additional modifier classes.
+						</p>
+
+						<div class="btn-group mb-8">
+							<button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+								Right-aligned menu example
+							</button>
+							<ul class="dropdown-menu dropdown-menu-end">
+								<li><button class="dropdown-item" type="button">Action</button></li>
+								<li><button class="dropdown-item" type="button">Another action</button></li>
+								<li><button class="dropdown-item" type="button">Something else here</button></li>
+							</ul>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium">Responsive alignment</h4>
+						<p class="mb-4">
+							If you want to use responsive alignment, disable dynamic positioning by adding the
+							<code>data-bs-display="static"</code> attribute and use the responsive variation classes.
+						</p>
+
+						<div class="d-flex align-items-start gap-3 flex-wrap">
+							<div class="btn-group">
+								<button
+									type="button"
+									class="btn btn-secondary dropdown-toggle"
+									data-bs-toggle="dropdown"
+									data-bs-display="static"
+									aria-expanded="false"
+								>
+									Left-aligned but right aligned on lg
+								</button>
+								<ul class="dropdown-menu dropdown-menu-lg-end">
+									<li><button class="dropdown-item" type="button">Action</button></li>
+									<li><button class="dropdown-item" type="button">Another action</button></li>
+									<li><button class="dropdown-item" type="button">Something else here</button></li>
+								</ul>
+							</div>
+
+							<div class="btn-group">
+								<button
+									type="button"
+									class="btn btn-secondary dropdown-toggle"
+									data-bs-toggle="dropdown"
+									data-bs-display="static"
+									aria-expanded="false"
+								>
+									Right-aligned but left aligned on lg
+								</button>
+								<ul class="dropdown-menu dropdown-menu-end dropdown-menu-lg-start">
+									<li><button class="dropdown-item" type="button">Action</button></li>
+									<li><button class="dropdown-item" type="button">Another action</button></li>
+									<li><button class="dropdown-item" type="button">Something else here</button></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-title fs-5 mb-6">Menu content</h3>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium">Headers</h4>
+						<p class="mb-4">Add a header to label sections of actions in any dropdown menu.</p>
+
+						<ul class="dropdown-menu d-inline-block position-relative mb-8">
+							<li><h6 class="dropdown-header">Dropdown header</h6></li>
+							<li><a class="dropdown-item" href="#">Action</a></li>
+							<li><a class="dropdown-item" href="#">Another action</a></li>
+						</ul>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium">Dividers</h4>
+						<p class="mb-4">Separate groups of related menu items with a divider.</p>
+
+						<ul class="dropdown-menu d-inline-block position-relative mb-8">
+							<li><a class="dropdown-item" href="#">Action</a></li>
+							<li><a class="dropdown-item" href="#">Another action</a></li>
+							<li><a class="dropdown-item" href="#">Something else here</a></li>
+							<li><hr class="dropdown-divider" /></li>
+							<li><a class="dropdown-item" href="#">Separated link</a></li>
+						</ul>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium">Text</h4>
+						<p class="mb-4">
+							Place any freeform text within a dropdown menu with text and use spacing utilities. Note that you’ll likely need additional sizing
+							styles to constrain the menu width.
+						</p>
+
+						<div class="dropdown-menu p-4 d-inline-block position-relative w-72">
+							<p>Some example text that's free-flowing within the dropdown menu.</p>
+							<p class="mb-0">And this is more example text.</p>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-title fs-5">Dropdown options</h3>
+						<p class="card-subtitle mb-6">
+							Use <code>data-bs-offset</code> or <code>data-bs-reference</code> to change the location of the dropdown.
+						</p>
+
+						<div class="d-flex flex-wrap align-items-start gap-3 mb-8">
+							<div class="dropdown">
+								<button
+									type="button"
+									class="btn btn-secondary dropdown-toggle"
+									data-bs-toggle="dropdown"
+									aria-expanded="false"
+									data-bs-offset="10,20"
+								>
+									Offset
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Another action</a></li>
+									<li><a class="dropdown-item" href="#">Something else here</a></li>
+								</ul>
+							</div>
+							<div class="btn-group">
+								<button type="button" class="btn btn-secondary">Reference</button>
+								<button
+									type="button"
+									class="btn btn-secondary dropdown-toggle dropdown-toggle-split"
+									data-bs-toggle="dropdown"
+									aria-expanded="false"
+									data-bs-reference="parent"
+								>
+									<span class="visually-hidden">Toggle Dropdown</span>
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Action</a></li>
+									<li><a class="dropdown-item" href="#">Another action</a></li>
+									<li><a class="dropdown-item" href="#">Something else here</a></li>
+									<li><hr class="dropdown-divider" /></li>
+									<li><a class="dropdown-item" href="#">Separated link</a></li>
+								</ul>
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium">Auto close behavior</h4>
+						<p class="mb-4">
+							By default, the dropdown menu is closed when clicking inside or outside the dropdown menu. You can use the
+							<code>autoClose</code> option to change this behavior of the dropdown.
+						</p>
+
+						<div class="d-flex flex-wrap align-items-start gap-3">
+							<div class="btn-group">
+								<button
+									class="btn btn-secondary dropdown-toggle"
+									type="button"
+									data-bs-toggle="dropdown"
+									data-bs-auto-close="true"
+									aria-expanded="false"
+								>
+									Default dropdown
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+								</ul>
+							</div>
+
+							<div class="btn-group">
+								<button
+									class="btn btn-secondary dropdown-toggle"
+									type="button"
+									data-bs-toggle="dropdown"
+									data-bs-auto-close="inside"
+									aria-expanded="false"
+								>
+									Clickable inside
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+								</ul>
+							</div>
+
+							<div class="btn-group">
+								<button
+									class="btn btn-secondary dropdown-toggle"
+									type="button"
+									data-bs-toggle="dropdown"
+									data-bs-auto-close="outside"
+									aria-expanded="false"
+								>
+									Clickable outside
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+								</ul>
+							</div>
+
+							<div class="btn-group">
+								<button
+									class="btn btn-secondary dropdown-toggle"
+									type="button"
+									data-bs-toggle="dropdown"
+									data-bs-auto-close="false"
+									aria-expanded="false"
+								>
+									Manual close
+								</button>
+								<ul class="dropdown-menu">
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+									<li><a class="dropdown-item" href="#">Menu item</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

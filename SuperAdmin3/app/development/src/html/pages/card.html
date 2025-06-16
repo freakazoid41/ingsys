@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en" data-page="components-card">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Card" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">Card</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Miscellaneous</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Components</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div id="toc-wrapper"></div>
+		</div>
+
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Body -->
+			<div class="mw-1000 w-100 mx-auto">
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-group-title fs-5 text-body-emphasis">Basic example</h3>
+						<p class="mb-5 text-body-secondary">
+							Below is an example of a basic card with mixed content and a fixed width. Cards have no fixed width to start, so they’ll naturally
+							fill the full width of its parent element.
+						</p>
+
+						<div class="card mw-600">
+							<div class="card-body">
+								<h5 class="card-title">Card title</h5>
+								<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								<a href="#" class="btn btn-secondary">Action</a>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-group-title fs-5 text-body-emphasis">Content types</h3>
+						<p class="mb-5 text-body-secondary mb-6">
+							Cards support a wide variety of content, including images, text, list groups, links, and more. Below are examples of what’s
+							supported.
+						</p>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Body</h4>
+						<div class="card mb-8 mw-600">
+							<div class="card-body">This is some text within a card body.</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Titles, text, and links</h4>
+						<div class="card mb-8 mw-600">
+							<div class="card-body">
+								<h5 class="card-title">Card title</h5>
+								<h6 class="card-subtitle text-body-secondary mb-5">Card subtitle</h6>
+								<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								<a href="#" class="card-link">Card link</a>
+								<a href="#" class="card-link">Another link</a>
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Images</h4>
+						<div class="card mb-8 mw-600">
+							<div class="p-1.5">
+								<img src="../../img/misc/images/fluid.svg" class="card-img-top" alt="..." />
+							</div>
+							<div class="card-body">
+								<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">List groups</h4>
+						<div class="card mb-8 mw-600">
+							<ul class="list-group list-group-flush">
+								<li class="list-group-item">An item</li>
+								<li class="list-group-item">A second item</li>
+								<li class="list-group-item">A third item</li>
+							</ul>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Kitchen sink</h4>
+						<div class="card mb-8 mw-600">
+							<div class="p-1.5">
+								<img src="../../img/misc/images/fluid.svg" class="card-img-top" alt="..." />
+							</div>
+							<div class="card-body">
+								<h5 class="card-title">Card title</h5>
+								<h6 class="card-subtitle mb-5 text-body-secondary">Card subtitle</h6>
+
+								<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+							</div>
+							<ul class="list-group list-group-flush">
+								<li class="list-group-item">An item</li>
+								<li class="list-group-item">A second item</li>
+								<li class="list-group-item">A third item</li>
+							</ul>
+							<div class="card-body">
+								<a href="#" class="card-link">Card link</a>
+								<a href="#" class="card-link">Another link</a>
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Header and Footer</h4>
+						<div class="card mb-5 mw-600">
+							<div class="card-header">Header</div>
+							<div class="card-body">
+								<h5 class="card-title">Special title treatment</h5>
+								<p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+								<a href="#" class="btn btn-secondary">Go somewhere</a>
+							</div>
+						</div>
+
+						<div class="card text-center mw-600">
+							<div class="card-header text-body-emphasis">Featured</div>
+							<div class="card-body">
+								<h5 class="card-title">Special title treatment</h5>
+								<p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+								<a href="#" class="btn btn-secondary">Go somewhere</a>
+							</div>
+							<div class="card-footer text-body-secondary fs-7">2 days ago</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-group-title fs-5 text-body-emphasis">Text alignment</h3>
+						<p class="mb-5 text-body-secondary">
+							You can quickly change the text alignment of any card—in its entirety or specific parts—with Bootstrap's text align classes.
+						</p>
+
+						<div class="card text-center mw-600 mb-5">
+							<div class="card-body">
+								<h5 class="card-title">Special title treatment</h5>
+								<p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+								<a href="#" class="btn btn-secondary">Go somewhere</a>
+							</div>
+						</div>
+
+						<div class="card text-end mw-600">
+							<div class="card-body">
+								<h5 class="card-title">Special title treatment</h5>
+								<p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+								<a href="#" class="btn btn-secondary">Go somewhere</a>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-group-title fs-5 text-body-emphasis">Navigation</h3>
+						<p class="mb-5 text-body-secondary">Add some navigation to a card’s header (or block) with Bootstrap’s nav components.</p>
+
+						<div class="card text-center mw-600">
+							<div class="card-header">
+								<ul class="nav nav-pills card-header-pills">
+									<li class="nav-item">
+										<a class="nav-link active" aria-current="true" href="#">Active</a>
+									</li>
+									<li class="nav-item">
+										<a class="nav-link" href="#">Link</a>
+									</li>
+									<li class="nav-item">
+										<a class="nav-link disabled" aria-disabled="true">Disabled</a>
+									</li>
+								</ul>
+							</div>
+							<div class="card-body">
+								<h5 class="card-title">Special title treatment</h5>
+								<p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+								<a href="#" class="btn btn-secondary">Go somewhere</a>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-group-title fs-5 text-body-emphasis">Images</h3>
+						<p class="mb-5 text-body-secondary">
+							Cards include a few options for working with images. Choose from appending “image caps” at either end of a card, overlaying images
+							with card content, or simply embedding the image in a card.
+						</p>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Image caps on top</h4>
+
+						<div class="card mb-8 mw-600">
+							<div class="p-1.5">
+								<img src="../../img/misc/images/fluid.svg" class="card-img-top" alt="" />
+							</div>
+							<div class="card-body">
+								<h5 class="card-title">Card title</h5>
+								<p class="card-text">
+									This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit
+									longer.
+								</p>
+								<p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p>
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Image caps on bottom</h4>
+						<div class="card mb-8 mw-600">
+							<div class="card-body">
+								<h5 class="card-title">Card title</h5>
+								<p class="card-text">
+									This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit
+									longer.
+								</p>
+								<p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p>
+							</div>
+							<div class="p-1.5">
+								<img src="../../img/misc/images/fluid.svg" class="card-img-bottom" alt="" />
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Image overlays</h4>
+						<div class="card mw-600">
+							<div class="p-1.5">
+								<img src="../../img/misc/images/fluid.svg" class="card-img opacity-25" alt="" />
+							</div>
+							<div class="card-img-overlay text-white">
+								<h5 class="card-title text-white">Card title</h5>
+								<p class="card-text">
+									This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit
+									longer.
+								</p>
+								<p class="card-text"><small>Last updated 3 mins ago</small></p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-group-title fs-5 text-body-emphasis">Horizontal</h3>
+						<p class="mb-5 text-body-secondary">
+							Using a combination of grid and utility classes, cards can be made horizontal in a mobile-friendly and responsive way.
+						</p>
+
+						<div class="card mw-600 mb-3">
+							<div class="row g-0">
+								<div class="col-md-4 p-1">
+									<img src="../../img/misc/images/thumbnail.svg" class="img-fluid rounded-start" alt="" />
+								</div>
+								<div class="col-md-8">
+									<div class="card-body">
+										<h5 class="card-title">Card title</h5>
+										<p class="card-text">
+											This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little
+											bit longer.
+										</p>
+										<p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-3">
+					<div class="card-body">
+						<h3 class="card-group-title fs-5 text-body-emphasis">Card styles</h3>
+						<p class="mb-5 text-body-secondary">Cards include various options for customizing their backgrounds, borders, and color.</p>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Background color</h4>
+						<div class="grid gap-5 mb-8">
+							<div class="card text-white bg-primary g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body">
+									<h5 class="card-title mb-3 text-white">Primary card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card text-white bg-secondary bg-opacity-25 g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body">
+									<h5 class="card-title mb-3 text-white">Secondary card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card text-white bg-success g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body">
+									<h5 class="card-title mb-3 text-white">Success card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card text-white bg-danger g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body">
+									<h5 class="card-title mb-3 text-white">Danger card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card text-white bg-warning g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body">
+									<h5 class="card-title mb-3 text-white">Warning card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card text-white bg-info g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body">
+									<h5 class="card-title mb-3 text-white">Info card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card text-white bg-dark bg-opacity-25 g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body">
+									<h5 class="card-title mb-3 text-white">Dark card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Border and text colors</h4>
+						<div class="grid gap-5">
+							<div class="card border-primary g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body text-primary">
+									<h5 class="card-title text-primary">Primary card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card border-success g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body text-success">
+									<h5 class="card-title text-success">Success card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card border-danger g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body text-danger">
+									<h5 class="card-title text-danger">Danger card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card border-warning g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body text-warning">
+									<h5 class="card-title text-warning">Warning card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+							<div class="card border-info g-col-12 g-col-sm-6 g-col-lg-4">
+								<div class="card-body text-info">
+									<h5 class="card-title text-info">Info card title</h5>
+									<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-body">
+						<h3 class="card-group-title fs-5 text-body-emphasis">Card layout</h3>
+						<p class="mb-5 text-body-secondary">
+							In addition to styling the content within cards, Bootstrap includes a few options for laying out series of cards.
+						</p>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Card groups</h4>
+						<div class="card-group gap-1 mb-8">
+							<div class="card">
+								<div class="p-1.5">
+									<img src="../../img/gallery/1.jpg" class="card-img-top" alt="" />
+								</div>
+								<div class="card-body">
+									<h5 class="card-title">Card title</h5>
+									<p class="card-text">
+										This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit
+										longer.
+									</p>
+									<p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p>
+								</div>
+							</div>
+							<div class="card">
+								<div class="p-1.5">
+									<img src="../../img/gallery/4.jpg" class="card-img-top" alt="" />
+								</div>
+								<div class="card-body">
+									<h5 class="card-title">Card title</h5>
+									<p class="card-text">This card has supporting text below as a natural lead-in to additional content.</p>
+									<p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p>
+								</div>
+							</div>
+							<div class="card">
+								<div class="p-1.5">
+									<img src="../../img/gallery/6.jpg" class="card-img-top" alt="" />
+								</div>
+								<div class="card-body">
+									<h5 class="card-title">Card title</h5>
+									<p class="card-text">
+										This is a wider card with supporting text below as a natural lead-in to additional content. This card has even longer
+										content than the first to show that equal height action.
+									</p>
+									<p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p>
+								</div>
+							</div>
+						</div>
+
+						<h4 class="fs-6 text-body-emphasis fw-medium mb-4">Grid cards</h4>
+						<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+							<div class="col">
+								<div class="card">
+									<div class="card-body">
+										<h5 class="card-title">Card title</h5>
+										<p class="card-text">
+											This is a longer card with supporting text below as a natural lead-in to additional content. This content is a
+											little bit longer.
+										</p>
+									</div>
+								</div>
+							</div>
+							<div class="col">
+								<div class="card">
+									<div class="card-body">
+										<h5 class="card-title">Card title</h5>
+										<p class="card-text">
+											This is a longer card with supporting text below as a natural lead-in to additional content. This content is a
+											little bit longer.
+										</p>
+									</div>
+								</div>
+							</div>
+							<div class="col">
+								<div class="card">
+									<div class="card-body">
+										<h5 class="card-title">Card title</h5>
+										<p class="card-text">
+											This is a longer card with supporting text below as a natural lead-in to additional content. This content is a
+											little bit longer.
+										</p>
+									</div>
+								</div>
+							</div>
+							<div class="col">
+								<div class="card">
+									<div class="card-body">
+										<h5 class="card-title">Card title</h5>
+										<p class="card-text">
+											This is a longer card with supporting text below as a natural lead-in to additional content. This content is a
+											little bit longer.
+										</p>
+									</div>
+								</div>
+							</div>
+							<div class="col">
+								<div class="card">
+									<div class="card-body">
+										<h5 class="card-title">Card title</h5>
+										<p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content.</p>
+									</div>
+								</div>
+							</div>
+							<div class="col">
+								<div class="card">
+									<div class="card-body">
+										<h5 class="card-title">Card title</h5>
+										<p class="card-text">
+											This is a longer card with supporting text below as a natural lead-in to additional content. This content is a
+											little bit longer.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

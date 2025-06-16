@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en" data-page="user-preferences">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "User Preferences" }'></module>
+
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<div class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">User Preferences</h2>
+
+			<nav aria-label="breadcrumb" class="ms-8 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7">
+					<li class="breadcrumb-item"><a href="#">Application Views</a></li>
+					<li class="breadcrumb-item"><a href="#">User</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Preferences</li>
+				</ol>
+			</nav>
+		</div>
+
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+
+			<!-- Body -->
+			<div class="card mw-1000 mx-auto w-100">
+				<ul class="nav nav-pills nav-scroll p-4 border-bottom" role="tablist">
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link active"
+							id="account-tab"
+							data-bs-toggle="tab"
+							data-bs-target="#account-tab-pane"
+							type="button"
+							role="tab"
+							aria-controls="account-tab-pane"
+							aria-selected="true"
+						>
+							<i class="ph ph-user-circle-gear fs-4"></i>
+							Account Details
+						</button>
+					</li>
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link"
+							id="personal-tab"
+							data-bs-toggle="tab"
+							data-bs-target="#personal-tab-pane"
+							type="button"
+							role="tab"
+							aria-controls="personal-tab-pane"
+							aria-selected="false"
+						>
+							<i class="ph ph-user-circle fs-4"></i>
+							Personal Information
+						</button>
+					</li>
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link"
+							id="contact-tab"
+							data-bs-toggle="tab"
+							data-bs-target="#contact-tab-pane"
+							type="button"
+							role="tab"
+							aria-controls="contact-tab-pane"
+							aria-selected="false"
+						>
+							<i class="ph ph-phone-call fs-4"></i>
+							Contact Details
+						</button>
+					</li>
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link"
+							id="payment-tab"
+							data-bs-toggle="tab"
+							data-bs-target="#payment-tab-pane"
+							type="button"
+							role="tab"
+							aria-controls="payment-tab-pane"
+							aria-selected="false"
+						>
+							<i class="ph ph-credit-card fs-4"></i>
+							Payment
+						</button>
+					</li>
+				</ul>
+
+				<div class="tab-content p-7">
+					<form class="tab-pane fade show active" id="account-tab-pane" role="tabpanel" aria-labelledby="account-tab" tabindex="0">
+						<div class="row align-items-center gx-10 gy-4">
+							<div class="col-md-5">
+								<label class="mb-1 fw-medium text-body-emphasis" for="username">Username</label>
+								<div class="fs-7">
+									Your username must be 8-20 characters long, contain letters and numbers, and must not contain spaces, special characters, or
+									emoji.
+								</div>
+							</div>
+							<div class="col-md-7">
+								<input type="text" class="form-control" id="username" value="malinda-hollaway" />
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-center gx-10 gy-4">
+							<div class="col-md-5">
+								<label class="mb-1 fw-medium text-body-emphasis" for="email">Email Address</label>
+								<div class="fs-7">
+									This will be used to sign in, provide reports and notify you about any product updates.
+								</div>
+							</div>
+							<div class="col-md-7">
+								<input type="text" class="form-control" id="email" value="malinda-h@xmail.xh" />
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-start gx-10 gy-4">
+							<div class="col-md-5">
+								<label class="mb-1 fw-medium text-body-emphasis" for="current-password">Change Password</label>
+								<div class="fs-7">
+									Your password must be 8-20 characters long, contain letters, numbers and symbols, and must not contain spaces or emoji.
+								</div>
+							</div>
+							<div class="col-md-7">
+								<input type="password" placeholder="Current password" class="form-control mb-4" id="current-password" />
+								<input type="password" placeholder="New password" class="form-control mb-4" id="new-password" />
+								<input type="password" placeholder="Confirm new password" class="form-control" id="confirm-password" />
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-start gx-10 gy-4">
+							<div class="col-md-5">
+								<label class="mb-1 fw-medium text-body-emphasis" for="current-password">Notifications</label>
+								<div class="fs-7">
+									Customize your notification preferences to ensure you receive only the updates and details that matter most to you.
+								</div>
+							</div>
+							<div class="col-md-7">
+								<div class="mb-5">
+									<div class="form-check form-switch mb-1">
+										<input class="form-check-input" type="checkbox" role="switch" id="notifications-promotions" checked />
+										<label class="form-check-label" for="notifications-promotions">Promotional Offers</label>
+									</div>
+									<div class="fs-7 ms-12 text-body-secondary">Receive notifications about special discounts, promotions, and offers.</div>
+								</div>
+								<div class="mb-5">
+									<div class="form-check form-switch mb-1">
+										<input class="form-check-input" type="checkbox" role="switch" id="notifications-subscriptions" checked />
+										<label class="form-check-label" for="notifications-subscriptions">Subscription Updates</label>
+									</div>
+									<div class="fs-7 ms-12 text-body-secondary">Stay up-to-date with changes to your subscribed content or services.</div>
+								</div>
+								<div>
+									<div class="form-check form-switch mb-1">
+										<input class="form-check-input" type="checkbox" role="switch" id="notifications-feedback" />
+										<label class="form-check-label" for="notifications-feedback">Feedback and Surveys</label>
+									</div>
+									<div class="fs-7 ms-12 text-body-secondary">Participate in surveys and provide feedback through notifications.</div>
+								</div>
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-start gx-10 gy-4">
+							<div class="col-md-5">
+								<div class="d-flex align-items-center text-danger">
+									<i class="ph ph-warning-octagon fs-4 me-2"></i>
+									<div>Delete Account</div>
+								</div>
+							</div>
+							<div class="col-md-7">
+								Extreme caution advised: Irreversible account deletion ahead! All your data will be permanently erased. This action is final,
+								and you won't be able to recover your account or information. Think twice before proceeding!
+
+								<br />
+
+								<button type="button" class="btn btn-danger mt-5">Delete Account</button>
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="text-end">
+							<button type="button" class="text-body-secondary">Clear fields</button>
+							<button type="button" class="btn btn-secondary ms-4">Update Account Details</button>
+						</div>
+					</form>
+
+					<form class="tab-pane fade" id="personal-tab-pane" role="tabpanel" aria-labelledby="personal-tab" tabindex="0">
+						<div class="row align-items-start gx-10 gy-4">
+							<div class="col-md-5">
+								<label class="mb-1 fw-medium text-body-emphasis" for="profile-picture">Profile Picture</label>
+								<div class="fs-7">Profile must be a square jpg or png image with the size of not more than 2mb.</div>
+							</div>
+							<div class="col-md-7 d-flex align-items-center gap-2">
+								<img class="w-16 h-16 rounded me-2" src="../../img/contacts/1.jpg" alt="Profile Picture" />
+
+								<label for="profile-picture" class="btn border">Choose</label>
+								<input type="file" class="d-none" id="profile-picture" />
+
+								<button type="button" class="icon ph ph-trash">
+									<span class="visually-hidden">Remove</span>
+								</button>
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-center gx-10 gy-4">
+							<div class="col-md-5">
+								<label for="firstname" class="mb-1 fw-medium text-body-emphasis">First Name</label>
+								<div class="fs-7">This will be displayed on your personal and team profile.</div>
+							</div>
+							<div class="col-md-7">
+								<input type="text" class="form-control" id="firstname" value="Malinda" />
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-center gx-10 gy-4">
+							<div class="col-md-5">
+								<label for="lastname" class="mb-1 fw-medium text-body-emphasis">Last Name</label>
+							</div>
+							<div class="col-md-7">
+								<input type="text" class="form-control" id="lastname" value="Hollaway" />
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-center gx-10 gy-4">
+							<div class="col-md-5">
+								<label for="about" class="mb-1 fw-medium text-body-emphasis">About</label>
+								<div class="fs-7">Provide a brief description of yourself in no more than 100 words.</div>
+							</div>
+							<div class="col-md-7">
+								<textarea class="form-control h-32" id="about">I'm a passionate software engineer merging technical prowess with user-centric solutions. Armed with solid computer science knowledge and practical experience, I excel in diverse challenges, delivering reliable software that surpasses expectations and integrates the latest trends.</textarea>
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="text-end">
+							<button type="button" class="text-body-secondary">Clear fields</button>
+							<button type="button" class="btn btn-secondary ms-4">Update Personal Information</button>
+						</div>
+					</form>
+
+					<form class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
+						<div class="row align-items-start gx-10 gy-4">
+							<div class="col-md-5">
+								<label for="mobile" class="mb-1 fw-medium text-body-emphasis">Mobile Phone</label>
+								<div class="fs-7">Help us stay in touch by providing your mobile number.</div>
+							</div>
+							<div class="col-md-7">
+								<input type="text" class="form-control" id="mobile" value="(511) 522-7151" />
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-center gx-10 gy-4">
+							<div class="col-md-5">
+								<label for="home-phone" class="fw-medium text-body-emphasis">Home Phone</label>
+							</div>
+							<div class="col-md-7">
+								<input type="text" class="form-control" id="home-phone" value="(557) 332-1098" />
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-start gx-10 gy-4">
+							<div class="col-md-5">
+								<label for="address" class="mb-1 fw-medium text-body-emphasis">Address</label>
+								<div class="fs-7">Assist us in finding your address for postal correspondence.</div>
+							</div>
+							<div class="col-md-7">
+								<textarea class="form-control" id="address">
+123 Main Street
+Anytown, CA 12345, USA</textarea
+								>
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-start gx-10 gy-4">
+							<div class="col-md-5">
+								<div class="mb-1 fw-medium text-body-emphasis">Social Media Accounts</div>
+								<div class="fs-7">
+									Expand your online presence and connect with our community by adding links to your social media profiles. Let others
+									discover more about you and your interests across various social networks.
+								</div>
+							</div>
+							<div class="col-md-7">
+								<div class="mb-5 d-flex align-items-center gap-3">
+									<i class="ph ph-twitter-logo fs-4"></i>
+									<input type="text" class="form-control" id="twitter" value="twitter.com/malinda-hollaway" />
+								</div>
+								<div class="mb-5 d-flex align-items-center gap-3">
+									<i class="ph ph-linkedin-logo fs-4"></i>
+									<input type="text" class="form-control" id="linkedin" value="linkedin.com/malinda-hollaway" />
+								</div>
+								<div class="mb-5 d-flex align-items-center gap-3">
+									<i class="ph ph-facebook-logo fs-4"></i>
+									<input type="text" class="form-control" id="fb" value="facebook.com/malinda-hollaway" />
+								</div>
+								<div class="mb-5 d-flex align-items-center gap-3">
+									<i class="ph ph-github-logo fs-4"></i>
+									<input type="text" class="form-control" id="github" value="github.com/malinda-hollaway" />
+								</div>
+								<div class="mb-5 d-flex align-items-center gap-3">
+									<i class="ph ph-instagram-logo fs-4"></i>
+									<input type="text" class="form-control" id="instagram" value="instagram.com/malinda-hollaway" />
+								</div>
+								<div class="d-flex align-items-center gap-3">
+									<i class="ph ph-tiktok-logo fs-4"></i>
+									<input type="text" class="form-control" id="tiktok" value="tiktok.com/malinda-hollaway" />
+								</div>
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="text-end">
+							<button type="button" class="text-body-secondary">Clear fields</button>
+							<button type="button" class="btn btn-secondary ms-4">Update Contacts Details</button>
+						</div>
+					</form>
+
+					<form class="tab-pane fade" id="payment-tab-pane" role="tabpanel" aria-labelledby="payment-tab" tabindex="0">
+						<div class="row align-items-start gx-10 gy-4">
+							<div class="col-md-5">
+								<div class="mb-1 fw-medium text-body-emphasis">Credit/Debit Card</div>
+								<div class="fs-7">
+									This will be used to process payments for subscription and future purchases from your account. All valid providers including
+									Visa, Mastercard, American Express etc. are accepted.
+								</div>
+							</div>
+							<div class="col-md-7">
+								<div class="mb-5">
+									<label for="name-card" class="mb-1">Name on Card</label>
+									<input type="text" class="form-control" id="name-card" placeholder="e.g John Doe" />
+								</div>
+
+								<div class="mb-5">
+									<label for="billing-address" class="mb-1">Billing Address</label>
+									<textarea class="form-control" id="billing-address"></textarea>
+								</div>
+
+								<div class="mb-5">
+									<label for="card-number" class="mb-1">Card Number</label>
+									<input type="number" class="form-control" id="card-number" placeholder="xxxx-xxxx-xxxx-xxxx" />
+								</div>
+
+								<div class="grid gap-3">
+									<div class="g-col-6">
+										<label for="ex-date" class="mb-1">Expiry Date</label>
+										<input type="text" id="ex-date" placeholder="MM/YY" class="form-control" />
+									</div>
+									<div class="g-col-6">
+										<label for="cvv" class="mb-1">CVV</label>
+										<input type="text" id="cvv" class="form-control" placeholder="xxx" />
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-center gx-10 gy-4">
+							<div class="col-md-5">
+								<div class="mb-1 fw-medium text-body-emphasis">PayPal</div>
+								<div class="fs-7">
+									Link your PayPal account to enable an alternative method for credit/debit card payments.
+								</div>
+							</div>
+							<div class="col-md-7">
+								<button type="button" class="btn btn-primary d-flex align-items-center gap-2">
+									<i class="ph ph-paypal-logo fs-4"></i>
+									Connect PayPal Account
+								</button>
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="row align-items-center gx-10 gy-4">
+							<div class="col-md-5">
+								<div class="mb-1 fw-medium text-body-emphasis">Bitcoin Wallet</div>
+								<div class="fs-7">
+									Alternatively, you have the option to link your Bitcoin wallet, allowing you to manage cryptocurrencies and utilize it as an
+									alternative payment method for all your transactions.
+								</div>
+							</div>
+							<div class="col-md-7">
+								<button type="button" class="btn btn-warning d-flex align-items-center gap-2">
+									<i class="ph ph-currency-btc fs-4"></i>
+									Link Bitcoin Wallet
+								</button>
+							</div>
+						</div>
+
+						<hr class="my-7" />
+
+						<div class="text-end">
+							<button type="button" class="text-body-secondary">Clear fields</button>
+							<button type="button" class="btn btn-secondary ms-4">Update Payment Details</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>

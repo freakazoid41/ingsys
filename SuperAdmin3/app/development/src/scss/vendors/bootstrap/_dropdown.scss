@@ -1,0 +1,68 @@
+.dropdown-menu {
+	backdrop-filter: blur(0.35rem);
+
+	.form-control {
+		border-color: rgba($white, 0.35);
+	}
+}
+
+.dropdown-item,
+.dropdown-item-text {
+	border-radius: $border-radius;
+	display: flex;
+	align-items: center;
+	font-size: $font-size-md;
+
+	& > img,
+	& > .ph {
+		font-size: 1.1rem;
+		margin-right: 0.65rem;
+	}
+}
+
+.dropdown-item {
+	border-radius: $border-radius-sm;
+	display: flex;
+	align-items: center;
+
+	& > img,
+	& > .ph {
+		font-size: 1.1rem;
+		margin-right: 0.65rem;
+	}
+}
+
+.dropdown-toggle {
+	--toggle-caret: "\E136";
+
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+
+	&:after {
+		content: var(--toggle-caret) !important;
+	}
+
+	&:before,
+	&:after {
+		border: none !important;
+		font-family: $font-family-icon-light;
+		font-size: 0.7rem;
+	}
+}
+
+.dropup .dropdown-toggle {
+	--toggle-caret: "\E13C";
+}
+
+.dropend .dropdown-toggle {
+	--toggle-caret: "\E13A";
+}
+
+.dropstart .dropdown-toggle {
+	--toggle-caret: "\E138";
+
+	&:before {
+		content: var(--toggle-caret) !important;
+	}
+}

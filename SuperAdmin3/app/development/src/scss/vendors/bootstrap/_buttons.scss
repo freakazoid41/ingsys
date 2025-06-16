@@ -1,0 +1,89 @@
+button {
+	border: 0;
+	padding: 0;
+	text-align: left;
+	background-color: transparent;
+	color: $text-color;
+
+	&:focus,
+	&:active {
+		outline: none;
+		box-shadow: none;
+	}
+}
+
+.btn-highlight {
+	--bs-btn-color: #{$emphasis-color};
+	--bs-btn-hover-border-color: #{$emphasis-color};
+	--bs-btn-hover-color: #{$emphasis-color};
+	--bs-btn-hover-bg: #{rgba($white, 0.075)};
+	--bs-btn-font-size: 0.75rem;
+	--bs-btn-padding-y: 0.3rem;
+	--bs-btn-padding-x: 0.7rem;
+	--bs-btn-border-radius: #{$border-radius};
+	--bs-btn-box-shadow: none;
+
+	border-width: 1.5px;
+	border-color: $text-color;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	& > .ph {
+		font-size: 1rem;
+		margin-right: 0.5rem;
+	}
+
+	&:hover {
+		--bs-btn-box-shadow: 0 0 0 0.2rem #{rgba($white, 0.1)};
+	}
+}
+
+.btn {
+	.badge {
+		--bs-badge-border-radius: #{$border-radius-sm};
+		--bs-badge-padding-x: 0.25rem;
+		--bs-badge-padding-y: 0;
+
+		min-width: 1.3rem;
+		height: 1.3rem;
+		display: inline-grid;
+		place-content: center;
+		line-height: 1;
+		top: 0;
+	}
+}
+
+.btn-dark {
+	--bs-btn-bg: #{rgba($black, 0.4)};
+	--bs-btn-hover-bg: #{rgba($black, 0.5)};
+	--bs-btn-color: #{$emphasis-color};
+	--bs-btn-hover-color: #{$emphasis-color};
+	--bs-btn-border-color: transparent;
+	--bs-btn-hover-border-color: transparent;
+}
+
+.btn-secondary {
+	--bs-btn-bg: #{rgba($white, 0.1)};
+	--bs-btn-hover-bg: #{rgba($white, 0.15)};
+	--bs-btn-color: #{$emphasis-color};
+	--bs-btn-hover-color: #{$emphasis-color};
+	--bs-btn-border-color: #{rgba($white, 0.15)};
+	--bs-btn-hover-border-color: #{rgba($white, 0.2)};
+	--bs-btn-disabled-bg: #{rgba($white, 0.05)};
+	--bs-btn-disabled-color: #{$secondary-color};
+	--bs-btn-disabled-border-color: #{rgba($white, 0.075)};
+	--bs-btn-active-bg: #{rgba($white, 0.25)};
+	--bs-btn-active-border-color: #{rgba($white, 0.25)};
+	--bs-btn-active-color: #{$emphasis-color};
+}
+
+.btn-outline-secondary {
+	--bs-btn-border-color: #{rgba($white, 0.35)};
+	--bs-btn-hover-color: #{$emphasis-color};
+	--bs-btn-hover-border-color: #{rgba($white, 0.5)};
+	--bs-btn-hover-bg:#{rgba($white, 0.15)};
+	--bs-btn-active-bg: #{rgba($white, 0.15)};
+	--bs-btn-active-color: #{$emphasis-color};
+	--bs-btn-active-border-color: #{rgba($white, 0.5)};
+}

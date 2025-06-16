@@ -1,0 +1,16 @@
+* {
+	box-sizing: border-box;
+	-webkit-font-smoothing: antialiased;
+  	-moz-osx-font-smoothing: grayscale;
+}
+
+body {
+	height: 100vh;
+	height: 100svh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	background-image: var(--bs-body-img);
+	background-repeat: no-repeat;
+	background-size: cover;
+}

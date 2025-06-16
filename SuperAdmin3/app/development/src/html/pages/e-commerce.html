@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" data-page="e-commerce" data-sa-theme="1">
+	<module href="./src/html/partials/_head.html" locals='{ "pageTitle": "Sales" }'></module>
+	<body>
+		<!-- Page loader -->
+		<module href="./src/html/partials/_page-loader.html"></module>
+
+		<!-- Site header -->
+		<module href="./src/html/partials/_nav-bar.html"></module>
+
+		<!-- Content header -->
+		<header class="content-header">
+			<h2 class="m-0 ps-3 text-body-emphasis fs-6">E-Commerce</h2>
+
+			<nav aria-label="breadcrumb" class="ms-6 d-none d-sm-flex">
+				<ol class="breadcrumb fs-7 mt-0.5">
+					<li class="breadcrumb-item"><a href="#">Super Admin</a></li>
+					<li class="breadcrumb-item active" aria-current="page">Dashboards</li>
+				</ol>
+			</nav>
+
+			<i class="ms-auto"></i>
+
+			<div class="date-range-picker date-range-picker-body fs-7 d-none d-md-flex">
+				<i class="ph ph-clock fs-4 me-2 position-relative"></i>
+				<input type="text" name="start" value="07/10/2023" class="form-control-plaintext w-20" required readonly />
+				<span class="mx-n2">-</span>
+				<input type="text" name="end" value="07/13/2023" class="form-control-plaintext text-end w-20" required readonly />
+			</div>
+
+			<div class="d-flex align-items-center gap-1 ms-3">
+				<button type="button" class="icon">
+					<i class="ph ph-gear"></i>
+				</button>
+				<button type="button" class="icon">
+					<i class="ph ph-puzzle-piece"></i>
+				</button>
+				<button type="button" class="icon">
+					<i class="ph ph-dots-three-circle"></i>
+				</button>
+			</div>
+		</header>
+		
+		<div id="content" data-simplebar>
+			<!-- Site sidebar -->
+			<module href="./src/html/partials/_sidebar.html"></module>
+			
+			<!-- Body -->
+			<div class="row row-cols-lg-2 g-5">
+				<div class="col">
+					<module href="./src/html/partials/sales/_sales-history.html"></module>
+				</div>
+				<div class="col">
+					<module href="./src/html/partials/sales/_store-sessions.html"></module>
+				</div>
+				<div class="col">
+					<module href="./src/html/partials/sales/_recent-orders.html"></module>
+				</div>
+				<div class="col">
+					<module href="./src/html/partials/sales/_top-products.html"></module>
+				</div>
+			</div>
+		</div>
+
+		<module href="./src/html/partials/_script.html"></module>
+	</body>
+</html>
