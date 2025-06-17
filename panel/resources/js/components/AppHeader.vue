@@ -28,7 +28,7 @@ export default {
             <span class="visually-hidden">Open Sidebar</span>
         </button> 
         <a class="d-none d-sm-block logo" href="#">Körfez Apt.</a> <i class="ms-auto"></i>
-        <div class="content-search d-lg-flex d-none"> <i class="fs-5 ph ph-magnifying-glass"></i> <input type="text"
+        <div hidden style="display: none !important;" class="content-search d-lg-flex d-none"> <i class="fs-5 ph ph-magnifying-glass"></i> <input type="text"
                 class="form-control" placeholder="Search..."> </div>
         <ul class="header-menu ms-6 ms-xl-10">
             <li class="d-lg-none"> <button type="button" class="ph ph-magnifying-glass" data-bs-toggle="dropdown"
@@ -49,7 +49,7 @@ export default {
                     </div>
                 </div>
             </li>
-            <li class="dropdown header-notify"> <button type="button" class="ph ph-bell" data-bs-toggle="dropdown"
+            <li hidden class="dropdown header-notify"> <button type="button" class="ph ph-bell" data-bs-toggle="dropdown"
                     data-bs-display="static" data-bs-auto-close="outside" aria-expanded="false"> <span
                         class="visually-hidden">Notifications</span> </button>
                 <div class="dropdown-menu header-dropdown-menu">
@@ -97,11 +97,10 @@ export default {
                                                 'text-success bg-success' : task.status.split('**')[0] == 'doc_trans_project_end',
                                                 'text-primary bg-primary' : task.status.split('**')[0] == 'doc_trans_project_payment',
                                                 'text-warning bg-warning' : task.status.split('**')[0] == 'doc_trans_project_start',
-                                                'text-info bg-info'       : task.status.split('**')[0] == 'doc_trans_created'
-                                                
+                                                'text-info bg-info'       : ['doc_trans_created','doc_file_waiting'].includes(task.status.split('**')[0])
                                             }"
                                             style="--bs-bg-opacity: 0.2">
-                                            {{task.status.split('**')[0] == 'doc_trans_created' ? 'Bekleniyor...' :  task.status.split('**')[1]}}
+                                            {{['doc_trans_created','doc_file_waiting'].includes(task.status.split('**')[0]) ? 'Bekleniyor...' :  task.status.split('**')[1]}}
                                         </div>
                                     </div>
                                     
@@ -129,6 +128,12 @@ export default {
                                 <div class="bg-hover-inverse rounded text-center p-3">
                                     <i class="ph ph-calendar fs-3 h-12 w-12 d-inline-flex align-items-center justify-content-center rounded-circle bg-highlight-inverse"></i>
                                     <span class="d-block lh-1 mt-2 fs-7">{{$t('menu.calendar')}}</span>
+                                </div>
+                            </a>
+                            <a href="/panel/contacts" class="d-block text-white">
+                                <div class="bg-hover-inverse rounded text-center p-3">
+                                    <i class="ph ph-address-book fs-3 h-12 w-12 d-inline-flex align-items-center justify-content-center rounded-circle bg-highlight-inverse"></i>
+                                    <span class="d-block lh-1 mt-2 fs-7">{{$t('menu.contacts')}}</span>
                                 </div>
                             </a>
                         </div>

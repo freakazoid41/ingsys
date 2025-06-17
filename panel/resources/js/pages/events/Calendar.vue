@@ -153,16 +153,6 @@
                         </div>
                     </div>
                 </a>
-
-                <a v-for="event in Object.keys([...Array(60)])" :href="'/panel/calendar/form/'" class="hstack gap-3 p-2 rounded bg-hover lh-1 mb-0.5">
-                    <i class="w-0.5 h-8 rounded bg-highlight"></i>
-                    <div class="flex-grow-1 text-truncate">
-                        <div class=" text-body text-truncate mb-2">sadsa</div>
-                        <div class="text-body-secondary fs-8 opacity-50">
-                            sdasda
-                        </div>
-                    </div>
-                </a>
                 </Simplebar>
             </div>
             

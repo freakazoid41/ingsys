@@ -153,6 +153,15 @@ class PersonsServiceProvider extends ServiceProvider
             );
         }
 
+        /*if($files['bgfile']){
+            User::updateOrInsert(
+                ['person_id' => $document->id],
+                [
+                    'bg_image'      => 'Client User'
+                ],
+            );
+        }*/
+
         return [
             'success' => $rsp,
             'id'      => $document->id,

@@ -34,6 +34,10 @@
     "menu.documentfiles" : "Dosyalar",
     "form.documentfiles.list" : "Dosya Listesi",
 
+    "menu.contacts"       : "İletişim",
+    "contact.allcontacts" : "Bütün Bağlantılar",
+    "contact.workers"     : "Proje Çalışanları",
+    "contact.government"  : "Yönetim",
 
     "dashboard.totalflats"      : "Tüm Daireler",
     "dashboard.monthly.outcome" : "Aylık Toplam Harcama",

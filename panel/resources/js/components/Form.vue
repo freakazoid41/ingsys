@@ -176,12 +176,12 @@
                                 name  : 'sub_1',
                                 label : '',
                                 type  : 'multiple',
-                                group_key : 'employeegroup',
+                                group_key : 'projcontgroup',
                                 subs  : [
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'per_spec',
+                                        name  : 'cont_spec',
                                         //required : true,
                                         label : 'Görevli Ünvan',
                                         col      : 4,
@@ -190,7 +190,7 @@
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'per_name',
+                                        name  : 'cont_name',
                                         //required : true,
                                         label : 'Görevli Adı',
                                         col      : 4,
@@ -199,7 +199,7 @@
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'per_conn',
+                                        name  : 'cont_phone',
                                         isMasked : true,
                                         mask : 'phone',
                                         label : 'Görevli Telefon',
@@ -320,7 +320,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'meet_rent_title',
-                                        required : true,
+                                        //required : true,
                                         col : 3,
                                         placeholder : 'Kat İsmi',
                                         label : '',
@@ -330,7 +330,7 @@
                                         type     : 'select',
                                         name     : 'currency',
                                         col      : 3,
-                                        required : true,
+                                        //required : true,
                                         options  : [
                                             {
                                                 text  : 'TRY ₺',
@@ -353,7 +353,7 @@
                                         mask  : 'money',
                                         placeholder : 'kira Miktarı',
                                         col   : 6,
-                                        required : true,
+                                        //required : true,
                                         accept : "*",
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
@@ -393,7 +393,7 @@
                                 subs  : [{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'meet_cont_title',
+                                        name  : 'cont_name',
                                         //required : true,
                                         col : 4,
                                         placeholder : 'Başlık',
@@ -402,7 +402,7 @@
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'meet_cont_phone',
+                                        name  : 'cont_phone',
                                         mask  : 'phone',
                                         isMasked : true,
                                         col : 4,
@@ -412,7 +412,7 @@
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'email',
-                                        name  : 'meet_cont_mail',
+                                        name  : 'cont_mail',
                                         //required : true,
                                         col : 4,
                                         placeholder : 'E-Posta',
@@ -509,24 +509,7 @@
                                         required : true,
                                         label : 'Daire İsmi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class    : ['form-control','mb-2','mb-md-0','date-input','form-item'],
-                                        type     : 'select',
-                                        name     : 'block',
-                                        col      : 3,
-                                        required : true,
-                                        options  : [
-                                            {
-                                                text  : 'A Blok',
-                                                value : 'A'
-                                            },{
-                                                text  : 'B Blok (40)',
-                                                value : 'B'
-                                            }
-                                        ],
-                                        label    : 'Blok',
-                                        oninput  : (e) => this.submitDynamicChanges(e.target)
-                                    },
+                                    }
                                 ]
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -534,12 +517,12 @@
                                 name  : 'sub_1',
                                 label : '',
                                 type  : 'multiple',
-                                group_key : 'flatgroup',
+                                group_key : 'flatcontgroup',
                                 subs  : [
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'per_name',
+                                        name  : 'cont_name',
                                         //required : true,
                                         label : 'Kat Malik Adı',
                                         col      : 6,
@@ -548,7 +531,7 @@
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'per_conn',
+                                        name  : 'cont_phone',
                                         isMasked : true,
                                         mask : 'phone',
                                         label : 'Kat Malik Telefon',

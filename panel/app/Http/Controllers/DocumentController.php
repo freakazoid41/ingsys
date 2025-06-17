@@ -46,7 +46,6 @@ class DocumentController extends Controller
                 break;
             case "POST":
                 $req = $request->all();
-                
                 $res = (new DocumentServiceProvider())->registerContent(0,json_decode($req['data'],true),$request->files->all());
                 
                 $response = [

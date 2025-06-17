@@ -7,11 +7,13 @@
   import Swal from 'sweetalert2';
   import { Datepicker } from 'vanillajs-datepicker';
   import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
-  /*import Quill from 'quill';
-  import "quill/dist/quill.core.css";
-  import "quill/dist/quill.snow.css";*/
+  import Simplebar from 'simplebar-vue';
+  import 'simplebar-vue/dist/simplebar.min.css';
 
   export default {
+      components: {
+        Simplebar
+      },
       setup() {
         Object.assign(Datepicker.locales, tr);
         // expose to template and other options API hooks
@@ -446,8 +448,10 @@
         </div>
       </div>
       <div class="col-3 col-md-6 col-sm-6 mb-1">
-        <div class="card h-100" style="overflow-y: auto;">
-          <div class="card-body"> 
+        <div class="card" >
+         
+          <div class="card-body" > 
+             
             <div class="align-items-start d-flex mb-5"> 
                 <h5 class="card-title flex-grow-1 m-0"> {{ $t('dashboard.incomewaiting') }} </h5> 
                 <!--<div class="d-flex gap-1 me-n1.5 mt-n1.5"> 
@@ -458,16 +462,20 @@
               <div class="flex-grow-1">Daire</div> 
               <div class="flex-shrink-0 text-end w-10 w-sm-20">Bakiye</div> 
             </div> 
-            <div id="list-opportunities1" v-for="r in incomeWaiting">
-              <div class="d-flex justify-content-between align-items-center h-12 rounded px-3">
-                  
-                  <div class="flex-grow-1 text-truncate">{{r.title+' ('+r.perName+')'}}</div>
-                  
-                  <div class="w-20 text-end flex-shrink-0 ms-sm-2">{{ r.balance }}</div>
-              </div>
-              
-            </div> 
+            <div style="height: 30vh">
+              <Simplebar>
+              <div id="list-opportunities1" v-for="r in incomeWaiting">
+                <div class="d-flex justify-content-between align-items-center h-12 rounded px-3">
+                    <div class="flex-grow-1 text-truncate">{{r.title}}</div>
+                    
+                    <div class="w-20 text-end flex-shrink-0 ms-sm-2">{{ r.balance }}</div>
+                </div>
+              </div> 
+             </Simplebar>
+            </div>
+            
           </div>
+         
         </div>
       </div>
       <div class="col-3 col-md-6 col-sm-6 mb-1">
@@ -527,7 +535,7 @@
                         <span class="visually-hidden">Loading...</span>
                     </div>
                   </div>
-                  <span v-if="lastStatus != null">{{ this.plib.formatMoney(lastStatus.incomeWaiting ?? 0) + ' ' + lastStatus.cur }} (Aylık Beklenen) / {{ this.plib.formatMoney(lastStatus.incomeReceived ?? 0 ) + ' ' + lastStatus.cur}} (Toplanan)</span>
+                  <span v-if="lastStatus != null">{{ this.plib.formatMoney(lastStatus.incomeWaiting ?? 0) + ' ' + (lastStatus.cur ?? '') }} (Aylık Beklenen) / {{ this.plib.formatMoney(lastStatus.incomeReceived ?? 0 ) + ' ' +(lastStatus.cur ?? '')}} (Toplanan)</span>
                 </div>
                 <i class="ph fs-3 ms-3 d-none d-sm-block ph-warning-octagon text-danger" v-if="(lastStatus?.incomeWaiting ?? 0) > (lastStatus?.incomeReceived ?? 0 )"></i>
               </div>
@@ -544,7 +552,7 @@
                         <span class="visually-hidden">Loading...</span>
                     </div>
                   </div>
-                  <span v-if="lastStatus != null">{{ this.plib.formatMoney(lastStatus.rentWaiting ?? 0) + ' ' + lastStatus.cur }} (Aylık Beklenen) / {{ this.plib.formatMoney(lastStatus.rentReceived ?? 0) + ' ' + lastStatus.cur}} (Toplanan)</span>
+                  <span v-if="lastStatus != null">{{ this.plib.formatMoney(lastStatus.rentWaiting ?? 0) + ' ' + (lastStatus.cur ?? '') }} (Aylık Beklenen) / {{ this.plib.formatMoney(lastStatus.rentReceived ?? 0) + ' ' + (lastStatus.cur ?? '')}} (Toplanan)</span>
                 </div>
                 <i class="ph fs-3 ms-3 d-none d-sm-block ph-warning-octagon text-danger" v-if="(lastStatus?.rentWaiting ?? 0) > (lastStatus?.rentReceived ?? 0 )"></i>
               </div>
@@ -552,11 +560,6 @@
           </div> 
         </div>
       </div>
-  </div>
-  <div class="g-3 lh-1 mb-3">
-    <div class="row">
-      
-    </div>
   </div>
   
         

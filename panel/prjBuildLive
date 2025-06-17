@@ -3,6 +3,7 @@
 php artisan migrate:refresh
 php artisan db:seed --class="SysSeeder"
 php artisan db:seed --class="UserSeeder"
+php artisan db:seed --class="DataSeeder"
 php artisan currency:cron
 php artisan serve
 #npm run build

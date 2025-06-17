@@ -8,6 +8,7 @@ import PIndex from '@/pages/PIndex.vue'
 import User from '@/pages/User.vue'
 import Calendar from '@/pages/events/Calendar.vue'
 import CalendarForm from '@/pages/events/CalendarForm.vue'
+import Contacts from '@/pages/Contacts.vue'
 
 
 import Transactions from '@/pages/Transactions.vue'
@@ -40,6 +41,7 @@ const router = createRouter({
       //meta: { requiresAuth: true },
       children: [
         { path: "/panel", name: 'Index', component: PIndex },
+        { path: "/panel/contacts", name: 'Contacts', component: Contacts },
         { path: "/panel/user", name: 'User', component: User },
         { path: "/panel/documents", name: 'DocumentList', component: DocumentList },
         { path: "/panel/calendar", name: 'Calendar', component: Calendar },

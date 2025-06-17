@@ -27,4 +27,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/v1/trans/set-payment',               [DocumentController::class, 'setPayment']);
     Route::post('/v1/trans/set-status',                [DocumentController::class, 'setStatus']);
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
+    Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
 });   

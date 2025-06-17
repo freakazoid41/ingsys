@@ -34,7 +34,8 @@
 .pickletable .divTable {border-bottom: 1px solid var(--bs-border-color) !important;}
 .pickletable .search-input {background-color: transparent !important;}
 .swal2-popup{
-    background: #00000040 !important;
+    /*background: #00000040 !important;*/
+    background-color:#000000b1 !important;
     color: #ced4da !important;
 }
 

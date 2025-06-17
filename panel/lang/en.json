@@ -34,7 +34,10 @@
     "menu.documentfiles" : "Documents",
     "form.documentfiles.list" : "Document List",
 
-
+    "menu.contacts" : "Contacts",
+    "contact.allcontacts" : "All Contacts",
+    "contact.workers"     : "Project Workers",
+    "contact.government"  : "Government",
     
     "dashboard.totalflats"      : "All Flats",
     "dashboard.monthly.outcome" : "Monthly Outcome",
