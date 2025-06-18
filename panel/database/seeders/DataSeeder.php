@@ -26,8 +26,8 @@ class DataSeeder extends Seeder
                         'op-doc-flat-form**new-'.$i.$b => array(
                             'entities' => array(
                                     'title' => "$b-".($i+1),
-                                    'cont_name**flatcontgroup**'.$i.$b.'-0' => 'Girilmedi',
-                                    'cont_phone**flatcontgroup**'.$i.$b.'-0' => '(000) 000-00-00'
+                                    /*'cont_name**flatcontgroup**'.$i.$b.'-0' => 'Girilmedi',
+                                    'cont_phone**flatcontgroup**'.$i.$b.'-0' => '(000) 000-00-00'*/
                             ),
                             'tag' => 'op-doc-flat-form'
                         )
@@ -36,6 +36,8 @@ class DataSeeder extends Seeder
                 );
 
                 $res = (new DocumentServiceProvider())->registerContent(0,$data,[]);
+
+                print_r("$b-".($i+1).' Added..'.PHP_EOL);
             }
         }
     }

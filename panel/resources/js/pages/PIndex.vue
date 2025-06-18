@@ -9,9 +9,13 @@
   import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
   import Simplebar from 'simplebar-vue';
   import 'simplebar-vue/dist/simplebar.min.css';
+  import IncomeWaiting from '@/components/dashboard/IncomeWaiting.vue';
+  import LastStatus from '@/components/dashboard/LastStatus.vue';
 
   export default {
       components: {
+        IncomeWaiting,
+        LastStatus,
         Simplebar
       },
       setup() {
@@ -36,7 +40,6 @@
             outcome         : null,
             income          : null,
             lastInfo        : null,
-            incomeWaiting   : null,
             lastStatus      : null,
         }
       },
@@ -199,52 +202,6 @@
                 };
               }, 500);
             });
-
-            this.plib.request({
-                url      : '/api/v1/dashboard/incomestatus',
-                method   : 'GET',
-            },null).then(rsp => {
-              if(rsp.length > 0) this.incomeWaiting = [];
-              rsp.forEach(r => {
-                const mainInfo = JSON.parse(r.main_attr);
-                mainInfo['per_name'] = [];
-                JSON.parse(r.main_attr).forEach(element => {
-                    mainInfo[element['Key']] = element['Value'];
-                    if(element['Key'].includes('per_name')) mainInfo['per_name'].push(element['Value']);
-                });
-                mainInfo['per_name'] = mainInfo['per_name'].join(',');
-                
-                this.incomeWaiting.push({
-                  balance : (r.balance ?? 0) + ' ' + r.cur,
-                  title   : mainInfo.title,
-                  perName : mainInfo['per_name']
-                });
-              });
-            });
-
-            this.plib.request({
-                url      : '/api/v1/dashboard/updatedstatus',
-                method   : 'GET',
-            },null).then(rsp => {
-              
-              setTimeout(() => {
-                let rentWaiting = 0;
-                for(let key in rsp){
-                  if(key.includes('meet_rent**')) rentWaiting = parseFloat(rsp[key]);
-                }
-                
-                this.lastStatus = {
-                  supervisor     : rsp.meet_active_supervisor_sub,  
-                  projectCount   : rsp.project_count,
-                  incomeWaiting  : (parseInt(rsp.flat_count) * parseFloat(rsp.meet_amount)),
-                  rentWaiting    : rentWaiting ,
-                  incomeReceived : parseFloat(rsp.total_income ?? 0),
-                  rentReceived   : parseFloat(rsp.total_rent ?? 0),
-                  cur            : rsp.cur
-                }
-              }, 500);
-            });
-
           },
           bringModal(type){
             this.navigationStore.toggle(true);
@@ -447,119 +404,10 @@
           </div>
         </div>
       </div>
-      <div class="col-3 col-md-6 col-sm-6 mb-1">
-        <div class="card" >
-         
-          <div class="card-body" > 
-             
-            <div class="align-items-start d-flex mb-5"> 
-                <h5 class="card-title flex-grow-1 m-0"> {{ $t('dashboard.incomewaiting') }} </h5> 
-                <!--<div class="d-flex gap-1 me-n1.5 mt-n1.5"> 
-                    <a href="" class="icon ph ph-info"></a> 
-                </div>--> 
-            </div> 
-            <div class="align-items-center d-flex fs-7 h-10 justify-content-between px-3 rounded text-body-secondary"> 
-              <div class="flex-grow-1">Daire</div> 
-              <div class="flex-shrink-0 text-end w-10 w-sm-20">Bakiye</div> 
-            </div> 
-            <div style="height: 30vh">
-              <Simplebar>
-              <div id="list-opportunities1" v-for="r in incomeWaiting">
-                <div class="d-flex justify-content-between align-items-center h-12 rounded px-3">
-                    <div class="flex-grow-1 text-truncate">{{r.title}}</div>
-                    
-                    <div class="w-20 text-end flex-shrink-0 ms-sm-2">{{ r.balance }}</div>
-                </div>
-              </div> 
-             </Simplebar>
-            </div>
-            
-          </div>
-         
-        </div>
-      </div>
-      <div class="col-3 col-md-6 col-sm-6 mb-1">
-        <div class="card h-100"> 
-          <div class="card-body"> 
-            <div class="align-items-start d-flex mb-7"> 
-              <h5 class="card-title flex-grow-1 m-0">{{$t("dashboard.health")}}</h5> 
-              <div class="d-flex gap-1 me-n1.5 mt-n1.5"> 
-                <a href="/panel/meetings" class="icon ph ph-info"></a> 
-              </div> 
-            </div> 
-            <div id="list-health1">
-              <div class="d-flex align-items-center mt-3">
-                  <div class="w-28 flex-shrink-0">
-                      <div class="rounded bg-active text-body-emphasis text-success py-1.5 px-2.5 d-inline-flex align-items-center">
-                          <i class="ph fs-4 me-1.5 ph-person"></i>
-                          Denetçi
-                      </div>
-                  </div>
-                  <div class="ms-2 flex-grow-1 border-bottom pb-3 mb-n3">
-                    <div class="d-flex align-items-center" v-if="lastStatus == null">
-                      <div class="spinner-border" style="width: 1rem !important;height: 1rem !important;" role="status"> 
-                        <span class="visually-hidden">Loading...</span>
-                       </div>
-                    </div>
-                    <span v-if="lastStatus != null">{{ lastStatus.supervisor }}</span>
-                  </div>
-                  
-              </div>
-              <div class="d-flex align-items-center mt-3">
-                <div class="w-28 flex-shrink-0">
-                    <div class="rounded bg-active text-body-emphasis text-success py-1.5 px-2.5 d-inline-flex align-items-center">
-                        <i class="ph fs-4 me-1.5 ph-hammer"></i>
-                        Aktif Proje
-                    </div>
-                </div>
-                <div class="ms-2 flex-grow-1 border-bottom pb-3 mb-n3">
-                  <div class="d-flex align-items-center" v-if="lastStatus == null">
-                    <div class="spinner-border" style="width: 1rem !important;height: 1rem !important;" role="status"> 
-                      <span class="visually-hidden">Loading...</span>
-                      </div>
-                  </div>
-                  <span v-if="lastStatus != null">{{ lastStatus.projectCount ?? 0 }}</span> Aktif Proje
-                </div>
-                
-              </div>
-              <div class="d-flex align-items-center mt-3">
-                <div class="w-28 flex-shrink-0">
-                    <div class="rounded bg-active text-body-emphasis text-danger py-1.5 px-2.5 d-inline-flex align-items-center">
-                        <i class="ph fs-4 me-1.5 ph-piggy-bank"></i>
-                        Aidat
-                    </div>
-                </div>
-                <div class="ms-2 flex-grow-1 border-bottom pb-3 mb-n3">
-                  <div class="d-flex align-items-center" v-if="lastStatus == null">
-                    <div class="spinner-border" style="width: 1rem !important;height: 1rem !important;" role="status"> 
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                  </div>
-                  <span v-if="lastStatus != null">{{ this.plib.formatMoney(lastStatus.incomeWaiting ?? 0) + ' ' + (lastStatus.cur ?? '') }} (Aylık Beklenen) / {{ this.plib.formatMoney(lastStatus.incomeReceived ?? 0 ) + ' ' +(lastStatus.cur ?? '')}} (Toplanan)</span>
-                </div>
-                <i class="ph fs-3 ms-3 d-none d-sm-block ph-warning-octagon text-danger" v-if="(lastStatus?.incomeWaiting ?? 0) > (lastStatus?.incomeReceived ?? 0 )"></i>
-              </div>
-              <div class="d-flex align-items-center mt-3">
-                <div class="w-28 flex-shrink-0">
-                    <div class="rounded bg-active text-body-emphasis text-warning py-1.5 px-2.5 d-inline-flex align-items-center">
-                        <i class="ph fs-4 me-1.5 ph-key"></i>
-                        Kira
-                    </div>
-                </div>
-                <div class="ms-2 flex-grow-1 border-bottom pb-3 mb-n3">
-                  <div class="d-flex align-items-center" v-if="lastStatus == null">
-                    <div class="spinner-border" style="width: 1rem !important;height: 1rem !important;" role="status"> 
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                  </div>
-                  <span v-if="lastStatus != null">{{ this.plib.formatMoney(lastStatus.rentWaiting ?? 0) + ' ' + (lastStatus.cur ?? '') }} (Aylık Beklenen) / {{ this.plib.formatMoney(lastStatus.rentReceived ?? 0) + ' ' + (lastStatus.cur ?? '')}} (Toplanan)</span>
-                </div>
-                <i class="ph fs-3 ms-3 d-none d-sm-block ph-warning-octagon text-danger" v-if="(lastStatus?.rentWaiting ?? 0) > (lastStatus?.rentReceived ?? 0 )"></i>
-              </div>
-            </div> 
-          </div> 
-        </div>
-      </div>
+      <IncomeWaiting qtype="doc_acc_aidat" qcolclass="col-6 col-md-4 col-sm-4 mb-1"></IncomeWaiting>
+      <IncomeWaiting qtype="doc_acc_fuel" qcolclass="col-6 col-md-4 col-sm-4 mb-1"></IncomeWaiting>
+      <lastStatus qcolclass="col-4 col-md-4 col-sm-4 mb-1"></lastStatus>
+      
   </div>
   
         

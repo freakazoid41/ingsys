@@ -49,6 +49,7 @@
     "dashboard.export"          : "Export Report",
     "dashboard.ongoingtasks"    : "Ongoing Tasks",
     "dashboard.incomewaiting"   : "Monthly Income Depts",
+    "dashboard.incomewaiting.fuel"   : "Monthly Income Fuel Depts",
     "dashboard.health"          : "Updated Status",
 
     "transactions.list" : "Transaction List",

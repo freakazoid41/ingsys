@@ -49,6 +49,7 @@
     "dashboard.export"          : "İcmal Raporu",
     "dashboard.ongoingtasks"    : "Devam Eden Projeler",
     "dashboard.incomewaiting"   : "Aylık Beklenen Aidatlar",
+    "dashboard.incomewaiting.fuel"   : "Aylık Beklenen Yakıt",
     "dashboard.health"          : "Güncel Durum",
 
     "transactions.list" : "Hareket Listesi",

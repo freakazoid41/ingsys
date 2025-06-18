@@ -89,7 +89,7 @@ class ReportServiceProvider extends ServiceProvider
                 $monthlySql = "(select  count(t.id) 
                                         from transactions t 
                                     inner join sys_options as so on so.id = t.type_id
-                                where t.target_id = i.id and so.op_key = 'doc_acc_aidat' and t.sign = '0' and t.period='".date('Y-m')."')";
+                                where t.target_id = i.id and so.op_key = '".($period ?? 'doc_acc_aidat')."' and t.sign = '0' and t.period='".date('Y-m')."')";
                 $sql = "select  $monthlySql  as  has_monthly_income ,
                                 (select icon from sys_options where code = '".env('SYS_CUR')."')  as  cur,
                                 (select      Sum(
@@ -308,7 +308,7 @@ class ReportServiceProvider extends ServiceProvider
                 inner join sys_options as st on st.id = t.type_id
 
                     where   so.op_key = 'op-doc-target' and  t.status = 1 and
-                            st.op_key in ('doc_acc_aidat','doc_acc_other','doc_acc_rent','doc_acc_sometinguntransable',doc_acc_fuel)";
+                            st.op_key in ('doc_acc_aidat','doc_acc_other','doc_acc_rent','doc_acc_sometinguntransable','doc_acc_fuel')";
 
 
         
