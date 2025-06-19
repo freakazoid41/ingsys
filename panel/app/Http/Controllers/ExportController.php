@@ -25,8 +25,11 @@ class ExportController extends Controller
             case 'documents':
                 $data = (new DocumentServiceProvider())->getExportData($type)['data'];
                 break;
+            case 'transactions':
+                $data = (new DocumentServiceProvider())->getTransExportData($type)['data'];
+                break;
         }
-
+        
         try {
             $spreadsheet = new Spreadsheet();
             $activeWorksheet = new Worksheet($spreadsheet, 'Export');

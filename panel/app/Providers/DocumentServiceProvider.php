@@ -458,6 +458,9 @@ class DocumentServiceProvider extends ServiceProvider
         
     }
 
+    /**
+     * this method will prepare export data for documents
+     */
     public function getExportData($type){
         $response = [];
         switch($type){
@@ -578,5 +581,60 @@ class DocumentServiceProvider extends ServiceProvider
                 'msg'     => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * this method will prepare export data for transactions
+     */
+    public function getTransExportData($id = null){
+        $response = [];
+        $filter   = [];
+        if($id != null){
+            $filter = [
+                [
+                    'key'   => 'target_id',
+                    'type'  => '=',
+                    'value' => $id
+                ]
+            ];
+
+            $data = $this->getFormData($id);
+            $title = array_values(array_values($data)[0])[0][$id]['entities']['title'];
+            $response[] = ['Kasa : ',$title];
+            $response[] = [' '];
+        } 
+        $data = (new Transactions())->tableList(['filter' => $filter ])['data'];
+
+        $response[] = ['Periyod','Tarih','Kaynak','Hedef','Tip','Yön','Miktar','Birim','Açıklama'];
+        foreach($data as $d){
+            $conn = [];
+            foreach(json_decode($d->conn_info,true) as $cv){
+                $conn[$cv['Key']] = $cv['Value'];
+            }
+
+            $main = [];
+            foreach(json_decode($d->main_info,true) as $cv){
+                $main[$cv['Key']] = $cv['Value'];
+            }
+
+            
+
+            $response[] = [
+                $d->period,
+                $d->created_at,
+                $conn['title'],
+                $main['title'],
+                $d->type,
+                intval($d->sign) == 1 ? '->' : '<-',
+                (intval($d->sign) != 1 ? '-' : '').$d->amount,
+                $d->cur,
+                $d->note
+            ];
+        }
+
+        return [
+            'success' => true,
+            'data'    => $response
+        ];
     }
 }

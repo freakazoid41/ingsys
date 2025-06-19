@@ -219,7 +219,6 @@
                         if(data.main_title === undefined) data.main_title = data.title ?? '-';
 
                         JSON.parse(data.trans_files).forEach(element => {
-                            console.log(element)
                             data.transFile = element['file'];
                         });
                         return data;
@@ -251,6 +250,9 @@
                         if(jusrRemove != null ) jusrRemove.remove();
                     },
                 });
+            },
+            exportTrans(){
+                window.open('/export/transactions'+(this.id ? '/'+this.id : ''))
             }
         }
     }
@@ -259,8 +261,13 @@
 
 <template>
     <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             {{ $t('transactions.list') }}
+            <div class="align-items-center d-flex gap-1 ms-3"> 
+                <a href="/panel/targets" class="icon icon-subtle ph ph-plus-circle"></a> 
+                <a href="javascript:;" @click="exportTrans" class="icon icon-subtle ph ph-download"></a> 
+                <a href="/panel/transactions" class="icon icon-subtle ph ph-gear"></a>
+            </div>
         </div>
         <div class="card-body">
             <div id="div_table"></div>
