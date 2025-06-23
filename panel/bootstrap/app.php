@@ -18,7 +18,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
-            \Illuminate\Http\Middleware\StartSession::class,
         ])->statefulApi();
         $middleware->validateCsrfTokens(except: [
             '/reportpdf/icmal',
