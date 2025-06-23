@@ -14,6 +14,7 @@ class DataSeeder extends Seeder
     public function run(): void
     {
         $this->seedFlats();
+        $this->seedSafes();
     }
 
     private function seedFlats($count = 8,$blocks = ['A','B']){
