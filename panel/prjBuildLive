@@ -5,7 +5,7 @@ php artisan db:seed --class="SysSeeder"
 php artisan db:seed --class="UserSeeder"
 php artisan db:seed --class="DataSeeder"
 php artisan currency:cron
-php artisan serve
+#php artisan serve
 #npm run build
 
 #npm run dev
