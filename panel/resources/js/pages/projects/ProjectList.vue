@@ -1,7 +1,7 @@
 
 <script>
     import { useNavigationStore } from '@/stores/navigation'
-    import { useTaskDataStore } from '@/stores/tasks'
+    import { useEventDataStore } from '@/stores/events'
 
     import PickleTable from 'pickletable';
     import 'pickletable/assets/style.css';
@@ -29,7 +29,7 @@
                 Swal,
                 VMasker,
                 Datepicker,
-                useTaskDataStore
+                useEventDataStore
             }
         },
         mounted(){
@@ -63,7 +63,7 @@
             const plib = new Plib();
             return {
                 plib : plib,
-                taskDataStore   : useTaskDataStore(),
+                taskDataStore   : useEventDataStore(),
                 navigationStore : useNavigationStore(),
             }
         },
@@ -162,7 +162,7 @@
                                                             if(rsp.success){
                                                                 this.table.updateRow(rowData.id,{status : e.target.dataset.key+'**'+rsp.data+'**'+note});
                                                                 this.plib.toast(this.Swal,'success','İşlem Tamamlandı');
-                                                                this.taskDataStore.setData();
+                                                                this.taskDataStore.setTaskData();
                                                             }else{
                                                                 Swal.showValidationMessage(rsp.msg);
                                                             }

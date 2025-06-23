@@ -50,11 +50,11 @@
                     
                 @endif
             </form> 
-            <div class="fs-7 text-center"> 
+            {{--<div class="fs-7 text-center"> 
                 <a href="register.html" class="d-block link-muted mb-2">Register for a new account</a> 
                 <a href="forgot-password.html" class="d-block link-muted">Forgot password?</a> 
                 
-            </div> 
+            </div>--}} 
             @if (\Session::has('login-error'))
                 <br>
                 <div class="d-flex justify-content-center bg-opacity-75 btn btn-secondary w-100">

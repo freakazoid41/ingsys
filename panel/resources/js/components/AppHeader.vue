@@ -1,19 +1,20 @@
 <script>
-import { useTaskDataStore } from '@/stores/tasks'
+import { useEventDataStore } from '@/stores/events'
 export default {
     components: {},
     setup() {
         // expose to template and other options API hooks
         return {
-            useTaskDataStore,
+            useEventDataStore,
         }
     },
     mounted(){
-        if(this.taskDataStore.tasks.length == 0) this.taskDataStore.setData();
+        if(this.taskDataStore.tasks.length == 0) this.taskDataStore.setTaskData();
+        if(this.taskDataStore.events.length == 0) this.taskDataStore.setEventData();
     },  
     data() {
         return {
-            taskDataStore   : useTaskDataStore(),
+            taskDataStore   : useEventDataStore(),
         };
     },
 }
@@ -49,20 +50,44 @@ export default {
                     </div>
                 </div>
             </li>
-            <li hidden class="dropdown header-notify"> <button type="button" class="ph ph-bell" data-bs-toggle="dropdown"
-                    data-bs-display="static" data-bs-auto-close="outside" aria-expanded="false"> <span
-                        class="visually-hidden">Notifications</span> </button>
+            <li class="dropdown" :class="{
+                'header-notify' : this.taskDataStore.events.length > 0
+            }"> 
+                <button type="button" class="ph ph-bell" data-bs-toggle="dropdown"
+                    data-bs-display="static" data-bs-auto-close="outside" aria-expanded="false"> 
+                    <span
+                        class="visually-hidden">{{ $t('dashboard.notifications') }}</span> 
+                </button>
                 <div class="dropdown-menu header-dropdown-menu">
                     <div class="align-items-center d-flex flex-shrink-0 h-11 px-4">
-                        <div class="fw-medium text-body-emphasis">Notifications</div>
-                        <div class="d-flex gap-px me-n2 ms-auto"> <button type="button" class="icon ph ph-check-circle">
-                                <span class="visually-hidden">Mark as read</span> </button> <button type="button"
+                        <div class="fw-medium text-body-emphasis">{{ $t('dashboard.notifications') }}</div>
+                        <div class="d-flex gap-px me-n2 ms-auto"> 
+                            <button hidden type="button" class="icon ph ph-check-circle">
+                                <span class="visually-hidden">Mark as read</span> 
+                            </button> 
+                            <button hidden type="button"
                                 class="icon ph ph-app-window"> <span class="visually-hidden">Open Notifications</span>
-                            </button> <button type="button" class="icon ph ph-gear"> <span
-                                    class="visually-hidden">Settings</span> </button> </div>
+                            </button> 
+                            <a href="/panel/calendar" type="button" class="icon ph ph-gear"> <span
+                                class="visually-hidden">Settings</span> 
+                            </a> 
+                        </div>
                     </div>
                     <div class="flex-grow-1 pb-1 px-1" data-simplebar>
-                        <div id="top-notifications"></div>
+                        <div id="top-notifications1">
+                            <a v-for="event in this.taskDataStore.events" :href="'/panel/calendar/form/'+event.id" class="bg-hover-inverse d-flex align-items-center py-2 px-4 rounded">
+                                <div class="w-9 h-9 rounded-circle d-grid place-content-center me-3 text-white">
+                                    <i class="ph fs-3 bg-opacity-50 ph-calendar w-9 h-9 rounded-circle d-grid place-content-center me-3 text-white bg-success"></i>
+                                </div>
+
+                                <div class="flex-grow-1">
+                                    <div class="text-body-emphasis">{{ event.title  }}</div>
+                                    <div class="fs-7 text-body-secondary text-opacity-75">{{ event.start_date.split('-').reverse().join('.') + ' / ' + event.end_date.split('-').reverse().join('.') }}</div>
+                                </div>
+
+                                <i class="w-1.5 h-1.5 rounded-circle mb-4 bg-white"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </li>

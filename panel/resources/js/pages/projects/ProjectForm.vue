@@ -8,7 +8,7 @@
     import { useRoute } from 'vue-router'
     import { useNavigationStore } from '@/stores/navigation'
     import { useFormDataStore } from '@/stores/formdata'
-    import { useTaskDataStore } from '@/stores/tasks'
+    import { useEventDataStore } from '@/stores/events'
 
     import { wTrans } from 'laravel-vue-i18n';
     import Swal from 'sweetalert2';
@@ -25,7 +25,7 @@
             return {
                 useNavigationStore,
                 useFormDataStore,
-                useTaskDataStore,
+                useEventDataStore,
                 Plib,
                 Swal,
                 useRoute,
@@ -81,7 +81,7 @@
                 plib            : new Plib(),
                 navigationStore : useNavigationStore(),
                 formDataStore   : useFormDataStore(),
-                taskDataStore   : useTaskDataStore(),
+                taskDataStore   : useEventDataStore(),
                 id              : route?.params?.id !== '' ? route?.params?.id : undefined,
             };
         },
@@ -115,7 +115,7 @@
                     this.plib.toast(this.Swal,'info','Eksik Alanları Doldurmalısınız..',() => {});
                 }
 
-                this.taskDataStore.setData();
+                this.taskDataStore.setTaskData();
             },
         }
     }

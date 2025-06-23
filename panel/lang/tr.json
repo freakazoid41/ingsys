@@ -51,6 +51,8 @@
     "dashboard.incomewaiting"   : "Aylık Beklenen Aidatlar",
     "dashboard.incomewaiting.fuel"   : "Aylık Beklenen Yakıt",
     "dashboard.health"          : "Güncel Durum",
+    "dashboard.notifications"   : "Bilgilendirmeler",
+
 
     "transactions.list" : "Hareket Listesi",
     "transactions.period" : "Dönem",

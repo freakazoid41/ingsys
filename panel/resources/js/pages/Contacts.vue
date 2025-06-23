@@ -3,7 +3,7 @@
     import { wTrans } from 'laravel-vue-i18n';
     import Swal from 'sweetalert2';
     import Plib from '@/lib/pickle';
-    import { useTaskDataStore } from '@/stores/tasks'
+    import { useEventDataStore } from '@/stores/events'
     import Simplebar from 'simplebar-vue';
     import IncomeWaiting from '@/components/dashboard/IncomeWaiting.vue';
     import LastStatus from '@/components/dashboard/LastStatus.vue';
@@ -19,7 +19,7 @@
             
             // expose to template and other options API hooks
             return {
-                useTaskDataStore,
+                useEventDataStore,
                 useNavigationStore,
                 wTrans,
                 Swal,
@@ -28,7 +28,7 @@
         },
         data() {
             return {
-                taskDataStore   : useTaskDataStore(),
+                taskDataStore   : useEventDataStore(),
                 plib            : new Plib(),
                 navigationStore : useNavigationStore(),
                 contacts        : null,
@@ -48,7 +48,7 @@
         },
         mounted(){
             this.navigationStore.toggle(true);
-            if(this.taskDataStore.tasks.length == 0) this.taskDataStore.setData();
+            if(this.taskDataStore.tasks.length == 0) this.taskDataStore.TaskData();
             
             this.navigationStore.setBread([
                 {

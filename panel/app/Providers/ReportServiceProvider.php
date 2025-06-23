@@ -24,13 +24,6 @@ class ReportServiceProvider extends ServiceProvider
 
         $systemCur = Sys_options::where('code' , env('SYS_CUR'))->first();
         switch($type){
-            case 'monthlyEvents':
-                $data = Documents::tableList(json_decode('{"filter":[
-                                                                {"key":"form-type","type":"=","value":"op-doc-calendar-form"},
-                                                                {"key":"type","type":"=","value":"op-doc-calendar"},
-                                                                {"key":"month-period","type":"=","value":"'.($period ?? date('Y-m')).'"}
-                                                            ]}',true));
-                break;
             case 'updatedstatus':
                 $sql = "select  (SELECT     json_group_array(
                                                 json_object(
@@ -78,13 +71,7 @@ class ReportServiceProvider extends ServiceProvider
                 }
                 $data = array_merge($data,(array)($rows[0] ?? []));
                 break;
-            case 'getOngoingTasks':
-                $data = Documents::tableList(json_decode('{"filter":[
-                                                                {"key":"form-type","type":"=","value":"op-doc-project-form"},
-                                                                {"key":"type","type":"=","value":"op-doc-project"},
-                                                                {"key":"status-not","type":"=","value":"doc_trans_project_end"}
-                                                            ]}',true));
-                break;
+            
             case 'incomestatus':
                 $monthlySql = "(select  count(t.id) 
                                         from transactions t 
@@ -329,5 +316,21 @@ class ReportServiceProvider extends ServiceProvider
         $data['chart'] = $charList;
 
         return $data;
+    }
+
+    public function getOngoingTasks(){
+        return Documents::tableList(json_decode('{"filter":[
+                                                                {"key":"form-type","type":"=","value":"op-doc-project-form"},
+                                                                {"key":"type","type":"=","value":"op-doc-project"},
+                                                                {"key":"status-not","type":"=","value":"doc_trans_project_end"}
+                                                            ]}',true));
+    }
+
+    public function monthlyEvents(){
+        return Documents::tableList(json_decode('{"filter":[
+                                                                {"key":"form-type","type":"=","value":"op-doc-calendar-form"},
+                                                                {"key":"type","type":"=","value":"op-doc-calendar"},
+                                                                {"key":"month-period","type":"=","value":"'.($period ?? date('Y-m')).'"}
+                                                            ]}',true));
     }
 }

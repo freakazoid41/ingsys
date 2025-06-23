@@ -10,7 +10,8 @@
     import { useNavigationStore } from '@/stores/navigation'
     import { useFormDataStore } from '@/stores/formdata'
     import Swal from 'sweetalert2';
-    
+    import { useEventDataStore } from '@/stores/events'
+
     import Form from '@/components/Form.vue';
     import Transactions from '@/components/Transactions.vue';
 
@@ -25,6 +26,7 @@
             return {
                 useNavigationStore,
                 useFormDataStore,
+                useEventDataStore,
                 Plib,
                 Swal,
                 useRoute,
@@ -79,6 +81,7 @@
                 loadForm        : false,
                 plib            : new Plib(),
                 navigationStore : useNavigationStore(),
+                taskDataStore   : useEventDataStore(),
                 formDataStore   : useFormDataStore(),
                 id              : route?.params?.id !== '' ? route?.params?.id : undefined,
             };
@@ -102,6 +105,7 @@
                     },null,envelope);
 
                     setTimeout(() => {
+                        this.taskDataStore.setEventData();
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
                             window.location.href = '/panel/calendar'
