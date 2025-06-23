@@ -39,6 +39,10 @@
     "contact.workers"     : "Proje Çalışanları",
     "contact.government"  : "Yönetim",
 
+    "menu.inventory" : "Envanter",
+    "form.inventory" : "Envanter Ekle / Güncelle",
+    "form.inventory.list" : "Envanter Listesi",
+
     "dashboard.totalflats"      : "Tüm Daireler",
     "dashboard.monthly.outcome" : "Aylık Toplam Harcama",
     "dashboard.monthly.income"  : "Aylık Toplam Gelir",

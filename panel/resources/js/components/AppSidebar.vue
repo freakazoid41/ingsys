@@ -16,6 +16,7 @@
             <li> <a href="/panel/users"> <i class="ph ph-user"></i> <span>{{ $t('menu.users') }}</span> </a> </li>
             <li> <a href="/panel/projects"> <i class="ph ph-hammer"></i> <span>{{ $t('menu.projects') }}</span> </a> </li>
             <li> <a href="/panel/calendar"> <i class="ph ph-calendar"></i> <span>{{ $t('menu.calendar') }}</span> </a> </li>
+            <li> <a href="/panel/inventory"> <i class="ph ph-wrench"></i> <span>{{ $t('menu.inventory') }}</span> </a> </li>
             <!--<li> <a href="/panel/documents"> <i class="ph ph-newspaper"></i> <span>{{ $t('menu.documentfiles') }}</span> </a> </li>-->
             <li hidden class="menu-sub"> <a href="#"> <i class="ph ph-browser"></i> <span>Sample Pages</span> </a>
                 <ul>

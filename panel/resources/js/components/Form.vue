@@ -38,6 +38,63 @@
                 plib            : new Plib(),
                 ftypes          : this.formtypes.split(','),
                 forms           : {
+                    'op-doc-inventory-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'title',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Envanter İsmi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'supervisor',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Zimmetli İsmi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'supervisor_phone',
+                                        col      : 4,
+                                        required : true,
+                                        isMasked : true,
+                                        mask  : 'phone', 
+                                        label : 'Zimmetli Numara',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        name  : 'invoice',
+                                        col      : 6,
+                                        required : true,
+                                        label : 'Fatura',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        name  : 'view',
+                                        col      : 6,
+                                        required : true,
+                                        label : 'Görünüm',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },
+                        ]
+                    },
                     'op-doc-calendar-form' : {
                         showRemoveButton : false,
                         oncreated        : (id) => {},
@@ -724,7 +781,7 @@
                                 label : ' ',
                                 group_key : 'boylegroup',
                                 subs  : [
-                                        {
+                                    {
                                         class : ['form-control','mb-2','mb-md-0'],
                                         type  : 'file',
                                         name  : 'op-doc-main-file',
@@ -755,7 +812,6 @@
         },
         mounted() {
             this.ftypes.forEach(key => {
-                console.log(this.formDataStore.formData);
                 const formData = this.formDataStore.formData?.[key] ?? undefined;
                 
                 this.buildDynamicFForm(key,formData !== undefined ? Object.keys(formData)[0] : 'new-'+(new Date).getTime() ,formData !== undefined ? Object.values(formData)[0] : {});
@@ -797,7 +853,6 @@
             },
 
             buildDynamicFForm(tag,dynamicId = 'new-'+(new Date).getTime(),data = {},selector = null){
-                console.log(data);
                 const form   = this.forms[tag];
                 const rowId    = dynamicId;
                 const row    = document.createElement('div');
@@ -1079,7 +1134,7 @@
                                         };
                                         inpGroup.appendChild(rmvInp);
                                     }else{
-                                        inpGroup.classList.remove('input-group');
+                                        if(fitem.type != 'sub') inpGroup.classList.remove('input-group');
                                     }
                                    
                                     row.appendChild(rowElm);

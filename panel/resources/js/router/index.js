@@ -29,6 +29,9 @@ import MeetingForm from '@/pages/meetings/MeetingForm.vue'
 import ProjectList from '@/pages/projects/ProjectList.vue'
 import ProjectForm from '@/pages/projects/ProjectForm.vue'
 
+import InventoryList from '@/pages/inventory/InventoryList.vue'
+import InventoryForm from '@/pages/inventory/InventoryForm.vue'
+
 import DocumentList from '@/pages/documentFiles/DocumentList.vue'
 
 
@@ -56,7 +59,9 @@ const router = createRouter({
         { path: "/panel/meetings", name: 'MeetingList', component: MeetingList },
         { path: "/panel/meetings/form/:id?", name: 'MeetingForm', component: MeetingForm },
         { path: "/panel/projects", name: 'ProjectList', component: ProjectList },
-        { path: "/panel/projects/form/:id?", name: 'ProjectForm', component: ProjectForm }
+        { path: "/panel/projects/form/:id?", name: 'ProjectForm', component: ProjectForm },
+        { path: "/panel/inventory", name: 'InventoryList', component: InventoryList },
+        { path: "/panel/inventory/form/:id?", name: 'InventoryForm', component: InventoryForm }
         /*{ path: "/panel/documents", name: 'DocumentList', component: DocumentList },
         { path: "/panel/documents/form/:id?", name: 'Documents', component: Documents },*/
 

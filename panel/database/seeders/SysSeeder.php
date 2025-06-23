@@ -735,6 +735,13 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-calendar-form',
                 'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Envanter Ana Form',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-inventory-form',
+                'group_key' => 'op-doc-forms',
             ]
         ];
 
@@ -829,6 +836,13 @@ class SysSeeder extends Seeder
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-project',
+                'group_key' => 'op-doc',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Inventory',
+                'ttitle'    => '-',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-inventory',
                 'group_key' => 'op-doc',
             ]
         ];
