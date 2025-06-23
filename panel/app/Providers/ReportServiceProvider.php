@@ -309,8 +309,8 @@ class ReportServiceProvider extends ServiceProvider
             $month = ($i < 10 ? '0'.$i : $i);
             $charList[date('Y-'.$month)] = ($i <= intval(date('m')) ? 
                             DB::select(  $sqlTotal .
-                                        "and DATE(concat(t.period,'-01')) <= '".date('Y-'.$month.'-01')."' and
-                                                DATE(concat(t.period,'-01')) >= '".date('Y-01-01')."'  ")[0]->total ?? 0 : 0);
+                                        "and DATE(t.period || '-01') <= '".date('Y-'.$month.'-01')."' and
+                                                DATE(t.period || '-01') >= '".date('Y-01-01')."'  ")[0]->total ?? 0 : 0);
         }
         
         $data['chart'] = $charList;

@@ -87,7 +87,7 @@ class Documents extends Model
                                             d.id = i.id and t.status = 1 and
                                             st.group_key in ('op-trans-payment')
                                 )  as  balance",
-            'status'       => "(select  concat(so.op_key,'**',so.title,'**',t.note)
+            'status'       => "(select  so.op_key || '**' || so.title || '**' || t.note
                                 from transactions as t
                                     inner join sys_options so on so.id = t.type_id
                                 where target_id = i.id and so.group_key = 'op-trans' order by t.id desc limit 1)  as  status",
