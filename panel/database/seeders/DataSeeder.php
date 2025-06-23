@@ -41,5 +41,79 @@ class DataSeeder extends Seeder
             }
         }
     }
+
+    private function seedSafes(){
+        $data = array(
+            'dynamicF' => array(
+                'op-doc-target-form**new-1' => array(
+                    'entities' => array(
+                            'title'    => 'Apartman Nakit Kasa',
+                            'currency' => 'TRY',
+                            'target_note' => 'Yönetici Nakit Kasası'
+                            /*'cont_name**flatcontgroup**'.$i.$b.'-0' => 'Girilmedi',
+                            'cont_phone**flatcontgroup**'.$i.$b.'-0' => '(000) 000-00-00'*/
+                    ),
+                    'tag' => 'op-doc-target-form'
+                )
+            ),
+            'typeKey' => 'op-doc-target'
+        );
+
+        $res = (new DocumentServiceProvider())->registerContent(0,$data,[]);
+
+        $data = array(
+            'dynamicF' => array(
+                'op-doc-target-form**new-2' => array(
+                    'entities' => array(
+                            'title'    => 'Apartman Aidat Borç Kasa',
+                            'currency' => 'TRY',
+                            'target_note' => 'Apartman Aidat Borçları Bu Kasaya İşlenir'
+                            /*'cont_name**flatcontgroup**'.$i.$b.'-0' => 'Girilmedi',
+                            'cont_phone**flatcontgroup**'.$i.$b.'-0' => '(000) 000-00-00'*/
+                    ),
+                    'tag' => 'op-doc-target-form'
+                )
+            ),
+            'typeKey' => 'op-doc-target'
+        );
+
+        $res = (new DocumentServiceProvider())->registerContent(0,$data,[]);
+
+        $data = array(
+            'dynamicF' => array(
+                'op-doc-target-form**new-3' => array(
+                    'entities' => array(
+                            'title'    => 'Apartman Yakıt Borç Kasa',
+                            'currency' => 'TRY',
+                            'target_note' => 'Apartman Yakıt Borçları Bu Kasaya İşlenir'
+                            /*'cont_name**flatcontgroup**'.$i.$b.'-0' => 'Girilmedi',
+                            'cont_phone**flatcontgroup**'.$i.$b.'-0' => '(000) 000-00-00'*/
+                    ),
+                    'tag' => 'op-doc-target-form'
+                )
+            ),
+            'typeKey' => 'op-doc-target'
+        );
+
+        $res = (new DocumentServiceProvider())->registerContent(0,$data,[]);
+
+        $data = array(
+            'dynamicF' => array(
+                'op-doc-target-form**new-4' => array(
+                    'entities' => array(
+                            'title'    => 'Apartman Kira Borç Kasa',
+                            'currency' => 'TRY',
+                            'target_note' => 'Apartman Kira Borçları Bu Kasaya İşlenir'
+                            /*'cont_name**flatcontgroup**'.$i.$b.'-0' => 'Girilmedi',
+                            'cont_phone**flatcontgroup**'.$i.$b.'-0' => '(000) 000-00-00'*/
+                    ),
+                    'tag' => 'op-doc-target-form'
+                )
+            ),
+            'typeKey' => 'op-doc-target'
+        );
+
+        $res = (new DocumentServiceProvider())->registerContent(0,$data,[]);
+    }
     
 }
