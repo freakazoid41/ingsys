@@ -14,7 +14,7 @@ Route::get('/logout',                  [AuthController::class, 'logout'])->name(
 })->where('any', '^((?!api).)*');*/
 
 
-Route::middleware(['auth:sanctum'])
+Route::middleware(['auth:sanctum','web'])
     ->group(function () {
         Route::get('/panel', fn () => view('app'))->name('app');
         Route::get('/panel/users', function (){
