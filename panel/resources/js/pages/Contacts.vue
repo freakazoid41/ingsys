@@ -48,7 +48,7 @@
         },
         mounted(){
             this.navigationStore.toggle(true);
-            if(this.taskDataStore.tasks.length == 0) this.taskDataStore.TaskData();
+            if(this.taskDataStore.tasks.length == 0) this.taskDataStore.getTaskData();
             
             this.navigationStore.setBread([
                 {
