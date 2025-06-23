@@ -140,7 +140,8 @@ class AuthController extends Controller
             ]);*/
 
             $token = $user->createToken("API TOKEN")->plainTextToken;
-            return redirect()->route('login','admin')->with('login-success', $token);
+
+            return redirect()->route('login')->with('login-success', $token);
 
             
 

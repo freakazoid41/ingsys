@@ -18,7 +18,7 @@ Route::prefix('v1')
         Route::get('/me', MeController::class);
     });*/
 Route::post('/v1/auth/login/{type?}',             [AuthController::class, 'loginUser'])->name('login-user');
-Route::middleware(['auth:sanctum','web'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::any('/v1/document/{id?}',                   [DocumentController::class, 'index']);
     Route::any('/v1/transaction/{id?}',                [DocumentController::class, 'transaction']);
     Route::post('/v1/table/{model}',                   [SystemController::class, 'table']);
