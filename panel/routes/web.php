@@ -18,7 +18,7 @@ Route::middleware(['auth:sanctum'])
     ->group(function () {
         Route::get('/panel', fn () => view('app'))->name('app');
         Route::get('/panel/users', function (){
-            return auth('sanctum')->user()->name == 'Admin' ? view('app') : abort('403');
+            return strpos(auth('sanctum')->user()->name,'Admin') !== false ? view('app') : abort('403');
         })->where('any', '^((?!api).)*');
         Route::get('/panel/{any}', fn () => view('app'))->where('any', '^((?!api).)*');
         
