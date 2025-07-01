@@ -82,7 +82,7 @@ export default {
 
                                 <div class="flex-grow-1">
                                     <div class="text-body-emphasis">{{ event.title  }}</div>
-                                    <div class="fs-7 text-body-secondary text-opacity-75">{{ event.start_date.split('-').reverse().join('.') + ' / ' + event.end_date.split('-').reverse().join('.') }}</div>
+                                    <div class="fs-7 text-body-secondary text-opacity-75">{{ event.start_date.split('-').reverse().join('.') + ' / ' + event?.end_date?.split('-')?.reverse()?.join('.') }}</div>
                                 </div>
 
                                 <i class="w-1.5 h-1.5 rounded-circle mb-4 bg-white"></i>
