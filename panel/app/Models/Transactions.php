@@ -191,7 +191,25 @@ class Transactions extends Model
         //count query
         $sql = 'select count(distinct i.id) as row from transactions as i '.$join.' '. $where;
         $total_count = DB::select($sql)[0];
-        
+
+        //totals
+        $sql = "select  sum (
+                            case 
+                                when i.sign = 0 
+                                    then ((select amount from currencies where target_cur = cr.code) *  i.amount)
+                                else 0 
+                            end
+                        ) as negative,
+                        sum (
+                            case 
+                                when i.sign = 1 
+                                    then ((select amount from currencies where target_cur = cr.code) *  i.amount)
+                                else 0 
+                            end
+                        ) as positive,
+                        (select code from sys_options where code = '".env('SYS_CUR')."') as cur
+                    from transactions as i ".$join.' ' . $where;
+        $tresult = DB::select($sql);
         
         return array(
             'data'          => $result,
@@ -199,6 +217,7 @@ class Transactions extends Model
             'totalCount'    => $total_count->row,
             'filteredCount' => count($result),
             'last_page'     => ceil(intval($total_count->row) / intval($obj['scale']['limit'])),
+            'totals'        => $tresult[0]
         );
     }
 }

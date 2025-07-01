@@ -71,6 +71,7 @@
                         key   : 'type',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        bottomData : 'Toplam Miktar : '
                     },{
                         title : '',
                         key   : 'sign',
@@ -88,6 +89,10 @@
                         colAlign : 'right',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        bottomDataFormatter : (column) => {
+                            column.classList.add('amount-total');
+                            column.style.textAlign = 'right';
+                        },
                         columnFormatter : (elm,rowData,columnData) => {
                             return this.plib.formatMoney(columnData) + (rowData.sys_cur != rowData.cur ? ' ('+this.plib.formatMoney(rowData.sys_amount)+') ' : '');
                         }
@@ -97,6 +102,10 @@
                         width : '8%',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        bottomDataFormatter : (column) => {
+                            column.classList.add('amount-cur');
+                            column.style.textAlign = 'left';
+                        },
                         columnFormatter : (elm,rowData,columnData) => {
                             return columnData != rowData.sys_cur ? columnData+' ('+rowData.sys_cur+')' : columnData;
                         }
@@ -192,6 +201,7 @@
                     height    : '70vh',
                     type      : 'ajax',
                     columnSearch : true,
+                    showTotals : true,
                     //columnSearch : true, // true - false for opening and closig
                     paginationType : 'number',// scroll - number (number for default)
                     ajax:{
@@ -199,6 +209,10 @@
                         data:{
                             //order:{},
                         }
+                    },
+                    ajaxReturnCallback : (data) => {
+                        document.querySelector('.amount-total').innerHTML = this.plib.formatMoney(data.totals.positive - data.totals.negative);
+                        document.querySelector('.amount-cur').innerHTML   = data.totals.cur;
                     },
                     ...(this.id !== undefined ? {initialFilter : [ {
                         key   : 'target_id',
