@@ -89,14 +89,17 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
-                            return this.plib.formatMoney(columnData);
+                            return this.plib.formatMoney(columnData) + (rowData.sys_cur != rowData.cur ? ' ('+this.plib.formatMoney(rowData.sys_amount)+') ' : '');
                         }
                     },{
                         title : this.wTrans('transactions.currency').value,
                         key   : 'cur',
-                        width : '5%',
+                        width : '8%',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData,columnData) => {
+                            return columnData != rowData.sys_cur ? columnData+' ('+rowData.sys_cur+')' : columnData;
+                        }
                     },{
                         title : '',
                         key   : 'id',

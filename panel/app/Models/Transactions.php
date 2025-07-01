@@ -37,6 +37,15 @@ class Transactions extends Model
             'target_id'    => 'i.target_id  as  target_id',
             'sign'         => 'i.sign',
             'amount'       => 'i.amount',
+            'sys_cur'      => "(select code from sys_options where code = '".env('SYS_CUR')."')  as  sys_cur",
+            'sys_amount'   => "(
+                                select amount from currencies where target_cur = cr.code) * 
+                                CAST(
+                                    (CASE
+                                        when i.sign = 0 then '-' || i.amount
+                                        else i.amount
+                                    end) as float 
+                                )  as  sys_amount ",   
             'period'       => 'i.period',
             'note'         => 'i.note',
             'created_at'   => 'i.created_at',
