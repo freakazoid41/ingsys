@@ -51,4 +51,6 @@ class CurrencyCron extends Command
         //ve are clearing records older the 15 days
         DB::select("delete from currencies ");
     }
+
+    
 }

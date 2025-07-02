@@ -19,8 +19,7 @@ class TCMB
 
         $this->mainCur = $mainCur;
         
-        info('Merkez Bankası Çalıştı , Ana Kur : '.$this->mainCur);
-        Log::channel('cron')->info('Merkez Bankası Çalıştı , Ana Kur : '.$this->mainCur);
+        infoPrint('Merkez Bankası Çalıştı , Ana Kur : '.$this->mainCur);
     }
 
     public function fetchCur(){
@@ -43,12 +42,10 @@ class TCMB
                 $insertData->amount        = $this->curConverter($this->mainCur,$c,1);
                 $insertData->save();
 
-                info('Ana Kur : '.$this->mainCur.' Hedef Kur : '.$c.' => '.$this->curConverter($this->mainCur,$c,1));
-                Log::channel('cron')->info('Ana Kur : '.$this->mainCur.' Hedef Kur : '.$c.' => '.$this->curConverter($this->mainCur,$c,1));
+                infoPrint('Ana Kur : '.$this->mainCur.' Hedef Kur : '.$c.' => '.$this->curConverter($this->mainCur,$c,1));
             }
         } catch (Exception $e) {
-            info('Unhandled exception, maybe from cURL' . $e->getMessage());
-            Log::channel('cron')->info('Unhandled exception, maybe from cURL' . $e->getMessage());
+            infoPrint('cron')->info('Unhandled exception, maybe from cURL' . $e->getMessage());
             return false;
         }
     }
