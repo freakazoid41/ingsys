@@ -6,6 +6,12 @@ use App\Models\Currencies;
 use App\Models\Sys_options;
 class TCMB
 {
+    public function infoPrint($message) {
+        Log::channel('cron')->info($message);
+        print_r(date('Y-m-d H:i').' => '.PHP_EOL);
+        print_r($message);
+        print_r(PHP_EOL);
+    }
     /**
      * Create a new class instance.
      */
@@ -19,7 +25,7 @@ class TCMB
 
         $this->mainCur = $mainCur;
         
-        infoPrint('Merkez Bankası Çalıştı , Ana Kur : '.$this->mainCur);
+        $this->infoPrint('Merkez Bankası Çalıştı , Ana Kur : '.$this->mainCur);
     }
 
     public function fetchCur(){
@@ -42,10 +48,10 @@ class TCMB
                 $insertData->amount        = $this->curConverter($this->mainCur,$c,1);
                 $insertData->save();
 
-                infoPrint('Ana Kur : '.$this->mainCur.' Hedef Kur : '.$c.' => '.$this->curConverter($this->mainCur,$c,1));
+                $this->infoPrint('Ana Kur : '.$this->mainCur.' Hedef Kur : '.$c.' => '.$this->curConverter($this->mainCur,$c,1));
             }
         } catch (Exception $e) {
-            infoPrint('cron')->info('Unhandled exception, maybe from cURL' . $e->getMessage());
+            $this->infoPrint('cron')->info('Unhandled exception, maybe from cURL' . $e->getMessage());
             return false;
         }
     }
