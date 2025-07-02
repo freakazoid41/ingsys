@@ -20,7 +20,7 @@ class TCMB
         $this->mainCur = $mainCur;
         
         info('Merkez Bankası Çalıştı , Ana Kur : '.$this->mainCur);
-        Log::channel('stderr')->info('Merkez Bankası Çalıştı , Ana Kur : '.$this->mainCur);
+        Log::channel('daily')->info('Merkez Bankası Çalıştı , Ana Kur : '.$this->mainCur);
     }
 
     public function fetchCur(){
@@ -44,16 +44,16 @@ class TCMB
                 $insertData->save();
 
                 info('Ana Kur : '.$this->mainCur.' Hedef Kur : '.$c.' => '.$this->curConverter($this->mainCur,$c,1));
-                Log::channel('stderr')->info('Ana Kur : '.$this->mainCur.' Hedef Kur : '.$c.' => '.$this->curConverter($this->mainCur,$c,1));
+                Log::channel('daily')->info('Ana Kur : '.$this->mainCur.' Hedef Kur : '.$c.' => '.$this->curConverter($this->mainCur,$c,1));
             }
         } catch (Exception $e) {
             info('Unhandled exception, maybe from cURL' . $e->getMessage());
+            Log::channel('daily')->info('Unhandled exception, maybe from cURL' . $e->getMessage());
             return false;
         }
     }
 
-    function curConverter($from = 'TRY', $to = 'USD', $val = 1)
-    {
+    function curConverter($from = 'TRY', $to = 'USD', $val = 1){
         $CurrencyData = [
             'from' => 1,
             'to' => 1
