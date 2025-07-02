@@ -1,36 +1,14 @@
 import { defineStore } from 'pinia'
 
 export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    user: null,
-  }),
+  state: () => {
+    return { 
+      data : {}
+    }
+  },
+  // could also be defined as
+  // state: () => ({ count: 0 })
   actions: {
-    set_user(user) {
-      this.user = user
-    },
-    async attempt_user() {
-      return axios.get('/api/v1/me')
-        .then((response) => {
-          this.user = response.data.data
-          return response
-        })
-        .catch((error) => {
-          this.user = null
-          throw error
-        })
-    },
-    async logout() {
-      return axios.post('/logout')
-        .then((response) => {
-          this.$reset()
-        })
-        .catch((error) => {
-          console.error(error)
-          throw error
-        })
-    },
+    setData(data){this.data = data},
   },
-  getters: {
-    currentUser: (state) => state.user,
-  },
-})
+});

@@ -6,6 +6,7 @@
     import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
     import { wTrans } from 'laravel-vue-i18n';
     import { useFormDataStore } from '@/stores/formdata'
+    import { useAuthStore } from '@/stores/auth';
 
     export default {
         props: {
@@ -29,11 +30,13 @@
                 AppFab,
                 Plib,
                 VMasker,
-                wTrans
+                wTrans,
+                useAuthStore
             }
         },
         data() {
             return {
+                authStore    : useAuthStore(),
                 formDataStore   : useFormDataStore(),
                 plib            : new Plib(),
                 ftypes          : this.formtypes.split(','),
@@ -284,15 +287,32 @@
                                         //isDate   : true,
                                         required : true,
                                         label : 'İsim & Soyisim',
-                                        col      : 4,
+                                        col      : 3,
                                         placeholder : 'İsim & Soyisim',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','date-input','form-item'],
+                                        type     : 'select',
+                                        name     : 'type_key',
+                                        col      : 3,
+                                        required : true,
+                                        label    : 'Tip',
+                                        options  : [
+                                            {
+                                                text  : 'Yönetici',
+                                                value : 'op-pert-admin'
+                                            },{
+                                                text  : 'Kat Maliki',
+                                                value : 'op-pert-buyer'
+                                            }
+                                        ],
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'email',
                                         name  : 'user_username',
                                         required : true,
-                                        col : 4,
+                                        col : 3,
                                         placeholder : 'Kullanıcı Email',
                                         label : 'Kullanıcı Email',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -301,7 +321,7 @@
                                         type  : 'password',
                                         name  : 'user_password',
                                         //required : true,
-                                        col : 4,
+                                        col : 3,
                                         label : 'Parola',
                                         placeholder : '*********',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -1448,6 +1468,6 @@
     <div class="area-target" v-for="(item, index) in ftypes" :data-tag="item">
        
     </div>
-    <AppFab btntype="saveBtn" :callback="formCallback"/>
+    <AppFab v-if="authStore.data.type=='admin'" btntype="saveBtn" :callback="formCallback"/>
     
 </template>

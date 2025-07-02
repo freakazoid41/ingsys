@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue'
 import { useAuthStore } from '@/stores/auth';
-import router from '@/router/index';
+import router from '@/router/clientRouter';
 import App from '@/layouts/App.vue';
 import '../css/app.css';
 //import axios from 'axios';
@@ -16,8 +16,7 @@ window.axios.defaults.headers.common['Accept'] = 'application/json';
 window.axios.defaults.withCredentials = true;
 window.axios.defaults.withXSRFToken = true;*/
 
-const pinia = createPinia();
-
+const pinia = createPinia()
 const app = createApp(App)
   .use(pinia)
   .use(i18nVue, { 
@@ -29,9 +28,9 @@ const app = createApp(App)
   .use(createHead())
   .use(router)
   .mount('#app');
-
+  
 useAuthStore().setData({
-  'type' : 'admin'
+  'type' : 'normal'
 });
 /*const userStore = useAuthStore()
 userStore.attempt_user()

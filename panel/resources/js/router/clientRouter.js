@@ -34,6 +34,7 @@ import InventoryForm from '@/pages/inventory/InventoryForm.vue'
 
 import DocumentList from '@/pages/documentFiles/DocumentList.vue'
 
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -44,17 +45,17 @@ const router = createRouter({
       children: [
         { path: "/panel", name: 'Index', component: PIndex },
         { path: "/panel/contacts", name: 'Contacts', component: Contacts },
-        { path: "/panel/user", name: 'User', component: User },
-        { path: "/panel/documents", name: 'DocumentList', component: DocumentList },
+        //{ path: "/panel/user", name: 'User', component: User },
+        //{ path: "/panel/documents", name: 'DocumentList', component: DocumentList },
         { path: "/panel/calendar", name: 'Calendar', component: Calendar },
         { path: "/panel/calendar/form/:id?", name: 'CalendarForm', component: CalendarForm },
-        { path: "/panel/users", name: 'UserList', component: UserList },
-        { path: "/panel/users/form/:id?", name: 'UserForm', component: UserForm },
+        //{ path: "/panel/users", name: 'UserList', component: UserList },
+        //{ path: "/panel/users/form/:id?", name: 'UserForm', component: UserForm },
         { path: "/panel/transactions", name: 'Transactions', component: Transactions },
-        { path: "/panel/flats", name: 'FlatList', component: FlatList },
-        { path: "/panel/flats/form/:id?", name: 'FlatForm', component: FlatForm },
-        { path: "/panel/targets", name: 'TargetList', component: TargetList },
-        { path: "/panel/targets/form/:id?", name: 'TargetForm', component: TargetForm },
+        //{ path: "/panel/flats", name: 'FlatList', component: FlatList },
+        //{ path: "/panel/flats/form/:id?", name: 'FlatForm', component: FlatForm },
+        //{ path: "/panel/targets", name: 'TargetList', component: TargetList },
+        //{ path: "/panel/targets/form/:id?", name: 'TargetForm', component: TargetForm },
         { path: "/panel/meetings", name: 'MeetingList', component: MeetingList },
         { path: "/panel/meetings/form/:id?", name: 'MeetingForm', component: MeetingForm },
         { path: "/panel/projects", name: 'ProjectList', component: ProjectList },
@@ -83,16 +84,5 @@ const router = createRouter({
   ],
 });
 
-/*router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
-
-  if (to.meta.requiresAuth && !authStore.currentUser) {
-    next({ name: "Login" })
-  } else if (to.meta.isGuest && authStore.currentUser) {
-    next({ name: "Home" })
-  } else {
-    next();
-  }
-});*/
 
 export default router;

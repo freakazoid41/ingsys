@@ -114,19 +114,14 @@ class AuthController extends Controller
 
             //set person type to session
             if(!empty($person)){
-                
-
-                session(['is_client' => $person->client_id != '0']);
+                $personType = Sys_options::where('id',$person->type_id)->first();
+                session(['type_key' => $personType->op_key]);
+                //session(['is_client' => $person->client_id != '0']);
                 session(['person_id' => $person->id]);
                 session(['email'     => $request->email]);
                 session(['ptitle'    => $person->name.' '.$person->surname]);
 
             }
-            
-            
-            
-
-            
             
             /*User_logs::create([
                 'user_id'     => auth('sanctum')->user()->id,

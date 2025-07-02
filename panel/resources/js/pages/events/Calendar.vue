@@ -1,6 +1,7 @@
 
 
 <script>
+    import { useAuthStore } from '@/stores/auth';
     import { useNavigationStore } from '@/stores/navigation'
     import { Calendar } from 'fullcalendar';
     import Plib from '@/lib/pickle';
@@ -20,6 +21,7 @@
             //Object.assign(Datepicker.locales, tr);
             // expose to template and other options API hooks
             return {
+                useAuthStore,
                 useNavigationStore,
                 Plib,
                 wTrans,
@@ -32,6 +34,7 @@
         },
         data() {
             return {
+                authStore       : useAuthStore(),
                 navigationStore : useNavigationStore(),
                 plib            : new Plib(),
                 eventList       : []
@@ -138,7 +141,7 @@
         <div class="col-2">
             <div class="align-items-center d-flex fs-7 mb-1 text-body-secondary"> 
                 <div class="flex-grow-1">{{$t('form.calendar.list')}}</div> 
-                <a href="/panel/calendar/form" type="button" class="fs-6 icon ph ph-plus"> <span class="visually-hidden">Add</span> </a> 
+                <a v-if="authStore.data.type == 'admin'" href="/panel/calendar/form" type="button" class="fs-6 icon ph ph-plus"> <span class="visually-hidden">Add</span> </a> 
             </div>
             
             <div id="calendar-events1" class="ms-n2" style="height: 70vh !important;">

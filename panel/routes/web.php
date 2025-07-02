@@ -16,12 +16,37 @@ Route::get('/logout',                  [AuthController::class, 'logout'])->name(
 
 Route::middleware(['auth:sanctum'])
     ->group(function () {
-        Route::get('/panel', fn () => view('app'))->name('app');
+        /*Route::get('/panel', fn () => view('app'))->name('app');
         Route::get('/panel/users', function (){
             return strpos(auth('sanctum')->user()->name,'Admin') !== false ? view('app') : abort('403');
         })->where('any', '^((?!api).)*');
-        Route::get('/panel/{any}', fn () => view('app'))->where('any', '^((?!api).)*');
-        
+        Route::get('/panel/{any}', fn () => view('app'))->where('any', '^((?!api).)*');*/
+
+        $auth = function (){
+            if(session('type_key') !== null){
+                switch(session('type_key')){
+                    case 'op-pert-admin':
+                        return view('app');
+                        break;
+                    case 'op-pert-buyer':
+                        //return redirect('/client'); // an alternative to "redirect()->to()"
+                        return view('client');
+                        break;
+                    default:
+                        abort('403');
+                    break;
+                }
+            }else{
+                abort('403');
+            }
+        };
+
+        Route::get('/panel',$auth)->name('app');
+        Route::get('/panel/{any}',$auth)->where('any', '^((?!api).)*');
+
+        /*Route::get('/client',$auth)->name('app');
+        Route::get('/client/{any}',$auth)->where('any', '^((?!api).)*');*/
+
         Route::get('/order-file/{doc}', function ($doc){
             return decryptFile($doc,'view');
         })->name('documentRoute');

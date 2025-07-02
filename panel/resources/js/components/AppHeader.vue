@@ -188,10 +188,10 @@ export default {
                     <img class="h-8 rounded" src="http://icons.iconarchive.com/icons/sykonist/looney-tunes/256/Taz-icon.png"> 
                 </button>
                 <div class="dropdown-menu"> 
-                    <a href="#" class="dropdown-item"> <i class="ph ph-user-circle"></i> Profile
+                    <!--<a href="#" class="dropdown-item"> <i class="ph ph-user-circle"></i> Profile
                     </a> 
                     <a href="#" class="dropdown-item"> <i class="ph ph-currency-circle-dollar"></i> Billing </a> 
-                    <a href="#" class="dropdown-item"> <i class="ph ph-gear"></i> Preferences </a> 
+                    <a href="#" class="dropdown-item"> <i class="ph ph-gear"></i> Preferences </a> -->
                     <a href="/logout" class="dropdown-item"> <i class="ph ph-sign-out"></i> {{ $t('top.logout') }} </a> 
                 </div>
             </li>

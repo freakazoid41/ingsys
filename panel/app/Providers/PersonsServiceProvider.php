@@ -51,6 +51,11 @@ class PersonsServiceProvider extends ServiceProvider
             if(strpos($key,'user') !== false){
                 $user[explode('user_',$key)[1]] = $value;
             }
+
+            if($key == 'type_key'){
+                $type = Sys_options::where('op_key',$value)->first();
+                $document->type_id = $type->id;
+            }
             
         }
 
@@ -142,14 +147,16 @@ class PersonsServiceProvider extends ServiceProvider
         }
         
         if(!empty($user) && isset($user['password'])){
+            $sr = [
+                'person_id' => $document->id,
+                'password'  => Hash::make($user['password']),
+                'name'      => 'Client User'
+            ];
+
+            if( isset($user['username'])) $sr['email'] = $user['username'];
             User::updateOrInsert(
                 ['person_id' => $document->id],
-                [
-                    'person_id' => $document->id,
-                    'email'     => $user['username'],
-                    'password'  => Hash::make($user['password']),
-                    'name'      => 'Client User'
-                ],
+                $sr,
             );
         }
 
@@ -179,6 +186,7 @@ class PersonsServiceProvider extends ServiceProvider
                             i.created_at,
                             i.status,
                             o.title  as  type_title,
+                            o.op_key  as  type_key,
                             u.email  as  user_name
                         from persons as i
                             left join users as u on u.person_id = i.id

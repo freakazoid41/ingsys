@@ -36,11 +36,12 @@ class UserSeeder extends Seeder
         //set user permissions
         // 4000 gdz elektrik
         $users = [
-            ['op-pert-admin','Admin Kadir','kbbozat41@hotmail.com','Kadir412.','5438826976','001','admin','4000','Kadir Admin'],
+            ['op-pert-admin','Admin Kadir','kbbozat41@hotmail.com','Kadir412.','5438826976'],
+            ['op-pert-buyer','Kat Maliki','falanboyle41@test.com','Kadir412.','5434465454'],
         ];
 
         foreach($users as $u){
-            $this->setPerson($u[0],$u[1],$u[2],$u[3],$u[4],$u[5],$u[7],$u[8])->id;
+            $this->setPerson($u[0],$u[1],$u[2],$u[3],$u[4])->id;
             /*$this->setPermissions(
                 $perms,
                 $this->setPerson($u[0],$u[1],$u[2],$u[3],$u[4],$u[5],$u[7],$u[8])->id,
@@ -50,7 +51,7 @@ class UserSeeder extends Seeder
         }
     }
 
-    function setPerson($type = 'op-pert-admin',$name = '', $email = '', $password = '',$phone = '',$code = '',$sysCode = '',$surname = ''){
+    function setPerson($type = 'op-pert-admin',$name = '', $email = '', $password = '',$phone = ''){
         
         $personType = (Sys_options::where(['op_key' => $type])->first());
         $clientId   = 0;
@@ -62,7 +63,7 @@ class UserSeeder extends Seeder
             'spec_code'  => '0',//$code,
             'title'      => 'USER',
             'name'       => $name,
-            'surname'    => $surname,
+            'surname'    => '-',
             'phone'      => $phone,
             'type_id'    => $personType->id ?? 0,
             'created_at' => \Carbon\Carbon::now()->toDateTimeString()

@@ -1,4 +1,5 @@
 <script>
+    import { useAuthStore } from '@/stores/auth';
     import { useNavigationStore } from '@/stores/navigation'
     import PickleTable from 'pickletable';
     import 'pickletable/assets/style.css';
@@ -19,17 +20,17 @@
                 Plib,
                 wTrans,
                 Swal,
-                useNavigationStore
+                useNavigationStore,
+                useAuthStore,
             }
         },
         mounted(){
             this.buildTestTable();
         },  
         data() {
-            
             return {
-                plib : new Plib(),
-                navigationStore : useNavigationStore(),
+                plib            : new Plib(),
+                authStore    : useAuthStore()
             }
         },
         methods: {
@@ -144,49 +145,52 @@
                                 })
                             };
                             div.appendChild(edit);
+                            
+                            if(this.authStore.data.type == 'admin'){
+                                const del       = document.createElement('a');
+                                del.href        = 'javascript:;';
+                                del.style.width = 'auto';
+                                del.innerHTML   = '<i class="fc-icon fc-icon- fs-4 ph ph-x-circle"  role="img"></i>';
+                                del.onclick     = async () => {
 
-                            const del       = document.createElement('a');
-                            del.href        = 'javascript:;';
-                            del.style.width = 'auto';
-                            del.innerHTML   = '<i class="fc-icon fc-icon- fs-4 ph ph-x-circle"  role="img"></i>';
-                            del.onclick     = async () => {
+                                    Swal.fire({
+                                        customClass: {
+                                            confirmButton: "btn btn-secondary me-3",
+                                            cancelButton: "btn btn-secondary me-3"
+                                        },
+                                        heightAuto : false,
+                                        title: "Eminmisiniz ?",
+                                        html : `<style>
+                                                    .swal2-popup {
+                                                        background-color:#000000f7 !important;
+                                                    }
+                                                </style>
+                                                Hareket sistemden tamamen silinecektir!`,
+                                        icon: "warning",
+                                        showCancelButton: true,
+                                        confirmButtonColor: "#3085d6",
+                                        cancelButtonColor: "#d33",
+                                        confirmButtonText: "Evet , Sil!",
+                                        cancelButtonText : 'İptal',
+                                    }).then(async (result) => {
+                                        if (result.isConfirmed) {
+                                            this.navigationStore.toggle(true);
+                                            await this.plib.request({
+                                                url      : '/api/v1/transaction/'+columnData,
+                                                method   : 'DELETE',
+                                            },null);
 
-                                Swal.fire({
-                                    customClass: {
-                                        confirmButton: "btn btn-secondary me-3",
-                                        cancelButton: "btn btn-secondary me-3"
-                                    },
-                                    heightAuto : false,
-                                    title: "Eminmisiniz ?",
-                                    html : `<style>
-                                                .swal2-popup {
-                                                    background-color:#000000f7 !important;
-                                                }
-                                            </style>
-                                            Hareket sistemden tamamen silinecektir!`,
-                                    icon: "warning",
-                                    showCancelButton: true,
-                                    confirmButtonColor: "#3085d6",
-                                    cancelButtonColor: "#d33",
-                                    confirmButtonText: "Evet , Sil!",
-                                    cancelButtonText : 'İptal',
-                                }).then(async (result) => {
-                                    if (result.isConfirmed) {
-                                        this.navigationStore.toggle(true);
-                                        await this.plib.request({
-                                            url      : '/api/v1/transaction/'+columnData,
-                                            method   : 'DELETE',
-                                        },null);
-
-                                        this.table.deleteRow(columnData);
-                                        setTimeout(() => {
-                                            this.navigationStore.toggle(false);
-                                            this.plib.toast(this.Swal,'success','Hareket Silindi...',() => {window.location.reload()});
-                                        }, 200);
-                                    }
-                                });
-                            };
-                            div.appendChild(del);
+                                            this.table.deleteRow(columnData);
+                                            setTimeout(() => {
+                                                this.navigationStore.toggle(false);
+                                                this.plib.toast(this.Swal,'success','Hareket Silindi...',() => {window.location.reload()});
+                                            }, 200);
+                                        }
+                                    });
+                                };
+                                div.appendChild(del);
+                            }
+                            
 
                             return div;
                         }

@@ -1,5 +1,6 @@
 <script>
-  import { useNavigationStore } from '@/stores/navigation'
+  import { useNavigationStore } from '@/stores/navigation';
+  import { useAuthStore } from '@/stores/auth';
   import 'pickletable/assets/style.css';
   import Plib from '@/lib/pickle';
   import { wTrans } from 'laravel-vue-i18n';
@@ -11,6 +12,8 @@
   import 'simplebar-vue/dist/simplebar.min.css';
   import IncomeWaiting from '@/components/dashboard/IncomeWaiting.vue';
   import LastStatus from '@/components/dashboard/LastStatus.vue';
+      
+
 
   export default {
       components: {
@@ -27,13 +30,15 @@
             wTrans,
             Chart,
             Swal,
-            Datepicker
+            Datepicker,
+            useAuthStore
             //Quill
         }
       },
       data() {
         return {
             plib            : new Plib(),
+            authStore       : useAuthStore(),
             navigationStore : useNavigationStore(),
             flatCount       : null,
             totalBalance    : null,
@@ -204,8 +209,11 @@
             });
           },
           bringModal(type){
-            this.navigationStore.toggle(true);
-            window.location.href = '/panel/'+type
+            if(this.authStore.data.type == 'admin'){
+              this.navigationStore.toggle(true);
+              window.location.href = '/panel/'+type;
+            }
+            
           },
           exportReport(){
             this.navigationStore.toggle(true);
@@ -375,7 +383,7 @@
           </div>
       </div>
     </div>
-    <div class="col-4">
+    <div class="col-4" v-if="this.authStore.data.type == 'admin'">
       <div class="card flex-row p-5 selectable transclick" @click="bringModal('targets')"> 
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-arrows-left-right rounded text-body-emphasis w-11"
           style="--bs-bg-opacity:.2"></i>

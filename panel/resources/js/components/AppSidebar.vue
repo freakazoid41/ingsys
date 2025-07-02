@@ -1,4 +1,24 @@
+<script>
+import { useAuthStore } from '@/stores/auth';
+export default {
+    components: {},
+    setup() {
+        // expose to template and other options API hooks
+        return {
+            useAuthStore,
+        }
+    },
+    mounted(){
+        console.log(useAuthStore().data);
+    },  
+    data() {
+        return {
+            useAuthStore   : useAuthStore(),
+        };
+    },
+}
 
+</script>
 <template>
     <button type="button" id="sidebar-close" class="icon sidebar-close"> <i
             class="fs-5 ph ph-x"></i> <span class="visually-hidden">Close Sidebar</span> </button>
@@ -9,11 +29,11 @@
             <!--<li> <a href="/panel/documents"> <i class="ph ph-kanban"></i> <span>{{ $t('menu.documents') }}</span> </a> </li>-->
             <li> <a href="/panel"> <i class="ph ph-kanban"></i> <span>{{ $t('menu.home') }}</span> </a> </li>
             
-            <li> <a href="/panel/flats"> <i class="ph ph-house-line"></i> <span>{{ $t('menu.flats') }}</span> </a> </li>
-            <li> <a href="/panel/targets"> <i class="ph ph-folder-lock"></i> <span>{{ $t('menu.targets') }}</span> </a> </li>
+            <li> <a href="/panel/flats" v-if="useAuthStore.data.type=='admin'"> <i class="ph ph-house-line"></i> <span>{{ $t('menu.flats') }}</span> </a> </li>
+            <li> <a href="/panel/targets" v-if="useAuthStore.data.type=='admin'"> <i class="ph ph-folder-lock"></i> <span>{{ $t('menu.targets') }}</span> </a> </li>
             <li> <a href="/panel/transactions"> <i class="ph ph-money"></i> <span>{{ $t('menu.transactions') }}</span> </a> </li>
             <li> <a href="/panel/meetings"> <i class="ph ph-users-three"></i> <span>{{ $t('menu.meetings') }}</span> </a> </li>
-            <li> <a href="/panel/users"> <i class="ph ph-user"></i> <span>{{ $t('menu.users') }}</span> </a> </li>
+            <li> <a href="/panel/users" v-if="useAuthStore.data.type=='admin'"> <i class="ph ph-user"></i> <span>{{ $t('menu.users') }}</span> </a> </li>
             <li> <a href="/panel/projects"> <i class="ph ph-hammer"></i> <span>{{ $t('menu.projects') }}</span> </a> </li>
             <li> <a href="/panel/calendar"> <i class="ph ph-calendar"></i> <span>{{ $t('menu.calendar') }}</span> </a> </li>
             <li> <a href="/panel/inventory"> <i class="ph ph-wrench"></i> <span>{{ $t('menu.inventory') }}</span> </a> </li>

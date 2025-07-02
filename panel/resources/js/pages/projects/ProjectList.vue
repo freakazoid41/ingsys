@@ -2,6 +2,7 @@
 <script>
     import { useNavigationStore } from '@/stores/navigation'
     import { useEventDataStore } from '@/stores/events'
+    import { useAuthStore } from '@/stores/auth';
 
     import PickleTable from 'pickletable';
     import 'pickletable/assets/style.css';
@@ -22,6 +23,7 @@
             Object.assign(Datepicker.locales, tr);
             // expose to template and other options API hooks
             return {
+                useAuthStore,
                 useNavigationStore,
                 PickleTable,
                 Plib,
@@ -50,10 +52,11 @@
               {
                 icon : 'ph ph-download',
                 onclick   : () => window.open('/export/documents/projects'),
-              },{
+              },
+              ...(this.authStore.data.type == 'admin' ? [{
                 icon : 'ph ph-plus-circle',
                 onclick   : () => {window.location.href = '/panel/projects/form'},
-              }
+              }] : [{}])
             ]);
             setTimeout(() => {
                 this.navigationStore.toggle(false);
@@ -65,6 +68,7 @@
                 plib : plib,
                 taskDataStore   : useEventDataStore(),
                 navigationStore : useNavigationStore(),
+                authStore       : useAuthStore(),
             }
         },
         methods: {
