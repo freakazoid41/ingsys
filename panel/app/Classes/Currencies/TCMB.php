@@ -1,17 +1,10 @@
 <?php
 
 namespace App\Classes\Currencies;
-use Illuminate\Support\Facades\Log;
 use App\Models\Currencies;
 use App\Models\Sys_options;
-class TCMB
+class TCMB extends \App\Classes\Utils
 {
-    public function infoPrint($message) {
-        Log::channel('cron')->info($message);
-        print_r(date('Y-m-d H:i').' => '.PHP_EOL);
-        print_r($message);
-        print_r(PHP_EOL);
-    }
     /**
      * Create a new class instance.
      */
