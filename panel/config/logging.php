@@ -74,9 +74,9 @@ return [
         ],
         'cron' => [
             'driver' => 'daily',
-            'path' => realpath('/tmp/laravelcron.log'),
+            'path' => storage_path('logs/cron.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => env('LOG_DAILY_DAYS', 14),
+            'days' => env('LOG_DAILY_DAYS', 2),
             'replace_placeholders' => true,
         ],
 
