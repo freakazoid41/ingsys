@@ -469,7 +469,7 @@ if(!function_exists('uploadFile')){
     function uploadFile($file){
         try{
             //check file size and type (40 mb)
-            if($file->getSize() <= /*4096000*/ 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['jpg','png','jpeg','pdf','xls','xlsx']) ){
+            if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['jpg','png','jpeg','pdf','xls','xlsx']) ){
                 $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
                 $rsp = Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
                     'documents',
@@ -490,8 +490,10 @@ if(!function_exists('uploadFile')){
                 ];
             }
         }catch(Exception $e){
-            print_r($e->getMessage());
-            die;
+            return [
+                'msg'     => $e->getMessage(),
+                'success' => false
+            ];
         }
     }
 
@@ -582,11 +584,13 @@ if(!function_exists('uploadFile')){
             }
             
             $rowId = $file->id;
+
+            $fileRsp['rowId'] = $file->id;
         }else{
             $rowId = 0;
         }
 
-        return $rowId;
+        return $fileRsp;
     }
 }
 

@@ -94,18 +94,17 @@
                     for(let key in this.formData.files){
                         envelope.append(key,this.formData.files[key]);
                     }
-                    await this.plib.request({
+                    const rsp = await this.plib.request({
                         url      : '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),
                         method   : this.id !== undefined ? 'PUT' : 'POST',
                     },null,envelope);
-
+                    
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
-                        this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            window.location.href = '/panel/meetings'
+                        this.plib.toast(this.Swal,rsp.success ? 'success' : 'error',rsp.success ? 'İşlem Tamamlandı' : rsp.data.message,() => {
+                            if(rsp.success) window.location.href = '/panel/meetings';
                         });
                     }, 300);
-
                 }else{
                     this.navigationStore.toggle(false);
                     this.plib.toast(this.Swal,'info','Eksik Alanları Doldurmalısınız..',() => {});

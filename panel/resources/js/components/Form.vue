@@ -842,7 +842,6 @@
         methods: {
             formCallback() {
                 if(this.savecallback) this.savecallback(this.formData);
-                console.log('Component');
             },
             submitDynamicChanges(el){
                 const tag    = el.dataset.tag;

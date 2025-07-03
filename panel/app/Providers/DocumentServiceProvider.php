@@ -31,126 +31,144 @@ class DocumentServiceProvider extends ServiceProvider
                 $dynamicFiles[$key] = $f;
             }
         }
+        try {
 
-        //here set main document
-        $document = new Documents();
-        //for update purposes
-        if(intval($id) != 0){
-            $document = Documents::where('id',$id)->first();
-            $isUpdate = true;
-        }else{
-            $document->type_id = (\App\Models\Sys_options::where('op_key' , $typeKey)->first())->id;
-        }
+            DB::beginTransaction(); // <= Starting the transaction
 
-        foreach ($requestData as $key => $value) {
-            if(strpos($key,'main_') !== false){
-                $key = explode('main_',$key)[1];
-                $document->{$key} = strip_tags($value);
+            //here set main document
+            $document = new Documents();
+            //for update purposes
+            if(intval($id) != 0){
+                $document = Documents::where('id',$id)->first();
+                $isUpdate = true;
+            }else{
+                $document->type_id = (\App\Models\Sys_options::where('op_key' , $typeKey)->first())->id;
             }
-        }
-        
-        $rsp = $document->save();
 
-        if(!$isUpdate){
-            \App\Models\Transactions::create([
-                'op_id'     => 0, // '0' for document transactions
-                'type_id'   => (\App\Models\Sys_options::where('op_key' , 'doc_trans_created')->first())->id,
-                'log_id'    => 0,//$log->id,
-                'target_id' => $document->id,
-                'description' => 'New Document Added'
-            ]);
-        }  
-        
-        
-        //removed data process
-        foreach ($removed as $row) {
-            $check = Sys_con_entities::where(['conn_id' => $row['id'],'entity_tag' => $row['key']])->first();
-            if(!empty($check)){
-                if($check->table_tag == 'document_files'){
-                    //just deactivate file on system
-                    $file = Document_files::where('id',$check->entity_value)->first();
-                    $file->status = 0;
-                    $file->save();
+            foreach ($requestData as $key => $value) {
+                if(strpos($key,'main_') !== false){
+                    $key = explode('main_',$key)[1];
+                    $document->{$key} = strip_tags($value);
                 }
-
-                $check->delete();
             }
-        }
+            
+            $rsp = $document->save();
 
-        
+            if(!$isUpdate){
+                \App\Models\Transactions::create([
+                    'op_id'     => 0, // '0' for document transactions
+                    'type_id'   => (\App\Models\Sys_options::where('op_key' , 'doc_trans_created')->first())->id,
+                    'log_id'    => 0,//$log->id,
+                    'target_id' => $document->id,
+                    'description' => 'New Document Added'
+                ]);
+            }  
+            
+            
+            //removed data process
+            foreach ($removed as $row) {
+                $check = Sys_con_entities::where(['conn_id' => $row['id'],'entity_tag' => $row['key']])->first();
+                if(!empty($check)){
+                    if($check->table_tag == 'document_files'){
+                        //just deactivate file on system
+                        $file = Document_files::where('id',$check->entity_value)->first();
+                        $file->status = 0;
+                        $file->save();
+                    }
 
-        //////////////////////////////// Dynamic Fields ********************************
-        //now add dynamic fields to the personnel (this is canon way for addional fields)
-        $stypeIdMain  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-main'])->first())->id;
-        $stypeIdFile  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-file'])->first())->id;
-        foreach($dynamicF as $key => $field){
-            $id      = explode('**',$key)[1];
-            $tag     = $field['tag'];
-            $typeId  = (Sys_options::where(['ctitle' => 'type_id','op_key' => $tag])->first())->id;
+                    $check->delete();
+                }
+            }
 
-            //set new field
-            $conn  = new Sys_con_ops();
-            //for value update
-            if(strpos($id,'new') === false) $conn = Sys_con_ops::where('id', $id)->first();
+            
 
-            //last add connection
-            $conn->main_id     = $document->id; // main connection
-            $conn->conn_id     = 0;   
-            $conn->type_id     = $typeId;
-            $conn->sub_type_id = $stypeIdMain;
-            $conn->save();
+            //////////////////////////////// Dynamic Fields ********************************
+            //now add dynamic fields to the personnel (this is canon way for addional fields)
+            $stypeIdMain  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-main'])->first())->id;
+            $stypeIdFile  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-file'])->first())->id;
+            foreach($dynamicF as $key => $field){
+                $id      = explode('**',$key)[1];
+                $tag     = $field['tag'];
+                $typeId  = (Sys_options::where(['ctitle' => 'type_id','op_key' => $tag])->first())->id;
 
-            //now check if any entity sended
-            foreach($field['entities'] as $ekey => $value){
-                $entity  = new Sys_con_entities();
+                //set new field
+                $conn  = new Sys_con_ops();
+                //for value update
+                if(strpos($id,'new') === false) $conn = Sys_con_ops::where('id', $id)->first();
 
-                //check if entity is exist before
-                $check = Sys_con_entities::where(['conn_id' => $conn->id,'entity_tag' => $ekey,'table_tag' => 'sys_con_ops'])->first();
-                if(!empty($check)) $entity = $check;
-                
-                $entity->table_tag      = 'sys_con_ops';
-                $entity->conn_id        = $conn->id;
-                $entity->entity_tag     = $ekey;
-                $entity->entity_value   = strip_tags($value);
+                //last add connection
+                $conn->main_id     = $document->id; // main connection
+                $conn->conn_id     = 0;   
+                $conn->type_id     = $typeId;
+                $conn->sub_type_id = $stypeIdMain;
+                $conn->save();
 
-                $entity->save();
-            };
-
-            //now check if any file is sended
-            $stypeId  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-file'])->first())->id;
-            foreach($dynamicFiles as $fkey => $file){
-                if(strpos($fkey,$id) !== false){
-                    $fileName = explode('*-*',$fkey)[1];
-                    
-                    $typeTag = explode('**',$fileName)[0];
-                    $fileId  = explode('**',$fkey)[2];
-                    //add file
-                    $fileId = addFileToDb($file,'form-file',$fileId,'documents',$document->id);
-
-
-                    //now add file connection
+                //now check if any entity sended
+                foreach($field['entities'] as $ekey => $value){
                     $entity  = new Sys_con_entities();
 
                     //check if entity is exist before
-                    $check = Sys_con_entities::where(['conn_id' => $conn->id,'entity_tag' => $fileName,'table_tag' => 'sys_con_ops'])->first();
+                    $check = Sys_con_entities::where(['conn_id' => $conn->id,'entity_tag' => $ekey,'table_tag' => 'sys_con_ops'])->first();
                     if(!empty($check)) $entity = $check;
                     
-                    $entity->table_tag      = 'document_files';
+                    $entity->table_tag      = 'sys_con_ops';
                     $entity->conn_id        = $conn->id;
-                    $entity->entity_tag     = $fileName;
-                    $entity->entity_value   = strip_tags($fileId);
+                    $entity->entity_tag     = $ekey;
+                    $entity->entity_value   = strip_tags($value);
 
                     $entity->save();
+                };
+
+                //now check if any file is sended
+                $stypeId  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-file'])->first())->id;
+                foreach($dynamicFiles as $fkey => $file){
+                    if(strpos($fkey,$id) !== false){
+                        $fileName = explode('*-*',$fkey)[1];
+                        
+                        $typeTag = explode('**',$fileName)[0];
+                        $fileId  = explode('**',$fkey)[2];
+                        //add file
+                        $fileResponse = addFileToDb($file,'form-file',$fileId,'documents',$document->id);
+
+                        if($fileResponse['success'] == false) throw new \Exception('Dosya Sisteme Eklenemedi...');
+
+                        $fileId = $fileResponse['rowId'];
+
+
+                        //now add file connection
+                        $entity  = new Sys_con_entities();
+
+                        //check if entity is exist before
+                        $check = Sys_con_entities::where(['conn_id' => $conn->id,'entity_tag' => $fileName,'table_tag' => 'sys_con_ops'])->first();
+                        if(!empty($check)) $entity = $check;
+                        
+                        $entity->table_tag      = 'document_files';
+                        $entity->conn_id        = $conn->id;
+                        $entity->entity_tag     = $fileName;
+                        $entity->entity_value   = strip_tags($fileId);
+
+                        $entity->save();
+                    }
                 }
             }
+            //////////////////////////////// Dynamic Fields ********************************
+            DB::commit(); // <= Commit the changes
+            return [
+                'success'          => $rsp,
+                'id'               => $document->id,
+                'data'             => $document
+            ];
+        } catch (\Exception $e) {
+            
+            
+            DB::rollBack(); // <= Rollback in case of an exception
+
+            return [
+                'success'          => false,
+                'id'               => 0,
+                'message'          => $e->getMessage()
+            ];
         }
-        //////////////////////////////// Dynamic Fields ********************************
-        
-        return [
-            'success'          => $rsp,
-            'id'               => $document->id,
-            'data'             => $document
-        ];
 
     }
 
@@ -301,6 +319,8 @@ class DocumentServiceProvider extends ServiceProvider
      */
     public function setPayment($data,$files){
         try{
+            DB::beginTransaction(); // <= Starting the transaction
+
             $cur = Sys_options::where(['code' => $data['currency'] , 'group_key' => 'op-cur-types'])->first()->id;
             $fileRelIds = [];
             switch($data['op']){
@@ -441,15 +461,19 @@ class DocumentServiceProvider extends ServiceProvider
             if(!empty($files) && !empty($fileRelIds)){
                 foreach($fileRelIds as $id){
                     foreach($files as $file){
-                        addFileToDb($file,'op-doc-trans-file',0,'transactions',$id);
+                        $fileResponse = addFileToDb($file,'op-doc-trans-file',0,'transactions',$id);
+
+                        if($fileResponse['success'] == false) throw new \Exception('File Cannot Added To Server');
                     }
                 }
             }
-
+            DB::commit(); // <= Commit the changes
             return [
                 'success' => true,
             ];
-        }catch(Exception $e){
+        }catch(\Exception $e){
+            DB::rollBack(); // <= Rollback in case of an exception
+
             return [
                 'success' => false,
                 'msg'     => $e->getMessage(),

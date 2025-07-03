@@ -180,7 +180,7 @@
     methods: {
         execute() {
             // ... do something here
-            console.log(this.btntype);
+            //console.log(this.btntype);
             if (this.callback) {
                 this.callback()
             }
