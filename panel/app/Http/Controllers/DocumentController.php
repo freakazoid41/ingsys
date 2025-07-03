@@ -21,7 +21,10 @@ class DocumentController extends Controller
             'msg'     => 'not valid for system user...',
         ],401);*/
         
-        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') abort(403);
+        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
+            'success' => false,
+            'msg'     => 'not valid for system user...',
+        ],403);
         
         //$model = 'App\\Models\\Documents';
         switch(strtoupper($request->method())){
@@ -85,8 +88,11 @@ class DocumentController extends Controller
             'msg'     => 'not valid for system user...',
         ],401);*/
         
-        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') abort(403);
-
+        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
+            'success' => false,
+            'msg'     => 'not valid for system user...',
+        ],403);
+       
         //$model = 'App\\Models\\Documents';
         switch(strtoupper($request->method())){
             case "PUT":
@@ -126,6 +132,11 @@ class DocumentController extends Controller
             'note'       => 'required',
             'period'     => 'required',
         ]);
+
+        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
+            'success' => false,
+            'msg'     => 'not valid for system user...',
+        ],403);
 
         if($validateUser->fails()){
             return response()->json([
