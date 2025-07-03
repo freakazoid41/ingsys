@@ -21,6 +21,7 @@ class DocumentController extends Controller
             'msg'     => 'not valid for system user...',
         ],401);*/
         
+        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') abort(403);
         
         //$model = 'App\\Models\\Documents';
         switch(strtoupper($request->method())){
@@ -84,7 +85,8 @@ class DocumentController extends Controller
             'msg'     => 'not valid for system user...',
         ],401);*/
         
-        
+        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') abort(403);
+
         //$model = 'App\\Models\\Documents';
         switch(strtoupper($request->method())){
             case "PUT":
