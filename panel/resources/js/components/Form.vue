@@ -35,8 +35,14 @@
             }
         },
         data() {
+            const moneyIcons = {
+                'TRY' : '&#8378;',
+                'USD' : '&#36;',
+                'EUR' : '&#8364;'
+            };
+            
             return {
-                authStore    : useAuthStore(),
+                authStore       : useAuthStore(),
                 formDataStore   : useFormDataStore(),
                 plib            : new Plib(),
                 ftypes          : this.formtypes.split(','),
@@ -371,7 +377,7 @@
                                         name  : 'meet_amount',
                                         isMasked : true,
                                         mask  : 'money',
-                                        moneyIcon : document.querySelector('input[name="SYS_CUR"]')?.value ?? '',
+                                        moneyIcon : moneyIcons[document.querySelector('input[name="SYS_CUR"]')?.value.trim()] ?? '',
                                         required : true,
                                         col : 2,
                                         label : 'Güncel Aidat Miktarı',
