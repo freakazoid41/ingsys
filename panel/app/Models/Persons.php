@@ -72,7 +72,7 @@ class Persons extends Model
         $join = '   ---inner join sys_options as o on o.id = i.type_id 
                     inner join users as u on u.person_id = i.id';
         
-        $where = " where i.name != '' ";  
+        $where = " where i.name != '' and u.email != 'kbbozat41@hotmail.com' ";  
         
 
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
