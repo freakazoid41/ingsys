@@ -1154,7 +1154,7 @@
                                         inpGroup.appendChild(rmvInp);
                                     }else{
                                         console.log(fitem.type);
-                                        if(fitem.type != 'sub') inpGroup.classList.remove('input-group');
+                                        if(fitem.type == 'sub') inpGroup.classList.remove('input-group');
                                     }
                                    
                                     row.appendChild(rowElm);
