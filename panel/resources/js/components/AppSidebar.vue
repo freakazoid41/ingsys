@@ -14,6 +14,7 @@ export default {
     data() {
         return {
             useAuthStore   : useAuthStore(),
+            title          : document.querySelector('input[name="header"]').value
         };
     },
 }
@@ -22,7 +23,7 @@ export default {
 <template>
     <button type="button" id="sidebar-close" class="icon sidebar-close"> <i
             class="fs-5 ph ph-x"></i> <span class="visually-hidden">Close Sidebar</span> </button>
-    <div class="sidebar-header"> <a class="d-none d-sm-block logo" href="index.html">Körfez Apt.</a> </div>
+    <div class="sidebar-header"> <a class="d-none d-sm-block logo" href="index.html">{{ title }}</a> </div>
     <div >
         <ul class="menu">
             <!--<li class="menu-title">{{ $t('menu.documents') }} </li>-->

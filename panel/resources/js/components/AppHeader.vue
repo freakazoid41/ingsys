@@ -1,5 +1,5 @@
 <script>
-import { useEventDataStore } from '@/stores/events'
+import { useEventDataStore } from '@/stores/events';
 export default {
     components: {},
     setup() {
@@ -15,6 +15,7 @@ export default {
     data() {
         return {
             taskDataStore   : useEventDataStore(),
+            title           : document.querySelector('input[name="header"]').value
         };
     },
 }
@@ -28,7 +29,7 @@ export default {
                     d="M1 1h14M1 6.25h9.546M1 11.5h14" /></svg> 
             <span class="visually-hidden">Open Sidebar</span>
         </button> 
-        <a class="d-none d-sm-block logo" href="#">Körfez Apt.</a> <i class="ms-auto"></i>
+        <a class="d-none d-sm-block logo" href="#">{{ title }}</a> <i class="ms-auto"></i>
         <div hidden style="display: none !important;" class="content-search d-lg-flex d-none"> <i class="fs-5 ph ph-magnifying-glass"></i> <input type="text"
                 class="form-control" placeholder="Search..."> </div>
         <ul class="header-menu ms-6 ms-xl-10">

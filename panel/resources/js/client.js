@@ -30,7 +30,7 @@ const app = createApp(App)
   .mount('#app');
   
 useAuthStore().setData({
-  'type' : 'normal'
+  'type'  : 'normal',
 });
 /*const userStore = useAuthStore()
 userStore.attempt_user()

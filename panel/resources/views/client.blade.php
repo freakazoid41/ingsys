@@ -10,6 +10,7 @@
     <link rel="manifest" href="{{ asset('/manifest.json') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     @vite(['public/css/theme.css','resources/js/client.js'])
+    <meta name="header" value="{{env('APP_NAME')}}">
 
 <body class="">
     <div id="app" class=""></div>
