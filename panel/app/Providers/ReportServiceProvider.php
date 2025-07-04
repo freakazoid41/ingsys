@@ -36,6 +36,12 @@ class ReportServiceProvider extends ServiceProvider
                                             inner join sys_options as sp on sp.id = so.type_id
                                         where so.conn_id = 0 and sp.op_key = 'op-doc-meeting-form'  and so.main_id = d.id)  as  main_attr,
                                 (select icon from sys_options where code = '".env('SYS_CUR')."') as cur,
+                                (select json_group_array(
+                                    json_object(
+                                        'key'   , target_cur,
+                                        'value' , amount
+                                    )
+                                ) from currencies where target_cur in ('TRY','EUR','USD'))  as  curvalues,
                                 (SELECT sum(
                                                 t.amount *
                                                 (select amount from currencies where target_cur = cur.code)
@@ -63,11 +69,27 @@ class ReportServiceProvider extends ServiceProvider
                             where   so.op_key = 'op-doc-meeting' order by d.id desc limit 1";
                 $rows = DB::select($sql);
                 if(isset($rows[0])){
+                    $currencies = json_decode($rows[0]->curvalues);
                     $row = json_decode($rows[0]->main_attr);
-                   
+                    $rentInfo = [];
+                    foreach ($currencies as $r) $currencies[$r->key] = $r->value;
                     foreach($row as $r){
                         $data[$r->key] = $r->value;
+                        if(strpos($r->key,'meetrentsgroup')){
+                            $key = explode('**',$r->key);
+                            if(!isset($rentInfo[$key[2]])) $rentInfo[$key[2]] = [];
+
+                            $rentInfo[$key[2]][$key[0]] = $r->value;
+
+                        }
                     }
+
+                    foreach($rentInfo as $key => $rent){
+                        $rentInfo[$key]['meet_rent'] = floatval($rent['meet_rent']) * floatval($currencies[$rent['currency']]);
+                        $data['meet_rent**meetrentsgroup**'.$key] = $rentInfo[$key]['meet_rent'];
+                    }
+
+                    $data['rents'] = $rentInfo;
                 }
                 $data = array_merge($data,(array)($rows[0] ?? []));
                 break;
@@ -123,19 +145,48 @@ class ReportServiceProvider extends ServiceProvider
                                         FROM sys_con_entities as se
                                             inner join sys_con_ops as so on so.id = se.conn_id 
                                             inner join sys_options as sp on sp.id = so.type_id
-                                        where so.conn_id = 0 and sp.op_key = 'op-doc-meeting-form'  and so.main_id = d.id)  as  main_attr
+                                        where so.conn_id = 0 and sp.op_key = 'op-doc-meeting-form'  and so.main_id = d.id)  as  main_attr,
+                                
+                                (select json_group_array(
+                                    json_object(
+                                        'key'   , target_cur,
+                                        'value' , amount
+                                    )
+                                ) from currencies where target_cur in ('TRY','EUR','USD'))  as  cur
 
                                 from documents as d
                         inner join sys_options as so on so.id = d.type_id
 
                             where   so.op_key = 'op-doc-meeting' order by d.id desc limit 1";
                 $row = DB::select($sql);
+                
+                
                 if(isset($row[0])){
-                    $row = json_decode($row[0]->main_attr);
-                   
+                    $currencies = json_decode($row[0]->cur);
+                    $row        = json_decode($row[0]->main_attr);
+                    foreach ($currencies as $r) {
+                        $currencies[$r->key] = $r->value;
+                    }
+
+                    $rentInfo = [];
                     foreach($row as $r){
                         $data[$r->key] = $r->value;
+                        
+                        if(strpos($r->key,'meetrentsgroup')){
+                            $key = explode('**',$r->key);
+                            if(!isset($rentInfo[$key[2]])) $rentInfo[$key[2]] = [];
+
+                            $rentInfo[$key[2]][$key[0]] = $r->value;
+
+                        }
                     }
+
+                    foreach($rentInfo as $key => $rent){
+                        $rentInfo[$key]['meet_rent'] = floatval($rent['meet_rent']) * floatval($currencies[$rent['currency']]);
+                        $data['meet_rent**meetrentsgroup**'.$key] = $rentInfo[$key]['meet_rent'];
+                    }
+
+                    $data['rents'] = $rentInfo;
                 }
             case 'income': // this month
             case 'outcome': // this month

@@ -34,7 +34,11 @@
               setTimeout(() => {
                 let rentWaiting = 0;
                 for(let key in rsp){
-                  if(key.includes('meet_rent**')) rentWaiting += parseFloat(rsp[key]);
+                    console.log(rsp[key]);
+                  if(key.includes('meet_rent**')){
+                    
+                    rentWaiting += parseFloat(rsp[key]);
+                  } 
                 }
                 
                 this.lastStatus = {
