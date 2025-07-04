@@ -371,6 +371,7 @@
                                         name  : 'meet_amount',
                                         isMasked : true,
                                         mask  : 'money',
+                                        moneyIcon : document.querySelector('input[name="SYS_CUR"]')?.value ?? '',
                                         required : true,
                                         col : 2,
                                         label : 'Güncel Aidat Miktarı',
@@ -922,6 +923,7 @@
                         input.dataset.tag    = tag;
                         input.placeholder    = attr?.placeholder ?? '';
                         
+                        attr.element         = input;
                         
                         if(attr?.readOnly)                input.readOnly = attr.readOnly;
                         if(attr.class !== undefined)      input.classList.add(...attr?.class);
@@ -1126,6 +1128,35 @@
                                         createInput(el,inpGroup);
                                     }
 
+                                    if(el.isDate){
+                                        const calInp     = document.createElement('span');
+                                        calInp.classList.add('input-group-text');
+                                        calInp.innerHTML = '<i class="ph ph-calendar fs-4 text-body-emphasis"></i>';
+                                        calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
+                                        inpGroup.appendChild(calInp);
+                                    }
+
+                                    if(el.isMasked){
+                                        const calInp     = document.createElement('span');
+                                        switch (el.mask) {
+                                            case 'phone':
+                                                
+                                                calInp.classList.add('input-group-text');
+                                                calInp.innerHTML = '<i class="ph ph-phone fs-4 text-body-emphasis"></i>';
+                                                calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
+                                                inpGroup.appendChild(calInp);
+                                                break;
+                                            case 'money':
+                                                calInp.classList.add('input-group-text');
+                                                calInp.innerHTML = el?.moneyIcon ?? '';
+                                                calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
+                                                if(el?.moneyIcon) inpGroup.appendChild(calInp);
+                                                break
+                                            default:
+                                                break;
+                                        }
+                                    }
+
                                     if(fitem.type == 'multiple' && fitem.subs[fitem.subs.length-1] === element){
                                         const rmvInp     = document.createElement('span');
                                         rmvInp.classList.add('input-group-text','rmv-btn-form');
@@ -1152,10 +1183,13 @@
                                             rowElm.remove();*/
                                         };
                                         inpGroup.appendChild(rmvInp);
-                                    }else{
+                                    }/*else{
+                                        inpGroup.classList.remove('input-group');
                                         console.log(fitem.type);
-                                        if(fitem.type == 'sub') inpGroup.classList.remove('input-group');
-                                    }
+                                        //if(fitem.type == 'sub') inpGroup.classList.remove('input-group');
+                                    }*/
+
+                                    
                                    
                                     row.appendChild(rowElm);
                                 });

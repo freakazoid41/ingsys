@@ -10,8 +10,8 @@
     <link rel="manifest" href="{{ asset('/manifest.json') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     @vite(['public/css/theme.css','resources/js/client.js'])
-    <meta name="header" value="{{env('APP_NAME')}}">
-
+    <input hidden name="header" value="{{env('APP_NAME')}}">
+    <input hidden name="SYS_CUR" value="{{env('SYS_CUR')}}">
 <body class="">
     <div id="app" class=""></div>
     @vite(['public/js/index.js','public/js/vendor.js'])
