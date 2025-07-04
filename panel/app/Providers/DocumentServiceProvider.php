@@ -24,7 +24,7 @@ class DocumentServiceProvider extends ServiceProvider
         $dynamicFiles = [];
         $removed      = $requestData['removedData'] ?? [];
         $isUpdate     = false;
-
+       
         //now add sended files to the document with connection table info
         foreach($files as $key => $f){
             if(strpos($key,'dynamicFile') !== false){
@@ -128,6 +128,7 @@ class DocumentServiceProvider extends ServiceProvider
                         $typeTag = explode('**',$fileName)[0];
                         $fileId  = explode('**',$fkey)[2];
                         //add file
+                        
                         $fileResponse = addFileToDb($file,'form-file',$fileId,'documents',$document->id);
 
                         if($fileResponse['success'] == false) throw new \Exception('Dosya Sisteme Eklenemedi...');

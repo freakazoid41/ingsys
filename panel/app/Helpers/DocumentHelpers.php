@@ -415,12 +415,19 @@ if(!function_exists('parsePut')){
                     $tmp_name = tempnam( ini_get('upload_tmp_dir'), $filename_parts['filename']);
 
                     //populate $_FILES with information, size may be off in multibyte situation
-                    $_FILES[ $matches[ 2 ] ] = array(
+                    $_FILES[ $matches[ 2 ] ] = /*array(
                         'error'=>0,
                         'name'=>$filename,
                         'tmp_name'=>$tmp_name,
                         'size'=>strlen( $body ),
                         'type'=>$value
+                    )*/new \Symfony\Component\HttpFoundation\File\UploadedFile(
+                        $tmp_name,
+                        $filename,
+                        $value,
+                        strlen($body),
+                        0,
+                        false
                     );
 
                     //place in temporary directory
@@ -518,6 +525,7 @@ if(!function_exists('uploadFile')){
     }
 
     function addFileToDb($f,$tag,$rowId = 0,$reletion = '-',$reletion_id = '0',$logMessage = ''){
+         
         $fileRsp = uploadFile($f);
         if($fileRsp['success']){
            
