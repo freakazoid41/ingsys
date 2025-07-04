@@ -29,8 +29,9 @@
         },  
         data() {
             return {
-                plib            : new Plib(),
-                authStore    : useAuthStore()
+                plib               : new Plib(),
+                authStore          : useAuthStore(),
+                navigationStore    : useNavigationStore()
             }
         },
         methods: {
