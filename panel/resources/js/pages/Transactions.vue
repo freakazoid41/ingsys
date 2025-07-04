@@ -22,7 +22,7 @@
             
             this.navigationStore.setBread([
                 {
-                    title : 'Körfez Apt.',
+                    title : 'Ana Sayfa',
                     url   : '/panel',
                 },
                 {

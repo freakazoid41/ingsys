@@ -21,7 +21,7 @@
 <body>  
         <div style="width:100%">
             
-            <h4 style="text-align:center">Körfez Apt. {{$dates}} Dönemi Bilançosu</h4>
+            <h4 style="text-align:center">{{env('APP_NAME')}} {{$dates}} Dönemi Bilançosu</h4>
             @php
                 $datess = explode(' - ',$dates);
                 $datess[0] = implode('-',array_reverse(explode('/',$datess[0])));
@@ -55,7 +55,7 @@
                         @endfor
                 </tbody>
             </table>
-            <h4 style="text-align:center">Körfez Apt. {{$dates}} Dönemi Giderleri</h4>
+            <h4 style="text-align:center">{{env('APP_NAME')}} {{$dates}} Dönemi Giderleri</h4>
             
             <table>
                 <tbody>
@@ -75,7 +75,7 @@
                         
                 </tbody>
             </table>
-            <h4 style="text-align:center">Körfez Apt. {{$dates}} Dönemi Gelirleri</h4>
+            <h4 style="text-align:center">{{env('APP_NAME')}} {{$dates}} Dönemi Gelirleri</h4>
             @php 
                 $depts = [];
             @endphp
@@ -116,7 +116,7 @@
                         
                 </tbody>
             </table>
-            <h4 style="text-align:center">Körfez Apt. {{$dates}} Dönemi Kira ve Aidat Borcu Olanlar</h4>
+            <h4 style="text-align:center">{{env('APP_NAME')}} {{$dates}} Dönemi Kira ve Aidat Borcu Olanlar</h4>
             <table>
                 <tbody>
                     @foreach($depts as $k => $v)
