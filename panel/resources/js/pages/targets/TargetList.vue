@@ -243,6 +243,7 @@
                                         <option value="doc_acc_aidat">Aidat</option>
                                         <option value="doc_acc_sometinguntransable">Demirbaş</option>  
                                         <option value="doc_acc_other">Diğer</option> 
+                                        <option value="doc_acc_dept">Borç</option> 
                                     </select>
                                 </div>
                                 <div class="col-5 mt-5">
