@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Providers\DocumentServiceProvider;
 use Illuminate\Http\Request;
+use App\Models\Documents;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -181,7 +182,7 @@ class DocumentController extends Controller
                 ],[
                     'key'   => 'short_link',
                     'type'  => '=',
-                    'value' => $path
+                    'value' => $request->get('key')
                 ]
             ]
         ])['data'] ?? [];

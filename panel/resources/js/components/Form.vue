@@ -123,7 +123,23 @@
                                         col      : 12,
                                         required : true,
                                         label : 'Hedef Link',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                        oninput : (e) => {
+                                            this.submitDynamicChanges(e.target);
+                                           
+                                            const makeid = (length) => {
+                                                var result           = '';
+                                                var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                                                var charactersLength = characters.length;
+                                                for ( var i = 0; i < length; i++ ) {
+                                                    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                                                }
+                                                return result;
+                                            }
+                                            
+                                            document.querySelector('input[name="short_link"]').value = makeid(10);
+                                            document.querySelector('input[name="short_link"]').dispatchEvent(new Event('input'));
+
+                                        }
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
@@ -133,19 +149,28 @@
                                         label : 'Domain <i class="ph ph-lock"></i>',
                                         readOnly : true,
                                         oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },,{
+                                    },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'short_link',
                                         col      : 6,
                                         required : true,
                                         label : 'Kısa Link',
-                                        oninput : (e) => {
+                                        oninput : async (e) => {
                                             //check uniques here
-                                            this.plib.request()
+                                            const envelope = new FormData();
+                                            envelope.append('key',e.target.value.trim());
+                                            const rsp = await this.plib.request({
+                                                url      : '/api/v1/checkunique',
+                                                method   : 'POST',
+                                            },null,envelope);
 
-
-                                            this.submitDynamicChanges(e.target)
+                                            if(rsp.success == true){
+                                                e.target.classList.remove('is-invalid');
+                                                this.submitDynamicChanges(e.target)
+                                            }else{
+                                                e.target.classList.add('is-invalid');
+                                            }
                                         }
                                     },
                                 ]

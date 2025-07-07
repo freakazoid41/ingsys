@@ -12,7 +12,7 @@ export const useEventDataStore = defineStore('taskData', {
   // state: () => ({ count: 0 })
   actions: {
     async setTaskData(){
-        const rsp = await (new Plib).request({
+        /*const rsp = await (new Plib).request({
             url      : '/api/v1/dashboard/getOngoingTasks',
             method   : 'GET',
         },null);
@@ -28,10 +28,10 @@ export const useEventDataStore = defineStore('taskData', {
            
         });
 
-        this.tasks = Object.values(list);
+        this.tasks = Object.values(list);*/
     },
     async setEventData(){
-        const dateObj = new Date();
+        /*const dateObj = new Date();
         const month   = dateObj.getUTCMonth() + 1; // months from 1-12
         const year    = dateObj.getUTCFullYear();
         const isValid  = (date) => {  
@@ -71,7 +71,7 @@ export const useEventDataStore = defineStore('taskData', {
         });
 
 
-        this.events = Object.values(list);
+        this.events = Object.values(list);*/
     },
   },
 })
