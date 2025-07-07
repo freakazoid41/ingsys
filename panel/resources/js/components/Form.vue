@@ -41,6 +41,66 @@
                 plib            : new Plib(),
                 ftypes          : this.formtypes.split(','),
                 forms           : {
+                    'op-doc-user-form'    : {
+                        showRemoveButton : false,
+                        oncreated        : (id) => {},
+                        fields           : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'main_name',
+                                        //isDate   : true,
+                                        required : true,
+                                        label : 'İsim & Soyisim',
+                                        col      : 3,
+                                        placeholder : 'İsim & Soyisim',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','date-input','form-item'],
+                                        type     : 'select',
+                                        name     : 'type_key',
+                                        col      : 3,
+                                        required : true,
+                                        label    : 'Tip',
+                                        options  : [
+                                            {
+                                                text  : 'Yönetici',
+                                                value : 'op-pert-admin'
+                                            },{
+                                                text  : 'Kat Maliki',
+                                                value : 'op-pert-buyer'
+                                            }
+                                        ],
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'email',
+                                        name  : 'user_username',
+                                        required : true,
+                                        col : 3,
+                                        placeholder : 'Kullanıcı Email',
+                                        label : 'Kullanıcı Email',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'password',
+                                        name  : 'user_password',
+                                        //required : true,
+                                        col : 3,
+                                        label : 'Parola',
+                                        placeholder : '*********',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
+                    },
                     'op-doc-link-form' : {
                         showRemoveButton : false,
                         oncreated       : (id) => {},
