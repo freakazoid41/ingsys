@@ -5,7 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
 
 
-Route::get('/',                   [AuthController::class, 'login'])->name('login');
+Route::get('/login',                   [AuthController::class, 'login'])->name('login');
 Route::get('/logout',                  [AuthController::class, 'logout'])->name('logout');
 
 //test hook for permissions
@@ -52,4 +52,5 @@ Route::middleware(['auth:sanctum'])
 });
 
 
+Route::get('/{path}', [AuthController::class, 'passage'])->where(['path' => '.*']);
 

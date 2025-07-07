@@ -6,7 +6,7 @@ use App\Models\Persons;
 use App\Models\Sys_options;
 use App\Models\User_logs;
 use App\Models\User;
-
+use App\Models\Documents;
 
 use App\Providers\PersonnelService;
 use Exception;
@@ -21,6 +21,45 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    public function passage(Request $request,$path = null){
+
+        if($path == null) abort(404);
+
+
+        $data = (new Documents())->tableList(['filter' => [
+                [
+                    'key'   => 'form-type',
+                    'type'  => '=',
+                    'value' => 'op-doc-link-form'
+                ],[
+                    'key'   => 'type',
+                    'type'  => '=',
+                    'value' => 'op-doc-link'
+                ],[
+                    'key'   => 'short_link',
+                    'type'  => '=',
+                    'value' => $path
+                ]
+            ]
+        ])['data'];
+
+        if(!empty($data)){
+            
+            //update count
+            $route = Documents::where('id',$data[0]->id)->first();
+            $route->click_count = intval($route->click_count)+1;
+            $route->save();
+
+            $data = json_decode($data[0]->main_attr,true);
+            foreach($data as $row){
+                $data[$row['Key']] = $row['Value'];
+            }
+
+            return redirect($data['long_link'], 301); 
+        }else{
+            abort(404);
+        }
+    }
 
     public function login(){
         

@@ -142,7 +142,7 @@
                     pageLimit : 10, // -1 for closing pagination
                     height    : '70vh',
                     type      : 'ajax',
-                    //columnSearch : true, // true - false for opening and closig
+                    columnSearch : true, // true - false for opening and closig
                     paginationType : 'number',// scroll - number (number for default)
                     ajax:{
                         url:'/api/v1/table/documents',

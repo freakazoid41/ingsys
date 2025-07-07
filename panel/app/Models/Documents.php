@@ -48,7 +48,7 @@ class Documents extends Model
 
     static function tableList($obj){
         $columns = array(
-            'id'           => 'i.id  as  id',
+            'id'           => 'distinct i.id  as  id',
             'type'         => 'sp.op_key  as  type',
             'main_attr'    => '',
             'created_at'   => 'i.created_at',
@@ -58,7 +58,9 @@ class Documents extends Model
         
         $limit = '';
         $order = '';
-        $join = ' inner join sys_options as sp on sp.id = i.type_id ';
+        $join = '   inner join sys_options as sp on sp.id = i.type_id 
+                    inner join sys_con_ops as so on so.main_id = i.id
+                    inner join sys_con_entities as se on se.conn_id = so.id' ;
         
         $where = " where i.status = '1'";   
         //$where .= " and i.sys_code::text like '%".($GLOBALS['SYS_CODE'] === 'ADM' ? '5000' : '4000')."%'";
@@ -127,7 +129,7 @@ class Documents extends Model
                         $i = 0;
                         foreach($columns as $k=>$v){
                             if($i!=0) $where.=' or ';
-                            $column = explode('as  ',$columns[$k])[0];
+                            $column = explode('as  ',$columns[$f['key']]  ?? 'se.entity_value')[0];
                             /*if($column === 'i.created_at'){
                                 $where.= env('DB_CONNECTION') == 'pgsql' ? 
                                 " TO_CHAR(".$column."::date, 'dd.mm.yyyy') like '%" . $value . "%' " :
@@ -141,7 +143,7 @@ class Documents extends Model
                         $where .= ' ) ';
                     break;
                     default:
-                        $column = explode('as  ',$columns[$f['key']])[0];
+                        $column = explode('as  ',$columns[$f['key']]  ?? 'se.entity_value')[0];
                         if(trim($f['value']) != ''){
                             if($f['type'] != 'like'){
                                 $where .= " and $column = '".$f['value']."' ";
@@ -159,7 +161,6 @@ class Documents extends Model
         //create query    
         $sql = 'select '.implode(",", array_values($columns)).'
                     from documents as i '.$join.' ' . $where.$order.$limit ;
-        
         $result = DB::select($sql);
         //count query
         $sql = 'select count(distinct i.id) as row from documents as i '.$join.' '. $where;
