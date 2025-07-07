@@ -72,9 +72,6 @@
                                             {
                                                 text  : 'Yönetici',
                                                 value : 'op-pert-admin'
-                                            },{
-                                                text  : 'Kat Maliki',
-                                                value : 'op-pert-buyer'
                                             }
                                         ],
                                         oninput  : (e) => this.submitDynamicChanges(e.target)
