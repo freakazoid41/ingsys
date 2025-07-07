@@ -66,10 +66,10 @@
                     url   : '/panel',
                 },
                 {
-                    title : this.wTrans('menu.flats'),
-                    url   : '/panel/flats',
+                    title : 'Link Ekle / Düzenle',
+                    url   : '/panel/links',
                 }
-            ] ,this.wTrans('form.flats'));
+            ] ,'Link Ekle / Düzenle');
         },  
         data() {
             const route = useRoute();

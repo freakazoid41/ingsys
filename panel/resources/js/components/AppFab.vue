@@ -188,6 +188,12 @@
     }
   }
 </script>
+<style>
+span::before,
+    a,span,i {
+        color: white !important;
+    }
+</style>
 <template>
     <div class="fab-wrapper">
         <input id="fabCheckbox" v-if="btntype==='options'" type="checkbox" class="fab-checkbox" />

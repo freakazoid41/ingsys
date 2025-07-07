@@ -55,7 +55,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'title',
-                                        col      : 6,
+                                        col      : 12,
                                         required : true,
                                         label : 'Başlık',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -63,11 +63,20 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'long_link',
-                                        col      : 6,
+                                        col      : 12,
                                         required : true,
                                         label : 'Hedef Link',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'domain',
+                                        col      : 6,
+                                        placeholder : 'aydem.tr/',
+                                        label : 'Domain <i class="ph ph-lock"></i>',
+                                        readOnly : true,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },,{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'short_link',
@@ -141,7 +150,7 @@
                 row.classList.add('dform-row');
                 if(selector == null){
                     target = document.querySelector('.area-target[data-tag="'+tag+'"]');
-                    row.classList.add('mb-10','mt-10','col-12','card','card-full');
+                    row.classList.add('mb-10','mt-10','col-6','card','card-full');
                     rowSub.classList.add('card-body');
                 }else{
                     row.classList.add('row');
@@ -764,7 +773,7 @@
     }
 </style>
 <template>
-    <div class="area-target" v-for="(item, index) in ftypes" :data-tag="item">
+    <div class="area-target d-flex justify-content-center" v-for="(item, index) in ftypes" :data-tag="item">
        
     </div>
     <AppFab v-if="authStore.data.type=='admin'" btntype="saveBtn" :callback="formCallback"/>

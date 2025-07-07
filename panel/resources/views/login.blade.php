@@ -39,7 +39,7 @@
 
         
     </style>
-    <body class="align-items-center d-flex p-5">
+    <body class="align-items-center flex-column justify-content-center d-flex p-5 h-100" style="height:">
         <div class="card m-auto mw-400 p-8 w-100"> 
             <h2 class="fs-6" style="color : #343a40;">Hoşgeldiniz!</h2>
             <div class="mb-5 text-body-secondary">Sisteme giriş yapmak için bilgilerinizi giriniz..</div> 
