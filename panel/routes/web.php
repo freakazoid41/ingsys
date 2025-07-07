@@ -28,10 +28,6 @@ Route::middleware(['auth:sanctum'])
                     case 'op-pert-admin':
                         return view('app');
                         break;
-                    case 'op-pert-buyer':
-                        //return redirect('/client'); // an alternative to "redirect()->to()"
-                        return view('client');
-                        break;
                     default:
                         abort('403');
                     break;
