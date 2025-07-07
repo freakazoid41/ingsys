@@ -40,6 +40,7 @@ export default {
             <!--<li> <a href="/panel/documents"> <i class="ph ph-kanban"></i> <span>{{ $t('menu.documents') }}</span> </a> </li>-->
             <li> <a href="/panel"> <i class="ph ph-kanban" style="color: black;"></i> <span style="color: black;">{{ $t('menu.home') }}</span> </a> </li>
             <li> <a href="/panel/links"> <i class="ph ph-newspaper" style="color: black;"></i> <span style="color: black;">Link Listesi</span> </a> </li>
+            <li> <a href="/panel/users" > <i class="ph ph-user" style="color: black;"></i> <span  style="color: black;">{{ $t('menu.users') }}</span> </a> </li>
             <!--<li> <a href="/panel/flats" v-if="useAuthStore.data.type=='admin'"> <i class="ph ph-house-line"></i> <span>{{ $t('menu.flats') }}</span> </a> </li>
             <li> <a href="/panel/targets" v-if="useAuthStore.data.type=='admin'"> <i class="ph ph-folder-lock"></i> <span>{{ $t('menu.targets') }}</span> </a> </li>
             <li> <a href="/panel/transactions"> <i class="ph ph-money"></i> <span>{{ $t('menu.transactions') }}</span> </a> </li>

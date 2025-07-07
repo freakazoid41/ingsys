@@ -34,10 +34,10 @@
                     url   : '/panel',
                 },
                 {
-                    title : this.wTrans('menu.users'),
+                    title : 'Kullanıcılar',
                     url   : '/panel/users',
                 }
-            ] ,this.wTrans('form.flats.list'));
+            ] ,'Kullanıcılar');
 
             this.navigationStore.setButtons([
               /*{

@@ -36,8 +36,8 @@ class UserSeeder extends Seeder
         //set user permissions
         // 4000 gdz elektrik
         $users = [
-            ['op-pert-admin','Admin Kadir','kbbozat41@hotmail.com','Kadir412.','5438826976'],
-            ['op-pert-buyer','Kat Maliki','falanboyle41@test.com','Kadir412.','5434465454'],
+            ['op-pert-admin','Admin Kadir','kbbozat41@hotmail.com','Kadir412.','5438826276'],
+            //['op-pert-buyer','Normal Kullanıcı','falanboyle41@test.com','Kadir412.','5434465454'],
         ];
 
         foreach($users as $u){

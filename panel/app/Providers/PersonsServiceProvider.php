@@ -228,4 +228,15 @@ class PersonsServiceProvider extends ServiceProvider
             'data'    => $response
         ];
     }
+
+    public function removeContent($id){
+        //first find all attributes
+        $document    = Persons::where('id',$id)->first();
+        $connections = User::where('person_id',$id)->first();
+        
+        $connections->delete();  
+        $document->delete();
+
+        return ['success' => true];
+    }
 }
