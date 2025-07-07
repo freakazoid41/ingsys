@@ -182,6 +182,7 @@
             // ... do something here
             //console.log(this.btntype);
             if (this.callback) {
+                document.querySelector('.fab-wrapper').hidden = true;
                 this.callback()
             }
         }
