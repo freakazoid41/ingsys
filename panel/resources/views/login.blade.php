@@ -7,7 +7,7 @@
     <title>{{env('APP_NAME')}}</title>
     <meta name="theme-color" content="#6777ef" />
     <link rel="apple-touch-icon" href="{{ asset('img/icons/apple-touch-icon.png') }}">
-    @vite(['public/css/theme.css','resources/js/app.js'])
+   
     <style>
         [data-sa-theme="2"]{
             --bs-body-bg: #273c5b;
@@ -26,7 +26,7 @@
         }
 
         body{
-            /*background:  rgb(245, 247, 249) !important;*/
+            background:  rgb(245, 247, 249) !important;
         }
         .card{
             /*background: linear-gradient(45deg,#e45d0b 26%,#ffde59 128%) !important*/
@@ -39,6 +39,7 @@
 
         
     </style>
+    @vite(['public/css/theme.css','resources/js/app.js'])
     <body class="align-items-center flex-column justify-content-center d-flex p-5 h-100" style="height:">
         <div class="card m-auto mw-400 p-8 w-100"> 
             <h2 class="fs-6" style="color : #343a40;">Hoşgeldiniz!</h2>

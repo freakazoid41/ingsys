@@ -25,9 +25,6 @@ class ExportController extends Controller
             case 'documents':
                 $data = (new DocumentServiceProvider())->getExportData($type)['data'];
                 break;
-            case 'transactions':
-                $data = (new DocumentServiceProvider())->getTransExportData($type)['data'];
-                break;
         }
         
         try {
@@ -61,51 +58,5 @@ class ExportController extends Controller
         die;
     }
 
-    function reporticmal(Request $request){
-        
-        $req = $request->all();
-
-       
-
-        $dates = explode(' - ',$req['dates']);
-        $dates[0] = implode('-',array_reverse(explode('/',$dates[0])));
-        $dates[1] = implode('-',array_reverse(explode('/',$dates[1])));
-        
-        try {
-
-            // get main accounts 
-            $accounts = Documents::tableList(json_decode('{"filter":[
-                                                                {"key":"form-type","type":"=","value":"op-doc-target-form"},
-                                                                {"key":"type","type":"=","value":"op-doc-target"},
-                                                                {"key":"balance-date","type":"=","value":"'.implode('/',$dates).'"}
-                                                            ]}',true));
-            
-            //get income and outcomes
-            $incomes  = (new ReportServiceProvider())->dashboardInfo('income',$dates);
-            $outcomes = (new ReportServiceProvider())->dashboardInfo('outcome',$dates);
-
-            
-
-            // Create new Spreadsheet object
-            $spreadsheet = new Spreadsheet();
-            $activeWorksheet = new Worksheet($spreadsheet, 'Rapor');
-            $spreadsheet->addSheet($activeWorksheet, 0);
-            
-
-            $data = [
-                'dates'    => implode(' - ',explode(' => ',$req['dates'])),
-                'accounts' => $accounts,
-                'incomes'  => $incomes,
-                'outcomes' => $outcomes,
-                //'note'     => $req['note']
-            ];
-
-           $pdf = PDF::loadView('exports.icmal', $data);
-            return $pdf->download('icmal.pdf');
-            //return view('exports.icmal', $data); 
-        } catch (\Throwable $th) {
-            print_r($th->getMessage());
-        }
-        die;
-    }
+    
 }

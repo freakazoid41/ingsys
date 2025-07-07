@@ -17,6 +17,7 @@ return new class extends Migration
             $table->integer('parent_type_id')->default(0); // if document is old version then it will be 1
             $table->integer('parent_id')->default(0);
             $table->integer('type_id')->default(0);
+            $table->integer('click_count')->default(0);
             $table->integer('person_id')->default(0); // this guy is client
             
             $table->string('title',300)->default('-');

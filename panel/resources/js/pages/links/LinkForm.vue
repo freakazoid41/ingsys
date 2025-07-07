@@ -66,7 +66,7 @@
                     url   : '/panel',
                 },
                 {
-                    title : 'Link Ekle / Düzenle',
+                    title : 'Linkler',
                     url   : '/panel/links',
                 }
             ] ,'Link Ekle / Düzenle');
@@ -85,7 +85,7 @@
             async submitForm(formData){
                 this.formData = formData;
                 this.navigationStore.toggle(true);
-                this.formData.typeKey = 'op-doc-flat';
+                this.formData.typeKey = 'op-doc-link';
                 const rsp = this.plib.checkForm('.form-item');
                 if(rsp.valid){
                     const   envelope  = new FormData();
@@ -102,7 +102,7 @@
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            window.location.href = '/panel/flats'
+                            window.location.href = '/panel/links'
                         });
                     }, 300);
 

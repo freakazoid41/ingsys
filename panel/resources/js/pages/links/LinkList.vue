@@ -92,6 +92,11 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
+                        title : 'Oluşturma Tarihi',
+                        key   : 'created_at',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                    },{
                         title : '',
                         key   : 'id',
                         order : false,

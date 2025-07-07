@@ -259,313 +259,44 @@ class DocumentServiceProvider extends ServiceProvider
         return ['success' => true];
     }
 
-    public function removeTransaction($id){
-        //first find all attributes
-        $document    = Transactions::where('id',$id)->first();
-        //remove connected transaction 
-        $connTrans   = Transactions::where('trans_id',$document->id)->first();
-        if(!empty($connTrans)) $connTrans->delete();
-        //finaly remove main element
-        $document->delete();
-
-        return ['success' => true];
-    }
-
-    public function paymentInfo(){
-        return [
-            'success' => true,
-            'periods'  => DB::select("SELECT d.id,(SELECT      json_group_array(
-                                                            json_object(
-                                                                'Key',se.entity_tag,
-                                                                'Value' , se.entity_value
-                                                            )
-                                                        ) 
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-period-form'  and so.main_id = d.id)  as  main_attr from documents as d
-                                                        inner join sys_options as sp on sp.id = d.type_id
-                                                            where sp.op_key = 'op-doc-period'"),
-            'accounts' => DB::select("SELECT d.id,(SELECT      json_group_array(
-                                                            json_object(
-                                                                'Key',se.entity_tag,
-                                                                'Value' , se.entity_value
-                                                            )
-                                                        ) 
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-target-form'  and so.main_id = d.id)  as  main_attr from documents as d
-                                                        inner join sys_options as sp on sp.id = d.type_id
-                                                            where sp.op_key = 'op-doc-target'"),
-            'flats'  => DB::select("SELECT d.id,(SELECT      json_group_array(
-                                                            json_object(
-                                                                'Key',se.entity_tag,
-                                                                'Value' , se.entity_value
-                                                            )
-                                                        ) 
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-flat-form'  and so.main_id = d.id)  as  main_attr from documents as d
-                                                        inner join sys_options as sp on sp.id = d.type_id
-                                                            where sp.op_key = 'op-doc-flat'"),
-            'currencies' => Sys_options::where('group_key','op-cur-types')->get(),
-        ];
-    }
-
-    /**
-     * this method will set payment transactions for documents
-     */
-    public function setPayment($data,$files){
-        try{
-            DB::beginTransaction(); // <= Starting the transaction
-
-            $cur = Sys_options::where(['code' => $data['currency'] , 'group_key' => 'op-cur-types'])->first()->id;
-            $fileRelIds = [];
-            switch($data['op']){
-                case 'paydept':
-                    break;
-                case 'transfer':
-                    $typeId = Sys_options::where('op_key','doc_acc_transfer')->first()->id;
-                    //now make flat payment to us
-                    $etrans = new Transactions();
-                    $etrans->target_id = $data['account_id'];
-                    $etrans->type_id   = $typeId;
-                    $etrans->note      = $data['note'];
-                    $etrans->amount    = $data['amount'];
-                    $etrans->cur_id    = $cur;
-                    $etrans->rel_id    = $data['target_id']; 
-                    $etrans->sign      = 0;
-                    $etrans->period    = $data['period'];
-
-                    $etrans->save();
-
-                    $fileRelIds[] = $etrans->id;
-
-                    //now enter money to us
-                    $trans = new Transactions();
-                    $trans->target_id = $data['target_id'];
-                    $trans->type_id   = $typeId;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = $data['account_id'];
-                    $trans->sign      = 1;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    // enter reverse trans connection
-                    $trans->trans_id = $etrans->id;
-                    $trans->save();
-                    
-                    $etrans->trans_id = $trans->id;
-                    $etrans->save();
-                    // enter reverse trans connection
-
-                    $fileRelIds[] = $trans->id;
-                    break;
-                case 'income':
-                    $typeId = Sys_options::where('op_key',$data['type'])->first()->id;
-                   
-
-                    if(intval($data['from_safe']) == 1){
-                        //first add flat transactions 
-                        $trans = new Transactions();
-                        $trans->target_id = $data['flat_id'];
-                        $trans->type_id   = $typeId;
-                        $trans->note      = $data['note'];
-                        $trans->amount    = $data['amount'];
-                        $trans->cur_id    = $cur;
-                        $trans->rel_id    = 0; 
-                        $trans->sign      = 1;
-                        $trans->period    = $data['period'];
-        
-                        $trans->save();
-                    }
-
-                    //now make flat payment to us
-                    $etrans = new Transactions();
-                    $etrans->target_id = $data['flat_id'];
-                    $etrans->type_id   = $typeId;
-                    $etrans->note      = $data['note'];
-                    $etrans->amount    = $data['amount'];
-                    $etrans->cur_id    = $cur;
-                    $etrans->rel_id    = $data['account_id']; 
-                    $etrans->sign      = 0;
-                    $etrans->period    = $data['period'];
-
-                    $etrans->save();
-                    $fileRelIds[] = $etrans->id;
-
-                    //now enter money to us
-                    $trans = new Transactions();
-                    $trans->target_id = $data['account_id'];
-                    $trans->type_id   = $typeId;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = $data['flat_id'];
-                    $trans->sign      = 1;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    // enter reverse trans connection
-                    $trans->trans_id = $etrans->id;
-                    $trans->save();
-                    
-                    $etrans->trans_id = $trans->id;
-                    $etrans->save();
-                    // enter reverse trans connection
-
-                    $fileRelIds[] = $trans->id;
-                    break;
-                case 'outcome':
-                    //make aprartment to pay someone
-                    $trans = new Transactions();
-                    $trans->target_id = $data['account_id']; 
-                    $trans->type_id   = Sys_options::where('op_key','doc_acc_other')->first()->id;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = 0;
-                    $trans->sign      = 0;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    $fileRelIds[] = $trans->id;
-                    
-                    break;
-                case 'addbalance':
-                    //make aprartment to pay someone
-                    $trans = new Transactions();
-                    $trans->target_id = $data['flat_id'] ?? $data['account_id'];  // can be add from both listing pages.. 
-                    $trans->type_id   = Sys_options::where('op_key','doc_acc_other')->first()->id;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = 0;
-                    $trans->sign      = 1;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    $fileRelIds[] = $trans->id;
-                    break;
-            }
-
-            //enter file relations if file sended..
-            if(!empty($files) && !empty($fileRelIds)){
-                foreach($fileRelIds as $id){
-                    foreach($files as $file){
-                        $fileResponse = addFileToDb($file,'op-doc-trans-file',0,'transactions',$id);
-
-                        if($fileResponse['success'] == false) throw new \Exception('File Cannot Added To Server');
-                    }
-                }
-            }
-            DB::commit(); // <= Commit the changes
-            return [
-                'success' => true,
-            ];
-        }catch(\Exception $e){
-            DB::rollBack(); // <= Rollback in case of an exception
-
-            return [
-                'success' => false,
-                'msg'     => $e->getMessage(),
-            ];
-        }
-        
-    }
-
     /**
      * this method will prepare export data for documents
      */
     public function getExportData($type){
         $response = [];
         switch($type){
-            case 'flats':
-                $response[] = ['Daire İsmi','Kat Maliki','Güncel Bakiye'];
+            case 'links':
+                $response[] = ['Başlık','Kısa Link','Uzun Link','Tıklanma Sayısı','Eklenme Tarihi'];
                 $data = (new Documents())->tableList(['filter' => [
                         [
                             'key'   => 'form-type',
                             'type'  => '=',
-                            'value' => 'op-doc-flat-form'
+                            'value' => 'op-doc-link-form'
                         ],[
                             'key'   => 'type',
                             'type'  => '=',
-                            'value' => 'op-doc-flat'
-                        ]
-                    ]
-                ])['data'];
-                break;
-            case 'accounts':
-                $response[] = ['Kasa','Güncel Bakiye'];
-                $data = (new Documents())->tableList(['filter' => [
-                        [
-                            'key'   => 'form-type',
-                            'type'  => '=',
-                            'value' => 'op-doc-target-form'
-                        ],[
-                            'key'   => 'type',
-                            'type'  => '=',
-                            'value' => 'op-doc-target'
-                        ]
-                    ]
-                ])['data'];
-                break;
-            case 'meetings':
-                $response[] = ['Tarih','Güncel Yönetici','Güncel Aidat'];
-                $data = (new Documents())->tableList(['filter' => [
-                        [
-                            'key'   => 'form-type',
-                            'type'  => '=',
-                            'value' => 'op-doc-meeting-form'
-                        ],[
-                            'key'   => 'type',
-                            'type'  => '=',
-                            'value' => 'op-doc-meeting'
+                            'value' => 'op-doc-link'
                         ]
                     ]
                 ])['data'];
                 break;
         }
 
-       
+        
         foreach($data as $d){
             $detail = json_decode($d->main_attr,true);
             foreach($detail as $row){
                 $detail[$row['Key']] = $row['Value'];
-
-                if(strpos($row['Key'],'per_name') !== false){
-                    if(!isset($detail['per_name'])) $detail['per_name'] = [];
-                    $detail['per_name'][] = $row['Value'];
-                }
             }
            
             switch($type){
-                case 'meetings':
-                    $response[] = [
-                        $detail['meet_date'],
-                        $detail['meet_active_supervisor'],
-                        $detail['meet_amount'].' '.env('SYS_CUR'),
-                    ];
-                    break;
-                case 'accounts':
+                case 'link':
                     $response[] = [
                         $detail['title'],
-                        ($d->balance_pure ?? 0).' '.($detail['currency'] ?? env('SYS_CUR')),
-                    ];
-                    break;
-                case 'flats':
-                    $response[] = [
-                        $detail['title'],
-                        implode(' , ',$detail['per_name']),
-                        ($d->balance_pure ?? 0).' '.($detail['currency'] ?? env('SYS_CUR')),
+                        $detail['short_link'],
+                        $detail['long_link'],
+                        $detail['click_count'],
+                        $detail['created_at']
                     ];
                     break;
             }
@@ -577,88 +308,5 @@ class DocumentServiceProvider extends ServiceProvider
         ];
     }
 
-    /**
-     * this method will set status for documents
-     */
-    public function setStatus($id,$statusKey,$note){
-        try{
-            $type = Sys_options::where('op_key',$statusKey)->first();
-            $trans = new Transactions();
-            $trans->target_id  = $id;  // can be add from both listing pages.. 
-            $trans->type_id    = $type->id;
-            $trans->note       = $note ?? '-';
-            $trans->amount     = 0;
-            $trans->cur_id     = 0;
-            $trans->rel_id     = 0;
-            $trans->sign       = 0;
-            $trans->period     = date('Y-m');
-            //$trans->created_at =  
-            $trans->save();
 
-            return [
-                'data'    => $type->title,
-                'success' => true,
-            ];
-        }catch(Exception $e){
-            return [
-                'success' => false,
-                'msg'     => $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
-     * this method will prepare export data for transactions
-     */
-    public function getTransExportData($id = null){
-        $response = [];
-        $filter   = [];
-        if($id != null){
-            $filter = [
-                [
-                    'key'   => 'target_id',
-                    'type'  => '=',
-                    'value' => $id
-                ]
-            ];
-
-            $data = $this->getFormData($id);
-            $title = array_values(array_values($data)[0])[0][$id]['entities']['title'];
-            $response[] = ['Kasa : ',$title];
-            $response[] = [' '];
-        } 
-        $data = (new Transactions())->tableList(['filter' => $filter ])['data'];
-
-        $response[] = ['Periyod','Tarih','Kaynak','Hedef','Tip','Yön','Miktar','Birim','Açıklama'];
-        foreach($data as $d){
-            $conn = [];
-            foreach(json_decode($d->conn_info,true) as $cv){
-                $conn[$cv['Key']] = $cv['Value'];
-            }
-
-            $main = [];
-            foreach(json_decode($d->main_info,true) as $cv){
-                $main[$cv['Key']] = $cv['Value'];
-            }
-
-            
-
-            $response[] = [
-                $d->period,
-                $d->created_at,
-                $conn['title'],
-                $main['title'],
-                $d->type,
-                intval($d->sign) == 1 ? '->' : '<-',
-                (intval($d->sign) != 1 ? '-' : '').$d->amount,
-                $d->cur,
-                $d->note
-            ];
-        }
-
-        return [
-            'success' => true,
-            'data'    => $response
-        ];
-    }
 }

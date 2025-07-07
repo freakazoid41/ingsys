@@ -42,6 +42,7 @@ class Documents extends Model
         's_starting_at',
         's_tem_ending_at',
         's_rsp_type_id',
+        'click_count',
     ];
 
 
@@ -49,49 +50,9 @@ class Documents extends Model
         $columns = array(
             'id'           => 'i.id  as  id',
             'type'         => 'sp.op_key  as  type',
-            'cur'          => " (select icon from sys_options where code = '".env('SYS_CUR')."')  as  cur ",
-            'balance_pure' => " (select Sum(
-                                            CAST(
-                                                (CASE
-                                                    when t.sign = 0 then '-' || t.amount
-                                                    else t.amount
-                                                end) as float 
-                                            )
-                                        ) as total
-                                        from documents as d
-                                            inner join sys_options as so on so.id = d.type_id
-                                            inner join transactions as t on t.target_id = d.id
-                                            inner join sys_options as cur on cur.id= t.cur_id
-                                            inner join sys_options as st on st.id = t.type_id
-
-                                where   ---so.op_key = 'op-doc-target' and  
-                                        d.id = i.id and t.status = 1 and
-                                        st.group_key in ('op-trans-payment')
-                            )  as  balance_pure",
-            'balance'      => " (select      Sum(
-                                                (select amount from currencies where target_cur = cur.code) * 
-                                                CAST(
-                                                    (CASE
-                                                        when t.sign = 0 then '-' || t.amount
-                                                        else t.amount
-                                                    end) as float 
-                                                )
-                                            ) as total
-                                            from documents as d
-                                                inner join sys_options as so on so.id = d.type_id
-                                                inner join transactions as t on t.target_id = d.id
-                                                inner join sys_options as cur on cur.id= t.cur_id
-                                                inner join sys_options as st on st.id = t.type_id
-
-                                    where   ---so.op_key = 'op-doc-target' and  
-                                            d.id = i.id and t.status = 1 and
-                                            st.group_key in ('op-trans-payment')
-                                )  as  balance",
-            'status'       => "(select  so.op_key || '**' || so.title || '**' || t.note
-                                from transactions as t
-                                    inner join sys_options so on so.id = t.type_id
-                                where target_id = i.id and so.group_key = 'op-trans' order by t.id desc limit 1)  as  status",
             'main_attr'    => '',
+            'created_at'   => 'i.created_at',
+            'click_count'  => 'i.click_count'
                         
         );
         
@@ -133,60 +94,10 @@ class Documents extends Model
                 if(isset($f['value']) && $f['key'] !== 'transactions' ) $f['value'] = noInject(strip_tags($f['value']));
                 
                 switch($f['key']){
-                    case 'month-period':
-                        $columns['status'] = "'-'  as  status"; // unneccesery
-                        $columns['balance'] = "'-'  as  balance"; // unneccesery
-                        $columns['balance_pure'] = "'-'  as  balance_pure"; // unneccesery
-                        $columns['cur'] = "'-'  as  cur"; // unneccesery
-                        $where .= " and ".$column = explode('as  ',$columns['main_attr'])[0]." like '%".$f['value']."%'";
-                        break;
+                    
                     case 'status-not':
                         $column = explode('as  ',$columns['status'])[0];
                         $where .= " and ".$column." not like '%".$f['value']."%' ";
-                        break;
-                    case 'balance-date':
-                        $dates = explode('/',$f['value']);
-                        $columns['balance'] = " (select      Sum(
-                                        (select amount from currencies where target_cur = cur.code) * 
-                                        CAST(
-                                            (CASE
-                                                when t.sign = 0 then '-' || t.amount
-                                                else t.amount
-                                            end) as float 
-                                        )
-                                    ) as total
-                                    from documents as d
-                                        inner join sys_options as so on so.id = d.type_id
-                                        inner join transactions as t on t.target_id = d.id
-                                        inner join sys_options as cur on cur.id= t.cur_id
-                                        inner join sys_options as st on st.id = t.type_id
-
-                            where   ----so.op_key = 'op-doc-target' and  
-                                    d.id = i.id and t.status = 1 and
-                                    st.group_key in ('op-trans-payment') and
-                                    t.period >= '".$dates[0]."' and t.period <= '".$dates[1]."'
-
-                        )  as  balance";
-                        $columns['balance_pure'] = " (select      Sum(
-                                        CAST(
-                                            (CASE
-                                                when t.sign = 0 then '-' || t.amount
-                                                else t.amount
-                                            end) as float 
-                                        )
-                                    ) as total
-                                    from documents as d
-                                        inner join sys_options as so on so.id = d.type_id
-                                        inner join transactions as t on t.target_id = d.id
-                                        inner join sys_options as cur on cur.id= t.cur_id
-                                        inner join sys_options as st on st.id = t.type_id
-
-                            where   ----so.op_key = 'op-doc-target' and  
-                                    d.id = i.id and t.status = 1 and
-                                    st.group_key in ('op-trans-payment') and
-                                    t.period >= '".$dates[0]."' and t.period <= '".$dates[1]."'
-
-                        )  as  balance_pure";
                         break;
                     case 'form-type':
                         $value = $f['value'];
