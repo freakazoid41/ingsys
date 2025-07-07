@@ -28,4 +28,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/v1/trans/set-status',                [DocumentController::class, 'setStatus']);
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
+    Route::any('/v1/checkunique',                      [DocumentController::class, 'checkUniqueLink']);
 });   

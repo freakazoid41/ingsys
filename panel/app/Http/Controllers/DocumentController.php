@@ -168,4 +168,27 @@ class DocumentController extends Controller
         }
     }
 
+    public function checkUniqueLink(Request $request){
+        $data = (new Documents())->tableList(['filter' => [
+                [
+                    'key'   => 'form-type',
+                    'type'  => '=',
+                    'value' => 'op-doc-link-form'
+                ],[
+                    'key'   => 'type',
+                    'type'  => '=',
+                    'value' => 'op-doc-link'
+                ],[
+                    'key'   => 'short_link',
+                    'type'  => '=',
+                    'value' => $path
+                ]
+            ]
+        ])['data'] ?? [];
+
+        return [
+            'success' => empty($data)
+        ];
+    }
+
 }

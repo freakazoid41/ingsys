@@ -140,7 +140,13 @@
                                         col      : 6,
                                         required : true,
                                         label : 'Kısa Link',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                        oninput : (e) => {
+                                            //check uniques here
+                                            this.plib.request()
+
+
+                                            this.submitDynamicChanges(e.target)
+                                        }
                                     },
                                 ]
                             },
