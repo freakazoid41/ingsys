@@ -4,15 +4,15 @@
 </style>
 
 <script>
+    import { wTrans } from 'laravel-vue-i18n';
     import Plib from '@/lib/pickle';
     import { useRoute } from 'vue-router'
     import { useNavigationStore } from '@/stores/navigation'
     import { useFormDataStore } from '@/stores/formdata'
-    import { wTrans } from 'laravel-vue-i18n';
     import Swal from 'sweetalert2';
     
     import Form from '@/components/Form.vue';
-    
+
 
     export default {
         components: {
@@ -56,7 +56,7 @@
                 setTimeout(() => {
                     this.navigationStore.toggle(false);
                     
-                }, 1000);
+                }, 500);
                 
             });
 
@@ -66,10 +66,10 @@
                     url   : '/panel',
                 },
                 {
-                    title : this.wTrans('menu.inventory'),
-                    url   : '/panel/inventory',
+                    title : this.wTrans('menu.flats'),
+                    url   : '/panel/flats',
                 }
-            ] ,this.wTrans('form.inventory'));
+            ] ,this.wTrans('form.flats'));
         },  
         data() {
             const route = useRoute();
@@ -85,7 +85,7 @@
             async submitForm(formData){
                 this.formData = formData;
                 this.navigationStore.toggle(true);
-                this.formData.typeKey = 'op-doc-inventory';
+                this.formData.typeKey = 'op-doc-flat';
                 const rsp = this.plib.checkForm('.form-item');
                 if(rsp.valid){
                     const   envelope  = new FormData();
@@ -102,7 +102,7 @@
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            window.location.href = '/panel/inventory'
+                            window.location.href = '/panel/flats'
                         });
                     }, 300);
 
@@ -111,11 +111,13 @@
                     this.plib.toast(this.Swal,'info','Eksik Alanları Doldurmalısınız..',() => {});
                 }
             },
+
         }
     }
 
 </script>
 
 <template>
-    <Form formtypes="op-doc-inventory-form" v-if="loadForm" :savecallback="submitForm" />
+    <Form formtypes="op-doc-link-form" v-if="loadForm" :savecallback="submitForm" />
+    
 </template>

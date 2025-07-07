@@ -24,29 +24,43 @@
             --bs-highlight-secondary-rgb: 15, 26, 41;
             --bs-backdrop-blur: 1rem;
         }
+
+        body{
+            /*background:  rgb(245, 247, 249) !important;*/
+        }
+        .card{
+            /*background: linear-gradient(45deg,#e45d0b 26%,#ffde59 128%) !important*/
+            background: white !important;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        }
+        button {
+            background:linear-gradient(45deg,#e45d0b 26%,#ffde59 128%) !important
+        }
+
+        
     </style>
     <body class="align-items-center d-flex p-5">
         <div class="card m-auto mw-400 p-8 w-100"> 
-            <h2 class="fs-6 text-body-emphasis" style="color:#d6e9ff !important">Hoşgeldiniz!</h2>
+            <h2 class="fs-6" style="color : #343a40;">Hoşgeldiniz!</h2>
             <div class="mb-5 text-body-secondary">Sisteme giriş yapmak için bilgilerinizi giriniz..</div> 
             <form class="mb-5" action="{{route('login-user','admin')}}" id="login-form"  method="POST" novalidate="novalidate"> 
                 @csrf
                 <div class="mb-3 position-relative"> 
                     <i class="fs-3 left-0 m-2.5 ph ph-user-circle position-absolute text-body-secondary top-0"></i> 
-                    <input type="text" name="email" class="form-control ps-10" placeholder="Username"> 
+                    <input type="text" style="color:black !important" name="email" class="form-control ps-10" placeholder="Username"> 
                 </div> 
                 <div class="mb-5 position-relative"> 
                     <i class="fs-3 left-0 m-2.5 ph ph-keyhole position-absolute text-body-secondary top-0"></i> 
-                    <input type="password" name="password" class="form-control ps-10" placeholder="Password"> 
+                    <input type="password" style="color:black !important" name="password" class="form-control ps-10" placeholder="Password"> 
                 </div> 
                 
                 @if (\Session::has('login-success'))
-                    <button type="button" class="bg-opacity-75 btn btn-secondary w-100">
+                    <button type="button" class="btn btn-secondary w-100" style="color : white">
                         Giriş Başarılı Ana Sayfaya Yönlendiriyor.. <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </button>
                     <input name="apiKey" hidden readonly value= "{{\Session::get('login-success')}}">
                 @else
-                    <button type="button" id="submit-button" class="bg-opacity-75 btn btn-secondary w-100">Giriş Yap</button> 
+                    <button type="button" id="submit-button" class="btn btn-secondary w-100" style="color : white">Giriş Yap</button> 
                     
                 @endif
             </form> 
@@ -112,9 +126,6 @@
                         });*/
                     });
                 }   
-
-
-
             }
 
             (new Page());

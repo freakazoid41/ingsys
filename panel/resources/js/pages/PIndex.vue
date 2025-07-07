@@ -1,5 +1,5 @@
 <script>
-  import { useNavigationStore } from '@/stores/navigation';
+  /*import { useNavigationStore } from '@/stores/navigation';
   import { useAuthStore } from '@/stores/auth';
   import 'pickletable/assets/style.css';
   import Plib from '@/lib/pickle';
@@ -63,12 +63,7 @@
             }
           ] ,this.wTrans('menu.home'));
 
-          /*this.navigationStore.setButtons([
-            {
-              icon : 'ph ph-download',
-              onclick   : () => {console.log('Falan')},
-            }
-          ]);*/
+         
 
           this.bringBoxes();
 
@@ -235,7 +230,7 @@
                   .ql-snow .ql-picker {color:white !important;}
                   .quill.border {border-color: #ffffff80 !important}
                   .ql-editor {height:500px !important}
-                  .swal2-popup{ /*height:800px !important;*/background-color:#000000b1 !important;}
+                  .swal2-popup{ background-color:#000000b1 !important;}
                 </style>
                 <div class="row w-100">
                     <div class="col-12 mt-5">
@@ -282,12 +277,12 @@
             });
           }
       }
-  }
+  }*/
 
 </script>
 
 <template>
-  <div class="g-3 lh-1 mb-3 row  row-cols-lg-4 row-cols-sm-2">
+  <!--<div class="g-3 lh-1 mb-3 row  row-cols-lg-4 row-cols-sm-2">
     <div class="col-4">
       <div class="card flex-row p-5 selectable transclick"  @click="bringModal('flats')">
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-kanban rounded text-body-emphasis w-11"></i>
@@ -416,7 +411,7 @@
       <IncomeWaiting qtype="doc_acc_fuel" qcolclass="col-6 col-md-4 col-sm-4 mb-1"></IncomeWaiting>
       <lastStatus qcolclass="col-4 col-md-4 col-sm-4 mb-1"></lastStatus>
       
-  </div>
+  </div>-->
   
         
 </template>

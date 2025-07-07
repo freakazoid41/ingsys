@@ -1,6 +1,5 @@
 
 <script>
-    import { useAuthStore } from '@/stores/auth';
     import { useNavigationStore } from '@/stores/navigation'
     import PickleTable from 'pickletable';
     import 'pickletable/assets/style.css';
@@ -12,22 +11,16 @@
     import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
 
 
-
     export default {
-        components: {
-           
-        },
         setup() {
             Object.assign(Datepicker.locales, tr);
             // expose to template and other options API hooks
             return {
-                useAuthStore,
                 useNavigationStore,
                 PickleTable,
                 Plib,
                 wTrans,
                 Swal,
-                VMasker,
                 Datepicker
             }
         },
@@ -37,34 +30,34 @@
             
             this.navigationStore.setBread([
                 {
-                    title : this.wTrans('menu.home'),
+                    title : 'Anasayfa',
                     url   : '/panel',
                 },
                 {
-                    title : this.wTrans('menu.meetings'),
-                    url   : '/panel/meetings',
+                    title : 'Kısa Linkler',
+                    url   : '/panel/links',
                 }
-            ] ,this.wTrans('form.meetings.list'));
+            ] ,'Kısa Linkler');
+
             this.navigationStore.setButtons([
               {
                 icon : 'ph ph-download',
-                onclick   : () => window.open('/export/documents/meetings'),
-              },
-              ...(this.authStore.data.type == 'admin' ? [{
+                onclick   : () => window.open('/export/documents/links'),
+              },{
                 icon : 'ph ph-plus-circle',
-                onclick   : () => {window.location.href = '/panel/meetings/form'},
-              }] : [{}])
+                onclick   : () => {window.location.href = '/panel/links/form'},
+              }
             ]);
+
+
             setTimeout(() => {
                 this.navigationStore.toggle(false);
-            }, 500);
+            }, 300);
         },  
         data() {
-            const plib = new Plib();
             return {
-                plib : plib,
+                plib : new Plib(),
                 navigationStore : useNavigationStore(),
-                authStore       : useAuthStore(),
             }
         },
         methods: {
@@ -72,35 +65,43 @@
                 
                 //set headers
                 const headers = [
-                    {
-                        title : 'Tarih',
-                        key   : 'meet_date',
+                   /*{
+                        title : 'ID',
+                        key   : 'id',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                        
+                    },*/{
+                        title : 'Başlık',
+                        key   : 'title',
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
-                        title : 'Güncel Yönetici',
-                        key   : 'meet_active_supervisor',
+                        title : 'Kısa Link',
+                        key   : 'short_link',
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
-                        title : 'Güncel Aidat',
-                        key   : 'meet_amount',
+                        title : 'Uzun Link',
+                        key   : 'long_link',
                         order : true,
-                        colAlign : 'right',
                         type  : 'string', // if column is string then make type string
-                        columnFormatter : (elm,rowData,columnData) => this.plib.formatMoney(columnData,2,',','.') + ' ' + rowData.cur
+                    },{
+                        title : 'Tıklama Sayısı',
+                        key   : 'click_count',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
                     },{
                         title : '',
                         key   : 'id',
                         order : false,
-                        width : '5%',
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
                             const div = document.createElement('div');
                             div.classList.add('row','justify-content-center');
 
                             const edit       = document.createElement('a');
-                            edit.href        = '/panel/meetings/form/'+columnData;
+                            edit.href        = '/panel/links/form/'+columnData;
                             edit.style.width = 'auto';
                             edit.innerHTML   = '<i class="fc-icon fc-icon- fs-4 ph ph-note-pencil" role="img"></i>';
                             div.appendChild(edit);
@@ -119,7 +120,7 @@
                                 this.table.deleteRow(columnData);
                                 setTimeout(() => {
                                     this.navigationStore.toggle(false);
-                                }, 200);
+                                }, 300);
                                 
                             };
                             div.appendChild(del);
@@ -148,11 +149,11 @@
                         {
                             key   : 'form-type',
                             type  : '=',
-                            value : 'op-doc-meeting-form'
+                            value : 'op-doc-link-form'
                         },{
                             key   : 'type',
                             type  : '=',
-                            value : 'op-doc-meeting'
+                            value : 'op-doc-link'
                         }
                     ],
                     nextPageIcon : '<i class="ph ph-arrow-right  text-body-emphasis"></i>',
@@ -164,15 +165,31 @@
                         //modify data
                         JSON.parse(data.main_attr).forEach(element => {
                             data[element['Key']] = element['Value'];
+                            if(data['per_name'] == undefined) data['per_name'] = []
+                            if(element['Key'].includes('per_name')) data['per_name'].push(element['Value']);
                         });
+                        data['per_name'] = data['per_name'].join(' , ');
+                        //data.status = JSON.parse(data.status).OpTitle;
                         return data;
                     },
                 });
-            },
+            }
         }
     }
 
 </script>
+<style>
+.card{
+    /*background: linear-gradient(45deg,#e45d0b 26%,#ffde59 128%) !important*/
+    margin:15px !important;
+}
+table span{
+    color: black !important;  
+}
+table td{
+    color: black !important;  
+}
+</style>
 <template>
     <div class="card">
         <div class="card-body">

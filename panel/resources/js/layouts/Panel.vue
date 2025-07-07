@@ -1,16 +1,21 @@
 
 <style>
-
 html {
-    height: -webkit-fill-available; /* We have to fix html height */
+    height: -webkit-fill-available !important; /* We have to fix html height */
 }
 
 body {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
+    min-height: 100vh !important;
+    min-height: -webkit-fill-available !important;
+    background:  rgb(245, 247, 249) !important;
 }
 
 .content-body{min-height: 82vh !important;overflow: auto !important;    max-height: 82vh;}
+.card{
+    /*background: linear-gradient(45deg,#e45d0b 26%,#ffde59 128%) !important*/
+    background: white !important;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
 </style>
 
 <script setup>
@@ -34,7 +39,7 @@ body {
     </aside>
     <div id="content">
         <div class="content-header">
-            <h2 class="fs-6 m-0 ps-3 text-body-emphasis">{{ navigationStore.currentTitle }}</h2>
+            <h2 class="fs-6 m-0 ps-3 text-body-emphasis" style="color:black !important">{{ navigationStore.currentTitle }}</h2>
             <nav aria-label="breadcrumb" class="d-none d-sm-flex ms-8">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item" v-for="item in navigationStore.breadcrumps">

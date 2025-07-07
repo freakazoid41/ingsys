@@ -695,54 +695,12 @@ class SysSeeder extends Seeder
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Dönemler Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-period-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
                 'title'     => 'Daireler Ana Form',
                 'ttitle'    => 'Documents',
                 'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-flat-form',
+                'op_key'    => 'op-doc-link-form',
                 'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Kasalar Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-target-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Toplantı Sonuç Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-meeting-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Proje Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-project-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Aktivite Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-calendar-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Envanter Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-inventory-form',
-                'group_key' => 'op-doc-forms',
-            ]
+            ],
         ];
 
         $formConnTypes = [
@@ -797,52 +755,10 @@ class SysSeeder extends Seeder
         $documentTypes = [
             [
                 'parent_id' => 0,
-                'title'     => 'Period',
+                'title'     => 'Link',
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-period',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Flat',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-flat',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Aktivite',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-calendar',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Account',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-target',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Meeting',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-meeting',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Project',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-project',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Inventory',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-inventory',
+                'op_key'    => 'op-doc-link',
                 'group_key' => 'op-doc',
             ]
         ];
