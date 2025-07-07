@@ -189,8 +189,10 @@
   }
 </script>
 <style>
-span::before,
-    a,span,i {
+    .fab-wrapper > span::before,
+    .fab-wrapper > a,
+    .fab-wrapper > span,
+    .fab-wrapper > i {
         color: white !important;
     }
 </style>
