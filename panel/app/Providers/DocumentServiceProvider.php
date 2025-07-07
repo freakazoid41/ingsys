@@ -288,15 +288,14 @@ class DocumentServiceProvider extends ServiceProvider
             foreach($detail as $row){
                 $detail[$row['Key']] = $row['Value'];
             }
-           
             switch($type){
-                case 'link':
+                case 'links':
                     $response[] = [
                         $detail['title'],
                         $detail['short_link'],
                         $detail['long_link'],
-                        $detail['click_count'],
-                        $detail['created_at']
+                        $d->click_count,
+                        $d->created_at
                     ];
                     break;
             }

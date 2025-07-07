@@ -32,7 +32,7 @@ export default {
         <span class="">Close Sidebar</span> 
     </button>
     <div class="sidebar-header" style="opacity: 1 !important; border-bottom: 1px solid #dbe0eb;">
-        <button class="btn btn-primary w-100" type="button">Yeni Link Ekle</button>
+        <a class="btn btn-primary w-100" type="button" href="/panel/links/form">Yeni Link Ekle</a>
     </div>
     <div>
         <ul class="menu">

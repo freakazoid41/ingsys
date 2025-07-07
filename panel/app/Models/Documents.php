@@ -52,7 +52,7 @@ class Documents extends Model
             'type'         => 'sp.op_key  as  type',
             'main_attr'    => '',
             'created_at'   => 'i.created_at',
-            'click_count'  => 'i.click_count'
+            'click_count'  => 'i.click_count',
                         
         );
         
