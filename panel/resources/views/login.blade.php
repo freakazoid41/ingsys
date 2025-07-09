@@ -37,7 +37,7 @@
                 </div> 
                 <div class="mb-5 position-relative"> 
                     <i class="fs-3 left-0 m-2.5 ph ph-keyhole position-absolute text-body-secondary top-0"></i> 
-                    <input type="password" value="{{env('IS_TEST') ? 'admin@picklecan.me' : 'Pickle412.'}}" name="password" class="form-control ps-10" placeholder="Password"> 
+                    <input type="password" value="{{env('IS_TEST') ? 'Pickle412.' : ''}}" name="password" class="form-control ps-10" placeholder="Password"> 
                 </div> 
                 
                 @if (\Session::has('login-success'))
