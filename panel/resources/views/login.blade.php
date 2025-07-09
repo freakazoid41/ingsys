@@ -33,11 +33,11 @@
                 @csrf
                 <div class="mb-3 position-relative"> 
                     <i class="fs-3 left-0 m-2.5 ph ph-user-circle position-absolute text-body-secondary top-0"></i> 
-                    <input type="text" name="email" class="form-control ps-10" placeholder="Username"> 
+                    <input type="text" value="{{env('IS_TEST') ? 'admin@picklecan.me' : ''}}" name="email" class="form-control ps-10" placeholder="Username"> 
                 </div> 
                 <div class="mb-5 position-relative"> 
                     <i class="fs-3 left-0 m-2.5 ph ph-keyhole position-absolute text-body-secondary top-0"></i> 
-                    <input type="password" name="password" class="form-control ps-10" placeholder="Password"> 
+                    <input type="password" value="{{env('IS_TEST') ? 'admin@picklecan.me' : 'Pickle412.'}}" name="password" class="form-control ps-10" placeholder="Password"> 
                 </div> 
                 
                 @if (\Session::has('login-success'))
