@@ -136,7 +136,10 @@
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
-                        <span v-if="lastStatus != null">{{ this.plib.formatMoney(lastStatus.incomeWaiting ?? 0) + ' ' + (lastStatus.cur ?? '') }} (Aylık Beklenen) / {{ this.plib.formatMoney(lastStatus.incomeReceived ?? 0 ) + ' ' +(lastStatus.cur ?? '')}} (Toplanan)</span>
+                        <span class="d-flex align-items-center" v-if="lastStatus != null">
+                            {{ this.plib.formatMoney(lastStatus.incomeWaiting ?? 0) + ' ' + (lastStatus.cur ?? '') }} <i class="ph ph-timer ms-2 me-2"></i> => 
+                            {{ this.plib.formatMoney(lastStatus.incomeReceived ?? 0 ) + ' ' +(lastStatus.cur ?? '')}} <i class="ph ph-check ms-2 me-2"></i>
+                        </span>
                         </div>
                         <i class="ph fs-3 ms-3 d-none d-sm-block ph-warning-octagon text-danger" v-if="(lastStatus?.incomeWaiting ?? 0) > (lastStatus?.incomeReceived ?? 0 )"></i>
                     </div>
@@ -153,7 +156,10 @@
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
-                        <span v-if="lastStatus != null">{{ this.plib.formatMoney(lastStatus.rentWaiting ?? 0) + ' ' + (lastStatus.cur ?? '') }} (Aylık Beklenen) / {{ this.plib.formatMoney(lastStatus.rentReceived ?? 0) + ' ' + (lastStatus.cur ?? '')}} (Toplanan)</span>
+                        <span class="d-flex align-items-center" v-if="lastStatus != null">
+                            {{ this.plib.formatMoney(lastStatus.rentWaiting ?? 0) + ' ' + (lastStatus.cur ?? '') }} <i class="ph ph-timer ms-2 me-2"></i> => 
+                            {{ this.plib.formatMoney(lastStatus.rentReceived ?? 0) + ' ' + (lastStatus.cur ?? '')}} <i class="ph ph-check ms-2 me-2"></i>
+                        </span>
                         </div>
                         <i class="ph fs-3 ms-3 d-none d-sm-block ph-warning-octagon text-danger" v-if="(lastStatus?.rentWaiting ?? 0) > (lastStatus?.rentReceived ?? 0 )"></i>
                     </div>

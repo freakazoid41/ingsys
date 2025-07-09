@@ -287,8 +287,8 @@
 </script>
 
 <template>
-  <div class="g-3 lh-1 mb-3 row  row-cols-lg-4 row-cols-sm-2">
-    <div class="col-4">
+  <div class="g-3 lh-1 mb-3 row row-cols-lg-4 row-cols-sm-2">
+    <div class="col">
       <div class="card flex-row p-5 selectable transclick"  @click="bringModal('flats')">
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-kanban rounded text-body-emphasis w-11"></i>
         <div class="d-flex align-items-center" v-if="flatCount == null">
@@ -306,7 +306,7 @@
         </div>
       </div>
     </div>
-    <div class="col-4">
+    <div class="col">
       <div class="card flex-row p-5 selectable transclick"  @click="bringModal('transactions')"> 
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-receipt rounded text-body-emphasis w-11"></i>
         <div class="d-flex align-items-center" v-if="outcome == null">
@@ -324,7 +324,7 @@
         </div>
       </div>
     </div>
-    <div class="col-4">
+    <div class="col">
       <div class="card flex-row p-5 selectable transclick"  @click="bringModal('transactions')"> 
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-arrow-fat-lines-down rounded text-body-emphasis w-11"
           style="--bs-bg-opacity:.2"></i>
@@ -343,7 +343,7 @@
         </div>
       </div>
     </div>
-    <div class="col-4">
+    <div class="col">
       <div class="card flex-row p-5 selectable transclick"  @click="bringModal('transactions')"> 
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-vault rounded text-body-emphasis w-11"
           style="--bs-bg-opacity:.2"></i>
@@ -352,14 +352,15 @@
         </div>
         <div class="flex-grow-1" v-if="totalBalance != null">
           <div class="align-items-center d-flex mb-1">
-            <div class="fs-5 fw-medium mb-1 me-2 text-body-emphasis">{{ totalBalance }}</div>
-            <div style="opacity:0" class="align-items-center badge bg-danger bg-opacity-75 d-inline-flex fs-8 ms-auto mt-n1 rounded-pill">
-              <i class="fs-6 me-1 ph ph-arrow-circle-down"></i> 0.54% </div>
-          </div> {{$t('dashboard.totalbalance') }}
-        </div>
+              <div class="fs-5 fw-medium mb-1 me-2 text-body-emphasis">{{ totalBalance }}</div>
+              <div style="opacity:0" class="align-items-center badge bg-danger bg-opacity-75 d-inline-flex fs-8 ms-auto mt-n1 rounded-pill">
+                <i class="fs-6 me-1 ph ph-arrow-circle-down"></i> 0.54% </div>
+              </div> 
+              {{$t('dashboard.totalbalance') }}
+          </div>
       </div>
     </div>
-    <div class="col-4">
+    <div class="col">
       <div class="card flex-row p-5">
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-user rounded text-body-emphasis w-11"
           style="--bs-bg-opacity:.2"></i>
@@ -367,11 +368,15 @@
             <div class="spinner-border"  role="status"> <span class="visually-hidden">Loading...</span> </div>
           </div>
           <div class="d-flex align-items-center" v-if="totalBalance != null">
+            
               {{$t('dashboard.supervisor')  }} : {{ lastInfo?.supervisor }}
+              <div style="opacity:0" class="align-items-center badge bg-danger bg-opacity-75 d-inline-flex fs-8 ms-auto mt-n1 rounded-pill">
+                <i class="fs-6 me-1 ph ph-arrow-circle-down"></i> 0 
+              </div>
           </div>
       </div>
     </div>
-    <div class="col-4">
+    <div class="col">
       <div class="card flex-row p-5">
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-piggy-bank rounded text-body-emphasis w-11"
           style="--bs-bg-opacity:.2"></i>
@@ -379,25 +384,37 @@
             <div class="spinner-border"  role="status"> <span class="visually-hidden">Loading...</span> </div>
           </div>
           <div class="d-flex align-items-center" v-if="totalBalance != null">
+              
               {{$t('dashboard.amount')  }} : {{ lastInfo?.amount }}
+              <div style="opacity:0" class="align-items-center badge bg-danger bg-opacity-75 d-inline-flex fs-8 ms-auto mt-n1 rounded-pill">
+                <i class="fs-6 me-1 ph ph-arrow-circle-down"></i> 0 
+              </div>
           </div>
       </div>
     </div>
-    <div class="col-4" v-if="this.authStore.data.type == 'admin'">
+    <div class="col" v-if="this.authStore.data.type == 'admin'">
       <div class="card flex-row p-5 selectable transclick" @click="bringModal('targets')"> 
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-arrows-left-right rounded text-body-emphasis w-11"
           style="--bs-bg-opacity:.2"></i>
           <div class="d-flex align-items-center">
-            {{ $t('dashboard.transaction') }}
+              
+              {{ $t('dashboard.transaction') }}
+              <div style="opacity:0" class="align-items-center badge bg-danger bg-opacity-75 d-inline-flex fs-8 ms-auto mt-n1 rounded-pill">
+                <i class="fs-6 me-1 ph ph-arrow-circle-down"></i> 0 
+              </div>
           </div>
       </div>
     </div>
-    <div class="col-4">
+    <div class="col">
       <div class="card flex-row p-5 selectable" @click="exportReport()"> 
         <i class="align-items-center bg-active d-flex flex-shrink-0 fs-2 h-11 justify-content-center me-4 ph ph-read-cv-logo rounded text-body-emphasis w-11"
           style="--bs-bg-opacity:.2"></i>
           <div class="d-flex align-items-center">
-            {{ $t('dashboard.export') }}
+              
+              {{ $t('dashboard.export') }}
+              <div style="opacity:0" class="align-items-center badge bg-danger bg-opacity-75 d-inline-flex fs-8 ms-auto mt-n1 rounded-pill">
+                <i class="fs-6 me-1 ph ph-arrow-circle-down"></i> 0 
+              </div>
           </div>
       </div>
     </div>
@@ -412,9 +429,13 @@
           </div>
         </div>
       </div>
-      <IncomeWaiting qtype="doc_acc_aidat" qcolclass="col-6 col-md-4 col-sm-4 mb-1"></IncomeWaiting>
-      <IncomeWaiting qtype="doc_acc_fuel" qcolclass="col-6 col-md-4 col-sm-4 mb-1"></IncomeWaiting>
-      <lastStatus qcolclass="col-4 col-md-4 col-sm-4 mb-1"></lastStatus>
+      <div class="col-12 mb-1">
+        <div class="g-3 lh-1 mb-3 row row-cols-lg-3 row-cols-sm-2">
+          <IncomeWaiting qtype="doc_acc_aidat" qcolclass=""></IncomeWaiting>
+          <IncomeWaiting qtype="doc_acc_fuel" qcolclass=""></IncomeWaiting>
+          <lastStatus qcolclass=""></lastStatus>
+        </div>
+      </div>
       
   </div>
   
