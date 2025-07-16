@@ -9,7 +9,7 @@ export default {
         }
     },
     mounted(){
-        console.log(useAuthStore().data);
+        //console.log(useAuthStore().data);
     },  
     data() {
         return {

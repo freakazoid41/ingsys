@@ -57,7 +57,7 @@ export default class Plib {
                     ...op.headers,
                     ...{"Content-Type": "application/x-www-form-urlencoded"},
                 };
-                console.log(rqs.data);
+                //console.log(rqs.data);
                 op.body = new URLSearchParams(rqs.data);
                 break;
             case "put":

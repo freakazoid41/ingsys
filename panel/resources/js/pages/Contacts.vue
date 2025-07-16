@@ -105,7 +105,7 @@
                 }
 
                 reqData('/api/v1/dashboard/contacts',(rsp) => {
-                    console.log(rsp);
+                    //console.log(rsp);
                     setTimeout(() => {
                         this.contacts = rsp.list;
                     }, 500);

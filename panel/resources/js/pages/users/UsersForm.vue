@@ -93,7 +93,7 @@
         methods: {
             async submitForm(formData){
                 this.formData = formData;
-                console.log(formData);
+                //console.log(formData);
                 this.navigationStore.toggle(true);
                 this.formData.typeKey = 'op-doc-flat';
                 const rsp = this.plib.checkForm('.form-item');
