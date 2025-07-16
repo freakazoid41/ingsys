@@ -95,16 +95,19 @@
                         colAlign : 'center',
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
+                            elm.style.setProperty('overflow', 'auto', 'important');
+                            elm.style.setProperty('text-overflow', 'unset', 'important');
+                            console.log(screen.width);
                             const span = document.createElement('span');
                             let btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis me-2"></i> Gelir Ekle ';
+                            btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Gelir</span>' : '' );
                             btn.onclick   = () => this.transmodal('income',columnData);
 
                             span.appendChild(btn);
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis me-2"></i> Gider Ekle' ;
+                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Gider</span>' : '' );
                             btn.onclick   = () => this.transmodal('outcome',columnData);
 
                             span.appendChild(btn);
@@ -112,14 +115,14 @@
                             span.appendChild(btn);
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-piggy-bank fs-4 text-body-emphasis me-2"></i> Bakiye Ekle' ;
+                            btn.innerHTML = '<i class="ph ph-piggy-bank fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Bakiye</span>' : '' ) ;
                             btn.onclick   = () => this.transmodal('addbalance',columnData);
 
                             span.appendChild(btn);
 
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-arrows-left-right fs-4 text-body-emphasis me-2 "></i> Kasa Transfer' ;
+                            btn.innerHTML = '<i class="ph ph-arrows-left-right fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Kasa Transfer</span>' : '' ) ;
                             btn.onclick   = () => this.transmodal('transfer',columnData);
 
                             span.appendChild(btn);

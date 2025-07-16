@@ -95,16 +95,19 @@
                         colAlign : 'center',
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
+                            elm.style.setProperty('overflow', 'auto', 'important');
+                            elm.style.setProperty('text-overflow', 'unset', 'important');
+
                             const span = document.createElement('span');
                             let btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis me-2"></i> Bakiye Ekle ';
+                            btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Bakiye</span>' : '' );
                             btn.onclick   = () => this.transmodal('addbalance',columnData,rowData.title);
                             span.appendChild(btn);
 
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis me-2"></i> Ödeme Ekle' ;
+                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Ödeme</span>' : '' ) ;
                             btn.onclick   = () => this.transmodal('income',columnData,rowData.title);
                             span.appendChild(btn);
                             return span;
