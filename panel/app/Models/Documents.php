@@ -126,6 +126,26 @@ class Documents extends Model
         
         if (isset($obj['filter'])){
             //$obj['filter'] = json_decode($obj['filters'],true);
+            $obj['filterKeys'] = [];
+            foreach($obj['filter'] as $f){
+                $obj['filterKeys'][$f['key']] = noInject(strip_tags($f['value']));
+            }
+
+            if(isset($obj['filterKeys']['form-type'])){
+                $columns['main_attr'] = "(SELECT    json_group_array(
+                                                                json_object(
+                                                                    'Key',se.entity_tag,
+                                                                    'Value' , se.entity_value
+                                                                )
+                                                            ) 
+                                                        FROM sys_con_entities as se
+                                                            inner join sys_con_ops as so on so.id = se.conn_id 
+                                                            inner join sys_options as sp on sp.id = so.type_id
+                                                        where so.conn_id = 0 and sp.op_key = '".$obj['filterKeys']['form-type']."'  and so.main_id = i.id)  as  main_attr";
+            }
+
+
+
             foreach($obj['filter'] as $f){
                 
                 $nativeValue = noInject(strip_tags($f['value']));
@@ -230,7 +250,7 @@ class Documents extends Model
                         $where .= ' ) ';
                     break;
                     default:
-                        $column = explode('as  ',$columns[$f['key']])[0];
+                        $column = explode('as  ',($columns[$f['key']] ?? $columns['main_attr']))[0];
                         if(trim($f['value']) != ''){
                             if($f['type'] != 'like'){
                                 $where .= " and $column = '".$f['value']."' ";

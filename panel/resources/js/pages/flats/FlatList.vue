@@ -78,7 +78,7 @@
                         type  : 'string', // if column is string then make type string
                     },{
                         title : 'Kat Maliki',
-                        key   : 'per_name',
+                        key   : 'cont_name',
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
@@ -155,7 +155,7 @@
                     pageLimit : 10, // -1 for closing pagination
                     height    : '70vh',
                     type      : 'ajax',
-                    //columnSearch : true, // true - false for opening and closig
+                    columnSearch : true, // true - false for opening and closig
                     paginationType : 'number',// scroll - number (number for default)
                     ajax:{
                         url:'/api/v1/table/documents',
@@ -183,10 +183,10 @@
                         //modify data
                         JSON.parse(data.main_attr).forEach(element => {
                             data[element['Key']] = element['Value'];
-                            if(data['per_name'] == undefined) data['per_name'] = []
-                            if(element['Key'].includes('per_name')) data['per_name'].push(element['Value']);
+                            if(data['cont_name'] == undefined) data['cont_name'] = []
+                            if(element['Key'].includes('cont_name')) data['cont_name'].push(element['Value']);
                         });
-                        data['per_name'] = data['per_name'].join(' , ');
+                        data['cont_name'] = data['cont_name'].join(' , ');
                         //data.status = JSON.parse(data.status).OpTitle;
                         return data;
                     },
