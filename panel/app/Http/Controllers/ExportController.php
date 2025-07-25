@@ -89,7 +89,7 @@ class ExportController extends Controller
                                                                 {"key":"form-type","type":"=","value":"op-doc-flat-form"},
                                                                 {"key":"type","type":"=","value":"op-doc-flat"},
                                                                 {"key":"balance-date","type":"=","value":"'.implode('/',$dates).'"}
-                                                            ]}',true));
+                                                            ]}',true))['data'];
             
             // Create new Spreadsheet object
             $spreadsheet = new Spreadsheet();
