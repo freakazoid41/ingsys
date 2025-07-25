@@ -104,10 +104,7 @@ class ExportController extends Controller
             $activeWorksheet = new Worksheet($spreadsheet, 'Rapor');
             $spreadsheet->addSheet($activeWorksheet, 0);
             
-            echo '<pre>';
-            print_r($incomes);
-            echo '</pre>';
-            die;
+            
             $data = [
                 'dates'    => implode(' - ',explode(' => ',$req['dates'])),
                 'accounts' => $accounts,
