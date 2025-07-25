@@ -105,7 +105,7 @@ class ExportController extends Controller
             $spreadsheet->addSheet($activeWorksheet, 0);
             
             echo '<pre>';
-            print_r($income);
+            print_r($incomes);
             echo '</pre>';
             die;
             $data = [
