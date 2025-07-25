@@ -93,13 +93,16 @@
                                 $info = json_decode($row->main_info);
                                 $info[2] = empty($info[2] ?? '') ? $info[0] : $info[2]; 
 
-                                $accInfo = json_decode($row->acc_info);
-                                
-                                if(!isset($depts[trim($accInfo[0])])) $depts[trim($accInfo[0])] = [];
+                                $accInfo  = json_decode($row->acc_info);
+                                $mainInfo = json_decode($row->main_info);
 
-                                if(!isset($depts[trim($accInfo[0])][trim($info[2])])) $depts[trim($accInfo[0])][trim($info[2])] = 0;
+                                $key = trim($mainInfo[0].' - '.($mainInfo[1] ?? ' '));
+
+                                if(!isset($depts[$key])) $depts[$key] = [];
+
+                                if(!isset($depts[$key][trim($info[2])])) $depts[$key][trim($info[2])] = 0;
                                
-                                $depts[trim($accInfo[0])][trim($info[2])] += $row->amount;
+                                $depts[$key][trim($info[2])] += $row->amount;
                             }else{
                                 if(!isset($incomeList[trim($row->title)])) $incomeList[trim($row->title)] = 0;
                                 $incomeList[trim($row->title)] += $row->amount;
