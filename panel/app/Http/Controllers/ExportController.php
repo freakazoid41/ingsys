@@ -90,23 +90,31 @@ class ExportController extends Controller
                                                                 {"key":"type","type":"=","value":"op-doc-flat"},
                                                                 {"key":"balance-date","type":"=","value":"'.implode('/',$dates).'"}
                                                             ]}',true));
-            print_r($daccounts);
-            die;
+            
             // Create new Spreadsheet object
             $spreadsheet = new Spreadsheet();
             $activeWorksheet = new Worksheet($spreadsheet, 'Rapor');
             $spreadsheet->addSheet($activeWorksheet, 0);
             
-
+            foreach($flats as $f){
+                $data = json_decode($f->main_attr);
+                foreach($data as $d){
+                    $flats->{$d->Key} = $d->Value; 
+                }
+                
+            }
+            print_r($flats);
+            die;
             $data = [
                 'dates'    => implode(' - ',explode(' => ',$req['dates'])),
                 'accounts' => $accounts,
                 'incomes'  => $incomes,
                 'outcomes' => $outcomes,
+                'flats'    => $daccounts
                 //'note'     => $req['note']
             ];
 
-           $pdf = PDF::loadView('exports.icmal', $data);
+            $pdf = PDF::loadView('exports.icmal', $data);
             return $pdf->download('icmal.pdf');
             //return view('exports.icmal', $data); 
         } catch (\Throwable $th) {
