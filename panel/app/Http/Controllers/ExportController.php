@@ -83,9 +83,16 @@ class ExportController extends Controller
             //get income and outcomes
             $incomes  = (new ReportServiceProvider())->dashboardInfo('income',$dates);
             $outcomes = (new ReportServiceProvider())->dashboardInfo('outcome',$dates);
-
             
-
+            //get dept accounts
+            $accounts = Documents::tableList(json_decode('{"filter":[
+                                                                {"key":"form-type","type":"=","value":"op-doc-flat-form"},
+                                                                {"key":"type","type":"=","value":"op-doc-flat"},
+                                                                {"key":"ondept","type":"=","value":"true"}
+                                                                {"key":"balance-date","type":"=","value":"'.implode('/',$dates).'"}
+                                                            ]}',true));
+            print_r($accounts);
+            die;
             // Create new Spreadsheet object
             $spreadsheet = new Spreadsheet();
             $activeWorksheet = new Worksheet($spreadsheet, 'Rapor');
