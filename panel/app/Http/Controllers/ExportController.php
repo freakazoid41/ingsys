@@ -85,32 +85,33 @@ class ExportController extends Controller
             $outcomes = (new ReportServiceProvider())->dashboardInfo('outcome',$dates);
             
             //get dept accounts
-            $daccounts = Documents::tableList(json_decode('{"filter":[
+            /*$daccounts = Documents::tableList(json_decode('{"filter":[
                                                                 {"key":"form-type","type":"=","value":"op-doc-flat-form"},
                                                                 {"key":"type","type":"=","value":"op-doc-flat"},
                                                                 {"key":"balance-date","type":"=","value":"'.implode('/',$dates).'"}
                                                             ]}',true))['data'];
+            foreach($daccounts as $f){
+                $data = json_decode($f->main_attr);
+                foreach($data as $d){
+                    $daccounts[$d->Key] = $d->Value; 
+                    if(strpos($d->Key,'flatcontgroup') !== false) $daccounts['person'] = $d->Value; 
+                }
+                
+            }*/
             
             // Create new Spreadsheet object
             $spreadsheet = new Spreadsheet();
             $activeWorksheet = new Worksheet($spreadsheet, 'Rapor');
             $spreadsheet->addSheet($activeWorksheet, 0);
             
-            foreach($daccounts as $f){
-                $data = json_decode($f->main_attr);
-                foreach($data as $d){
-                    $daccounts[$d->Key] = $d->Value; 
-                }
-                
-            }
-            print_r($daccounts);
-            die;
+            
+            
             $data = [
                 'dates'    => implode(' - ',explode(' => ',$req['dates'])),
                 'accounts' => $accounts,
                 'incomes'  => $incomes,
                 'outcomes' => $outcomes,
-                'flats'    => $daccounts
+                //'flats'    => $daccounts
                 //'note'     => $req['note']
             ];
 
