@@ -99,7 +99,7 @@ class ExportController extends Controller
             foreach($daccounts as $f){
                 $data = json_decode($f->main_attr);
                 foreach($data as $d){
-                    $daccounts->{$d->Key} = $d->Value; 
+                    $daccounts[$d->Key] = $d->Value; 
                 }
                 
             }
