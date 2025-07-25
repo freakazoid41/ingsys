@@ -96,14 +96,14 @@ class ExportController extends Controller
             $activeWorksheet = new Worksheet($spreadsheet, 'Rapor');
             $spreadsheet->addSheet($activeWorksheet, 0);
             
-            foreach($flats as $f){
+            foreach($daccounts as $f){
                 $data = json_decode($f->main_attr);
                 foreach($data as $d){
-                    $flats->{$d->Key} = $d->Value; 
+                    $daccounts->{$d->Key} = $d->Value; 
                 }
                 
             }
-            print_r($flats);
+            print_r($daccounts);
             die;
             $data = [
                 'dates'    => implode(' - ',explode(' => ',$req['dates'])),
