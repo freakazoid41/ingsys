@@ -88,7 +88,6 @@ class ExportController extends Controller
             $daccounts = Documents::tableList(json_decode('{"filter":[
                                                                 {"key":"form-type","type":"=","value":"op-doc-flat-form"},
                                                                 {"key":"type","type":"=","value":"op-doc-flat"},
-                                                                {"key":"ondept","type":"=","value":"true"},
                                                                 {"key":"balance-date","type":"=","value":"'.implode('/',$dates).'"}
                                                             ]}',true));
             print_r($daccounts);

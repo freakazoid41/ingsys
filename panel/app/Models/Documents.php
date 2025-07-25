@@ -208,9 +208,6 @@ class Documents extends Model
 
                         )  as  balance_pure";
                         break;
-                    case 'ondept'   :
-                        $where .= '('.$columns['balance'].') < 0';
-                        break;
                     case 'form-type':
                         $value = $f['value'];
                         $columns['main_attr'] = "(SELECT    json_group_array(
