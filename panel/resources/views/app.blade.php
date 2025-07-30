@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#6777ef" />
     <link rel="apple-touch-icon" href="{{ asset('img/icons/apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('/manifest.json') }}">
+    <link rel="icon" type="image/x-icon" href="/public/css/favicon.ico">
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     @vite(['public/css/theme.css',$type == 'admin' ? 'resources/js/app.js' : 'resources/js/client.js'])
     <input hidden name="header" value="{{env('APP_NAME')}}">
