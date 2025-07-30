@@ -24,18 +24,7 @@ Route::middleware(['auth:sanctum'])
 
         $auth = function (){
             if(session('type_key') !== null){
-                switch(session('type_key')){
-                    case 'op-pert-admin':
-                        return view('app');
-                        break;
-                    case 'op-pert-buyer':
-                        //return redirect('/client'); // an alternative to "redirect()->to()"
-                        return view('client');
-                        break;
-                    default:
-                        abort('403');
-                    break;
-                }
+                return view('app',['type' => session('type_key') == 'op-pert-admin' ? 'admin' : 'client']);
             }else{
                 abort('403');
             }
