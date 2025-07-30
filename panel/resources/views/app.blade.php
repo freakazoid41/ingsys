@@ -9,7 +9,7 @@
     <link rel="apple-touch-icon" href="{{ asset('img/icons/apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('/manifest.json') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}" />
-    @vite(['public/css/theme.css','resources/js/app.js'])
+    @vite(['public/css/theme.css',$type == 'admin' ? 'resources/js/app.js' : 'resources/js/client.js'])
     <input hidden name="header" value="{{env('APP_NAME')}}">
     <input hidden name="SYS_CUR" value="{{env('SYS_CUR')}}">
 
