@@ -4,11 +4,13 @@ namespace Database\Seeders;
 
 use App\Models\Sys_options;
 use App\Models\User;
+use App\Models\Persons;
 use App\Models\Sys_con_ops;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+
 
 class UserSeeder extends Seeder
 {
@@ -58,18 +60,17 @@ class UserSeeder extends Seeder
         $clientId   = 0;
        
         
-
-        $docId = DB::table('persons')->insertGetId([
-            'parent_id'  => 0,
-            'spec_code'  => '0',//$code,
-            'title'      => 'USER',
-            'name'       => $name,
-            'surname'    => '-',
-            'phone'      => $phone,
-            'type_id'    => $personType->id ?? 0,
-            'created_at' => \Carbon\Carbon::now()->toDateTimeString()
-        ]);
-
+        $docId = new Persons();
+        $docId->parent_id  = 0;
+        $docId->spec_code  = '0';//$code,
+        $docId->title      = 'USER';
+        $docId->name       = $name;
+        $docId->surname    = '-';
+        $docId->phone      = $phone;
+        $docId->type_id    = $personType->id ?? 0;
+        $docId->save();
+        
+        
         
 
         
@@ -78,7 +79,7 @@ class UserSeeder extends Seeder
         $user->name      = $name;
         $user->email     = $email;
         $user->password  = Hash::make($password);
-        $user->person_id = $docId;
+        $user->person_id = $docId->id;
         $user->save();
 
         return $user;

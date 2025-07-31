@@ -300,7 +300,7 @@
                                     attr[item.Key] = item.Value;
                                     //return r;
                                 });
-
+                                console.log(el);
                                 const op = document.createElement('option');
                                 op.text  = attr.title;
                                 op.value = el.id;

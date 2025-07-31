@@ -220,7 +220,7 @@
                         document.querySelector('.amount-cur').innerHTML   = data.totals.cur;
                     },
                     ...(this.id !== undefined ? {initialFilter : [ {
-                        key   : 'target_id',
+                        key   : 'tdid',
                         type  : '=',
                         value : this.id
                     }]} : {}),

@@ -38,8 +38,8 @@ class DocumentServiceProvider extends ServiceProvider
             //here set main document
             $document = new Documents();
             //for update purposes
-            if(intval($id) != 0){
-                $document = Documents::where('id',$id)->first();
+            if(!is_numeric($id) && $id != 0){
+                $document = Documents::where('qnid',$id)->first();
                 $isUpdate = true;
             }else{
                 $document->type_id = (\App\Models\Sys_options::where('op_key' , $typeKey)->first())->id;
@@ -51,6 +51,8 @@ class DocumentServiceProvider extends ServiceProvider
                     $document->{$key} = strip_tags($value);
                 }
             }
+
+            
             
             $rsp = $document->save();
 
@@ -198,12 +200,12 @@ class DocumentServiceProvider extends ServiceProvider
 
                     inner join sys_options so on so.id = dco.type_id
                     left join sys_con_entities sce on sce.conn_id = dco.id 
-    
+                    inner join documents as d on d.id = dco.main_id
     
                     where   so.group_key = 'op-doc-forms' and 
                             dco.conn_id = 0 and 
                             dco.status  = 1 and
-                            dco.main_id = ".$id;
+                            d.qnid = '".$id."'";
 
         $data  = DB::select($sql);
 
@@ -239,8 +241,8 @@ class DocumentServiceProvider extends ServiceProvider
 
     public function removeContent($id){
         //first find all attributes
-        $document    = Documents::where('id',$id)->first();
-        $connections = Sys_con_ops::where('main_id',$id)->get();
+        $document    = Documents::where('qnid',$id)->first();
+        $connections = Sys_con_ops::where('main_id',$document->id)->get();
         $entites     = [];
 
         foreach($connections as $c){
@@ -262,7 +264,7 @@ class DocumentServiceProvider extends ServiceProvider
 
     public function removeTransaction($id){
         //first find all attributes
-        $document    = Transactions::where('id',$id)->first();
+        $document    = Transactions::where('qnid',$id)->first();
         //remove connected transaction 
         $connTrans   = Transactions::where('trans_id',$document->id)->first();
         if(!empty($connTrans)) $connTrans->delete();
@@ -287,7 +289,7 @@ class DocumentServiceProvider extends ServiceProvider
                                                     where so.conn_id = 0 and sp.op_key = 'op-doc-period-form'  and so.main_id = d.id)  as  main_attr from documents as d
                                                         inner join sys_options as sp on sp.id = d.type_id
                                                             where sp.op_key = 'op-doc-period'"),
-            'accounts' => DB::select("SELECT d.id,(SELECT      json_group_array(
+            'accounts' => DB::select("SELECT d.qnid as id,(SELECT      json_group_array(
                                                             json_object(
                                                                 'Key',se.entity_tag,
                                                                 'Value' , se.entity_value
@@ -299,7 +301,7 @@ class DocumentServiceProvider extends ServiceProvider
                                                     where so.conn_id = 0 and sp.op_key = 'op-doc-target-form'  and so.main_id = d.id)  as  main_attr from documents as d
                                                         inner join sys_options as sp on sp.id = d.type_id
                                                             where sp.op_key = 'op-doc-target'"),
-            'flats'  => DB::select("SELECT d.id,(SELECT      json_group_array(
+            'flats'  => DB::select("SELECT d.qnid as id,(SELECT      json_group_array(
                                                             json_object(
                                                                 'Key',se.entity_tag,
                                                                 'Value' , se.entity_value
@@ -322,7 +324,11 @@ class DocumentServiceProvider extends ServiceProvider
         try{
             DB::beginTransaction(); // <= Starting the transaction
 
+            $data['target_id']  = isset($data['target_id']) ? Documents::where('qnid',$data['target_id'])->first()->id : 0;
+            $data['account_id'] = isset($data['account_id']) ? Documents::where('qnid',$data['account_id'])->first()->id : 0;
+            $data['flat_id']    = isset($data['flat_id']) ? Documents::where('qnid',$data['flat_id'])->first()->id : 0;
             $cur = Sys_options::where(['code' => $data['currency'] , 'group_key' => 'op-cur-types'])->first()->id;
+
             $fileRelIds = [];
             switch($data['op']){
                 case 'paydept':
@@ -615,16 +621,20 @@ class DocumentServiceProvider extends ServiceProvider
         $response = [];
         $filter   = [];
         if($id != null){
+            $documentId = Documents::where('qnid',$id)->first();
+
+
             $filter = [
                 [
                     'key'   => 'target_id',
                     'type'  => '=',
-                    'value' => $id
+                    'value' => $documentId->id
                 ]
             ];
 
             $data = $this->getFormData($id);
-            $title = array_values(array_values($data)[0])[0][$id]['entities']['title'];
+            
+            $title = array_values(array_values($data)[0])[0][$documentId->id]['entities']['title'];
             $response[] = ['Kasa : ',$title];
             $response[] = [' '];
         } 

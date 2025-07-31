@@ -241,7 +241,7 @@
                     <div class="d-flex align-items-center mb-5">
                         
                         <a href="#" class="flex-shrink-0 mr-3">
-                            <div class="no-avatar w-10 h-10 ms-1 me-3">{{ c.cont_name.match(/\p{Lu}/gu).join('') }}</div>
+                            <div class="no-avatar w-10 h-10 ms-1 me-3">{{ c.cont_name.match(/\p{Lu}/gu).join('').substring(0,3) }}</div>
                             <!--<img class="w-10 h-10 ms-1 rounded-circle me-3" src="https://super-admin.avidtemplates.com/1.e810f372.jpg" alt="">-->
                         </a>
                         <div class="flex-grow-1">

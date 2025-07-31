@@ -37,7 +37,9 @@ class PersonsServiceProvider extends ServiceProvider
         //split form elements
         //first main elements
         $document = new Persons();
-        if($id != 0) $document = Persons::where('id',$id)->first();
+
+        if($id != 0) $document = Persons::where('qnid',$id)->first();
+
         foreach ($formData as $key => $value) {
             //here split data types and set main person data
             if(strpos($key,'main_') !== false){
@@ -192,7 +194,7 @@ class PersonsServiceProvider extends ServiceProvider
                             left join users as u on u.person_id = i.id
                             left join sys_options as o on o.id = i.type_id ";
         if($search == null){
-            $where = " where i.id = '".$id."'";
+            $where = " where i.qnid = '".$id."'";
         }else{
             //$where = " where (i.spec_code ilike '%".$search."%' or i.name ilike '%".$search."%' ) and i.parent_id = 0 ";
         }
@@ -230,8 +232,8 @@ class PersonsServiceProvider extends ServiceProvider
     }
     public function removeContent($id){
         //first find all attributes
-        $document    = Persons::where('id',$id)->first();
-        $connections = User::where('person_id',$id)->first();
+        $document    = Persons::where('qnid',$id)->first();
+        $connections = User::where('person_id',$document->id)->first();
         
         $connections->delete();  
         $document->delete();

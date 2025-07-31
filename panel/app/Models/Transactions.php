@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 
 class Transactions extends Model
@@ -28,13 +29,25 @@ class Transactions extends Model
         'description',
         'note',
         'created_at',
+        'qnid'
     ];
+
+    protected static function boot() {
+        parent::boot();
+
+        static::creating(function ($post) {
+            $post->qnid = (string) Str::uuid();
+            // add other column as well
+        });
+
+    }
 
     static function tableList($obj){
         $columns = array(
-            'id'           => 'i.id  as  id',
+            'id'           => 'i.qnid  as  id',
             'type'         => 'st.title  as  type',
             'target_id'    => 'i.target_id  as  target_id',
+            'tdid'         => 'td.qnid  as  tdid',
             'sign'         => 'i.sign',
             'amount'       => 'i.amount',
             'sys_cur'      => "(select code from sys_options where code = '".env('SYS_CUR')."')  as  sys_cur",
@@ -107,7 +120,9 @@ class Transactions extends Model
         $limit = '';
         $order = '';
         $join = '   inner join sys_options as st on st.id = i.type_id 
-                    inner join sys_options as cr on cr.id = i.cur_id ';
+                    inner join sys_options as cr on cr.id = i.cur_id 
+                    left join documents as td on td.id = i.target_id
+                    left join documents as rd on rd.id = i.rel_id';
         
         $where = " where st.group_key in ('op-trans-payment') and i.status = 1 ";   
         
@@ -140,6 +155,9 @@ class Transactions extends Model
                 
 
                 switch($f['key']){
+                    case 'target_id':
+
+                        break;
                     case 'free':
                     case 'all':
                         $value = $f['value'];

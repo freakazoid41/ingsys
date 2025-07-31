@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
 
 class Document_files extends Model
 {
@@ -20,7 +22,8 @@ class Document_files extends Model
         'description',
         'type_id',
         'selected_at',
-        'title'
+        'title',
+        'qnid'
         
     ];
 
@@ -32,6 +35,11 @@ class Document_files extends Model
     protected static function boot()
     {
         parent::boot();
+
+        static::creating(function ($post) {
+            $post->qnid = (string) Str::uuid();
+            // add other column as well
+        });
         
         static::deleting(function ($document) {
             /*//get transactions

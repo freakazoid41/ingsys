@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Persons extends Model
 {
@@ -24,7 +25,8 @@ class Persons extends Model
         'parent_id',
         'email_approved',
         'approved',
-        'status'
+        'status',
+        'qnid'
     ];
 
     public static $rules = [
@@ -41,6 +43,10 @@ class Persons extends Model
     protected static function boot()
     {
         parent::boot();
+        static::creating(function ($post) {
+            $post->qnid = (string) Str::uuid();
+            // add other column as well
+        });
         /*static::deleting(function ($person) {
             $user = Users::where('person_id',$person->id)->first();
             
@@ -53,13 +59,15 @@ class Persons extends Model
                 $user->delete();
             }
         });*/
+
+        
     }
 
     static function tableList($obj){
        
         $columns = array(
             'status'       => 'i.status',
-            'id'           => 'i.id',
+            'id'           => 'i.qnid  as  id',
             'name'         => 'i.name',
             'username'     => 'u.email  as  username',
         );

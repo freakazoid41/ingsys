@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('surname',50)->nullable()->default('-');
             $table->string('phone', 50)->default('-');
             $table->string('address', 250)->nullable()->default('-');
-
+            $table->uuid('qnid')->nullable();
 
             $table->float('balance', 15, 3)->default('0');
 

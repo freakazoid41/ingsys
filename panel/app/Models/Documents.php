@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
 class Documents extends Model
 {
     use HasFactory;
@@ -42,12 +44,22 @@ class Documents extends Model
         's_starting_at',
         's_tem_ending_at',
         's_rsp_type_id',
+        'qnid'
     ];
 
+    protected static function boot() {
+        parent::boot();
+
+        static::creating(function ($post) {
+            $post->qnid = (string) Str::uuid();
+            // add other column as well
+        });
+
+    }
 
     static function tableList($obj){
         $columns = array(
-            'id'           => 'i.id  as  id',
+            'id'           => 'i.qnid  as  id',
             'type'         => 'sp.op_key  as  type',
             'cur'          => " (select icon from sys_options where code = '".env('SYS_CUR')."')  as  cur ",
             'balance_pure' => " (select Sum(
@@ -158,7 +170,13 @@ class Documents extends Model
                         $columns['balance'] = "'-'  as  balance"; // unneccesery
                         $columns['balance_pure'] = "'-'  as  balance_pure"; // unneccesery
                         $columns['cur'] = "'-'  as  cur"; // unneccesery
-                        $where .= " and ".$column = explode('as  ',$columns['main_attr'])[0]." like '%".$f['value']."%'";
+
+                        $query =  explode('as  ',$columns['main_attr'])[0];
+
+                        $where .= " and (".$query." like '%".$f['value']."%' or  ".$query." like '%".date('Y-m',(strtotime('next month',strtotime($f['value'].'-01'))))."%' )";
+
+                       
+
                         break;
                     case 'status-not':
                         $column = explode('as  ',$columns['status'])[0];

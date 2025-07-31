@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('relation','20')->default('-');
             $table->string('title','250')->default('-');
             $table->text('description')->default('-');
+            $table->uuid('qnid')->nullable();
 
             $table->timestamp('selected_at')->useCurrent();
             $table->timestamps();

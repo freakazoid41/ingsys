@@ -189,7 +189,7 @@
                             if(data['cont_name'] == undefined) data['cont_name'] = []
                             if(element['Key'].includes('cont_name')) data['cont_name'].push(element['Value']);
                         });
-                        data['cont_name'] = data['cont_name'].join(' , ');
+                        data['cont_name'] = (data['cont_name'] ?? []).join(' , ');
                         //data.status = JSON.parse(data.status).OpTitle;
                         return data;
                     },

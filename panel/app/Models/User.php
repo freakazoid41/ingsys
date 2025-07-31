@@ -8,6 +8,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Str;
+
 
 class User extends Authenticatable
 {
@@ -25,7 +27,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'parent_id'
+        'parent_id',
+        'qnid'
     ];
 
     /**
@@ -49,6 +52,15 @@ class User extends Authenticatable
         'profile_photo_url',
     ];
 
+    protected static function boot() {
+        parent::boot();
+
+        static::creating(function ($post) {
+            $post->qnid = (string) Str::uuid();
+            // add other column as well
+        });
+
+    }
     /**
      * Get the attributes that should be cast.
      *

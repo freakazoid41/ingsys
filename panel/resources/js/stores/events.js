@@ -51,9 +51,9 @@ export const useEventDataStore = defineStore('taskData', {
                 date.getMonth() === today.getMonth() &&
                 date.getFullYear() === today.getFullYear());
         };
-
+        
         const rsp = await (new Plib).request({
-            url      : '/api/v1/dashboard/monthlyEvents/'+year+'-'+month,
+            url      : '/api/v1/dashboard/monthlyEvents/'+year+'-'+String(month).padStart(2,'0'),
             method   : 'GET',
         },null).then(rsp => {return rsp});
 

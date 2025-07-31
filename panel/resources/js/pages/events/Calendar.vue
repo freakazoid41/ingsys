@@ -105,6 +105,8 @@
                             }
                         })
                     },
+                    locale: "tr",
+                    lang: "tr",
                     headerToolbar: {
                         left: "title",
                         center: "",

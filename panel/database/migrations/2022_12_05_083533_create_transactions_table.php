@@ -28,6 +28,8 @@ return new class extends Migration
             $table->string('period',7)->default('-');
             $table->string('description',300)->default('-');
             $table->string('note',300)->default('-');
+            $table->uuid('qnid')->nullable();
+            
             $table->timestamps();
         });
     }
