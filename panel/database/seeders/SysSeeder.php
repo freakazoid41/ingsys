@@ -742,6 +742,13 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-inventory-form',
                 'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Apartman Ana Form',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-apartment-form',
+                'group_key' => 'op-doc-forms',
             ]
         ];
 
@@ -796,6 +803,13 @@ class SysSeeder extends Seeder
 
         $documentTypes = [
             [
+                'parent_id' => 0,
+                'title'     => 'Apartman Listesi',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-apartment',
+                'group_key' => 'op-doc-forms',
+            ],[
                 'parent_id' => 0,
                 'title'     => 'Period',
                 'ttitle'    => '-',

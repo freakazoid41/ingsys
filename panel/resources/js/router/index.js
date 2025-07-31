@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth.js'
 
 
 import Panel from '@/layouts/Panel.vue'
+import Apartments from '@/pages/Apartments.vue'
 
 import PIndex from '@/pages/PIndex.vue'
 import User from '@/pages/User.vue'
@@ -42,6 +43,8 @@ const router = createRouter({
       component: Panel,
       //meta: { requiresAuth: true },
       children: [
+        { path: "/panel/apartments", name: 'Apartments', component: Apartments },
+        
         { path: "/panel", name: 'Index', component: PIndex },
         { path: "/panel/contacts", name: 'Contacts', component: Contacts },
         { path: "/panel/user", name: 'User', component: User },
