@@ -75,7 +75,7 @@
                     if(login != null){
                         localStorage.setItem('token',login.value.trim());
                         setTimeout(() => {
-                            window.location.href = '/panel';
+                            window.location.href = '/panel/apartments';
                         }, 400);
                     }else{
                         this.pageEvents();

@@ -23,7 +23,8 @@ class Document_files extends Model
         'type_id',
         'selected_at',
         'title',
-        'qnid'
+        'qnid',
+        'grp_code',
         
     ];
 
@@ -38,6 +39,7 @@ class Document_files extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
+            $post->grp_code = session('grp_code');
             // add other column as well
         });
         
@@ -84,7 +86,7 @@ class Document_files extends Model
         $order = '';
         $join = "   inner join sys_options so on so.id = i.type_id ";
         
-        $where  = " where i.description!='' and i.status = 1 "; 
+        $where  = " where i.description!='' and i.status = 1 and i.grp_code='".session('grp_code')."'"; 
         
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);

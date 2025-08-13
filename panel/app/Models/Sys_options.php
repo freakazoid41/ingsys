@@ -8,7 +8,14 @@ use Illuminate\Support\Facades\DB;
 class Sys_options extends Model
 {
     use HasFactory;
-
+    protected $fillable = [
+        'op_key',
+        'group_key',
+        'title',
+        'ttitle',
+        'ctitle',
+        'status'
+    ];
     static function tableList($obj){
        
         $columns = array(

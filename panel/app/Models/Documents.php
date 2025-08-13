@@ -23,27 +23,14 @@ class Documents extends Model
 
     protected $fillable = [
         'status',
-        'person_id',
+        
         'parent_type_id',
         'parent_id',
         'type_id',
-        'hk_type_id',
-        'hkc_type_id',
-        'leave_type_id',
         'grp_code',
         'starting_at',
         'ending_at',
         'title',
-        's_sgk_code',
-        's_nace_code',
-        's_isn_code',
-        's_title',
-        's_tax_code',
-        's_tm_number',
-        's_tm_amount',
-        's_starting_at',
-        's_tem_ending_at',
-        's_rsp_type_id',
         'qnid'
     ];
 
@@ -52,6 +39,7 @@ class Documents extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
+            $post->grp_code = session('grp_code');
             // add other column as well
         });
 
@@ -111,7 +99,7 @@ class Documents extends Model
         $order = '';
         $join = ' inner join sys_options as sp on sp.id = i.type_id ';
         
-        $where = " where i.status = '1'";   
+        $where = " where i.status = '1' and i.grp_code='".session('grp_code')."'";   
         //$where .= " and i.sys_code::text like '%".($GLOBALS['SYS_CODE'] === 'ADM' ? '5000' : '4000')."%'";
 
 

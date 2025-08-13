@@ -120,6 +120,7 @@ class AuthController extends Controller
                 session(['person_id' => $person->id]);
                 session(['email'     => $request->email]);
                 session(['ptitle'    => $person->name.' '.$person->surname]);
+                session(['grp_code'  => '-']);
 
             }
             
@@ -204,6 +205,13 @@ class AuthController extends Controller
         return response()->json([
             'success' => empty($user),
         ],200);
+    }
+
+    public function setapartment(Request $request,$apartment){
+        $apt = Sys_options::where('op_key',$apartment)->first();
+        session(['grp_code'   => $apartment]);
+        session(['grp_title'  => $apt->title ?? 'Apartmant Mevcur Değil']);
+        return redirect()->route('app');
     }
 
     public function logout(Request $request){

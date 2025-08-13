@@ -52,8 +52,9 @@ Route::middleware(['auth:sanctum'])
             return decryptFile($doc,'view');
         })->name('documentRoute');
 
-        Route::post('/reportpdf/icmal',   [ExportController::class, 'reporticmal'])->name('.reportIcmal');
+        Route::post('/reportpdf/icmal',          [ExportController::class, 'reporticmal'])->name('.reportIcmal');
         Route::get('/export/{model}/{type?}',    [ExportController::class, 'index'])->name('.export-table');
+        Route::get('/setapartment/{apartment}',  [AuthController::class,   'setapartment'])->name('.export-table');
 });
 
 

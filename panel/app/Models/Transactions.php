@@ -29,7 +29,8 @@ class Transactions extends Model
         'description',
         'note',
         'created_at',
-        'qnid'
+        'qnid',
+        'grp_code'
     ];
 
     protected static function boot() {
@@ -37,6 +38,7 @@ class Transactions extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
+            $post->grp_code = session('grp_code');
             // add other column as well
         });
 

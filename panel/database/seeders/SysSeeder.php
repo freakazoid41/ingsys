@@ -36,6 +36,17 @@ class SysSeeder extends Seeder
             ]
         ];
 
+        $apartment = [
+            [
+                'parent_id' => 0,
+                'title'     => 'Benim Apartmanım',
+                'ttitle'    => 'Sys_options',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-apt-1',
+                'group_key' => 'op-apt-types',
+            ]
+        ];
+
         $permissions = [
             [
                 'parent_id' => 0,
@@ -901,6 +912,7 @@ class SysSeeder extends Seeder
             ]
         ];
 
+        $start = array_merge($start,$apartment);
         $start = array_merge($start,$permissions);
         $start = array_merge($start,$logs);
         $start = array_merge($start,$trans);

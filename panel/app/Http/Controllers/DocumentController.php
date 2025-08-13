@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Providers\ReportServiceProvider;
 use App\Providers\DocumentServiceProvider;
 use Illuminate\Http\Request;
 
@@ -165,6 +166,33 @@ class DocumentController extends Controller
         }else{
             return (new DocumentServiceProvider())->setStatus($request->id,$request->op_key,$request->note);
         }
+    }
+
+    public function getAparments(){
+        return (new ReportServiceProvider())->getAparments();
+    }
+
+    public function setAparments(Request $request){
+        $validateUser = Validator::make($request->all(),[
+            'title'     => 'required',
+        ]);
+
+        if(session('type_key') != 'op-pert-admin' ) return response()->json([
+            'success' => false,
+            'msg'     => 'not valid for system user...',
+        ],403);
+
+        if($validateUser->fails()){
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing Parameters',
+                'error'   => $validateUser->errors()
+            ],401);
+        }else{
+            return (new DocumentServiceProvider())->setAparments($request->all());
+        }
+
+        
     }
 
 }

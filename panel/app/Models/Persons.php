@@ -26,7 +26,8 @@ class Persons extends Model
         'email_approved',
         'approved',
         'status',
-        'qnid'
+        'qnid',
+        'grp_code',
     ];
 
     public static $rules = [
@@ -45,6 +46,7 @@ class Persons extends Model
         parent::boot();
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
+            $post->grp_code = session('grp_code');
             // add other column as well
         });
         /*static::deleting(function ($person) {
@@ -80,7 +82,7 @@ class Persons extends Model
         $join = '   ---inner join sys_options as o on o.id = i.type_id 
                     inner join users as u on u.person_id = i.id';
         
-        $where = " where i.name != '' and u.email != 'kbbozat41@hotmail.com' ";  
+        $where = " where i.name != '' and u.email != 'kbbozat41@hotmail.com' and i.grp_code='".session('grp_code')."'";  
         
 
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {

@@ -672,4 +672,33 @@ class DocumentServiceProvider extends ServiceProvider
             'data'    => $response
         ];
     }
+
+
+    /**
+     * this method will create new apartment for system
+     */
+    public function setAparments($data){
+        try{
+            $opKey = generateSeoURL(noInject($data['title']));
+            $data = Sys_options::updateOrCreate(
+                ['title' => $data['title'], 'op_key' => $opKey, 'group_key' => 'op-apt-types'],
+                [
+                    'title'     => $data['title'], 
+                    'op_key'    => $opKey, 
+                    'group_key' => 'op-apt-types',
+                    'ttitle'    => 'Sys_options',
+                    'ctitle'    => 'type_id'
+                ],
+            );
+            return [
+                'data'    => $data->op_key,
+                'success' => true,
+            ];
+        }catch(Exception $e){
+            return [
+                'success' => false,
+                'msg'     => $e->getMessage(),
+            ];
+        }
+    }
 }

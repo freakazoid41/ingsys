@@ -3,10 +3,13 @@
         position: relative;
         padding-left: 1rem !important;
     }
+    .apartments .logo,
     .apartments .header-menu,
     .apartments #sidebar{
         display: none !important;
     }
+
+
 
     .apartment-icon i{
         font-size: 150px !important;
@@ -56,6 +59,7 @@
 
 
 
+
     export default {
         components: {
             Simplebar
@@ -78,16 +82,26 @@
                 plib            : new Plib(),
                 authStore       : useAuthStore(),
                 navigationStore : useNavigationStore(),
+                apartments      : []
             }
         },
         mounted(){
-            this.navigationStore.toggle(true);
-            setTimeout(() => {
-                this.navigationStore.toggle(false);
-            }, 300);
+            
+            this.buildPage();
+            
         },  
       
         methods: {
+            async buildPage(){
+                this.navigationStore.toggle(true);
+                await this.navigationStore.setApartments();
+                this.apartments = this.navigationStore.apartments
+                setTimeout(() => {
+                    this.navigationStore.toggle(false);
+                }, 500);
+                
+                
+            },
             newApartment(){
                 Swal.fire({
                     customClass         : {
@@ -125,8 +139,21 @@
                             }
                         })
                     },
-                    preConfirm : () => {
+                    preConfirm : async () => {
+                        this.navigationStore.toggle(true);
+                        const   envelope  = new FormData();
+                        envelope.append('title',document.querySelector('input[name="title"]').value.trim());
                         
+                        await this.plib.request({
+                            url      : '/api/v1/set-apartments',
+                            method   : 'POST',
+                        },null,envelope);
+
+                        await this.navigationStore.setApartments();
+
+                        setTimeout(() => {
+                            this.navigationStore.toggle(false);
+                        }, 300);
                     }
                 });
 
@@ -153,30 +180,10 @@
                 </div>
             </div>-->
         </div>
-        <div class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
+        <a v-for="(value, key) in apartments" :key="key" :href="'/setapartment/'+key" class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
             <i class="ph ph-buildings text-body-emphasis"></i>
-            <div class="hidden sm:block text-body-secondary fs-1 mt-2">Körfez Apartmanı</div>
-        </div>
-        <div class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
-            <i class="ph ph-buildings text-body-emphasis"></i>
-            <div class="hidden sm:block text-body-secondary fs-1 mt-2">Körfez Apartmanı</div>
-        </div>
-        <div class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
-            <i class="ph ph-buildings text-body-emphasis"></i>
-            <div class="hidden sm:block text-body-secondary fs-1 mt-2">Körfez Apartmanı</div>
-        </div>
-        <div class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
-            <i class="ph ph-buildings text-body-emphasis"></i>
-            <div class="hidden sm:block text-body-secondary fs-1 mt-2">Körfez Apartmanı</div>
-        </div>
-        <div class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
-            <i class="ph ph-buildings text-body-emphasis"></i>
-            <div class="hidden sm:block text-body-secondary fs-1 mt-2">Körfez Apartmanı</div>
-        </div>
-        <div class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
-            <i class="ph ph-buildings text-body-emphasis"></i>
-            <div class="hidden sm:block text-body-secondary fs-1 mt-2">Körfez Apartmanı</div>
-        </div>
+            <div class="hidden sm:block text-body-secondary fs-1 mt-2">{{ value.title }}</div>
+        </a>
         <a href="/logout" class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
             <i class="ph ph-sign-out text-body-emphasis"></i>
             <div class="hidden sm:block text-body-secondary fs-1 mt-2">Çıkış</div>

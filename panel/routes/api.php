@@ -21,6 +21,8 @@ Route::post('/v1/auth/login/{type?}',             [AuthController::class, 'login
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::any('/v1/document/{id?}',                   [DocumentController::class, 'index']);
     Route::any('/v1/transaction/{id?}',                [DocumentController::class, 'transaction']);
+    Route::get('/v1/get-apartments',                   [DocumentController::class, 'getAparments']);
+    Route::post('/v1/set-apartments',                  [DocumentController::class, 'setAparments']);
     Route::post('/v1/table/{model}',                   [SystemController::class, 'table']);
     Route::any('/v1/persons/{id?}',                    [PersonsController::class, 'index']);
     Route::get('/v1/trans/prepare-payment',            [DocumentController::class, 'preparePayment']);

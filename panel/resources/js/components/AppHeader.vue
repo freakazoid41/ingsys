@@ -193,6 +193,7 @@ export default {
                     </a> 
                     <a href="#" class="dropdown-item"> <i class="ph ph-currency-circle-dollar"></i> Billing </a> 
                     <a href="#" class="dropdown-item"> <i class="ph ph-gear"></i> Preferences </a> -->
+                    <a href="/panel/apartments" class="dropdown-item"> <i class="ph ph-buildings text-body-emphasis"></i> Apartman Seçimi </a>
                     <a href="/logout" class="dropdown-item"> <i class="ph ph-sign-out"></i> {{ $t('top.logout') }} </a> 
                 </div>
             </li>

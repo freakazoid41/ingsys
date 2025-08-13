@@ -16,6 +16,7 @@ return new class extends Migration
         Schema::create('persons', function (Blueprint $table) {
             $table->id();
             $table->boolean('status')->default(true);
+            
             $table->smallInteger('type_id')->default('0');
             $table->smallInteger('email_approved')->default('0');
             $table->smallInteger('approved')->default('0');
@@ -29,6 +30,7 @@ return new class extends Migration
             $table->string('surname',50)->nullable()->default('-');
             $table->string('phone', 50)->default('-');
             $table->string('address', 250)->nullable()->default('-');
+            $table->string('grp_code',100)->nullable()->default('-');
             $table->uuid('qnid')->nullable();
 
             $table->float('balance', 15, 3)->default('0');

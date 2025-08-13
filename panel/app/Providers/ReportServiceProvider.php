@@ -48,25 +48,40 @@ class ReportServiceProvider extends ServiceProvider
                                         ) FROM transactions as t
                                             inner join sys_options as cur on cur.id = t.cur_id
                                             inner join sys_options as so on so.id = t.type_id
-                                    where t.sign = '0' and so.op_key = 'doc_acc_aidat' and t.period='".date('Y-m')."') as total_income,
+                                    where   t.sign = '0' and 
+                                            so.op_key = 'doc_acc_aidat' and 
+                                            t.period='".date('Y-m')."' and
+                                            t.grp_code = '".session('grp_code')."' 
+                                ) as total_income,
                                 (SELECT sum(
                                                 t.amount *
                                                 (select amount from currencies where target_cur = cur.code)
                                         ) FROM transactions as t
                                             inner join sys_options as cur on cur.id = t.cur_id
                                             inner join sys_options as so on so.id = t.type_id
-                                    where t.sign = '0' and so.op_key = 'doc_acc_rent' and t.period='".date('Y-m')."') as total_rent,
+                                    where   t.sign = '0' and 
+                                            so.op_key = 'doc_acc_rent' and 
+                                            t.period='".date('Y-m')."' and
+                                            t.grp_code = '".session('grp_code')."' 
+                                ) as total_rent,
                                 (select count(*) from documents as pd 
                                     inner join sys_options as spd on spd.id = pd.type_id
-                                        where spd.op_key = 'op-doc-project')  as  project_count,
+                                        where   spd.op_key = 'op-doc-project' and 
+                                                pd.grp_code = '".session('grp_code')."' 
+                                )  as  project_count,
                                 (select count(*) from documents as pd 
                                     inner join sys_options as spd on spd.id = pd.type_id
-                                        where spd.op_key = 'op-doc-flat')  as  flat_count      
+                                        where   spd.op_key = 'op-doc-flat' and 
+                                                pd.grp_code = '".session('grp_code')."'               
+                                )  as  flat_count      
 
                                 from documents as d
                         inner join sys_options as so on so.id = d.type_id
 
-                            where   so.op_key = 'op-doc-meeting' order by d.id desc limit 1";
+                            where   so.op_key = 'op-doc-meeting' and
+                                    d.grp_code = '".session('grp_code')."'
+                            
+                                    order by d.id desc limit 1";
                 $rows = DB::select($sql);
                 if(isset($rows[0])){
                     $currencies = json_decode($rows[0]->curvalues);
@@ -98,7 +113,11 @@ class ReportServiceProvider extends ServiceProvider
                 $monthlySql = "(select  count(t.id) 
                                         from transactions t 
                                     inner join sys_options as so on so.id = t.type_id
-                                where t.target_id = i.id and so.op_key = '".($period ?? 'doc_acc_aidat')."' and t.sign = '0' and t.period='".date('Y-m')."')";
+                                where   t.target_id = i.id and 
+                                        so.op_key = '".($period ?? 'doc_acc_aidat')."' and 
+                                        t.sign = '0' and 
+                                        t.grp_code = '".session('grp_code')."' and
+                                        t.period='".date('Y-m')."')";
                 $sql = "select  $monthlySql  as  has_monthly_income ,
                                 (select icon from sys_options where code = '".env('SYS_CUR')."')  as  cur,
                                 (select      Sum(
@@ -132,7 +151,10 @@ class ReportServiceProvider extends ServiceProvider
                                                         where so.conn_id = 0 and sp.op_key = 'op-doc-flat-form'  and so.main_id = i.id)  as  main_attr
                             from documents as i
                                 inner join sys_options as sp on sp.id = i.type_id
-                            where i.status = '1' and sp.op_key   = 'op-doc-flat' and $monthlySql = 0";
+                            where   i.status = '1' and 
+                                    i.grp_code = '".session('grp_code')."' and
+                                    sp.op_key   = 'op-doc-flat' and 
+                                    $monthlySql = 0";
                 $data = DB::select($sql);
                 break;
             case 'updatedmeeting':
@@ -157,7 +179,10 @@ class ReportServiceProvider extends ServiceProvider
                                 from documents as d
                         inner join sys_options as so on so.id = d.type_id
 
-                            where   so.op_key = 'op-doc-meeting' order by d.id desc limit 1";
+                            where   so.op_key = 'op-doc-meeting' and
+                                    d.grp_code = '".session('grp_code')."'
+                                    
+                                    order by d.id desc limit 1";
                 $row = DB::select($sql);
                 
                 
@@ -242,7 +267,8 @@ class ReportServiceProvider extends ServiceProvider
 
                             where   so.op_key = 'op-doc-target' and t.status = 1 and 
                                     t.sign = ".($type == 'income' ? '1' : '0')." and 
-                                    st.group_key in ('op-trans-payment')
+                                    st.group_key in ('op-trans-payment') and
+                                    d.grp_code = '".session('grp_code')."'
                                     ";
                 if($period != null){
                     $data['list']  = DB::select($sql." and t.period >= '".$period[0]."' and t.period <= '".$period[1]."' GROUP BY t.id");
@@ -269,7 +295,7 @@ class ReportServiceProvider extends ServiceProvider
                 $data['data'] = DB::select("SELECT count(d.id) as fcount 
                                                         from documents as d
                                                             inner join sys_options as sp on sp.id = d.type_id
-                                                                where sp.op_key = 'op-doc-flat'")[0]->fcount;
+                                                                where sp.op_key = 'op-doc-flat' and d.grp_code = '".session('grp_code')."'")[0]->fcount;
                 break;
             default:
                 $data = array_merge($this->{$type}(),$data);
@@ -293,7 +319,9 @@ class ReportServiceProvider extends ServiceProvider
                             inner join sys_options as sp on sp.id = so.type_id
                             inner join documents as d on d.id = so.main_id
                             inner join sys_options as sd on sd.id = d.type_id
-                        where so.conn_id = 0  and sp.op_key in ('op-doc-flat-form','op-doc-meeting-form','op-doc-project-form')";
+                        where   so.conn_id = 0  and 
+                                d.grp_code = '".session('grp_code')."' and
+                                sp.op_key in ('op-doc-flat-form','op-doc-meeting-form','op-doc-project-form')";
         $rows = DB::select($sql);
         foreach($rows as $r){
             $data = json_decode($r->main_attr);
@@ -346,6 +374,7 @@ class ReportServiceProvider extends ServiceProvider
                 inner join sys_options as st on st.id = t.type_id
 
                     where   so.op_key = 'op-doc-target' and  t.status = 1 and
+                            d.grp_code = '".session('grp_code')."' and
                             st.op_key in ('doc_acc_aidat','doc_acc_other','doc_acc_rent','doc_acc_sometinguntransable','doc_acc_fuel')";
 
 
@@ -375,6 +404,10 @@ class ReportServiceProvider extends ServiceProvider
                                                                 {"key":"type","type":"=","value":"op-doc-project"},
                                                                 {"key":"status-not","type":"=","value":"doc_trans_project_end"}
                                                             ]}',true));
+    }
+
+    public function getAparments(){
+        return Sys_options::where(['group_key' => 'op-apt-types' , 'status' => '1'])->get();
     }
 
     public function monthlyEvents(){
