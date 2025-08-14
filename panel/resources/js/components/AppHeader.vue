@@ -67,7 +67,7 @@ export default {
         <div hidden style="display: none !important;" class="content-search d-lg-flex d-none"> <i class="fs-5 ph ph-magnifying-glass"></i> <input type="text"
                 class="form-control" placeholder="Search..."> </div>
         <ul class="header-menu ms-6 ms-xl-10">
-            <li class="d-lg-none"> <button type="button" class="ph ph-magnifying-glass" data-bs-toggle="dropdown"
+            <li class="d-lg-none"> <button hidden type="button" class="ph ph-magnifying-glass" data-bs-toggle="dropdown"
                     data-bs-display="static" data-bs-auto-close="outside" aria-expanded="false"> <span
                         class="visually-hidden">Search</span> </button>
                 <div class="dropdown-menu header-dropdown-menu">
@@ -76,7 +76,7 @@ export default {
                             class="icon me-n1 ms-auto ph ph-gear"> <span class="visually-hidden">Settings</span>
                         </button>
                     </div>
-                    <div class="align-items-center d-flex mb-6 mx-n0.5 px-4"> <i
+                    <div  class="align-items-center d-flex mb-6 mx-n0.5 px-4"> <i
                             class="fs-5 me-n7 ms-3 ph ph-magnifying-glass position-relative"></i> <input type="text"
                             class="form-control ps-9" placeholder="Type a keyword..." aria-label="Search"> </div>
                     <div class="fs-7 mb-1 px-4 text-body-secondary">Recent Searches</div>
