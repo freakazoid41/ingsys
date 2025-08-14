@@ -16,6 +16,24 @@ body {
         display: none !important;
     }
 }
+
+@keyframes cusAnm {
+    0% {
+        opacity: 0;
+        /*transform: translateY(-100%);*/
+        /*scale: 0% 1;*/
+    }
+    100% {
+        opacity: 1;
+        /*scale: 100% 1;*/
+        /*transform: translateY(0);*/
+    }
+}
+
+.main-div {  
+    /* This section calls the slideInFromLeft animation we defined above */
+    animation: 1.2s ease-out 0s 1 cusAnm;
+}
 </style>
 
 <script>
@@ -58,7 +76,6 @@ export default {
 }
 </script>
 <template>
-
     <div id="page-loader1"  v-show="navigationStore.active">
         <div class="h-12 spinner-border w-12" role="status"> <span class="visually-hidden">Loading...</span> </div>
     </div>
@@ -68,7 +85,7 @@ export default {
         <AppSidebar/>
       </Simplebar>
     </aside>
-    <div id="content">
+    <div id="content" class="main-div">
         <div class="content-header">
             <h2 class="fs-6 m-0 ps-3 text-body-emphasis">{{ navigationStore.currentTitle }}</h2>
             <nav aria-label="breadcrumb" class="d-none d-sm-flex ms-8">

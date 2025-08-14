@@ -21,6 +21,25 @@
         cursor: pointer;
     }
 
+
+    @keyframes cusAnm1 {
+        0% {
+            opacity: 0;
+            /*transform: translateY(-100%);*/
+            scale: 0% 1;
+        }
+        100% {
+            opacity: 1;
+            scale: 100% 1;
+            /*transform: translateY(0);*/
+        }
+    }
+
+    .apartment-icon {  
+        /* This section calls the slideInFromLeft animation we defined above */
+        animation: 1s ease-out 0s 1 cusAnm1;
+    }
+
     /*.bar .apt-text,
     .bar .ph {
         display: none !important;
@@ -54,12 +73,8 @@
   import Plib from '@/lib/pickle';
   import { wTrans } from 'laravel-vue-i18n';
   import Swal from 'sweetalert2';
-  import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
   import Simplebar from 'simplebar-vue';
   import 'simplebar-vue/dist/simplebar.min.css';
-
-
-
 
     export default {
         components: {
@@ -165,7 +180,7 @@
 </script>
 
 <template>
-    <div class="row justify-content-center">
+    <div class="row justify-content-center main-div" :hidden="navigationStore.active">
         <div @click="newApartment()" class="bg-100-hover add-icon rounded col-md-4 col-sm-6 col-lg-2 p-3 text-center apartment-icon">
             <i class="ph ph-plus text-body-emphasis"></i>
             <div class="hidden sm:block text-body-secondary fs-1 mt-2 apt-text">Yeni Ekle</div>
