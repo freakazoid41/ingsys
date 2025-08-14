@@ -19,7 +19,8 @@ export default defineConfig({
         'resources/js/app.js',
         'public/js/index.js',
         'public/js/vendor.js',
-        'public/css/theme.css'
+        'public/css/theme.css',
+        'public/css/custom.css'
       ],
       refresh: true,
       // detectTls: 'vue-laravel-spa.test',

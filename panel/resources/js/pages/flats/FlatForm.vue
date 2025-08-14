@@ -1,8 +1,4 @@
 
-<style>
-    
-</style>
-
 <script>
     import { wTrans } from 'laravel-vue-i18n';
     import Plib from '@/lib/pickle';

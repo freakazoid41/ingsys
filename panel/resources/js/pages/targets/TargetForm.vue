@@ -1,8 +1,4 @@
 
-<style>
-    
-</style>
-
 <script>
     import Plib from '@/lib/pickle';
     import { useRoute } from 'vue-router'

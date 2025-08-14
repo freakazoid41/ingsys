@@ -63,8 +63,13 @@
     "file": "assets/Phosphor.e43c76ed-DtdjzkpE.woff2",
     "src": "public/css/Phosphor.e43c76ed.woff2"
   },
+  "public/css/custom.css": {
+    "file": "assets/custom-BgWlDGYm.css",
+    "src": "public/css/custom.css",
+    "isEntry": true
+  },
   "public/css/theme.css": {
-    "file": "assets/theme-DBcQxusV.css",
+    "file": "assets/theme-BQLXe7qa.css",
     "src": "public/css/theme.css",
     "isEntry": true
   },
@@ -423,12 +428,12 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-CWTtjPZM.js",
+    "file": "assets/app-CSdMK0aM.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "css": [
-      "assets/app-_a8K8IB4.css"
+      "assets/app-BCQnDCQs.css"
     ]
   }
 }

@@ -1,0 +1,80 @@
+html {
+    height: -webkit-fill-available; /* We have to fix html height */
+}
+
+body {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+}
+
+.content-body{min-height: 82vh !important;overflow: auto !important;    max-height: 82vh;}
+
+@media screen and (max-width: 1440px) {
+    .icon-info {
+        display: none !important;
+    }
+}
+.selectable-icon:hover{
+    cursor: pointer;
+    color : tomato !important;
+    text-shadow: 0 0 10px tomato
+ }
+
+@keyframes cusAnm {
+    0% {
+        opacity: 0;
+        /*transform: translateY(-100%);*/
+        /*scale: 0% 1;*/
+    }
+    100% {
+        opacity: 1;
+        /*scale: 100% 1;*/
+        /*transform: translateY(0);*/
+    }
+}
+
+.main-div {  
+    /* This section calls the slideInFromLeft animation we defined above */
+    animation: 1.2s ease-out 0s 1 cusAnm;
+}
+
+.apartments #content{
+    position: relative;
+    padding-left: 1rem !important;
+}
+.apartments .logo,
+.apartments .header-menu,
+.apartments .sidebar-toggle,
+.apartments #sidebar{
+    display: none !important;
+}
+
+
+
+.apartment-icon i{
+    font-size: 150px !important;
+}
+
+.apartment-icon:hover:not(.bar){
+    background-color:#0000004d !important;
+    cursor: pointer;
+}
+
+
+@keyframes cusAnm1 {
+    0% {
+        opacity: 0;
+        /*transform: translateY(-100%);*/
+        scale: 0% 1;
+    }
+    100% {
+        opacity: 1;
+        scale: 100% 1;
+        /*transform: translateY(0);*/
+    }
+}
+
+.apartment-icon {  
+    /* This section calls the slideInFromLeft animation we defined above */
+    animation: 1s ease-out 0s 1 cusAnm1;
+}

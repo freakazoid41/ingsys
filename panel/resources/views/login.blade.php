@@ -9,7 +9,7 @@
     <link rel="apple-touch-icon" href="{{ asset('img/icons/apple-touch-icon.png') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('css/favicon.ico') }}">
 
-    @vite(['public/css/theme.css','resources/js/app.js'])
+    @vite(['public/css/theme.css','public/css/custom.css','resources/js/app.js'])
     <style>
         [data-sa-theme="2"]{
             --bs-body-bg: #273c5b;
@@ -28,7 +28,7 @@
         }
     </style>
     <body class="align-items-center d-flex p-5">
-        <div class="card m-auto mw-400 p-8 w-100"> 
+        <div class="card m-auto mw-400 p-8 w-100 main-div"> 
             <h2 class="fs-6 text-body-emphasis" style="color:#d6e9ff !important">Hoşgeldiniz!</h2>
             <div class="mb-5 text-body-secondary">Sisteme giriş yapmak için bilgilerinizi giriniz..</div> 
             <form class="mb-5" action="{{route('login-user','admin')}}" id="login-form"  method="POST" novalidate="novalidate"> 
