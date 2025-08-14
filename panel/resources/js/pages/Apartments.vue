@@ -5,6 +5,7 @@
     }
     .apartments .logo,
     .apartments .header-menu,
+    .apartments .sidebar-toggle,
     .apartments #sidebar{
         display: none !important;
     }
@@ -165,7 +166,7 @@
 
 <template>
     <div class="row justify-content-center">
-        <div @click="newApartment()" class="bg-100-hover add-icon rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
+        <div @click="newApartment()" class="bg-100-hover add-icon rounded col-md-4 col-sm-6 col-lg-2 p-3 text-center apartment-icon">
             <i class="ph ph-plus text-body-emphasis"></i>
             <div class="hidden sm:block text-body-secondary fs-1 mt-2 apt-text">Yeni Ekle</div>
             <!--<div class="row apt-form">
@@ -180,11 +181,11 @@
                 </div>
             </div>-->
         </div>
-        <a v-for="(value, key) in apartments" :key="key" :href="'/setapartment/'+key" class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
+        <a v-for="(value, key) in apartments" :key="key" :href="'/setapartment/'+key" class="bg-100-hover rounded col-md-4 col-sm-6 col-lg-2 p-3 text-center apartment-icon">
             <i class="ph ph-buildings text-body-emphasis"></i>
             <div class="hidden sm:block text-body-secondary fs-1 mt-2">{{ value.title }}</div>
         </a>
-        <a href="/logout" class="bg-100-hover rounded col-4 col-sm-3 col-lg-2 p-3 text-center apartment-icon">
+        <a href="/logout" class="bg-100-hover rounded col-md-4 col-sm-6 col-lg-2 p-3 text-center apartment-icon">
             <i class="ph ph-sign-out text-body-emphasis"></i>
             <div class="hidden sm:block text-body-secondary fs-1 mt-2">Çıkış</div>
         </a>

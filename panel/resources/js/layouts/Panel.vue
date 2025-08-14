@@ -1,4 +1,3 @@
-
 <style>
 
 html {
@@ -11,16 +10,53 @@ body {
 }
 
 .content-body{min-height: 82vh !important;overflow: auto !important;    max-height: 82vh;}
+
+@media screen and (max-width: 1440px) {
+    .icon-info {
+        display: none !important;
+    }
+}
 </style>
 
-<script setup>
-  import Simplebar from 'simplebar-vue';
-  import 'simplebar-vue/dist/simplebar.min.css';
-  import AppSidebar from '@/components/AppSidebar.vue'
-  import AppHeader from '@/components/AppHeader.vue'
-  import { useNavigationStore } from '@/stores/navigation'
-</script>
+<script>
+import Simplebar from 'simplebar-vue';
+import 'simplebar-vue/dist/simplebar.min.css';
+import AppSidebar from '@/components/AppSidebar.vue'
+import AppHeader from '@/components/AppHeader.vue'
+import { useNavigationStore } from '@/stores/navigation'
+import { useHead } from '@unhead/vue'
 
+export default {
+    components: {
+        AppSidebar,
+        AppHeader,
+        Simplebar
+    },
+    setup() {
+        // expose to template and other options API hooks
+        return {
+          useNavigationStore,
+          useHead,
+        }
+    },
+    data() {
+      return {
+        navigationStore: useNavigationStore(),
+      }
+    },
+    mounted : () => {
+      document.body.dataset.saTheme = localStorage.getItem("sa-theme");
+    },
+    beforeMount: () => {
+      const theme = localStorage.getItem("sa-theme") || "1";
+      useHead({
+        bodyAttrs: {
+          "data-sa-theme": theme ?? 1
+        },
+      });
+    },
+}
+</script>
 <template>
 
     <div id="page-loader1"  v-show="navigationStore.active">
@@ -64,28 +100,6 @@ body {
 </template>
 
 
-<script>
-
-import { useHead } from '@unhead/vue'
-export default {
-    data() {
-      return {
-        navigationStore: useNavigationStore(),
-      }
-    },
-    mounted : () => {
-      document.body.dataset.saTheme = localStorage.getItem("sa-theme");
-    },
-    beforeMount: () => {
-      const theme = localStorage.getItem("sa-theme") || "1";
-      useHead({
-        bodyAttrs: {
-          "data-sa-theme": theme ?? 1
-        },
-      });
-    },
-}
-</script>
 
 
 

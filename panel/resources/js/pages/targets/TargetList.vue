@@ -101,13 +101,13 @@
                             const span = document.createElement('span');
                             let btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Gelir</span>' : '' );
+                            btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis"></i> <span class="ms-2 icon-info">Gelir</span>';
                             btn.onclick   = () => this.transmodal('income',columnData);
 
                             span.appendChild(btn);
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Gider</span>' : '' );
+                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis"></i> <span class="ms-2 icon-info">Gider</span>';
                             btn.onclick   = () => this.transmodal('outcome',columnData);
 
                             span.appendChild(btn);
@@ -115,14 +115,14 @@
                             span.appendChild(btn);
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-piggy-bank fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Bakiye</span>' : '' ) ;
+                            btn.innerHTML = '<i class="ph ph-piggy-bank fs-4 text-body-emphasis"></i> <span class="ms-2 icon-info">Bakiye</span>';
                             btn.onclick   = () => this.transmodal('addbalance',columnData);
 
                             span.appendChild(btn);
 
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-arrows-left-right fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Kasa Transfer</span>' : '' ) ;
+                            btn.innerHTML = '<i class="ph ph-arrows-left-right fs-4 text-body-emphasis"></i> <span class="ms-2 icon-info">Kasa Transfer</span>';
                             btn.onclick   = () => this.transmodal('transfer',columnData);
 
                             span.appendChild(btn);

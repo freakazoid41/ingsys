@@ -101,13 +101,15 @@
                             const span = document.createElement('span');
                             let btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Bakiye</span>' : '' );
+                            btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis"></i> <span class="ms-2 icon-info">Bakiye</span>';
                             btn.onclick   = () => this.transmodal('addbalance',columnData,rowData.title);
                             span.appendChild(btn);
 
+                            console.log(screen.width);
+
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1');
-                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis"></i>'+(screen.width > 850 ? '<span class="ms-2">Ödeme</span>' : '' ) ;
+                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis"></i><span class="ms-2 icon-info">Ödeme</span>';
                             btn.onclick   = () => this.transmodal('income',columnData,rowData.title);
                             span.appendChild(btn);
                             return span;

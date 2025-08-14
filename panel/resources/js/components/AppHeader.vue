@@ -47,10 +47,7 @@ export default {
                     window.location.href = '/closeapartment';
                 }
             });
-                
-
-            
-        }  
+        },
     }
 }
 </script>
