@@ -207,11 +207,20 @@ class AuthController extends Controller
         ],200);
     }
 
+    //this method will set current apartment
     public function setapartment(Request $request,$apartment){
         $apt = Sys_options::where('op_key',$apartment)->first();
         session(['grp_code'   => $apartment]);
-        session(['grp_title'  => $apt->title ?? 'Apartmant Mevcur Değil']);
+        session(['grp_title'  => $apt->title ?? 'Apartmant Mevcut Değil']);
         return redirect()->route('app');
+    }
+
+    //this method will close apartment
+    public function closeapartment(Request $request){
+        $apt = Sys_options::where('op_key',session('grp_code'))->first();
+        $apt->status = 0;
+        $apt->save();
+        return redirect('/panel/apartments');
     }
 
     public function logout(Request $request){

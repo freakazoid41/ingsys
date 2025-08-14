@@ -1,11 +1,17 @@
 <script>
 import { useEventDataStore } from '@/stores/events';
+import Plib from '@/lib/pickle';
+import Swal from 'sweetalert2';
+
+
 export default {
     components: {},
     setup() {
         // expose to template and other options API hooks
         return {
             useEventDataStore,
+            Plib,
+            Swal
         }
     },
     mounted(){
@@ -14,10 +20,38 @@ export default {
     },  
     data() {
         return {
+            plib            : new Plib(),
             taskDataStore   : useEventDataStore(),
             title           : document.querySelector('input[name="header"]').value
         };
     },
+    methods: {
+        closeApartment(){
+            Swal.fire({
+                customClass         : {
+                    confirmButton : "btn btn-secondary me-3",
+                    cancelButton  : "btn btn-secondary me-3"
+                },
+                title               : 'Apartman Kapatılacak ve Bütün Bilgileri Kaybolacaktır Eminmisiniz ?',
+                showLoaderOnConfirm : true,
+                allowOutsideClick   : false,
+                showCloseButton     : true,
+                confirmButtonText   : 'Kapat ve Seçim Yap',
+                cancelButtonText    : 'İptal',
+                showCancelButton    : true,
+                
+                willOpen : () => {
+                    
+                },
+                preConfirm : async () => {
+                    window.location.href = '/closeapartment';
+                }
+            });
+                
+
+            
+        }  
+    }
 }
 </script>
 
@@ -193,6 +227,7 @@ export default {
                     </a> 
                     <a href="#" class="dropdown-item"> <i class="ph ph-currency-circle-dollar"></i> Billing </a> 
                     <a href="#" class="dropdown-item"> <i class="ph ph-gear"></i> Preferences </a> -->
+                    <a href="javascript:;" v-on:click="closeApartment" class="dropdown-item"> <i class="ph ph-pencil-slash text-body-emphasis"></i> Apartmanı Kapat </a>
                     <a href="/panel/apartments" class="dropdown-item"> <i class="ph ph-buildings text-body-emphasis"></i> Apartman Seçimi </a>
                     <a href="/logout" class="dropdown-item"> <i class="ph ph-sign-out"></i> {{ $t('top.logout') }} </a> 
                 </div>

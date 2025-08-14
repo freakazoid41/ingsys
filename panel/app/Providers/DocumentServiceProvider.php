@@ -298,9 +298,10 @@ class DocumentServiceProvider extends ServiceProvider
                                                     FROM sys_con_entities as se
                                                         inner join sys_con_ops as so on so.id = se.conn_id 
                                                         inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-target-form'  and so.main_id = d.id)  as  main_attr from documents as d
-                                                        inner join sys_options as sp on sp.id = d.type_id
-                                                            where sp.op_key = 'op-doc-target'"),
+                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-target-form'  and so.main_id = d.id)  as  main_attr 
+                                            from documents as d
+                                                inner join sys_options as sp on sp.id = d.type_id
+                                            where sp.op_key = 'op-doc-target' and d.grp_code='".session('grp_code')."'"),
             'flats'  => DB::select("SELECT d.qnid as id,(SELECT      json_group_array(
                                                             json_object(
                                                                 'Key',se.entity_tag,
@@ -310,9 +311,10 @@ class DocumentServiceProvider extends ServiceProvider
                                                     FROM sys_con_entities as se
                                                         inner join sys_con_ops as so on so.id = se.conn_id 
                                                         inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-flat-form'  and so.main_id = d.id)  as  main_attr from documents as d
-                                                        inner join sys_options as sp on sp.id = d.type_id
-                                                            where sp.op_key = 'op-doc-flat'"),
+                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-flat-form'  and so.main_id = d.id)  as  main_attr 
+                                        from documents as d
+                                            inner join sys_options as sp on sp.id = d.type_id
+                                        where sp.op_key = 'op-doc-flat' and d.grp_code='".session('grp_code')."'"),
             'currencies' => Sys_options::where('group_key','op-cur-types')->get(),
         ];
     }
