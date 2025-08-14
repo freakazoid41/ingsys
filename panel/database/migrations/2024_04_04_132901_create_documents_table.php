@@ -38,6 +38,9 @@ return new class extends Migration
             $table->timestamp('ending_at')->nullable();
             
             $table->timestamps();
+
+            //example column index code
+            //$table->index(['account_id', 'created_at']);
         });
     }
 
