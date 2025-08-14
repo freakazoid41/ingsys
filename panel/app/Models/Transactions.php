@@ -38,7 +38,7 @@ class Transactions extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            $post->grp_code = session('grp_code');
+            $post->grp_code = session('grp_code') ?? 'op-apt-1';
             // add other column as well
         });
 

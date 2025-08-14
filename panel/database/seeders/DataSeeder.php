@@ -37,7 +37,7 @@ class DataSeeder extends Seeder
                 );
 
                 $res = (new DocumentServiceProvider())->registerContent(0,$data,[]);
-
+                //print_r($res);
                 print_r("$b-".($i+1).' Added..'.PHP_EOL);
             }
         }
