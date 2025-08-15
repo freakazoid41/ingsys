@@ -32,6 +32,9 @@ return new class extends Migration
             $table->uuid('qnid')->nullable();
             
             $table->timestamps();
+
+            $table->index(['grp_code','period','target_id'],'transindex_1');
+            $table->index(['target_id'],'transindex_2');
         });
     }
 

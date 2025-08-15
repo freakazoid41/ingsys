@@ -38,7 +38,7 @@ return new class extends Migration
             $table->timestamp('ending_at')->nullable();
             
             $table->timestamps();
-
+            $table->index(['grp_code'],'docindex_1');
             //example column index code
             //$table->index(['account_id', 'created_at']);
         });

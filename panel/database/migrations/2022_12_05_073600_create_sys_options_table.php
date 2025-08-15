@@ -27,6 +27,8 @@ return new class extends Migration
             $table->string('description',250)->default('-');
             $table->string('icon',50)->default('-');
             $table->timestamps();
+
+            $table->index(['group_key'],'sys_options_1');
         });
 
     }

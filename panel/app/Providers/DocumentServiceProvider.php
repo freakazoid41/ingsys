@@ -453,7 +453,7 @@ class DocumentServiceProvider extends ServiceProvider
                     $trans = new Transactions();
                     $trans->target_id = $data['flat_id'] ?? $data['account_id'];  // can be add from both listing pages.. 
                     $trans->type_id   = Sys_options::where('op_key','doc_acc_other')->first()->id;
-                    $trans->note      = $data['note'];
+                    $trans->note      = $data['note'] ?? '-';
                     $trans->amount    = $data['amount'];
                     $trans->cur_id    = $cur;
                     $trans->rel_id    = 0;

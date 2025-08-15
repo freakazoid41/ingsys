@@ -155,7 +155,13 @@ class ReportServiceProvider extends ServiceProvider
                                     i.grp_code = '".session('grp_code')."' and
                                     sp.op_key   = 'op-doc-flat' and 
                                     $monthlySql = 0";
+                //$startTime = microtime(true);
                 $data = DB::select($sql);
+                //$endTime = microtime(true);
+                //$executionTime = $endTime - $startTime;
+                //$formattedTime = number_format($executionTime, 3, '.', '');
+                //echo "Execution time: " . $formattedTime . " seconds";
+                //die;
                 break;
             case 'updatedmeeting':
                 $sql = "select  (SELECT     json_group_array(

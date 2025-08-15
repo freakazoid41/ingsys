@@ -20,6 +20,8 @@ return new class extends Migration
             $table->integer('sub_type_id')->default(0);
             $table->string('description',300)->default('-');
             $table->timestamps();
+
+            $table->index(['conn_id','main_id'],'sys_con_ops_1');
         });
     }
 
