@@ -697,7 +697,6 @@ if(!function_exists('displayDates')){
 }
 
 if(!function_exists('noInject')){
-    
     function noInject($kelime) {
         $kelime = str_replace("'","''",$kelime);
         $kelime = str_replace("--","_",$kelime);
