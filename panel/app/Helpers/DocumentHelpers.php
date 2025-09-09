@@ -600,6 +600,60 @@ if(!function_exists('uploadFile')){
 
         return $fileRsp;
     }
+
+    function compressAndEncodeImage($imageUrl, $quality = 75) {
+        try {
+            // Resmi URL'den al
+            $imageData = file_get_contents($imageUrl);
+            if ($imageData === false) {
+                throw new Exception("Resim URL'den alınamadı.");
+            }
+
+            // Resmi belleğe yükle
+            $image = imagecreatefromstring($imageData);
+            if ($image === false) {
+                throw new Exception("Geçersiz resim formatı.");
+            }
+
+            // Çıktı için bir tampon oluştur
+            ob_start();
+            
+            // Resmin tipine göre sıkıştırma
+            $imageInfo = getimagesizefromstring($imageData);
+            $mime = $imageInfo['mime'];
+
+            switch ($mime) {
+                case 'image/jpeg':
+                    imagejpeg($image, null, $quality);
+                    break;
+                case 'image/png':
+                    // PNG için sıkıştırma seviyesi (0-9)
+                    $pngQuality = floor((100 - $quality) / 10);
+                    imagepng($image, null, $pngQuality);
+                    break;
+                case 'image/webp':
+                    imagewebp($image, null, $quality);
+                    break;
+                default:
+                    throw new Exception("Desteklenmeyen resim formatı: $mime");
+            }
+
+            // Tampondaki veriyi al
+            $compressedImage = ob_get_clean();
+            
+            // Belleği temizle
+            imagedestroy($image);
+
+            // Base64'e çevir
+            $base64 = base64_encode($compressedImage);
+            
+            // MIME türü ile birlikte Base64 stringini döndür
+            return "data:$mime;base64,$base64";
+
+        } catch (Exception $e) {
+            return "Hata: " . $e->getMessage();
+        }
+    }
 }
 
 if(!function_exists('displayDates')){
