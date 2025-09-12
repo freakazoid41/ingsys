@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.dataTables.css" />
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.0/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body class="musteri">  
+    <div class="app">
+        <div class="left-bar"><!-- small -->
+            <div class="left-bar-logo">
+                <img src="/assets/img/logo.svg" alt="" title="" />
+            </div>
+            <div class="left-bar-menu">
+                <ul class="menu">
+                    <li><a href="/admin/index.html" alt=""><kontent name="Menu1Icon"></kontent> Giriş</a></li>
+                    <li><a href="/admin/cari.html" alt=""><kontent name="Menu2Icon"></kontent> Cari Ekstre</a></li>
+                    <li><a href="/admin/mutabakat-listesi.html" alt="" class="active"><kontent name="Menu3Icon"></kontent> Mutabakat Listesi</a></li>
+                    <li><a href="/admin/imzali-mutabakat.html" alt=""><kontent name="Menu4Icon"></kontent> İmzalı Mutabakat Talepleri</a></li>
+                    <li><a href="" alt=""><kontent name="Menu5Icon"></kontent> Geçmiş Dönem Mutabakatlar</a></li>
+                    <li><a href="" alt=""><kontent name="Menu6Icon"></kontent> Hata Bildir</a></li>
+                    <li><a href="" alt=""><kontent name="Menu7Icon"></kontent> Kullanıcı Ayarları</a></li>
+                </ul>
+            </div>
+            <div class="left-bar-fast">
+                <div>
+                    <kontent name="Search"></kontent>
+                </div>
+                <div class="lang">
+                    <kontent name="Earth"></kontent>
+                    <kontent name="Down"></kontent>
+                </div>
+            </div>
+            <button class="menuToggle"><kontent name="Right"></kontent></button>
+        </div>
+        <div class="right-bar">
+            <div class="right-bar-header">
+                <div class="right-bar-header-head">
+                  <h1><b>Mutabakat Listesi</b></h1>  
+                  <div class="filter-button-list">
+                    <p>Tesisat No</p>
+                    <button class="active">TÜMÜ</button>
+                    <button>893256465</button>
+                    <button>893256465</button>
+                    <button>893256465</button>
+                </div>
+                </div>
+                <div class="right-bar-header-menu">
+                    <div class="vkn">
+                        <div class="vkn-no">
+                            <span>VKN :</span>
+                            8930525760
+                        </div>
+                        <div class="vkn-adress">
+                            <b>Cari Ünvan Bilgileri</b>
+                            <p>Ferko Signature, Büyükdere Caddesi No: 175 <br> Şişli 34394 İstanbul - Türkiye</p>
+                        </div>
+                    </div>
+                    <button class="mobileButton"><kontent name="MobileButton"></kontent></button>
+                </div>
+            </div>
+            <div class="carousel-table mt-4 footer-check">
+                <div class="table-col pt-0 pl-0 pr-0 pb-0">
+                    <div class="table-custom-filter mt-0">
+                        <div class="table-custom-filter-date ml-unset">
+                            <p>Tarih Aralığı</p>
+                            <div class="date-form">
+                                <label for="startDate">Başlangıç Tarihi:</label>
+                                <input type="text" id="startDate" placeholder="--.--.---">
+                                <span class="icon"><kontent name="DownFeth"></kontent></span>
+                            </div>
+                            <div class="date-form">
+                                <label for="endDate">Bitiş Tarihi:</label>
+                                <input type="text" id="endDate" placeholder="--.--.----">
+                                <span class="icon"><kontent name="DownFeth"></kontent></span>
+                            </div>
+                        </div>
+                        <div class="table-custom-filter-search ml-05">
+                            <kontent name="SearchFilter"></kontent>
+                            <input class="search-put" type="text" id="myInputTextField">
+                            <button>Sorgula <kontent name="Search"></kontent></button>
+                        </div>
+                        <div class="table-custom-filter-button-group ml-auto">
+                            <button class="export-excel b-12 red-popup"><kontent name="xClose"></kontent>Reddet</button>
+                            <button class="vkn b-12 success-popup"><kontent name="xCheck"></kontent>Onayla</button>
+                        </div>
+                    </div>
+                    <table id="myTable" class="display tableStyle4">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>TCKN</th>
+                                <th>ADI</th>
+                                <th>SOYADI</th>
+                                <th>MUTABAKAT TARİHİ</th>
+                                <th>BORÇ/ALACAK</th>
+                                <th>TUTAR</th>
+                                <th>ULUSAL PARA <br> BİRİMİ TUTARI</th>
+                                <th>PARA BİRİMİ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <div class="checkbox-theme">
+                                            <input type="checkbox" id="checkMeOut1"/>
+                                            <label for="checkMeOut1">
+                                            <svg viewBox="0,0,50,50">
+                                                <path d="M5 30 L 20 45 L 45 5"></path>
+                                            </svg>
+                                            </label>
+                                        </div>
+                                    </div> 
+                                </td>
+                                <td>9470255200</td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>- - - -</td>
+                                <td>30.06.2024</td>
+                                <td>ALACAK</td>
+                                <td>1.653.482,13</td>
+                                <td>1.653.482,13</td>
+                                <td>TRY</td>
+                            </tr> 
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <div class="checkbox-theme">
+                                            <input type="checkbox" id="checkMeOut2"/>
+                                            <label for="checkMeOut2">
+                                            <svg viewBox="0,0,50,50">
+                                                <path d="M5 30 L 20 45 L 45 5"></path>
+                                            </svg>
+                                            </label>
+                                        </div>
+                                    </div> 
+                                </td>
+                                <td>9470255200</td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>- - - -</td>
+                                <td>30.06.2024</td>
+                                <td>ALACAK</td>
+                                <td>1.653.482,13</td>
+                                <td>1.653.482,13</td>
+                                <td>TRY</td>
+                            </tr> 
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <div class="checkbox-theme">
+                                            <input type="checkbox" id="checkMeOut3"/>
+                                            <label for="checkMeOut3">
+                                            <svg viewBox="0,0,50,50">
+                                                <path d="M5 30 L 20 45 L 45 5"></path>
+                                            </svg>
+                                            </label>
+                                        </div>
+                                    </div> 
+                                </td>
+                                <td>9470255200</td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>- - - -</td>
+                                <td>30.06.2024</td>
+                                <td>ALACAK</td>
+                                <td>1.653.482,13</td>
+                                <td>1.653.482,13</td>
+                                <td>TRY</td>
+                            </tr> 
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <div class="checkbox-theme">
+                                            <input type="checkbox" id="checkMeOut4"/>
+                                            <label for="checkMeOut4">
+                                            <svg viewBox="0,0,50,50">
+                                                <path d="M5 30 L 20 45 L 45 5"></path>
+                                            </svg>
+                                            </label>
+                                        </div>
+                                    </div> 
+                                </td>
+                                <td>9470255200</td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>- - - -</td>
+                                <td>30.06.2024</td>
+                                <td>ALACAK</td>
+                                <td>1.653.482,13</td>
+                                <td>1.653.482,13</td>
+                                <td>TRY</td>
+                            </tr> 
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <div class="checkbox-theme">
+                                            <input type="checkbox" id="checkMeOut5"/>
+                                            <label for="checkMeOut5">
+                                            <svg viewBox="0,0,50,50">
+                                                <path d="M5 30 L 20 45 L 45 5"></path>
+                                            </svg>
+                                            </label>
+                                        </div>
+                                    </div> 
+                                </td>
+                                <td>9470255200</td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>- - - -</td>
+                                <td>30.06.2024</td>
+                                <td>ALACAK</td>
+                                <td>1.653.482,13</td>
+                                <td>1.653.482,13</td>
+                                <td>TRY</td>
+                            </tr> 
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <div class="checkbox-theme">
+                                            <input type="checkbox" id="checkMeOut6"/>
+                                            <label for="checkMeOut6">
+                                            <svg viewBox="0,0,50,50">
+                                                <path d="M5 30 L 20 45 L 45 5"></path>
+                                            </svg>
+                                            </label>
+                                        </div>
+                                    </div> 
+                                </td>
+                                <td>9470255200</td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>- - - -</td>
+                                <td>30.06.2024</td>
+                                <td>ALACAK</td>
+                                <td>1.653.482,13</td>
+                                <td>1.653.482,13</td>
+                                <td>TRY</td>
+                            </tr> 
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <div class="checkbox-theme">
+                                            <input type="checkbox" id="checkMeOut7"/>
+                                            <label for="checkMeOut7">
+                                            <svg viewBox="0,0,50,50">
+                                                <path d="M5 30 L 20 45 L 45 5"></path>
+                                            </svg>
+                                            </label>
+                                        </div>
+                                    </div> 
+                                </td>
+                                <td>9470255200</td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>- - - -</td>
+                                <td>30.06.2024</td>
+                                <td>ALACAK</td>
+                                <td>1.653.482,13</td>
+                                <td>1.653.482,13</td>
+                                <td>TRY</td>
+                            </tr> 
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <div class="checkbox-theme">
+                                            <input type="checkbox" id="checkMeOut8"/>
+                                            <label for="checkMeOut8">
+                                            <svg viewBox="0,0,50,50">
+                                                <path d="M5 30 L 20 45 L 45 5"></path>
+                                            </svg>
+                                            </label>
+                                        </div>
+                                    </div> 
+                                </td>
+                                <td>9470255200</td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>- - - -</td>
+                                <td>30.06.2024</td>
+                                <td>ALACAK</td>
+                                <td>1.653.482,13</td>
+                                <td>1.653.482,13</td>
+                                <td>TRY</td>
+                            </tr>                       
+                        </tbody>
+                    </table>
+                    <div class="table-footer">
+                        <button><kontent name="buttonEye"></kontent>Açık Faturaları Göster</button>
+                        <button>Excel’e Aktar</button>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <div class="kontent-popup mtbk-red approval-popup d-none">
+        <div class="kontent-popup-main">
+            <button class="kontent-popup-main-close"><kontent name="PopupClose"></kontent></button>
+            <div class="step-1">
+                <h3>Reddedilecek Mutabakat<br>Bilgisi</h3>
+                <div class="kontent-popup-main-row">
+                    <div class="kontent-popup-main-col">
+                        <div class="approval-popup-color-main">
+                            <table>
+                                <tr>
+                                    <td><b>Şirket Kodu</b></td>
+                                    <td>1000</td>
+                                </tr>
+                                <tr>
+                                    <td><b>İşlem Tarihi</b></td>
+                                    <td>22.06.2023</td>
+                                </tr>
+                                <tr>
+                                    <td><b>TCKN</b></td>
+                                    <td>9470255200</td>
+                                </tr>
+                                <tr>
+                                    <td><b>Unvan</b></td>
+                                    <td>NAKKAŞTEPE GAYRİMENKUL YATIRIMLARI</td>
+                                </tr>
+                                <tr>
+                                    <td><b>İşlem Açıklaması</b></td>
+                                    <td>Enerji Bedeli Borcu</td>
+                                </tr>
+                                <tr>
+                                    <td><b>Borç</b></td>
+                                    <td>1.093.305,4</td>
+                                </tr>
+                                <tr>
+                                    <td><b>Alacak</b></td>
+                                    <td>- - - - - - -</td>
+                                </tr>
+                                <tr>
+                                    <td><b>Bakiye</b></td>
+                                    <td>1.093.305,4</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <p class="desc-top">Red işlemini onaylıyor musunuz?</p>
+                        <div class="button-group">
+                            <button class="popup-close">İptal</button>
+                            <button class="outline step-con"><kontent name="xCheck"></kontent>Onayla</button>
+                        </div>
+                    </div>  
+                </div> 
+            </div>
+            <div class="step-2 d-none">
+                <div class="kontent-popup-main-row">
+                    <div class="kontent-popup-main-col text-center">
+                        <p class="lead-info"><kontent name="circInfo"></kontent>Bilgilendirme</p>
+                        <p class="mt-5">Ret işleminiz tamamlanmıştır. <br><br>Mutabık olduğunuz bakiye bilgisini içeren cari ekstrenizi excel formatında<br> <a href="">mutabakat.aydem@aydemenerji.com.tr</a> mail adresine iletmenizi rica ederiz.</p>
+                        <div class="button-group mt-5">
+                            <button class="popup-close">Tamam</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="kontent-popup mtbk-success approval-popup d-none">
+        <div class="kontent-popup-main">
+            <button class="kontent-popup-main-close"><kontent name="PopupClose"></kontent></button>
+            <div class="kontent-popup-main-row">
+                <div class="kontent-popup-main-col text-center">
+                    <div class="success-icon"><kontent name="PopSuccess"></kontent></div>
+                    <p>Onaylandı!</p>
+                    <div class="button-group mt-5">
+                        <button class="popup-close">Tamam</button>
+                    </div>
+                </div>  
+            </div> 
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/select/2.0.5/js/dataTables.select.js"></script>
+    <script src="https://cdn.datatables.net/select/2.0.5/js/select.dataTables.js"></script>
+    <script src="https://code.jquery.com/ui/1.14.0/jquery-ui.js"></script>
+    <script src="/assets/js/theme.js"></script>
+    <script src="/assets/js/icons.js"></script>
+
+    <script>
+        $(document).ready(function(){
+
+            $('.kontent-popup-main-close, .popup-close').on('click', function(){
+                $('.kontent-popup').addClass('d-none')
+            })
+
+            $('.red-popup').on('click', function(){
+                $('.mtbk-red').removeClass('d-none')
+            })
+
+            $('.success-popup').on('click', function(){
+                $('.mtbk-success').removeClass('d-none')
+            })
+
+            $('.step-con').on('click', function(){
+                $('.approval-popup .step-1').addClass('d-none')
+                $('.approval-popup .step-2').removeClass('d-none')
+            })
+
+            $( "#startDate" ).datepicker();
+            $( "#startDate" ).datepicker( "option", "dateFormat", "dd.mm.yy");
+            $( "#endDate" ).datepicker();
+            $( "#endDate" ).datepicker( "option", "dateFormat", "dd.mm.yy");
+        })
+
+        $(document).ready( function () {
+            const options = {    
+                responsive: false,
+                language : {
+                    "info": "_TOTAL_ kayıttan _START_ - _END_ arası gösteriliyor.",
+                },
+                "columnDefs": [{
+                    "orderable": false,
+                    "className": 'details-control',
+                    "targets": 0
+                }],
+                "order": [[1, 'asc']]
+            }
+
+            const Table1 = $('#myTable').DataTable(options);
+
+         
+
+            
+            $('#myInputTextField').keyup(function(){
+                Table1.search($(this).val()).draw() ;
+            })
+
+            $('#myTable').on('change', '.checkbox-theme input', function() {
+                $(this).parent().parent().parent().parent().toggleClass('active')
+            });
+
+            $('#startDate').change(function() {
+                    
+                $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                    let startDate = $('#startDate').val();
+                    let dateColumn = data[1];
+                    let parts = dateColumn.split('.');
+                    let rowDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    let startParts = startDate.split('.');
+                    let start = new Date(startParts[2], startParts[1] - 1, startParts[0]);
+                    if (rowDate >= start) {
+                        return true;
+                    }
+                    return false;
+                });
+                Table1.draw();
+            });
+            $('#endDate').change(function() {
+                    
+                $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                    let endDate = $('#endDate').val();
+                    let dateColumn = data[1];
+                    let parts = dateColumn.split('.');
+                    let rowDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    let endParts = endDate.split('.');
+                    let end = new Date(endParts[2], endParts[1] - 1, endParts[0]);
+                    if (rowDate <= end) {
+                        return true;
+                    }
+                    return false;
+                });
+                Table1.draw();
+            });
+        });
+    </script>
+</body>
+</html>

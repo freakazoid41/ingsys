@@ -1,0 +1,35 @@
+body{
+    width: 100%;
+    height: 100%;
+    font-family: 'Gilroy-Medium';
+
+    &.admin{
+        background-color: #F7F7F7;
+    }
+}
+.app{
+    display: flex;
+    gap: 81px;
+    padding-right: 74px;
+    @media(max-width:991px) {
+        padding-right: unset;
+    }
+}
+.ml-auto{
+    margin-left: auto!important;
+}
+.ml-unset{
+    margin-left: unset!important;
+}
+.ml-05{
+    margin-left: .5rem;
+}
+.pl-0{
+    padding-left: unset!important;
+}
+.pr-0{
+    padding-right: unset!important;
+}
+.pb-0{
+    padding-bottom: unset!important;
+}

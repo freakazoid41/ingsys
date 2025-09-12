@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.dataTables.css" />
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.0/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body class="admin">  
+    <div class="app">
+        <div class="left-bar small"><!-- small -->
+            <div class="left-bar-logo">
+                <img src="/assets/img/logo.svg" alt="" title="" />
+                <span>admin</span>
+            </div>
+            <div class="left-bar-menu">
+                <ul class="menu">
+                    <li><a href="/admin/index.html" alt="" class="active"><kontent name="Menu1Icon"></kontent> Giriş</a></li>
+                    <li><a href="/admin/cari.html" alt=""><kontent name="Menu2Icon"></kontent> Cari Ekstre</a></li>
+                    <li><a href="/admin/mutabakat-listesi.html" alt=""><kontent name="Menu3Icon"></kontent> Mutabakat Listesi</a></li>
+                    <li><a href="/admin/imzali-mutabakat.html" alt=""><kontent name="Menu4Icon"></kontent> İmzalı Mutabakat Talepleri</a></li>
+                    <li><a href="" alt=""><kontent name="Menu5Icon"></kontent> Geçmiş Dönem Mutabakatlar</a></li>
+                    <li><a href="" alt=""><kontent name="Menu6Icon"></kontent> Hata Bildir</a></li>
+                    <li><a href="" alt=""><kontent name="Menu7Icon"></kontent> Kullanıcı Ayarları</a></li>
+                </ul>
+            </div>
+            <div class="left-bar-fast">
+                <div>
+                    <kontent name="Search"></kontent>
+                </div>
+                <div class="lang">
+                    <kontent name="Earth"></kontent>
+                    <kontent name="Down"></kontent>
+                </div>
+            </div>
+            <button class="menuToggle"><kontent name="Right"></kontent></button>
+        </div>
+        <div class="right-bar">
+            <div class="right-bar-header">
+                <div class="right-bar-header-head">
+                  <h1><b>Mutabakat Listesi</b></h1>  
+                  <ul class="breadcrumb">
+                    <li><a href="" alt="">Anasayfa</a></li>
+                    <li>Mutabakat Listesi</li>
+                  </ul>
+                </div>
+                <div class="right-bar-header-menu">
+                    <button class="h-button notification"><kontent name="Notification"></kontent><span class="ntf"></span></button> 
+                    <a href="" alt="" class="h-button"><kontent name="Setting"></kontent></a> 
+                    <div class="user-management h-button">
+                        <button>
+                            <span><kontent name="HeaderUser"></kontent></span>
+                            <p>Erhan G. <small>Yetkili Kullanıcı</small></p>
+                        </button>
+                        <div class="user-management-detail">
+
+                        </div>
+                    </div>
+                    <a href="" alt="" class="h-button logout"><kontent name="Logout"></kontent></a>
+                    <button class="mobileButton"><kontent name="MobileButton"></kontent></button>
+                </div>
+            </div>
+            <div class="carousel-table mt-4">
+                <div class="carousel-col">
+                    <div class="card gradient-bg">
+                        <span class="icon"><kontent name="CalendarBig"></kontent></span>
+                        <a href="#" alt="">Cari Tarih Aralığı</a>
+                        <div class="filtered-date">
+                            <div class="date-form">
+                                <label for="startDate">Başlangıç Tarihi:</label>
+                                <input type="text" id="startDate" placeholder="--.--.---">
+                                <span class="icon"><kontent name="DownFeth"></kontent></span>
+                            </div>
+                            <div class="date-form">
+                                <label for="endDate">Bitiş Tarihi:</label>
+                                <input type="text" id="endDate" placeholder="--.--.----">
+                                <span class="icon"><kontent name="DownFeth"></kontent></span>
+                            </div>
+                        </div>
+                        <span class="arrow">Filrele <kontent name="CurRight"></kontent></span>
+                    </div>
+                    <div class="card purple-bg">
+                        <span class="icon"><kontent name="ClockBig"></kontent></span>
+                        <a href="#" alt="" class="stretched-link">Onay Bekleyenler</a>
+                        <p><span>73</span></p>
+                        <span class="arrow">Detay <kontent name="CurRight"></kontent></span>
+                    </div>
+                    <div class="card white-bg">
+                        <span class="icon"><kontent name="ApartmenBig"></kontent></span>
+                        <a href="#" alt="" class="stretched-link">Aktif Cari Firma</a>
+                        <p><span>25</span></p>
+                        <span class="arrow">Sayfaya git <kontent name="CurRight"></kontent></span>
+                    </div>
+                </div>
+                <div class="table-col">
+                    <div class="filter-button-list">
+                        <p>Tesisat No</p>
+                        <button class="active">TÜMÜ</button>
+                        <button>893256465</button>
+                        <button>893256465</button>
+                        <button>893256465</button>
+                        <button class="vkn"><kontent name="vknIcon"></kontent>VKN Listele</button>
+                        <kontent name="SearchFilter"></kontent>
+                    </div>
+                    <table id="myTable" class="display tableStyle3">
+                        <thead>
+                            <tr>
+                                <th><span><kontent name="Glyph"></kontent></span></th>
+                                <th>İŞLEM TÜRÜ</th>
+                                <th>CARİ NO</th>
+                                <th>ÜNVAN</th>
+                                <th>İŞLEM TARİHİ</th>
+                                <th>TUTAR</th>
+                                <th>BAKİYE</th>
+                                <th>DURUM</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border-right"><kontent name="TableDocument"></kontent></td>
+                                <td>Satış Faturası</td>
+                                <td><span class="ab">98374520343</span></td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>17.07.2024</td>
+                                <td><b>3.000</b>.00 ₺</td>
+                                <td><b>1.600</b>.00 ₺</td>
+                                <td><span class="status danger">Reddedildi</span></td>
+                            </tr> 
+                            <tr>
+                                <td><kontent name="TableDownload"></kontent></td>
+                                <td>Satış Faturası</td>
+                                <td><span class="ab">98374520343</span></td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>17.07.2024</td>
+                                <td><b>3.000</b>.00 ₺</td>
+                                <td><b>1.600</b>.00 ₺</td>
+                                <td><span class="status danger">Reddedildi</span></td>
+                            </tr> 
+                            <tr>
+                                <td><kontent name="TableDocument"></kontent></td>
+                                <td>Satış Faturası</td>
+                                <td><span class="ab">98374520343</span></td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>17.07.2024</td>
+                                <td><b>3.000</b>.00 ₺</td>
+                                <td><b>1.600</b>.00 ₺</td>
+                                <td><span class="status success">Onaylandı</span></td>
+                            </tr>   
+                            <tr>
+                                <td><kontent name="TableDocument"></kontent></td>
+                                <td>Satış Faturası</td>
+                                <td><span class="ab">98374520343</span></td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>17.07.2024</td>
+                                <td><b>3.000</b>.00 ₺</td>
+                                <td><b>1.600</b>.00 ₺</td>
+                                <td><span class="status success">Onaylandı</span></td>
+                            </tr>
+                            <tr>
+                                <td><kontent name="TableDocument"></kontent></td>
+                                <td>Satış Faturası</td>
+                                <td><span class="ab">98374520343</span></td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>17.07.2024</td>
+                                <td><b>3.000</b>.00 ₺</td>
+                                <td><b>1.600</b>.00 ₺</td>
+                                <td><span class="status success">Onaylandı</span></td>
+                            </tr>   
+                            <tr>
+                                <td><kontent name="TableDocument"></kontent></td>
+                                <td>Satış Faturası</td>
+                                <td><span class="ab">98374520343</span></td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>17.07.2024</td>
+                                <td><b>3.000</b>.00 ₺</td>
+                                <td><b>1.600</b>.00 ₺</td>
+                                <td><span class="status danger">Reddedildi</span></td>
+                            </tr> 
+                            <tr>
+                                <td><kontent name="TableDocument"></kontent></td>
+                                <td>Satış Faturası</td>
+                                <td><span class="ab">98374520343</span></td>
+                                <td>SAMSUN PİLİÇ SANAYİ ANONİM ŞİRK</td>
+                                <td>17.07.2024</td>
+                                <td><b>3.000</b>.00 ₺</td>
+                                <td><b>1.600</b>.00 ₺</td>
+                                <td><span class="status danger">Reddedildi</span></td>
+                            </tr>                        
+                        </tbody>
+                    </table>
+                    <div class="table-footer">
+                        <button><kontent name="buttonEye"></kontent>Açık Faturaları Göster</button>
+                        <button>Excel’e Aktar</button>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="kontent-popup">
+            <div class="kontent-popup-main">
+                <button class="kontent-popup-main-close"><kontent name="PopupClose"></kontent></button>
+                <div class="step-1 ">
+                    <h3>İşlem Başlat</h3>
+                    <div class="kontent-popup-main-row">
+                        <div class="kontent-popup-main-col">
+                            <div class="button-group">
+                                <select name="" id="">
+                                    <option value="">Ocak 2024</option>
+                                    <option value="">Ocak 2024</option>
+                                    <option value="">Ocak 2024</option>
+                                </select>
+                                <button class="submit-button mtbkt-toggle">MUTABAKAT GETİR</button>
+                            </div>
+                            <div class="price-detail">
+                                <p class="futured"><kontent name="PopupPriceFutured"></kontent><span class="detail">Kalan Bakiye</span> <span class="price"><b>4.000</b>.00 ₺</span></p>
+                                <p><span class="detail">Yapılacak Tahsilat</span> <span class="price"><b>4.000</b>.00 ₺</span></p>
+                                <p class="total"><span class="detail">Toplam Tutar</span> <span class="price"><b>4.000</b>.00 ₺</span></p>
+                            </div>
+                            <div class="letter">
+                                <h4>Mutabakat Mektubu Talebi</h4>
+                                <div class="letter-main">
+                                    <div class="file-upload-wrapper" data-text="Dosya yükleme">
+                                        <input name="file-upload-field" type="file" class="file-upload-field" value="">
+                                    </div>
+                                </div>
+                                <div class="form-check">
+                                    <div class="checkbox-theme">
+                                        <input type="checkbox" id="eimza"/>
+                                        <label for="eimza">
+                                        <svg viewBox="0,0,50,50">
+                                            <path d="M5 30 L 20 45 L 45 5"></path>
+                                        </svg>
+                                        </label>
+                                    </div>
+                                    <label class="form-check-label" for="eimza">Dökümanı e-imza ile imzala</label>
+                                </div>
+                                <div class="button-group submit">
+                                    <button class="step-res1">Onayla <kontent name="BoldCheck"></kontent></button>
+                                    <button class="refusal">RET</button>
+                                </div>
+                            </div>
+                        </div>  
+                        <div class="kontent-popup-main-col mtbkt-main d-none">
+                            <div class="mt-list">
+                                <h4>Mutabakat Mektubu</h4>
+                                <ul>
+                                    <li><kontent name="Adobe"></kontent> Mutabakat_mektup_22032023 <a href="" alt="" class="ml-auto"><kontent name="Eye2"></kontent></a><a href="" alt=""><kontent name="Download2"></kontent></a></li>
+                                    <li><kontent name="Adobe"></kontent> Mutabakat_mektup_22032023 <a href="" alt="" class="ml-auto"><kontent name="Eye2"></kontent></a><a href="" alt=""><kontent name="Download2"></kontent></a></li>
+                                    <li><kontent name="Adobe"></kontent> Mutabakat_mektup_22032023 <a href="" alt="" class="ml-auto"><kontent name="Eye2"></kontent></a><a href="" alt=""><kontent name="Download2"></kontent></a></li>
+                                    <li><kontent name="Adobe"></kontent> Mutabakat_mektup_22032023 <a href="" alt="" class="ml-auto"><kontent name="Eye2"></kontent></a><a href="" alt=""><kontent name="Download2"></kontent></a></li>
+                                </ul>
+                            </div>
+                        </div> 
+                    </div> 
+                </div>
+                <div class="step-2 d-none">
+                    <h3>Mutabakat<br>Yükleme Sistemi</h3>
+                    <div class="kontent-popup-main-row">
+                        <div class="kontent-popup-main-col">
+                            <div class="mb-3 form-line">
+                                <input type="text" class="form-control w-100" id="phone-put" placeholder="Lütfen Giriniz">
+                                <label for="phone-put" class="form-label">Şirket VKN/TCKN No</label>
+                            </div>
+                            <div class="mb-3 mt-4 form-line">
+                                <textarea rows="3" name="" class="form-control w-100" id="phone-put" placeholder="Lütfen Giriniz"></textarea>
+                                <label for="phone-put" class="form-label">Açıklama</label>
+                            </div>
+                            <div class="letter-main-big letter">
+                                <div class="file-upload-wrapper" data-text="Dosya yükleme">
+                                    <input name="file-upload-field" id="pdfFile" type="file" class="file-upload-field" value="">
+                                    <label for="">Dosyayı buraya sürükleyerek<br>yükleyebilirsiniz.</label>
+                                </div>
+                            </div>
+                            <div class="button-group submit mt-3">
+                                <button class="step-res2">Mutabakat yükle <kontent name="BoldCheck"></kontent></button>
+                            </div>
+                            <a href="" alt="" class="help-con">Yükleme sorunu mu yaşıyorsunuz?</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="step-3 d-none">
+                    <h3>Mutabakat<br>Yükleme Sistemi</h3>
+                    <div class="kontent-popup-main-row">
+                        <div class="kontent-popup-main-col">
+                            <div class="pdf-view">
+                                <canvas id="pdfCanvas"></canvas>
+                                <div class="pdf-view-detail">
+                                    <kontent name="PdfColor"></kontent>
+                                    <p>
+                                        Yüklenen Dosya
+                                        <span id="pdfName"></span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="button-group submit">
+                                <button>Mutabıkız <kontent name="BoldCheck"></kontent></button>
+                                <button class="refusal mw-100">Mutabık değiliz <kontent name="PopupTimes"></kontent></button>
+                            </div>
+                        </div>
+                    </div>    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/select/2.0.5/js/dataTables.select.js"></script>
+    <script src="https://cdn.datatables.net/select/2.0.5/js/select.dataTables.js"></script>
+    <script src="https://code.jquery.com/ui/1.14.0/jquery-ui.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
+    <script src="/assets/js/theme.js"></script>
+    <script src="/assets/js/icons.js"></script>
+
+    <script>
+        $(document).ready(function(){
+
+            $( "#startDate" ).datepicker();
+            $( "#startDate" ).datepicker( "option", "dateFormat", "dd.mm.yy");
+            $( "#endDate" ).datepicker();
+            $( "#endDate" ).datepicker( "option", "dateFormat", "dd.mm.yy");
+        })
+
+        $(".letter").on("change", ".file-upload-field", function(){ 
+            $(this).parent(".file-upload-wrapper").attr("data-text",$(this).val().replace(/.*(\/|\\)/, '') );
+        });
+
+        $('.kontent-popup-main-close').on('click', function(){
+            $('.kontent-popup').addClass('d-none')
+        })
+
+        $('.mtbkt-toggle').on('click', function(){
+            $('.mtbkt-main').toggleClass('d-none')
+        })
+
+        $('.step-res1').on('click', function(){
+            $('.step-1').addClass('d-none')
+            $('.step-2').removeClass('d-none')
+        })
+        $('.step-res2').on('click', function(){
+            $('.step-1').addClass('d-none')
+            $('.step-2').addClass('d-none')
+            $('.step-3').removeClass('d-none')
+        })
+
+        $(document).ready(function () {
+            $('#pdfFile').on('change', function (e) {
+                var file = e.target.files[0];
+                if (file.type !== "application/pdf") {
+                    alert("Lütfen bir PDF dosyası yükleyin.");
+                    return;
+                }
+
+                $('#pdfName').text(file.name);
+
+                var reader = new FileReader();
+                reader.onload = function (event) {
+                    var pdfData = new Uint8Array(event.target.result);
+
+                    pdfjsLib.getDocument(pdfData).promise.then(function (pdf) {
+                    
+                        pdf.getPage(1).then(function (page) {
+                            var scale = 1.5;
+                            var viewport = page.getViewport({ scale: scale });
+
+                            var canvas = $('#pdfCanvas')[0];
+                            var context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+
+                            var renderContext = {
+                                canvasContext: context,
+                                viewport: viewport
+                            };
+                            page.render(renderContext);
+                        });
+                    });
+                };
+
+                reader.readAsArrayBuffer(file);
+            });
+        });
+
+
+
+
+        $(document).ready( function () {
+            const options = {    
+                language : {
+                    "info": "_TOTAL_ kayıttan _START_ - _END_ arası gösteriliyor.",
+                },
+                "columnDefs": [{
+                    "orderable": false,
+                    "className": 'details-control',
+                    "targets": 0
+                }],
+                "order": [[1, 'asc']]
+            }
+
+            function format(d) {
+                const eye = `<svg xmlns="http://www.w3.org/2000/svg" width="21.003" height="14.002" viewBox="0 0 21.003 14.002"><path d="M20.876,10.969A11.7,11.7,0,0,0,10.5,4.5,11.7,11.7,0,0,0,.127,10.969a1.18,1.18,0,0,0,0,1.064A11.7,11.7,0,0,0,10.5,18.5a11.7,11.7,0,0,0,10.375-6.469A1.18,1.18,0,0,0,20.876,10.969ZM10.5,16.752A5.251,5.251,0,1,1,15.752,11.5,5.251,5.251,0,0,1,10.5,16.752ZM10.5,8a3.475,3.475,0,0,0-.923.138,1.745,1.745,0,0,1-2.439,2.439A3.492,3.492,0,1,0,10.5,8Z" transform="translate(0 -4.5)" fill="#ba1d6b"/></svg>`
+                const arrow = `<svg xmlns="http://www.w3.org/2000/svg" width="14.118" height="16" viewBox="0 0 14.118 16"><path d="M20.118,16.353,14.471,22l-1.336-1.336,3.379-3.369H6V6H7.882v9.412h8.631l-3.379-3.369,1.336-1.336Z" transform="translate(-6 -6)" fill="#ba1d6b"/></svg>`
+                return `<div class="child-button-group">
+                            <button>${eye} Rapor Görüntüle</button>
+                            <button class="price">${arrow} Bakiye Getir</button>
+                        </div>`;
+            }
+            const Table1 = $('#myTable').DataTable(options);
+
+            $('#myTable tbody').on('click', 'tr', function () {
+                var tr = $(this);
+                var row = Table1.row(tr);
+
+                Table1.rows().every(function () {
+                    var currentRow = this;
+                    if (currentRow.child.isShown() && currentRow != row) {
+                        $('.space').remove()
+                        currentRow.child.hide();
+                        $(currentRow.node()).removeClass('shown');
+                        
+                    }
+                });
+                var newRow = $('<tr class="space space-'+row[0][0]+'"></tr>');
+                var newRow2 = $('<tr class="space 1space-'+row[0][0]+'"></tr>');
+                if (!row.child.isShown()) {
+                    row.child(format(row.data())).show();
+                    if(!$('.1space-'+row[0][0]).length){
+                        tr.before(newRow2)
+                    }
+                    tr.addClass('shown');
+                    if(!$('.space-'+row[0][0]).length){
+                        newRow.insertAfter('tr[data-dt-row="'+row[0][0]+'"]')
+                    }
+                    
+                } else {
+                    $('.space').remove()
+                    row.child.hide();
+                    
+                    tr.removeClass('shown');
+                }
+            });
+
+            
+            $('#myInputTextField').keyup(function(){
+                Table1.search($(this).val()).draw() ;
+            })
+
+            $('#startDate').change(function() {
+                    
+                $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                    let startDate = $('#startDate').val();
+                    let dateColumn = data[1];
+                    let parts = dateColumn.split('.');
+                    let rowDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    let startParts = startDate.split('.');
+                    let start = new Date(startParts[2], startParts[1] - 1, startParts[0]);
+                    if (rowDate >= start) {
+                        return true;
+                    }
+                    return false;
+                });
+                Table1.draw();
+            });
+            $('#endDate').change(function() {
+                    
+                $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                    let endDate = $('#endDate').val();
+                    let dateColumn = data[1];
+                    let parts = dateColumn.split('.');
+                    let rowDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    let endParts = endDate.split('.');
+                    let end = new Date(endParts[2], endParts[1] - 1, endParts[0]);
+                    if (rowDate <= end) {
+                        return true;
+                    }
+                    return false;
+                });
+                Table1.draw();
+            });
+        });
+    </script>
+</body>
+</html>
