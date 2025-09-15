@@ -5,8 +5,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
 
 
-Route::get('/',                   [AuthController::class, 'login'])->name('login');
-Route::get('/logout',                  [AuthController::class, 'logout'])->name('logout');
+Route::get('/',          [AuthController::class, 'login'])->name('login');
+Route::get('/logout',    [AuthController::class, 'logout'])->name('logout');
 
 //test hook for permissions
 /*Route::get('/panel/users', function (){
@@ -44,6 +44,9 @@ Route::middleware(['auth:sanctum'])
 
         Route::get('/panel',$auth)->name('app');
         Route::get('/panel/{any}',$auth)->where('any', '^((?!api).)*');
+
+        Route::get('/talkpanel',fn() => view('talkapp'))->name('talkapp');
+        Route::get('/talkpanel/{any}',fn() => view('talkapp'))->where('any', '^((?!api).)*');
 
         /*Route::get('/client',$auth)->name('app');
         Route::get('/client/{any}',$auth)->where('any', '^((?!api).)*');*/

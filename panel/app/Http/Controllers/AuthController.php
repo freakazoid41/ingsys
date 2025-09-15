@@ -25,7 +25,7 @@ class AuthController extends Controller
     public function login(){
         
         //list all cards on here
-        return view('login', [
+        return view('talklogin', [
             'scripts' => [
                 //'/system/global/swal.js'
             ],
@@ -119,7 +119,7 @@ class AuthController extends Controller
                 //session(['is_client' => $person->client_id != '0']);
                 session(['person_id' => $person->id]);
                 session(['email'     => $request->email]);
-                session(['ptitle'    => $person->name.' '.$person->surname]);
+                session(['ptitle'    => $person->name/*.' '.$person->surname*/]);
                 session(['grp_code'  => '-']);
 
             }
@@ -205,6 +205,14 @@ class AuthController extends Controller
         return response()->json([
             'success' => empty($user),
         ],200);
+    }
+
+    public function getSession(){
+        $data = ['type_key','email','ptitle'];
+        foreach($data as $d){
+            $data[$d] = session($d);
+        }
+        return $data;
     }
 
     //this method will set current apartment
