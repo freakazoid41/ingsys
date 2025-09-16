@@ -1,12 +1,15 @@
 <script>
     import Plib from '@/lib/pickle';
     import TalkFab from '@/components/talk/TalkFab.vue';
-    import { Datepicker } from 'vanillajs-datepicker';
+    import flatpickr from "flatpickr";
+    import 'flatpickr/dist/flatpickr.css';
     import VMasker  from 'vanilla-masker';
-    import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
     import { wTrans } from 'laravel-vue-i18n';
     import { useFormDataStore } from '@/stores/formdata'
     import { useAuthStore } from '@/stores/auth';
+    import QRCode from 'qrcode';
+    import Swal from 'sweetalert2';
+
 
     export default {
         props: {
@@ -21,13 +24,12 @@
             TalkFab,
         },
         setup() {
-            Object.assign(Datepicker.locales, tr);
+            //Object.assign(Datepicker.locales, tr);
             
             // expose to template and other options API hooks
             return {
                 useFormDataStore,
-                Datepicker,
-                
+                flatpickr,
                 Plib,
                 VMasker,
                 wTrans,
@@ -40,14 +42,171 @@
                 'USD' : '&#36;',
                 'EUR' : '&#8364;'
             };
-            
             return {
                 authStore       : useAuthStore(),
                 formDataStore   : useFormDataStore(),
                 plib            : new Plib(),
                 ftypes          : this.formtypes.split(','),
                 forms           : {
-                    'op-doc-inventory-form' : {
+                    'op-doc-visit-form' : {
+                        hasLang          : ['tr','en','de'],
+                        showRemoveButton : false,
+                        oncreated        : (id) => {},
+                        fields           : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'name',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Ad',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'surname',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Soyad',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask : 'phone',
+                                        name  : 'phone',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Telefon',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'email',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'E-Posta',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'select',
+                                        col   : 6,
+                                        options  :  [],
+                                        setOptions  : async () => {
+                                            return this.formDataStore.facilities.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.title,
+                                                };
+                                            });
+                                        },
+                                        name  : 'facility',
+                                        label : 'Tesis',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item','date-input'],
+                                        type  : 'text',
+                                        isDate : true,
+                                        hasTime : true,
+                                        name  : 'entered_at',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Giriş',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item','date-input'],
+                                        type  : 'text',
+                                        isDate : true,
+                                        hasTime : true,
+                                        name  : 'exited_at',
+                                        col      : 3,
+                                        required : false,
+                                        label : 'Çıkış',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'answers',
+                                col      : 12,
+                                required : false,
+                                label : 'Test Cevapları (json)',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_3',
+                                label : 'Verilen Ekipmanlar',
+                                group_key : 'givengroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'select',
+                                        col   : 6,
+                                        options  :  [],
+                                        setOptions  : async () => {
+                                            return this.formDataStore.inventories.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.title,
+                                                };
+                                            });
+                                        },
+                                        name  : 'inventory',
+                                        label : 'Ekipman',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        name  : 'description',
+                                        label : 'Açıklama',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_3',
+                                label : 'Geri Alınan Ekipmanlar',
+                                group_key : 'revievedgroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'select',
+                                        col   : 6,
+                                        options : [],
+                                        setOptions  : async () => {
+                                            return this.formDataStore.inventories.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.title,
+                                                };
+                                            });
+                                        },
+                                        name  : 'inventory',
+                                        label : 'Ekipman',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        name  : 'description',
+                                        label : 'Açıklama',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
+                    },'op-doc-inventory-form' : {
+                        hasLang          : ['tr','en','de'],
                         showRemoveButton : false,
                         oncreated       : (id) => {},
                         fields          : [
@@ -61,50 +220,69 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'title',
-                                        col      : 4,
+                                        col      : 6,
                                         required : true,
                                         label : 'Envanter İsmi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'supervisor',
-                                        col      : 4,
-                                        required : true,
-                                        label : 'Zimmetli İsmi',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        name  : 'supervisor_phone',
-                                        col      : 4,
-                                        required : true,
-                                        isMasked : true,
-                                        mask  : 'phone', 
-                                        label : 'Zimmetli Numara',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'file',
-                                        name  : 'invoice',
+                                        name  : 'code',
                                         col      : 6,
                                         required : true,
-                                        label : 'Fatura',
+                                        label : 'Enventer Kodu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'file',
-                                        name  : 'view',
-                                        col      : 6,
-                                        required : true,
-                                        label : 'Görünüm',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    }
+                                    },
                                 ]
                             },
                         ]
-                    },
-                    'op-doc-calendar-form' : {
+                    },'op-doc-facility-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_4',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'title',
+                                        col      : 6,
+                                        required : true,
+                                        label : 'Tesis İsmi',
+                                        oninput : (e) => {
+                                            document.querySelector('input[name="qr_code"]').value =  btoa(encodeURIComponent(e.target.value.trim()));
+                                            document.querySelector('input[name="qr_code"]').dispatchEvent(new Event('input'));
+                                            this.submitDynamicChanges(e.target);
+                                        }
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'text',
+                                        name     : 'qr_code',
+                                        isMasked : true,
+                                        mask     : 'qrcode',
+                                        col      : 6,
+                                        required : true,
+                                        label    : 'QR Kodu',
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                    
+                                ]
+                            },
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'address',
+                                col      : 12,
+                                required : true,
+                                label : 'Adres',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            }
+                        ]
+                    },'op-doc-calendar-form' : {
                         showRemoveButton : false,
                         oncreated        : (id) => {},
                         fields           : [
@@ -576,6 +754,7 @@
                             }
                         ]
                     },'op-doc-flat-form' : {
+                        hasLang          : ['tr','en','de'],
                         showRemoveButton : false,
                         oncreated       : (id) => {},
                         fields          : [
@@ -838,13 +1017,22 @@
             }
         },
         mounted() {
-            this.ftypes.forEach(key => {
+            
+            this.ftypes.forEach(async key => {
                 const formData = this.formDataStore.formData?.[key] ?? undefined;
-                
+                /**get facilities and inventories if visit form */
+                if(key == 'op-doc-visit-form'){
+                    await this.formDataStore.setFacilitiesData();
+                    await this.formDataStore.setInventoriesData();
+                }
                 this.buildDynamicFForm(key,formData !== undefined ? Object.keys(formData)[0] : 'new-'+(new Date).getTime() ,formData !== undefined ? Object.values(formData)[0] : {});
             });
 
             this.formDataStore.setData({});
+
+            
+            
+            
         },
         methods: {
             formCallback() {
@@ -873,12 +1061,15 @@
                     default:
                         this.formData.dynamicF[tag+'**'+rowId].entities[name] = value;
                         if(el.type === 'checkbox') this.formData.dynamicF[tag+'**'+rowId].entities[name] = el.checked ? 1 : 0;
-                        if(el.classList.contains('date-input'))this.formData.dynamicF[tag+'**'+rowId].entities[name] = value.trim().split('/').reverse().join('-');
+                        if(el.classList.contains('date-input')){
+                            value = value.split(' ');
+                            this.formData.dynamicF[tag+'**'+rowId].entities[name] = value[0].split('/').reverse().join('-')+(value[1] ? ' '+value[1] : '' );
+                        } 
                         break;
                 }
             },
 
-            buildDynamicFForm(tag,dynamicId = 'new-'+(new Date).getTime(),data = {},selector = null){
+            async buildDynamicFForm(tag,dynamicId = 'new-'+(new Date).getTime(),data = {},selector = null){
                 const form   = this.forms[tag];
                 const rowId    = dynamicId;
                 const row    = document.createElement('div');
@@ -896,554 +1087,641 @@
                     row.classList.add('row');
                     target = document.querySelector(selector);
                 }
-                
-                for (let index = 0; index < form.fields.length; index++) {
-                    const fitem = form.fields[index];
+
+                if(form?.hasLang?.length > 0){
+                    const langList = document.createElement('ul');
+                    langList.classList.add('nav','nav-tabs');
+
+                    form?.hasLang.forEach((ln,i) => {
+                        const litem        = document.createElement('li');
+                        litem.classList.add('nav-item');
+                        litem.innerHTML    = '<a class="nav-link '+(i == 0 ? 'active' : '')+'" href="javascript:;">'+ln+'</a>';
+                        litem.dataset.lang = ln;
+                        litem.onclick = (e) => {
+                            document.querySelectorAll('.item-row').forEach(linp => {
+                                linp.hidden = ln !== linp.dataset.lang;
+                            });
+                            document.querySelectorAll('.nav-link').forEach(nl => nl.classList.remove('active'));
+                            
+                            litem.querySelector('a').classList.add('active');
+
+                        }
+                        langList.appendChild(litem);
+                    });
+
+                    const langRow = document.createElement('div');
+                    langRow.classList.add('row');
+                    langRow.appendChild(langList);
+
+                    rowSub.appendChild(langRow);
                     
-                    const itemRow = document.createElement('div');
-                    itemRow.classList.add('row','mt-3','mb-6','item-row');
-                    if(fitem?.rowClass !== undefined) itemRow.classList.add(...fitem?.rowClass);
-
-                    const inLabel   = document.createElement('label');
-                    inLabel.classList.add('form-label');
-                    if(fitem?.required) inLabel.classList.add('required');
-                    inLabel.innerHTML = fitem.label.length == 0 ? '<span> </span>' : fitem.label;
                     
-                    itemRow.appendChild(inLabel);
-
-                
-
-                    let input = null;
-
-                    const createInput = (attr,iDiv = null) => {
-                        if(iDiv == null){
-                            iDiv = document.createElement('div');
-                            iDiv.classList.add('col-lg-'+(attr.col ?? '12'),'d-flex');
-                        }
-                        
-
-                        const input          = document.createElement('input');
-                        input.type           = attr.type;
-                        input.name           = attr.name;
-                        input.dataset.rowId  = rowId;
-                        input.dataset.tag    = tag;
-                        input.placeholder    = attr?.placeholder ?? '';
-                        
-                        attr.element         = input;
-                        
-                        if(attr?.readOnly)                input.readOnly = attr.readOnly;
-                        if(attr.class !== undefined)      input.classList.add(...attr?.class);
-                        if(attr?.required !== undefined)  input.required = attr.required;
-                        if(attr?.hidden)                  input.hidden = attr.hidden;
-
-                        input.classList.add('form-item');
-                        
-                        input.oninput = (e) => attr.oninput(e);
-                        iDiv.appendChild(input);
-                       
-                        if(attr.type === 'file'){
-                            input.setAttribute('accept',attr?.accept);
-                            input.dataset.fileId = 0;
-                                
-                            const fileData = JSON.parse(data?.entities?.[attr.name] ?? '{}');
-                            if(fileData?.description){
-                               
-                                input.dataset.fileId = fileData.id;
-                                input.dataset.file = 'Dosya Mevcut';
-
-
-                                const showB     = document.createElement('span');
-                                showB.classList.add('input-group-text','rmv-btn-form');
-                                showB.innerHTML = '<i class="ph ph-file-arrow-up fs-5 text-body-emphasis"></i>';
-                                showB.onclick   = (e) => {
-                                    window.open('/order-file/'+fileData?.description);
-                                };
-                                iDiv.prepend(showB);
-                                /*const small = document.createElement('a');
-                                small.href  = '#';
-                                small.innerHTML = '<a href="/order-file/'+fileData?.description+'" target="_BLANK"><small>Mevcut Dosya İçin Tıklayınız..</small></a>';
-                                small.classList.add('text-danger','mt-2','d-block');
-                                
-                                iDiv.parentNode.appendChild(small);*/
-
-                                
-                                // Simulate file inserted for native labels
-                                const myFileContent = ['My File Content'];
-                                const myFile = new File(myFileContent, fileData?.description);
-
-                                // Create a data transfer object. Similar to what you get from a `drop` event as `event.dataTransfer`
-                                const dataTransfer = new DataTransfer();
-
-                                // Add your file to the file list of the object
-                                dataTransfer.items.add(myFile);
-
-                                // Save the file list to a new variable
-                                const fileList = dataTransfer.files;
-                                input.files = fileList;
-                            }
-                        }else {
-                            input.value          = data?.entities?.[attr.name] ?? '';
-                        } 
-
-                        if(attr?.isMasked){
-                            input.dataset.mask    = attr.mask;
-                            switch (attr.mask) {
-                                case 'money':
-                                    input.style.textAlign = 'right';
-                                    //for non float values
-                                    //if(!input.value.includes('.')) input.value += '.00';
-                                    new VMasker(input).maskMoney({
-                                        // Decimal precision -> "90"
-                                        precision: 2,
-                                        // Decimal separator -> ",90"
-                                        separator: ',',
-                                        // Number delimiter -> "12.345.678"
-                                        delimiter: '.',
-                                    });
-                                    break;
-                                case 'phone':
-                                    new  VMasker(input).maskPattern("(999) 999-99-99");
-                                    break;
-                                case 'custom':
-                                    new  VMasker(input).maskPattern(attr.format);
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-
-                        //do this after is added to div because lightpick component is not seeing before
-                        if(attr?.isDate == true){
-                            input.readOnly    = true;
-                            input.placeholder = 'Tarih Seçiniz';
-                            input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
-                            const datepicker = new Datepicker(input, {
-                                format     : 'dd/mm/yyyy',
-                                language   : 'tr',
-                            }); 
-                            input.readOnly = true;
-                            //just for this date component
-                            input.addEventListener('changeDate',e => e.target.dispatchEvent(new Event('input')));
-
-                        }
-
-                        if(attr?.isMonth == true){
-                            input.readOnly    = true;
-                            input.placeholder = 'Tarih Seçiniz';
-                            input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
-                            const datepicker = new Datepicker(input, {
-                                language   : 'tr',
-                                pickLevel  : 1, // for month select
-                                format     : 'mm/yyyy',
-                            }); 
-                            //just for this date component
-                            input.addEventListener('changeDate',e => e.target.dispatchEvent(new Event('input')));
-
-                        }
-                        
-                        return iDiv;
-                    };
-
-                    const createSelect = (attr,iDiv = null) => {
-                        if(iDiv == null){
-                            iDiv = document.createElement('div');
-                            iDiv.classList.add('col-lg-'+(attr.col ?? '12'),'d-flex');
-                        }
-
-
-                        const input = document.createElement('select');
-                        input.classList.add('form-item','form-select');
-                        //input.dataset.fileId = fileId;
-                        input.dataset.rowId  = rowId;
-                        input.dataset.tag    = tag;
-                        input.name           = attr.name;
-
-                        if(attr?.class !== undefined)    input.classList.add(...attr?.class);
-                        
-                        if(attr?.required !== undefined) input.required = attr.required;
-                        
-                        let op      = document.createElement('option');
-                        op.value    = '';
-                        op.text     = attr?.placeholder ?? 'Seçiniz';
-                        op.selected = true;
-
-                        input.appendChild(op);
-
-                        for (let index = 0; index < attr?.options?.length; index++) {
-                            op = document.createElement('option');
-                            op.text  = attr.options[index].text;
-                            op.value = attr.options[index].value;
-                            if(attr.options[index].key !== undefined) op.dataset.key = attr.options[index].key;
-                            if(attr.options[index].limit !== undefined) op.dataset.limit = attr.options[index].limit;
-
-                            if(data?.entities?.[attr.name] !== undefined && data?.entities?.[attr.name] == op.value) op.selected = true;
-
-                            input.appendChild(op);
-                        }
-
-                        input.oninput = (e) => attr.oninput(e);
-
-                        iDiv.appendChild(input);
-                        //NiceSelect.bind(input, attr?.isSearchable ? {searchable : true} : {});
-
-                        return iDiv;
-                    };
-                    
-                    let inputDiv = document.createElement('div');
-                    inputDiv.classList.add('col-lg-12');
-                    switch (fitem.type) {   
-                        case 'sub':
-                        case 'multiple':
-                            this.keyLock = [];
-                            //this method will add sub elements
-                            const addElements = (nameTag = null) => {
-                                
-                                //addional item row element
-                                const row = document.createElement('div');
-                                row.classList.add('row','mb-2','multiple-item-row');
-                                
-                                inputDiv.appendChild(row);
-
-                                //row components
-                                fitem.subs.forEach(element => {
-                                    const el = {...element};
-                                    //create unique nametag
-                                    if(nameTag == null) nameTag = (new Date).getTime()+'-'+inputDiv.querySelectorAll("[name^="+el.name+"]").length;
-                                    
-                                    const rowElm = document.createElement('div');
-                                    rowElm.classList.add('col-md-'+el.col);
-                                    //item label
-                                    if(el?.label !== undefined && el?.label != ''){
-                                        let lbl   = document.createElement('label');
-                                        lbl.classList.add('form-label','mt-5');
-                                        
-                                        lbl.innerHTML = el.label;
-                                        
-                                        rowElm.appendChild(lbl);
-                                    }
-
-                                    const inpGroup = document.createElement('div');
-                                    inpGroup.classList.add('input-group');
-                                    rowElm.appendChild(inpGroup);
-
-                                    el.name = fitem.type == 'multiple' ? el.name+'**'+(fitem.group_key ?? 'unalign-group-key') + '**'+ nameTag : el.name;
-                                    
-                                    if(el.type == 'select'){
-                                        createSelect(el,rowElm);
-                                    }else{
-                                        createInput(el,inpGroup);
-                                    }
-
-                                    if(el.isDate){
-                                        const calInp     = document.createElement('span');
-                                        calInp.classList.add('input-group-text');
-                                        calInp.innerHTML = '<i class="ph ph-calendar fs-5 text-body-emphasis"></i>';
-                                        calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
-                                        inpGroup.appendChild(calInp);
-                                    }
-
-                                    if(el.isMasked){
-                                        const calInp     = document.createElement('span');
-                                        switch (el.mask) {
-                                            case 'phone':
-                                                
-                                                calInp.classList.add('input-group-text');
-                                                calInp.innerHTML = '<i class="fa fa-phone fs-5 text-body-emphasis"></i>';
-                                                calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
-                                                inpGroup.appendChild(calInp);
-                                                break;
-                                            case 'money':
-                                                calInp.classList.add('input-group-text');
-                                                calInp.innerHTML = el?.moneyIcon ?? '';
-                                                calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
-                                                if(el?.moneyIcon) inpGroup.appendChild(calInp);
-                                                break
-                                            default:
-                                                break;
-                                        }
-                                    }
-
-                                    if(fitem.type == 'multiple' && fitem.subs[fitem.subs.length-1] === element){
-                                        const rmvInp     = document.createElement('span');
-                                        rmvInp.classList.add('input-group-text','rmv-btn-form');
-                                        rmvInp.innerHTML = '<i class="fa fa-trash fs-5 selectable-icon"></i>';
-                                        rmvInp.onclick   = (e) => {
-                                            document.querySelectorAll('[name*="'+nameTag.split('-')[0]+'"]').forEach(rmElm => {
-                                                this.formData.removedData.push({
-                                                    id    : rowId,
-                                                    type  : 'entity',
-                                                    key   : rmElm.name
-                                                });
-                                                delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[rmElm.name];
-                                            });
-                                            row.remove();
-
-                                            
-                                            /*this.formData.removedData.push({
-                                                id    : rowId,
-                                                type  : 'entity',
-                                                key   : el.name
-                                            });
-
-                                            delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[el.name];
-                                            rowElm.remove();*/
-                                        };
-                                        inpGroup.appendChild(rmvInp);
-                                    }/*else{
-                                        inpGroup.classList.remove('input-group');
-                                        console.log(fitem.type);
-                                        //if(fitem.type == 'sub') inpGroup.classList.remove('input-group');
-                                    }*/
-
-                                    
-                                   
-                                    row.appendChild(rowElm);
-                                });
-
-                                row.dataset.tag = (fitem.group_key ?? 'unalign-group-key')+'-'+nameTag.split('-')[0]+'-row';
-                                this.keyLock.push(row.dataset.tag);
-                            };
-
-                            inLabel.classList.add('d-flex','justify-content-between','align-items-center');
-                            
-                            const iconDiv = document.createElement('div');
-                            iconDiv.classList.add('align-items-center','bg-highlight','d-flex','flex-shrink-0','mb-2','h-10','justify-content-center','rounded-circle');
-                            
-                            if(fitem.type === 'multiple'){
-                                itemRow.classList.add('border','rounded','p-2');
-                                //inputDiv.classList.add('border','rounded','p-2');
-                                const icon = document.createElement('i');
-                                icon.classList.add('fa','selectable-icon','fa-plus-circle','fs-2');
-                                icon.id = tag+'-'+(fitem.group_key ?? 'unalign-group-key')+'-subadd-'+rowId;
-                                iconDiv.appendChild(icon);
-
-                                icon.onclick   = () => addElements();
-                                
-                                inLabel.appendChild(iconDiv);
-                                addElements();
-                                //here create elements if data is exist on given data with object nametag
-                                if(data?.entities){
-                                    Object.keys(data?.entities).forEach(key => {
-                                        if(key.includes('**'+fitem.group_key) && !this.keyLock.includes(fitem.group_key+'-'+key.split('**')[2].split('-')[0]+'-row')){
-                                            addElements(key.split('**')[2]);
-                                        } 
-                                    });
-                                }
-                                
-                            } 
-                        
-                            //here check multiple input values if exist
-                            /*if(data?.entities !== undefined){
-                                const keys = {};
-                                Object.keys(data?.entities).filter(key => {
-                                    if(key.includes(fitem.group_key)){
-                                        keys[key.split('**')[1]+'**'+key.split('**')[2]] = true
-                                    }
-                                });
-
-                                //foreach grouıp key item add row
-                                for(let key in keys) addElements();
-                            }else{
-                                addElements();
-                            }*/
-                            
-                            if(fitem.type == 'sub') addElements();
-                            itemRow.appendChild(inputDiv);
-                            
-                            break;
-                        case 'section':
-                            labelDiv.remove();
-                            itemRow.appendChild(document.createElement('hr'));
-                            break;
-                        case 'yesno':
-                            
-                            const key = (new Date()).getTime();
-                            inputDiv = document.createElement('div');
-                            inputDiv.classList.add('col-lg-6','d-flex','flex-direction-row','justify-content-between');
-                            
-                            let checkDiv = document.createElement('div');
-                            checkDiv.classList.add('form-check','form-check-custom','form-check-solid','form-check-lg');
-
-                            
-                            input = document.createElement('input');
-                            input.type = 'radio';
-                            input.oninput = (e) => fitem.oninput(e);
-                            //input.dataset.fileId = fileId;
-                            input.dataset.rowId  = rowId;
-                            input.dataset.tag    = tag;
-                            input.value          = 1;
-                            input.name           = fitem.name+'*-*'+key;
-                            input.classList.add('form-check-input','valid');
-
-
-                            if( tag == 'op-doc-per-kanaat' && 
-                                fitem.name == 'canWork' && 
-                                document.querySelectorAll("[type='radio'][data-tag='"+tag+"'][name^='"+fitem.name+"']").length == 0 ){
-                                input.checked = true;
-                            }
-
-
-                            if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 1) input.checked = true;
-
-                            checkDiv.appendChild(input);
-
-                            let label  = document.createElement('label');
-                            label.innerHTML = 'Evet';
-                            label.classList.add('form-check-label');
-
-                            checkDiv.appendChild(label);
-                        
-                            inputDiv.appendChild(checkDiv);
-                            
-                            checkDiv = document.createElement('div');
-                            checkDiv.classList.add('form-check','form-check-custom','form-check-solid','form-check-lg');
-
-                            input = document.createElement('input');
-                            input.type = 'radio';
-                            input.oninput = (e) => fitem.oninput(e);
-                            //input.dataset.fileId = fileId;
-                            input.dataset.rowId  = rowId;
-                            input.dataset.tag    = tag;
-                            input.name           = fitem.name+'*-*'+key;
-                            input.value          = 0;
-                            input.classList.add('form-check-input','valid');
-
-                            
-                            if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 0) input.checked = true;
-
-                            checkDiv.appendChild(input);
-
-                            label  = document.createElement('label');
-                            label.innerHTML = 'Hayır';
-                            label.classList.add('form-check-label');
-                            
-                            if( tag == 'op-doc-per-kanaat' && 
-                                fitem.name == 'canWork' && 
-                                document.querySelectorAll("[type='radio'][data-tag='"+tag+"'][name^='"+fitem.name+"']").length == 0 &&
-                                (data?.entities[fitem.name] === undefined || data.entities[fitem.name] != 0)){
-                                input.hidden = true;
-                                label.hidden = true;
-                            }
-
-
-                            checkDiv.appendChild(label);
-                        
-                            inputDiv.appendChild(checkDiv);
-
-                            itemRow.appendChild(inputDiv);
-
-
-                            break;
-                        case 'textarea':
-                            input                = document.createElement('textarea');
-                            
-                            input.name           = fitem.name;
-                            //input.dataset.fileId = fileId;
-                            input.dataset.rowId  = rowId;
-                            input.dataset.tag    = tag;
-                            input.classList.add(...fitem.class);
-                            if(fitem?.required !== undefined) input.required = fitem.required;
-
-                        
-                            if(fitem?.hidden) input.hidden = fitem.hidden;
-
-                            input.classList.add(...fitem.class);
-                            input.oninput = (e) => fitem.oninput(e);
-
-                            inputDiv.appendChild(input);
-                            
-                            if(data?.entities?.[fitem.name] !== undefined){
-                                input.value = data.entities[fitem.name];
-                                input.innerHTML = data.entities[fitem.name];
-                            }
-
-                            itemRow.appendChild(inputDiv);
-
-                            break;
-                        case 'button':
-                            input           = document.createElement('button');
-                            input.innerHTML = fitem.value;
-                            input.type      = 'button';
-                            input.classList.add(...fitem.class);
-                            inputDiv.appendChild(input);
-                            itemRow.appendChild(inputDiv);
-                            break;
-                        case 'select':
-                            itemRow.appendChild(createSelect(fitem));
-                            break;
-                        case 'switch':
-                            inputDiv = document.createElement('div');
-                            inputDiv.classList.add('col-lg-4','fv-row','d-flex','align-items-center');
-                            
-                            const switchDiv = document.createElement('div');
-                            switchDiv.classList.add('form-check','form-switch','form-check-custom','form-check-solid','me-10');
-
-                            const lbl  = document.createElement('label');
-                            lbl.classList.add('switch');
-
-                            input = document.createElement('input');
-                            input.type = 'checkbox';
-                            input.oninput = (e) => fitem.oninput(e);
-                            //input.dataset.fileId = fileId;
-                            input.dataset.rowId  = rowId;
-                            input.dataset.tag    = tag;
-                            input.name           = fitem.name;
-                            if(fitem?.required !== undefined) input.required = fitem.required;
-
-                            if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 1) input.checked = true;
-
-                            lbl.appendChild(input);
-                            const sspan = document.createElement('span');
-                            sspan.classList.add('slider','round');
-                            lbl.appendChild(sspan);
-
-
-                            switchDiv.appendChild(lbl);
-                            inputDiv.appendChild(switchDiv);
-                            itemRow.appendChild(inputDiv);
-
-                            if(fitem?.sub){
-                                for (let index = 0; index < fitem.sub.length; index++) {
-                                    const subItem = fitem.sub[index];
-
-                                    inputDiv = document.createElement('div');
-                                    inputDiv.classList.add('col-lg-4','fv-row');
-
-                                    const subDiv = document.createElement('div');
-                                    subDiv.classList.add('d-flex','align-items-center','gap-3');
-
-                                    const sinput = document.createElement('input');
-                                    sinput.type = subItem.type;
-                                    sinput.name = subItem.name;
-                                    sinput.placeholder = subItem.placeholder;
-                                    //sinput.dataset.fileId = fileId
-                                    sinput.dataset.rowId  = rowId;
-                                    sinput.dataset.tag    = tag;
-                                    sinput.oninput = (e) => subItem.oninput(e);
-                                    sinput.classList.add(...subItem.class);
-                                    if(fitem?.required !== undefined) sinput.required = fitem.required;
-
-                                    if(data?.entities[subItem.name] !== undefined) sinput.value = data.entities[subItem.name];
-
-                                    if(input.checked) sinput.style.visibility = 'visible';
-
-                                    subDiv.appendChild(sinput);
-
-
-                                    inputDiv.appendChild(subDiv);
-                                    itemRow.appendChild(inputDiv);
-                                }
-                            }
-                            break;
-                        default:
-                            itemRow.appendChild(createInput(fitem,inputDiv));
-                            break;
+                }
+
+                /**
+                 * this sub method will create input for given attributes to given element
+                 */
+                const createInput = (attr,iDiv = null) => {
+                    if(iDiv == null){
+                        iDiv = document.createElement('div');
+                        iDiv.classList.add('col-lg-'+(attr.col ?? '12'),'d-flex');
                     }
                     
-                    
 
-                    rowSub.appendChild(itemRow);
+                    const input          = document.createElement('input');
+                    input.type           = attr.type;
+                    input.name           = attr.name;
+                    input.dataset.rowId  = rowId;
+                    input.dataset.tag    = tag;
+                    input.placeholder    = attr?.placeholder ?? '';
+                    
+                    attr.element         = input;
+                    
+                    if(attr?.readOnly)                input.readOnly = attr.readOnly;
+                    if(attr.class !== undefined)      input.classList.add(...attr?.class);
+                    if(attr?.required !== undefined)  input.required = attr.required;
+                    if(attr?.hidden)                  input.hidden = attr.hidden;
+
+                    input.classList.add('form-item');
+                    
+                    input.oninput = (e) => attr.oninput(e);
+                    iDiv.appendChild(input);
+                    
+                    if(attr.type === 'file'){
+                        input.setAttribute('accept',attr?.accept);
+                        input.dataset.fileId = 0;
+                            
+                        const fileData = JSON.parse(data?.entities?.[attr.name] ?? '{}');
+                        if(fileData?.description){
+                            
+                            input.dataset.fileId = fileData.id;
+                            input.dataset.file = 'Dosya Mevcut';
+
+
+                            const showB     = document.createElement('span');
+                            showB.classList.add('input-group-text','rmv-btn-form');
+                            showB.innerHTML = '<i class="ph ph-file-arrow-up fs-5 text-body-emphasis"></i>';
+                            showB.onclick   = (e) => {
+                                window.open('/order-file/'+fileData?.description);
+                            };
+                            iDiv.prepend(showB);
+                            
+                            // Simulate file inserted for native labels
+                            const myFileContent = ['My File Content'];
+                            const myFile = new File(myFileContent, fileData?.description);
+
+                            // Create a data transfer object. Similar to what you get from a `drop` event as `event.dataTransfer`
+                            const dataTransfer = new DataTransfer();
+
+                            // Add your file to the file list of the object
+                            dataTransfer.items.add(myFile);
+
+                            // Save the file list to a new variable
+                            const fileList = dataTransfer.files;
+                            input.files = fileList;
+                        }
+                    }else {
+                        input.value          = data?.entities?.[attr.name] ?? '';
+                    } 
+
+                    if(attr?.isMasked){
+                        input.dataset.mask    = attr.mask;
+                        switch (attr.mask) {
+                            case 'money':
+                                input.style.textAlign = 'right';
+                                //for non float values
+                                //if(!input.value.includes('.')) input.value += '.00';
+                                new VMasker(input).maskMoney({
+                                    // Decimal precision -> "90"
+                                    precision: 2,
+                                    // Decimal separator -> ",90"
+                                    separator: ',',
+                                    // Number delimiter -> "12.345.678"
+                                    delimiter: '.',
+                                });
+                                break;
+                            case 'phone':
+                                new  VMasker(input).maskPattern("(999) 999-99-99");
+                                break;
+                            case 'custom':
+                                new  VMasker(input).maskPattern(attr.format);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
+                    //do this after is added to div because lightpick component is not seeing before
+                    if(attr?.isDate == true){
+                        input.readOnly    = true;
+                        input.placeholder = 'Tarih Seçiniz';
+                        if(data?.entities?.[attr.name] !== undefined){
+                            if(attr?.hasTime){
+                                let dvalue        = data?.entities?.[attr.name].split(' ');
+                                input.value       = dvalue[0].split('-').reverse().join('/')+' '+dvalue[1];
+                            }else{
+                                input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
+                            }
+                            
+                        }
+                        
+
+                        flatpickr(input, {
+                            ...(attr?.hasTime ? {enableTime: true,dateFormat: 'd/m/Y H:i',} : {dateFormat: 'd/m/Y'})
+                        });
+                        
+                        input.readOnly = true;
+                        //just for this date component
+                        input.addEventListener('changeDate',e => e.target.dispatchEvent(new Event('input')));
+
+                    }
+
+                    if(attr?.isMonth == true){
+                        input.readOnly    = true;
+                        input.placeholder = 'Tarih Seçiniz';
+                        input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
+                        flatpickr(input, {
+                            plugins: [new monthSelectPlugin({
+                                shorthand: true, //defaults to false
+                                dateFormat: "m/y", //defaults to "F Y"
+                            })]
+                        });
+                        //just for this date component
+                        input.addEventListener('changeDate',e => e.target.dispatchEvent(new Event('input')));
+
+                    }
+                    
+                    return iDiv;
+                };
+
+                /**
+                 * this sub method will create select for given attributes to given element
+                 */
+                const createSelect = async (attr,iDiv = null) => {
+                    if(iDiv == null){
+                        iDiv = document.createElement('div');
+                        iDiv.classList.add('col-lg-'+(attr.col ?? '12'),'d-flex');
+                    }
+
+
+                    const input = document.createElement('select');
+                    input.classList.add('form-item','form-select');
+                    //input.dataset.fileId = fileId;
+                    input.dataset.rowId  = rowId;
+                    input.dataset.tag    = tag;
+                    input.name           = attr.name;
+
+                    if(attr?.class !== undefined)    input.classList.add(...attr?.class);
+                    
+                    if(attr?.required !== undefined) input.required = attr.required;
+                    
+                    let op      = document.createElement('option');
+                    op.value    = '';
+                    op.text     = attr?.placeholder ?? 'Seçiniz';
+                    op.selected = true;
+
+                    input.appendChild(op);
+
+                    if(attr?.setOptions !== undefined){
+                        attr.options = await  attr.setOptions();
+                    }
+
+                    for (let index = 0; index < attr?.options?.length; index++) {
+                        op = document.createElement('option');
+                        op.text  = attr.options[index].text;
+                        op.value = attr.options[index].value;
+                        if(attr.options[index].key !== undefined) op.dataset.key = attr.options[index].key;
+                        if(attr.options[index].limit !== undefined) op.dataset.limit = attr.options[index].limit;
+
+                        if(data?.entities?.[attr.name] !== undefined && data?.entities?.[attr.name] == op.value) op.selected = true;
+
+                        input.appendChild(op);
+                    }
+
+                    input.oninput = (e) => attr.oninput(e);
+
+                    iDiv.appendChild(input);
+                    //NiceSelect.bind(input, attr?.isSearchable ? {searchable : true} : {});
+
+                    return iDiv;
+                };
+
+                /**
+                 * this sub method will create all elements for form
+                 */
+                const createElements = async (langTag = 'tr') => {
+                    for (let index = 0; index < form.fields.length; index++) {
+                        const fitem = form.fields[index];
+
+                        //add lang tag to name
+                        if(fitem?.name) fitem.name           = fitem.name + (langTag !== 'tr' ? '--lng--'+langTag : '');
+
+                        const itemRow = document.createElement('div');
+                        itemRow.classList.add('row','mt-3','mb-6','item-row');
+                        itemRow.dataset.lang = langTag;
+                        if(fitem?.rowClass !== undefined) itemRow.classList.add(...fitem?.rowClass);
+
+                        const inLabel   = document.createElement('label');
+                        inLabel.classList.add('form-label');
+                        if(fitem?.required) inLabel.classList.add('required');
+                        inLabel.innerHTML = fitem.label.trim().length == 0 ? '<span> </span>' : (fitem.label + ' '+(langTag !== 'tr' ? '('+langTag+')' : ''));
+                        
+                        itemRow.appendChild(inLabel);
+
+                        let input = null;
+
+                        let inputDiv = document.createElement('div');
+                        inputDiv.classList.add('col-lg-12');
+                        switch (fitem.type) {   
+                            case 'sub':
+                            case 'multiple':
+                                this.keyLock = [];
+                                //this method will add sub elements
+                                const addElements = async (nameTag = null) => {
+                                    
+                                    //addional item row element
+                                    const row = document.createElement('div');
+                                    row.classList.add('row','mb-2','multiple-item-row');
+                                    
+                                    inputDiv.appendChild(row);
+
+                                    //row components
+                                    for(let i = 0;i < fitem.subs.length; i++){
+                                        const element = fitem.subs[i];
+                                        
+                                        const el = {...element};
+                                        el.name = el.name + (langTag !== 'tr' ? '--lng--'+langTag : '');
+                                        //create unique nametag
+                                        if(nameTag == null) nameTag = (new Date).getTime()+'-'+inputDiv.querySelectorAll("[name^="+el.name+"]").length;
+                                        
+                                        const rowElm = document.createElement('div');
+                                        rowElm.classList.add('col-md-'+el.col);
+                                        //item label
+                                        if(el?.label !== undefined && el?.label != ''){
+                                            let lbl   = document.createElement('label');
+                                            lbl.classList.add('form-label','mt-5');
+                                            
+                                            lbl.innerHTML = el.label + ' '+(langTag !== 'tr' ? '('+langTag+')' : '');
+                                            
+                                            rowElm.appendChild(lbl);
+                                        }
+
+                                        const inpGroup = document.createElement('div');
+                                        inpGroup.classList.add('input-group');
+                                        rowElm.appendChild(inpGroup);
+
+                                        el.name = fitem.type == 'multiple' ? el.name+'**'+(fitem.group_key ?? 'unalign-group-key') + '**'+ nameTag : el.name;
+                                        
+                                        if(el.type == 'select'){
+                                            await createSelect(el,rowElm);
+                                        }else{
+                                            createInput(el,inpGroup);
+                                        }
+
+                                        if(el.isDate){
+                                            const calInp     = document.createElement('span');
+                                            calInp.classList.add('input-group-text');
+                                            calInp.innerHTML = '<i class="fa fa-calendar fs-5 text-body-emphasis"></i>';
+                                            calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
+                                            inpGroup.appendChild(calInp);
+                                        }
+
+                                        if(el.isMasked){
+                                            const calInp     = document.createElement('span');
+                                            switch (el.mask) {
+                                                case 'phone':
+                                                    calInp.classList.add('input-group-text');
+                                                    calInp.innerHTML = '<i class="fa fa-phone fs-5 text-body-emphasis"></i>';
+                                                    calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
+                                                    inpGroup.appendChild(calInp);
+                                                    break;
+                                                case 'money':
+                                                    calInp.classList.add('input-group-text');
+                                                    calInp.innerHTML = el?.moneyIcon ?? '';
+                                                    calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
+                                                    if(el?.moneyIcon) inpGroup.appendChild(calInp);
+                                                    break;
+                                                case 'qrcode':
+                                                    calInp.classList.add('input-group-text');
+                                                    calInp.innerHTML = '<i class="fa fa-qrcode selectable-icon fs-5 text-body-emphasis"></i>';
+                                                    calInp.onclick = async () => {
+                                                        const data = await QRCode.toDataURL(inpGroup.querySelector('input').value.trim(),{
+                                                            quality : 1,
+                                                            width   : 1080
+                                                        });
+                                                        Swal.fire({
+                                                            confirmButtonText : 'İndir',
+                                                            showCloseButton   : true,
+                                                            imageUrl: data,
+                                                            imageHeight: 400,
+                                                            preConfirm : () => {
+                                                                const a = document.createElement('a');
+                                                                a.href = data;
+                                                                a.download = "output.png";
+                                                                document.body.appendChild(a);
+                                                                a.click();
+                                                                document.body.removeChild(a);
+                                                                return false;
+                                                            }
+                                                        });
+                                                    };
+                                                    inpGroup.appendChild(calInp);
+                                                    break;
+                                                default:
+                                                    break;
+                                            }
+                                        }
+
+                                        if(fitem.type == 'multiple' && fitem.subs[fitem.subs.length-1] === element){
+                                            const rmvInp     = document.createElement('span');
+                                            rmvInp.classList.add('input-group-text','rmv-btn-form');
+                                            rmvInp.innerHTML = '<i class="fa fa-trash fs-5 selectable-icon"></i>';
+                                            rmvInp.onclick   = (e) => {
+                                                document.querySelectorAll('[name*="'+nameTag.split('-')[0]+'"]').forEach(rmElm => {
+                                                    this.formData.removedData.push({
+                                                        id    : rowId,
+                                                        type  : 'entity',
+                                                        key   : rmElm.name
+                                                    });
+                                                    delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[rmElm.name];
+                                                });
+                                                row.remove();
+
+                                                
+                                                /*this.formData.removedData.push({
+                                                    id    : rowId,
+                                                    type  : 'entity',
+                                                    key   : el.name
+                                                });
+
+                                                delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[el.name];
+                                                rowElm.remove();*/
+                                            };
+                                            inpGroup.appendChild(rmvInp);
+                                        }/*else{
+                                            inpGroup.classList.remove('input-group');
+                                            console.log(fitem.type);
+                                            //if(fitem.type == 'sub') inpGroup.classList.remove('input-group');
+                                        }*/
+
+                                        
+                                    
+                                        row.appendChild(rowElm);
+                                    }
+
+                                    row.dataset.tag = (fitem.group_key ?? 'unalign-group-key')+'-'+nameTag.split('-')[0]+'-row';
+                                    this.keyLock.push(row.dataset.tag);
+                                };
+
+                                inLabel.classList.add('d-flex','justify-content-between','align-items-center');
+                                
+                                const iconDiv = document.createElement('div');
+                                iconDiv.classList.add('align-items-center','bg-highlight','d-flex','flex-shrink-0','mb-2','h-10','justify-content-center','rounded-circle');
+                                
+                                if(fitem.type === 'multiple'){
+                                    itemRow.classList.add('border','rounded','p-2');
+                                    //inputDiv.classList.add('border','rounded','p-2');
+                                    const icon = document.createElement('i');
+                                    icon.classList.add('fa','selectable-icon','fa-plus-circle','fs-2');
+                                    icon.id = tag+'-'+(fitem.group_key ?? 'unalign-group-key')+'-subadd-'+rowId;
+                                    iconDiv.appendChild(icon);
+
+                                    icon.onclick   = async () => await addElements();
+                                    
+                                    inLabel.appendChild(iconDiv);
+                                    await addElements();
+                                    //here create elements if data is exist on given data with object nametag
+                                    if(data?.entities){
+                                        for(let key in data?.entities) {
+                                            if(key.includes('**'+fitem.group_key) && !this.keyLock.includes(fitem.group_key+'-'+key.split('**')[2].split('-')[0]+'-row')){
+                                                await addElements(key.split('**')[2]);
+                                            } 
+                                        };
+                                    }
+                                    
+                                } 
+                            
+                                //here check multiple input values if exist
+                                /*if(data?.entities !== undefined){
+                                    const keys = {};
+                                    Object.keys(data?.entities).filter(key => {
+                                        if(key.includes(fitem.group_key)){
+                                            keys[key.split('**')[1]+'**'+key.split('**')[2]] = true
+                                        }
+                                    });
+
+                                    //foreach grouıp key item add row
+                                    for(let key in keys) addElements();
+                                }else{
+                                    addElements();
+                                }*/
+                                
+                                if(fitem.type == 'sub') addElements();
+                                itemRow.appendChild(inputDiv);
+                                
+                                break;
+                            case 'section':
+                                labelDiv.remove();
+                                itemRow.appendChild(document.createElement('hr'));
+                                break;
+                            case 'yesno':
+                                
+                                const key = (new Date()).getTime();
+                                inputDiv = document.createElement('div');
+                                inputDiv.classList.add('col-lg-6','d-flex','flex-direction-row','justify-content-between');
+                                
+                                let checkDiv = document.createElement('div');
+                                checkDiv.classList.add('form-check','form-check-custom','form-check-solid','form-check-lg');
+
+                                
+                                input = document.createElement('input');
+                                input.type = 'radio';
+                                input.oninput = (e) => fitem.oninput(e);
+                                //input.dataset.fileId = fileId;
+                                input.dataset.rowId  = rowId;
+                                input.dataset.tag    = tag;
+                                input.value          = 1;
+                                input.name           = fitem.name+'*-*'+key;
+                                input.classList.add('form-check-input','valid');
+
+
+                                if( tag == 'op-doc-per-kanaat' && 
+                                    fitem.name == 'canWork' && 
+                                    document.querySelectorAll("[type='radio'][data-tag='"+tag+"'][name^='"+fitem.name+"']").length == 0 ){
+                                    input.checked = true;
+                                }
+
+
+                                if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 1) input.checked = true;
+
+                                checkDiv.appendChild(input);
+
+                                let label  = document.createElement('label');
+                                label.innerHTML = 'Evet';
+                                label.classList.add('form-check-label');
+
+                                checkDiv.appendChild(label);
+                            
+                                inputDiv.appendChild(checkDiv);
+                                
+                                checkDiv = document.createElement('div');
+                                checkDiv.classList.add('form-check','form-check-custom','form-check-solid','form-check-lg');
+
+                                input = document.createElement('input');
+                                input.type = 'radio';
+                                input.oninput = (e) => fitem.oninput(e);
+                                //input.dataset.fileId = fileId;
+                                input.dataset.rowId  = rowId;
+                                input.dataset.tag    = tag;
+                                input.name           = fitem.name+'*-*'+key;
+                                input.value          = 0;
+                                input.classList.add('form-check-input','valid');
+
+                                
+                                if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 0) input.checked = true;
+
+                                checkDiv.appendChild(input);
+
+                                label  = document.createElement('label');
+                                label.innerHTML = 'Hayır';
+                                label.classList.add('form-check-label');
+                                
+                                if( tag == 'op-doc-per-kanaat' && 
+                                    fitem.name == 'canWork' && 
+                                    document.querySelectorAll("[type='radio'][data-tag='"+tag+"'][name^='"+fitem.name+"']").length == 0 &&
+                                    (data?.entities[fitem.name] === undefined || data.entities[fitem.name] != 0)){
+                                    input.hidden = true;
+                                    label.hidden = true;
+                                }
+
+
+                                checkDiv.appendChild(label);
+                            
+                                inputDiv.appendChild(checkDiv);
+
+                                itemRow.appendChild(inputDiv);
+
+
+                                break;
+                            case 'textarea':
+                                input                = document.createElement('textarea');
+                                input.name           = input.name + (langTag !== '' ? '**l**'+langTag : '');
+                                //input.dataset.fileId = fileId;
+                                input.dataset.rowId  = rowId;
+                                input.dataset.tag    = tag;
+                                input.classList.add(...fitem.class);
+                                if(fitem?.required !== undefined) input.required = fitem.required;
+
+                            
+                                if(fitem?.hidden) input.hidden = fitem.hidden;
+
+                                input.classList.add(...fitem.class);
+                                input.oninput = (e) => fitem.oninput(e);
+
+                                inputDiv.appendChild(input);
+                                
+                                if(data?.entities?.[fitem.name] !== undefined){
+                                    input.value = data.entities[fitem.name];
+                                    input.innerHTML = data.entities[fitem.name];
+                                }
+
+                                itemRow.appendChild(inputDiv);
+
+                                break;
+                            case 'button':
+                                input           = document.createElement('button');
+                                input.innerHTML = fitem.value;
+                                input.type      = 'button';
+                                input.classList.add(...fitem.class);
+                                inputDiv.appendChild(input);
+                                itemRow.appendChild(inputDiv);
+                                break;
+                            case 'select':
+                                itemRow.appendChild(createSelect(fitem));
+                                break;
+                            case 'switch':
+                                inputDiv = document.createElement('div');
+                                inputDiv.classList.add('col-lg-4','fv-row','d-flex','align-items-center');
+                                
+                                const switchDiv = document.createElement('div');
+                                switchDiv.classList.add('form-check','form-switch','form-check-custom','form-check-solid','me-10');
+
+                                const lbl  = document.createElement('label');
+                                lbl.classList.add('switch');
+
+                                input = document.createElement('input');
+                                input.type = 'checkbox';
+                                input.oninput = (e) => fitem.oninput(e);
+                                //input.dataset.fileId = fileId;
+                                input.dataset.rowId  = rowId;
+                                input.dataset.tag    = tag;
+                                input.name           = fitem.name;
+                                if(fitem?.required !== undefined) input.required = fitem.required;
+
+                                if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 1) input.checked = true;
+
+                                lbl.appendChild(input);
+                                const sspan = document.createElement('span');
+                                sspan.classList.add('slider','round');
+                                lbl.appendChild(sspan);
+
+
+                                switchDiv.appendChild(lbl);
+                                inputDiv.appendChild(switchDiv);
+                                itemRow.appendChild(inputDiv);
+
+                                if(fitem?.sub){
+                                    for (let index = 0; index < fitem.sub.length; index++) {
+                                        const subItem = fitem.sub[index];
+
+                                        inputDiv = document.createElement('div');
+                                        inputDiv.classList.add('col-lg-4','fv-row');
+
+                                        const subDiv = document.createElement('div');
+                                        subDiv.classList.add('d-flex','align-items-center','gap-3');
+
+                                        const sinput = document.createElement('input');
+                                        sinput.type = subItem.type;
+                                        sinput.name = subItem.name;
+                                        sinput.placeholder = subItem.placeholder;
+                                        //sinput.dataset.fileId = fileId
+                                        sinput.dataset.rowId  = rowId;
+                                        sinput.dataset.tag    = tag;
+                                        sinput.oninput = (e) => subItem.oninput(e);
+                                        sinput.classList.add(...subItem.class);
+                                        if(fitem?.required !== undefined) sinput.required = fitem.required;
+
+                                        if(data?.entities[subItem.name] !== undefined) sinput.value = data.entities[subItem.name];
+
+                                        if(input.checked) sinput.style.visibility = 'visible';
+
+                                        subDiv.appendChild(sinput);
+
+
+                                        inputDiv.appendChild(subDiv);
+                                        itemRow.appendChild(inputDiv);
+                                    }
+                                }
+                                break;
+                            default:
+                                itemRow.appendChild(createInput(fitem,inputDiv));
+                                break;
+                        }
+                        
+                        rowSub.appendChild(itemRow);
+                    }
                 }
+
+                //here integrate lang system
+                if(form?.hasLang?.length > 0){
+                    for(let i=0;i<form?.hasLang?.length;i++) {
+                        await createElements(form?.hasLang?.[i]);
+                        if(i != 0) rowSub.querySelectorAll('.item-row[data-lang="'+form?.hasLang?.[i]+'"]').forEach(linp => linp.hidden = true);
+                    };
+                }else{
+                    await createElements();
+                }
+                
 
                 row.appendChild(rowSub);
 

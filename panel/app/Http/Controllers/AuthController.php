@@ -121,7 +121,8 @@ class AuthController extends Controller
                 session(['email'     => $request->email]);
                 session(['ptitle'    => $person->name/*.' '.$person->surname*/]);
                 session(['grp_code'  => '-']);
-
+                session(['grp_code'  => 'op-apt-1']);
+                session(['grp_title' => 'Benim Sistemim']);
             }
             
             /*User_logs::create([

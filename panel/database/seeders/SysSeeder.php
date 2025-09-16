@@ -869,6 +869,27 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-inventory',
                 'group_key' => 'op-doc',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Tesis Listesi',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-facility',
+                'group_key' => 'op-doc',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Ekipman',
+                'ttitle'    => '-',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-inventory',
+                'group_key' => 'op-doc',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Ziyaret',
+                'ttitle'    => '-',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-visit',
+                'group_key' => 'op-doc',
             ]
         ];
 
