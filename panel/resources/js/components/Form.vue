@@ -7,8 +7,6 @@
     import { wTrans } from 'laravel-vue-i18n';
     import { useFormDataStore } from '@/stores/formdata'
     import { useAuthStore } from '@/stores/auth';
-    import QRCode from 'qrcode';
-    import Swal from 'sweetalert2';
 
 
     export default {
