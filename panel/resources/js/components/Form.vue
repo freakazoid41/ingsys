@@ -7,6 +7,9 @@
     import { wTrans } from 'laravel-vue-i18n';
     import { useFormDataStore } from '@/stores/formdata'
     import { useAuthStore } from '@/stores/auth';
+    import QRCode from 'qrcode';
+    import Swal from 'sweetalert2';
+
 
     export default {
         props: {
@@ -18,7 +21,7 @@
             }
         },
         components: {
-            AppFab 
+            AppFab,
         },
         setup() {
             Object.assign(Datepicker.locales, tr);
@@ -40,7 +43,6 @@
                 'USD' : '&#36;',
                 'EUR' : '&#8364;'
             };
-            
             return {
                 authStore       : useAuthStore(),
                 formDataStore   : useFormDataStore(),
@@ -828,7 +830,163 @@
                                 oninput : (e) => this.submitDynamicChanges(e.target)
                             }*/
                         ]
-                    },
+                    },'op-doc-visit-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'name',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Ad',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'surname',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Soyad',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask : 'phone',
+                                        name  : 'phone',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Telefon',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'email',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'E-Posta',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'select',
+                                        col   : 6,
+                                        options  :  [],
+                                        setOptions  : async () => {
+                                            return this.formDataStore.facilities.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.title,
+                                                };
+                                            });
+                                        },
+                                        name  : 'facility',
+                                        label : 'Tesis',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item','date-input'],
+                                        type  : 'text',
+                                        isDate : true,
+                                        hasTime : true,
+                                        name  : 'entered_at',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Giriş',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item','date-input'],
+                                        type  : 'text',
+                                        isDate : true,
+                                        hasTime : true,
+                                        name  : 'exited_at',
+                                        col      : 3,
+                                        required : false,
+                                        label : 'Çıkış',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'answers',
+                                col      : 12,
+                                required : false,
+                                label : 'Test Cevapları (json)',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_3',
+                                label : 'Verilen Ekipmanlar',
+                                group_key : 'givengroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'select',
+                                        col   : 6,
+                                        options  :  [],
+                                        setOptions  : async () => {
+                                            return this.formDataStore.inventories.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.title,
+                                                };
+                                            });
+                                        },
+                                        name  : 'inventory',
+                                        label : 'Ekipman',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        name  : 'description',
+                                        label : 'Açıklama',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_3',
+                                label : 'Geri Alınan Ekipmanlar',
+                                group_key : 'revievedgroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'select',
+                                        col   : 6,
+                                        options : [],
+                                        setOptions  : async () => {
+                                            return this.formDataStore.inventories.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.title,
+                                                };
+                                            });
+                                        },
+                                        name  : 'inventory',
+                                        label : 'Ekipman',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        name  : 'description',
+                                        label : 'Açıklama',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
+                    }
                 },
                 formData        : {
                     dynamicF : {},
@@ -838,17 +996,26 @@
             }
         },
         mounted() {
-            this.ftypes.forEach(key => {
+            
+            this.ftypes.forEach(async key => {
                 const formData = this.formDataStore.formData?.[key] ?? undefined;
-                
+                /**get facilities and inventories if visit form */
+                if(key == 'op-doc-visit-form'){
+                    /*await this.formDataStore.setFacilitiesData();
+                    await this.formDataStore.setInventoriesData();*/
+                }
                 this.buildDynamicFForm(key,formData !== undefined ? Object.keys(formData)[0] : 'new-'+(new Date).getTime() ,formData !== undefined ? Object.values(formData)[0] : {});
             });
 
             this.formDataStore.setData({});
+
+            
+            
+            
         },
         methods: {
             formCallback() {
-                if(this.savecallback) this.savecallback(this.formData);
+                if(this.savecallback) return this.savecallback(this.formData);
             },
             submitDynamicChanges(el){
                 const tag    = el.dataset.tag;
@@ -873,12 +1040,15 @@
                     default:
                         this.formData.dynamicF[tag+'**'+rowId].entities[name] = value;
                         if(el.type === 'checkbox') this.formData.dynamicF[tag+'**'+rowId].entities[name] = el.checked ? 1 : 0;
-                        if(el.classList.contains('date-input'))this.formData.dynamicF[tag+'**'+rowId].entities[name] = value.trim().split('/').reverse().join('-');
+                        if(el.classList.contains('date-input')){
+                            value = value.split(' ');
+                            this.formData.dynamicF[tag+'**'+rowId].entities[name] = value[0].split('/').reverse().join('-')+(value[1] ? ' '+value[1] : '' );
+                        } 
                         break;
                 }
             },
 
-            buildDynamicFForm(tag,dynamicId = 'new-'+(new Date).getTime(),data = {},selector = null){
+            async buildDynamicFForm(tag,dynamicId = 'new-'+(new Date).getTime(),data = {},selector = null){
                 const form   = this.forms[tag];
                 const rowId    = dynamicId;
                 const row    = document.createElement('div');
@@ -1016,11 +1186,22 @@
                         if(attr?.isDate == true){
                             input.readOnly    = true;
                             input.placeholder = 'Tarih Seçiniz';
-                            input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
+                            if(data?.entities?.[attr.name] !== undefined){
+                                if(attr?.hasTime){
+                                    let dvalue        = data?.entities?.[attr.name].split(' ');
+                                    input.value       = dvalue[0].split('-').reverse().join('/')+' '+dvalue[1];
+                                }else{
+                                    input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
+                                }
+                                
+                            }
+                            
+
                             const datepicker = new Datepicker(input, {
                                 format     : 'dd/mm/yyyy',
                                 language   : 'tr',
-                            }); 
+                            });
+                            
                             input.readOnly = true;
                             //just for this date component
                             input.addEventListener('changeDate',e => e.target.dispatchEvent(new Event('input')));
@@ -1035,7 +1216,7 @@
                                 language   : 'tr',
                                 pickLevel  : 1, // for month select
                                 format     : 'mm/yyyy',
-                            }); 
+                            });
                             //just for this date component
                             input.addEventListener('changeDate',e => e.target.dispatchEvent(new Event('input')));
 
@@ -1044,7 +1225,7 @@
                         return iDiv;
                     };
 
-                    const createSelect = (attr,iDiv = null) => {
+                    const createSelect = async (attr,iDiv = null) => {
                         if(iDiv == null){
                             iDiv = document.createElement('div');
                             iDiv.classList.add('col-lg-'+(attr.col ?? '12'),'d-flex');
@@ -1068,6 +1249,10 @@
                         op.selected = true;
 
                         input.appendChild(op);
+
+                        if(attr?.setOptions !== undefined){
+                            attr.options = await  attr.setOptions();
+                        }
 
                         for (let index = 0; index < attr?.options?.length; index++) {
                             op = document.createElement('option');
@@ -1096,16 +1281,18 @@
                         case 'multiple':
                             this.keyLock = [];
                             //this method will add sub elements
-                            const addElements = (nameTag = null) => {
+                            const addElements = async (nameTag = null) => {
                                 
                                 //addional item row element
                                 const row = document.createElement('div');
-                                row.classList.add('row','mt-2');
+                                row.classList.add('row','mb-2','multiple-item-row');
                                 
                                 inputDiv.appendChild(row);
 
                                 //row components
-                                fitem.subs.forEach(element => {
+                                for(let i = 0;i < fitem.subs.length; i++){
+                                    const element = fitem.subs[i];
+                                    
                                     const el = {...element};
                                     //create unique nametag
                                     if(nameTag == null) nameTag = (new Date).getTime()+'-'+inputDiv.querySelectorAll("[name^="+el.name+"]").length;
@@ -1129,7 +1316,7 @@
                                     el.name = fitem.type == 'multiple' ? el.name+'**'+(fitem.group_key ?? 'unalign-group-key') + '**'+ nameTag : el.name;
                                     
                                     if(el.type == 'select'){
-                                        createSelect(el,rowElm);
+                                        await createSelect(el,rowElm);
                                     }else{
                                         createInput(el,inpGroup);
                                     }
@@ -1137,7 +1324,7 @@
                                     if(el.isDate){
                                         const calInp     = document.createElement('span');
                                         calInp.classList.add('input-group-text');
-                                        calInp.innerHTML = '<i class="ph ph-calendar fs-4 text-body-emphasis"></i>';
+                                        calInp.innerHTML = '<i class="fa fa-calendar fs-5 text-body-emphasis"></i>';
                                         calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
                                         inpGroup.appendChild(calInp);
                                     }
@@ -1146,9 +1333,8 @@
                                         const calInp     = document.createElement('span');
                                         switch (el.mask) {
                                             case 'phone':
-                                                
                                                 calInp.classList.add('input-group-text');
-                                                calInp.innerHTML = '<i class="ph ph-phone fs-4 text-body-emphasis"></i>';
+                                                calInp.innerHTML = '<i class="fa fa-phone fs-5 text-body-emphasis"></i>';
                                                 calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
                                                 inpGroup.appendChild(calInp);
                                                 break;
@@ -1157,7 +1343,7 @@
                                                 calInp.innerHTML = el?.moneyIcon ?? '';
                                                 calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
                                                 if(el?.moneyIcon) inpGroup.appendChild(calInp);
-                                                break
+                                                break;
                                             default:
                                                 break;
                                         }
@@ -1198,7 +1384,7 @@
                                     
                                    
                                     row.appendChild(rowElm);
-                                });
+                                }
 
                                 row.dataset.tag = (fitem.group_key ?? 'unalign-group-key')+'-'+nameTag.split('-')[0]+'-row';
                                 this.keyLock.push(row.dataset.tag);
@@ -1210,23 +1396,23 @@
                             iconDiv.classList.add('align-items-center','bg-highlight','d-flex','flex-shrink-0','h-10','justify-content-center','me-5','rounded-circle','w-10');
                             
                             if(fitem.type === 'multiple'){
-                                inputDiv.classList.add('border','rounded','p-5');
+                                inputDiv.classList.add('border','rounded','p-2');
                                 const icon = document.createElement('i');
                                 icon.classList.add('ph','selectable-icon','ph-list-plus','fs-1','text-body-emphasis');
                                 icon.id = tag+'-'+(fitem.group_key ?? 'unalign-group-key')+'-subadd-'+rowId;
                                 iconDiv.appendChild(icon);
 
-                                icon.onclick   = () => addElements();
+                                icon.onclick   = async () => await addElements();
                                 
                                 inLabel.appendChild(iconDiv);
-                                addElements();
+                                await addElements();
                                 //here create elements if data is exist on given data with object nametag
                                 if(data?.entities){
-                                    Object.keys(data?.entities).forEach(key => {
+                                    for(let key in data?.entities) {
                                         if(key.includes('**'+fitem.group_key) && !this.keyLock.includes(fitem.group_key+'-'+key.split('**')[2].split('-')[0]+'-row')){
-                                            addElements(key.split('**')[2]);
+                                            await addElements(key.split('**')[2]);
                                         } 
-                                    });
+                                    };
                                 }
                                 
                             } 
