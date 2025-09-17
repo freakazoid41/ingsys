@@ -102,7 +102,7 @@
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            window.location.href = '/panel/inventory'
+                            this.$router.push({ name: 'InventoryList' });
                         });
                     }, 300);
 

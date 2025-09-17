@@ -102,7 +102,7 @@
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,rsp.success ? 'success' : 'error',rsp.success ? 'İşlem Tamamlandı' : rsp.data.message,() => {
-                            if(rsp.success) window.location.href = '/panel/meetings';
+                            if(rsp.success) this.$router.push({ name: 'MeetingList' });
                         });
                     }, 300);
                 }else{

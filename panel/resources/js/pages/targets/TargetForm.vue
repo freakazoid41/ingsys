@@ -100,7 +100,7 @@
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            window.location.href = '/panel/targets'
+                            this.$router.push({ name: 'TargetList' });
                         });
                     }, 300);
 

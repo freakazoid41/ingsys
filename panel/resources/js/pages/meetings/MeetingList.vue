@@ -52,7 +52,7 @@
               },
               ...(this.authStore.data.type == 'admin' ? [{
                 icon : 'ph ph-plus-circle',
-                onclick   : () => {window.location.href = '/panel/meetings/form'},
+                onclick   : () => this.$router.push({ name: 'MeetingForm' }),
               }] : [{}])
             ]);
             setTimeout(() => {

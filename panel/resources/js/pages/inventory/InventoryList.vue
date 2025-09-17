@@ -53,7 +53,7 @@
               },
               ...(this.authStore.data.type == 'admin' ? [{
                 icon : 'ph ph-plus-circle',
-                onclick   : () => {window.location.href = '/panel/inventory/form'},
+                onclick   : () => this.$router.push({ name: 'InventoryForm' }),
               }] : [{}])
             ]);
             setTimeout(() => {

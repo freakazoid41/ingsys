@@ -108,7 +108,7 @@
                         this.taskDataStore.setEventData();
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            window.location.href = '/panel/calendar'
+                            this.$router.push({ name: 'Calendar' });
                         });
                     }, 300);
 

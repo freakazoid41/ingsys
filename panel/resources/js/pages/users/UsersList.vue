@@ -46,7 +46,7 @@
               },*/{
                 icon : 'ph ph-plus-circle',
                 onclick   : () => {
-                    window.location.href = '/panel/users/form'
+                    this.$router.push({ name: 'UserForm' });
                 },
               }
             ]);

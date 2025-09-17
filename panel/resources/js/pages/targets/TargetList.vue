@@ -49,7 +49,7 @@
                 onclick   : () => window.open('/export/documents/accounts'),
               },{
                 icon : 'ph ph-plus-circle',
-                onclick   : () => {window.location.href = '/panel/targets/form'},
+                onclick   : () => {this.$router.push({ name: 'TargetList' });},
               }
             ]);
             setTimeout(() => {

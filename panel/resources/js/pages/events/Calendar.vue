@@ -17,7 +17,7 @@
            Simplebar
         },
         setup() {
-            document.querySelector('body').classList.add('sidebar-min');
+            
             //Object.assign(Datepicker.locales, tr);
             // expose to template and other options API hooks
             return {

@@ -45,7 +45,7 @@
                 onclick   : () => window.open('/export/documents/flats'),
               },{
                 icon : 'ph ph-plus-circle',
-                onclick   : () => {window.location.href = '/panel/flats/form'},
+                onclick   : () => this.$router.push({ name: 'FlatForm' }),
               }
             ]);
 

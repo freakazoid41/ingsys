@@ -112,7 +112,7 @@
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            window.location.href = '/panel/users'
+                            this.$router.push({ name: 'UserList' });
                         });
                     }, 300);
 

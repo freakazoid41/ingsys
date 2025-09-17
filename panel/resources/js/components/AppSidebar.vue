@@ -9,6 +9,11 @@ export default {
         }
     },
     mounted(){
+        if(this.$route.name == 'Calendar'){
+            document.querySelector('body').classList.add('sidebar-min');
+        }else{
+            document.querySelector('body').classList.remove('sidebar-min');
+        }
         //console.log(useAuthStore().data);
     },  
     data() {
@@ -44,12 +49,37 @@ export default {
                     <i class="ph ph-folder-lock"></i> <span>{{ $t('menu.targets') }}</span> 
                 </router-link>
             </li>
-            <li> <a href="/panel/transactions"> <i class="ph ph-money"></i> <span>{{ $t('menu.transactions') }}</span> </a> </li>
-            <li> <a href="/panel/meetings"> <i class="ph ph-users-three"></i> <span>{{ $t('menu.meetings') }}</span> </a> </li>
-            <li> <a href="/panel/users" v-if="useAuthStore.data.type=='admin'"> <i class="ph ph-user"></i> <span>{{ $t('menu.users') }}</span> </a> </li>
-            <li> <a href="/panel/projects"> <i class="ph ph-hammer"></i> <span>{{ $t('menu.projects') }}</span> </a> </li>
-            <li> <a href="/panel/calendar"> <i class="ph ph-calendar"></i> <span>{{ $t('menu.calendar') }}</span> </a> </li>
-            <li> <a href="/panel/inventory"> <i class="ph ph-wrench"></i> <span>{{ $t('menu.inventory') }}</span> </a> </li>
+            <li> 
+                <router-link :to="{ name: 'Transactions' }" v-if="useAuthStore.data.type=='admin'"> 
+                    <i class="ph ph-money"></i> 
+                    <span>{{ $t('menu.transactions') }}</span> 
+                </router-link>
+            </li>
+            <li> 
+                <router-link :to="{ name: 'MeetingList' }"> 
+                    <i class="ph ph-users-three"></i> <span>{{ $t('menu.meetings') }}</span> 
+                </router-link>
+            </li>
+            <li> 
+                <router-link :to="{ name: 'UserList' }" v-if="useAuthStore.data.type=='admin'"> 
+                    <i class="ph ph-user"></i> <span>{{ $t('menu.users') }}</span> 
+                </router-link>
+            </li>
+            <li> 
+                <router-link :to="{ name: 'ProjectList' }"> 
+                    <i class="ph ph-hammer"></i> <span>{{ $t('menu.projects') }}</span> 
+                </router-link>
+            </li>
+            <li> 
+                <router-link :to="{ name: 'Calendar' }"> 
+                    <i class="ph ph-calendar"></i> <span>{{ $t('menu.calendar') }}</span> 
+                </router-link>
+            </li>
+            <li> 
+                <router-link :to="{ name: 'InventoryList' }"> 
+                    <i class="ph ph-wrench"></i> <span>{{ $t('menu.inventory') }}</span> 
+                </router-link> 
+            </li>
             <!--<li> <a href="/panel/documents"> <i class="ph ph-newspaper"></i> <span>{{ $t('menu.documentfiles') }}</span> </a> </li>-->
             <li hidden class="menu-sub"> <a href="#"> <i class="ph ph-browser"></i> <span>Sample Pages</span> </a>
                 <ul>

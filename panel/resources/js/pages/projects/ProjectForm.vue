@@ -106,7 +106,7 @@
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            window.location.href = '/panel/projects'
+                            this.$router.push({ name: 'ProjectList' });
                         });
                     }, 300);
 
