@@ -28,10 +28,22 @@ export default {
         <ul class="menu">
             <!--<li class="menu-title">{{ $t('menu.documents') }} </li>-->
             <!--<li> <a href="/panel/documents"> <i class="ph ph-kanban"></i> <span>{{ $t('menu.documents') }}</span> </a> </li>-->
-            <li> <a href="/panel"> <i class="ph ph-kanban"></i> <span>{{ $t('menu.home') }}</span> </a> </li>
+            <li> 
+                <router-link :to="{ name: 'Index' }"> 
+                    <i class="ph ph-kanban"></i> <span>{{ $t('menu.home') }}</span> 
+                </router-link>
+            </li>
             
-            <li> <a href="/panel/flats" v-if="useAuthStore.data.type=='admin'"> <i class="ph ph-house-line"></i> <span>{{ $t('menu.flats') }}</span> </a> </li>
-            <li> <a href="/panel/targets" v-if="useAuthStore.data.type=='admin'"> <i class="ph ph-folder-lock"></i> <span>{{ $t('menu.targets') }}</span> </a> </li>
+            <li>  
+                <router-link :to="{ name: 'FlatList' }" v-if="useAuthStore.data.type=='admin'">
+                    <i class="ph ph-house-line"></i> <span>{{ $t('menu.flats') }}</span>
+                </router-link>
+            </li>
+            <li> 
+                <router-link :to="{ name: 'TargetList' }" v-if="useAuthStore.data.type=='admin'">
+                    <i class="ph ph-folder-lock"></i> <span>{{ $t('menu.targets') }}</span> 
+                </router-link>
+            </li>
             <li> <a href="/panel/transactions"> <i class="ph ph-money"></i> <span>{{ $t('menu.transactions') }}</span> </a> </li>
             <li> <a href="/panel/meetings"> <i class="ph ph-users-three"></i> <span>{{ $t('menu.meetings') }}</span> </a> </li>
             <li> <a href="/panel/users" v-if="useAuthStore.data.type=='admin'"> <i class="ph ph-user"></i> <span>{{ $t('menu.users') }}</span> </a> </li>
