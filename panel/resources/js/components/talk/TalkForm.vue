@@ -1088,7 +1088,10 @@
                     target = document.querySelector(selector);
                 }
 
-                if(form?.hasLang?.length > 0){
+                /**
+                 * this method will create language tabs
+                 */
+                const createLangTabs = () => {
                     const langList = document.createElement('ul');
                     langList.classList.add('nav','nav-tabs');
 
@@ -1114,8 +1117,6 @@
                     langRow.appendChild(langList);
 
                     rowSub.appendChild(langRow);
-                    
-                    
                 }
 
                 /**
@@ -1376,6 +1377,65 @@
                                             await createSelect(el,rowElm);
                                         }else{
                                             createInput(el,inpGroup);
+                                        }
+
+                                        //if sub element has subs :D
+                                        if(el?.multiple){
+                                            lbl.classList.add('d-flex','justify-content-between','align-items-center')
+                                            const   inpPlus     = document.createElement('i');
+                                                    inpPlus.classList.add('fa','fa-plus','fs-4','selectable-icon');
+                                                    inpPlus.onclick   = async (e) => {
+                                                        nameTag = nameTag
+                                                        
+                                                        let inpGroup2 = document.createElement('div');
+                                                        inpGroup2.classList.add('input-group','mt-2');
+                                                        rowElm.appendChild(inpGroup2);
+
+                                                        const cloneElm = {...el};
+
+                                                        const number   = rowElm.querySelectorAll("[name^='"+el.name+"']").length;
+                                                        cloneElm.name += '-'+number;
+                                                        
+                                                        if(cloneElm.type == 'select'){
+                                                            await createSelect(cloneElm,rowElm);
+                                                        }else{
+                                                            createInput(cloneElm,inpGroup2);
+                                                        }
+
+                                                        //custom for talk test system
+                                                        if(el?.hasLetter){
+                                                            const ltInp     = document.createElement('span');
+                                                            ltInp.classList.add('input-group-text','rmv-btn-form');
+                                                            ltInp.innerHTML = String.fromCharCode(65+number);
+                                                            inpGroup2.appendChild(ltInp);
+                                                        }
+
+                                                        //sub item remove
+                                                        const rmvInp     = document.createElement('span');
+                                                        rmvInp.classList.add('input-group-text','rmv-btn-form');
+                                                        rmvInp.innerHTML = '<i class="fa fa-trash fs-5 selectable-icon"></i>';
+                                                        rmvInp.onclick   = (e) => {
+                                                            this.formData.removedData.push({
+                                                                id    : rowId,
+                                                                type  : 'entity',
+                                                                key   : cloneElm.name
+                                                            });
+                                                            delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[cloneElm.name];
+
+                                                            inpGroup2.remove();
+                                                        };
+                                                        inpGroup2.appendChild(rmvInp);
+
+                                                    };
+                                            lbl.prepend(inpPlus);
+                                            
+                                            //search if data has this items
+                                            for(let key in data.entities){
+                                                if(key.includes(el.name) && key.split(el.name)[1] !== undefined && key.split(el.name)[1] !== ''){
+                                                    inpPlus.click();
+                                                }
+                                            }
+                                            
                                         }
 
                                         if(el.isDate){
@@ -1714,6 +1774,8 @@
 
                 //here integrate lang system
                 if(form?.hasLang?.length > 0){
+                    createLangTabs();
+
                     for(let i=0;i<form?.hasLang?.length;i++) {
                         await createElements(form?.hasLang?.[i]);
                         if(i != 0) rowSub.querySelectorAll('.item-row[data-lang="'+form?.hasLang?.[i]+'"]').forEach(linp => linp.hidden = true);
