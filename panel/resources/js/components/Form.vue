@@ -100,8 +100,35 @@
                                         label : 'Görünüm',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
-                                ]
+                                ],
+                                
                             },
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_3',
+                                type  : 'multiple',
+                                label : '',
+                                group_key : 'questiongroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'title1',
+                                        col      : 4,
+                                        multiple : true,
+                                        label : 'Envanter İsmi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'supervisor2',
+                                        col      : 4,
+                                        label : 'Zimmetli İsmi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
                         ]
                     },
                     'op-doc-calendar-form' : {
@@ -1052,7 +1079,7 @@
                 const row    = document.createElement('div');
                 const rowSub = document.createElement('div');
                 let target;
-
+                
                 row.dataset.id  = rowId;
                 row.dataset.tag = tag;
                 row.classList.add('dform-row');
@@ -1078,8 +1105,6 @@
                     inLabel.innerHTML = fitem.label.length == 0 ? '<span> </span>' : fitem.label;
                     
                     itemRow.appendChild(inLabel);
-
-                
 
                     let input = null;
 
@@ -1108,7 +1133,7 @@
                         
                         input.oninput = (e) => attr.oninput(e);
                         iDiv.appendChild(input);
-                       
+                        
                         if(attr.type === 'file'){
                             input.setAttribute('accept',attr?.accept);
                             input.dataset.fileId = 0;
@@ -1219,7 +1244,7 @@
                             input.addEventListener('changeDate',e => e.target.dispatchEvent(new Event('input')));
 
                         }
-                        
+
                         return iDiv;
                     };
 
@@ -1297,15 +1322,15 @@
                                     
                                     const rowElm = document.createElement('div');
                                     rowElm.classList.add('col-md-'+el.col);
+                                    let lbl   = document.createElement('label');
+                                    lbl.classList.add('form-label','mt-5');
                                     //item label
                                     if(el?.label !== undefined && el?.label != ''){
-                                        let lbl   = document.createElement('label');
-                                        lbl.classList.add('form-label','mt-5');
-                                        
                                         lbl.innerHTML = el.label;
-                                        
                                         rowElm.appendChild(lbl);
                                     }
+
+                                    
 
                                     const inpGroup = document.createElement('div');
                                     inpGroup.classList.add('input-group');
@@ -1317,6 +1342,37 @@
                                         await createSelect(el,rowElm);
                                     }else{
                                         createInput(el,inpGroup);
+                                    }
+
+                                    if(el?.multiple){
+                                        lbl.classList.add('d-flex','justify-content-between','align-items-center')
+                                        const   inpPlus     = document.createElement('i');
+                                                inpPlus.classList.add('ph','ph-plus','fs-4','text-body-emphasis','selectable-icon');
+                                                inpPlus.onclick   = async (e) => {
+                                                    nameTag = nameTag
+                                                    
+                                                    let inpGroup2 = document.createElement('div');
+                                                    inpGroup2.classList.add('input-group','mt-2');
+                                                    rowElm.appendChild(inpGroup2);
+
+                                                    const cloneElm = {...el};
+                                                    cloneElm.name += '-'+rowElm.querySelectorAll("[name^='"+el.name+"']").length;
+                                                    
+                                                    if(cloneElm.type == 'select'){
+                                                        await createSelect(cloneElm,rowElm);
+                                                    }else{
+                                                        createInput(cloneElm,inpGroup2);
+                                                    }
+                                                };
+                                        lbl.appendChild(inpPlus);
+                                        
+                                        //search if data has this items
+                                        for(let key in data.entities){
+                                            if(key.includes(el.name) && key.split(el.name)[1] !== undefined){
+                                                inpPlus.click();
+                                            }
+                                        }
+
                                     }
 
                                     if(el.isDate){
@@ -1361,26 +1417,12 @@
                                                 delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[rmElm.name];
                                             });
                                             row.remove();
-
-                                            
-                                            /*this.formData.removedData.push({
-                                                id    : rowId,
-                                                type  : 'entity',
-                                                key   : el.name
-                                            });
-
-                                            delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[el.name];
-                                            rowElm.remove();*/
                                         };
                                         inpGroup.appendChild(rmvInp);
-                                    }/*else{
-                                        inpGroup.classList.remove('input-group');
-                                        console.log(fitem.type);
-                                        //if(fitem.type == 'sub') inpGroup.classList.remove('input-group');
-                                    }*/
+                                        
+                                    }
 
                                     
-                                   
                                     row.appendChild(rowElm);
                                 }
 
