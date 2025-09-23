@@ -1282,6 +1282,7 @@
                             input.files = fileList;
                         }
                     }else {
+                        attr.value           = data?.entities?.[attr.name] ?? '';
                         input.value          = data?.entities?.[attr.name] ?? '';
                     } 
 
@@ -1398,7 +1399,10 @@
                         if(attr.options[index].key !== undefined) op.dataset.key = attr.options[index].key;
                         if(attr.options[index].limit !== undefined) op.dataset.limit = attr.options[index].limit;
 
-                        if(data?.entities?.[attr.name] !== undefined && data?.entities?.[attr.name] == op.value) op.selected = true;
+                        if(data?.entities?.[attr.name] !== undefined && data?.entities?.[attr.name] == op.value){
+                            attr.value           = data?.entities?.[attr.name] ?? '';
+                            op.selected          = true;
+                        } 
 
                         input.appendChild(op);
                     }
@@ -1414,7 +1418,7 @@
                 /**
                  * this sub method will create all elements for form
                  */
-                const createElements = async (langTag = 'tr') => {
+                const createElements = async (langTag = 'tr',fromLang = false) => {
                     for (let index = 0; index < form.fields.length; index++) {
                         const fitem = form.fields[index];
 
@@ -1443,8 +1447,7 @@
                             case 'multiple':
                                 this.keyLock = [];
                                 //this method will add sub elements
-                                const addElements = async (nameTag = null) => {
-                                    
+                                const addElements = async (nameTag = null,withClick = false) => {
                                     //addional item row element
                                     const row = document.createElement('div');
                                     row.classList.add('row','mb-2','multiple-item-row');
@@ -1453,7 +1456,9 @@
 
                                     //row components
                                     for(let i = 0;i < fitem.subs.length; i++){
+                                        
                                         const element = fitem.subs[i];
+
                                         
                                         const el = {...element};
                                         el.name = el.name + (langTag !== 'tr' ? '--lng--'+langTag : '');
@@ -1495,7 +1500,7 @@
                                                 rowElm.appendChild(inpGroup2);
 
                                                 const cloneElm = {...el};
-
+                                                
                                                 const number   = rowElm.querySelectorAll("[name^='"+el.name+"']").length;
                                                 cloneElm.name += '-'+number;
                                                 if(name != null) cloneElm.name = name;
@@ -1606,10 +1611,44 @@
                                             inpGroup.appendChild(rmvInp);
                                         }
                                         
+
+                                        /*console.log(el.value);
+                                        if(nameTag != null && fitem.type == 'multiple' && !withClick && (el.value?.trim() == '')){
+                                            row.classList.add('isEmpty');
+                                        }else{
+                                            row.classList.remove('isEmpty');
+                                        }*/
+
                                         row.appendChild(rowElm);
                                     }
 
-                                    row.dataset.tag = (fitem.group_key ?? 'unalign-group-key')+'-'+nameTag.split('-')[0]+'-row';
+                                    row.dataset.tag = (fitem.group_key?.replace('-','**') ?? 'unalign-group-key')+'-'+nameTag.split('-')[0]+'-row';
+
+                                    if(fitem.type == 'multiple' && !withClick){
+                                        const searchKey = (langTag != 'tr' ? '--lng--'+langTag+'**' : '')+(fitem.group_key?.replace('-','**') ?? 'unalign-group-key')+'**'+nameTag.split('-')[0];
+                                        let hasItem     = false;
+                                        //console.log(searchKey,data.entities);
+                                        Object.keys(data.entities).forEach(chk => {
+                                            if(langTag != 'tr'){
+                                                if(chk.includes(searchKey)){
+                                                    hasItem = true;
+                                                    return true;
+                                                } 
+                                            }else{
+                                                if(!chk.includes('--lng--') && chk.includes(searchKey)){
+                                                    hasItem = true;
+                                                    return true;
+                                                }
+                                            }
+                                            
+                                        });
+
+                                        if(!hasItem){
+                                            row.remove();
+                                            console.log(row);
+                                        }
+                                    }
+
                                     this.keyLock.push(row.dataset.tag);
                                 };
 
@@ -1627,10 +1666,10 @@
                                     icon.id = tag+'-'+(fitem.group_key ?? 'unalign-group-key')+'-subadd-'+rowId;
                                     iconDiv.appendChild(icon);
 
-                                    icon.onclick   = async () => await addElements();
+                                    icon.onclick   = async () => await addElements(null,true);
                                     
                                     inLabel.appendChild(iconDiv);
-                                    await addElements();
+                                    await addElements(null,true);
                                     //here create elements if data is exist on given data with object nametag
                                     if(data?.entities){
                                         for(let key in data?.entities) {
@@ -1648,7 +1687,7 @@
                                 break;
                             case 'textarea':
                                 input                = document.createElement('textarea');
-                                input.name           = fitem.name + (langTag !== 'tr' ? '**l**'+langTag : '');
+                                input.name           = fitem.name + (langTag !== 'tr' ? '--lng--'+langTag : '');
                                 //input.dataset.fileId = fileId;
                                 input.dataset.rowId  = rowId;
                                 input.dataset.tag    = tag;
@@ -1697,7 +1736,7 @@
                     createLangTabs();
 
                     for(let i=0;i<form?.hasLang?.length;i++) {
-                        await createElements(form?.hasLang?.[i]);
+                        await createElements(form?.hasLang?.[i],true);
                         if(i != 0) rowSub.querySelectorAll('.item-row[data-lang="'+form?.hasLang?.[i]+'"]').forEach(linp => linp.hidden = true);
                     };
                 }else{
