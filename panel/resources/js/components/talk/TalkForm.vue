@@ -1522,7 +1522,7 @@
                                             }
                                             const   inpPlus   = document.createElement('i');
                                             inpPlus.classList.add('fa','fa-plus','fs-4','selectable-icon');
-                                            inpPlus.onclick   = async (e) => addSub(e);
+                                            inpPlus.onclick   = async (e) => addSub();
                                             lbl.prepend(inpPlus);
                                             
                                             //search if data has this items
