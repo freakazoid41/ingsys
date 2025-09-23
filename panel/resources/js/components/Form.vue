@@ -1304,7 +1304,7 @@
                         case 'multiple':
                             this.keyLock = [];
                             //this method will add sub elements
-                            const addElements = async (nameTag = null) => {
+                            const addElements = async (nameTag = null,withClick = false) => {
                                 
                                 //addional item row element
                                 const row = document.createElement('div');
@@ -1459,10 +1459,11 @@
                                 icon.id = tag+'-'+(fitem.group_key ?? 'unalign-group-key')+'-subadd-'+rowId;
                                 iconDiv.appendChild(icon);
 
-                                icon.onclick   = async () => await addElements();
+                                icon.onclick   = async () => await addElements(null,true);
                                 
                                 inLabel.appendChild(iconDiv);
-                                await addElements();
+                                //append one empty row
+                                await addElements(null,true);
                                 //here create elements if data is exist on given data with object nametag
                                 if(data?.entities){
                                     for(let key in data?.entities) {
