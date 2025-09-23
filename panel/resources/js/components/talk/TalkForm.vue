@@ -1624,16 +1624,21 @@
 
                                     row.dataset.tag = (fitem.group_key?.replace('-','**') ?? 'unalign-group-key')+'-'+nameTag.split('-')[0]+'-row';
 
+                                    /**
+                                     * sometimes even without data , dynamic multi row areas are creating cross language inputs.
+                                     * this is not weird because form needs to be have cross language inputs for diffrent language entries but if you create data without form (seeders .etc) or simply not use other language inputs it will create anyway
+                                     * this area will clear unnecessary inputs for only multiple row areas (others (normal form elements) have only 1 cross reference (same name with diffrent lang key))
+                                     * expensive but neccesarry..
+                                     * only works when updating form
+                                     */
+                                    
                                     if(fitem.type == 'multiple' && !withClick){
                                         const searchKey = (langTag != 'tr' ? '--lng--'+langTag+'**' : '')+(fitem.group_key?.replace('-','**') ?? 'unalign-group-key')+'**'+nameTag.split('-')[0];
-                                        
+
                                         let hasItem = Object.keys(data.entities).filter(str => str.includes(searchKey));
                                         if(langTag == 'tr') hasItem = hasItem.filter(str => !str.includes('--lng--'));
 
-                                        if(hasItem.length == 0){
-                                            row.remove();
-                                            console.log(row);
-                                        }
+                                        if(hasItem.length == 0) row.remove();
                                     }
 
                                     this.keyLock.push(row.dataset.tag);
