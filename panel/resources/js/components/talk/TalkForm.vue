@@ -1626,24 +1626,11 @@
 
                                     if(fitem.type == 'multiple' && !withClick){
                                         const searchKey = (langTag != 'tr' ? '--lng--'+langTag+'**' : '')+(fitem.group_key?.replace('-','**') ?? 'unalign-group-key')+'**'+nameTag.split('-')[0];
-                                        let hasItem     = false;
-                                        //console.log(searchKey,data.entities);
-                                        Object.keys(data.entities).forEach(chk => {
-                                            if(langTag != 'tr'){
-                                                if(chk.includes(searchKey)){
-                                                    hasItem = true;
-                                                    return true;
-                                                } 
-                                            }else{
-                                                if(!chk.includes('--lng--') && chk.includes(searchKey)){
-                                                    hasItem = true;
-                                                    return true;
-                                                }
-                                            }
-                                            
-                                        });
+                                        
+                                        let hasItem = Object.keys(data.entities).filter(str => str.includes(searchKey));
+                                        if(langTag == 'tr') hasItem = hasItem.filter(str => !str.includes('--lng--'));
 
-                                        if(!hasItem){
+                                        if(hasItem.length == 0){
                                             row.remove();
                                             console.log(row);
                                         }
