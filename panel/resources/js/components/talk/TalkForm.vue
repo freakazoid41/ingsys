@@ -49,7 +49,6 @@
                 ftypes          : this.formtypes.split(','),
                 forms           : {
                     'op-doc-visit-form' : {
-                        hasLang          : ['tr','en','de'],
                         showRemoveButton : false,
                         oncreated        : (id) => {},
                         fields           : [
@@ -63,17 +62,9 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'name',
-                                        col      : 3,
+                                        col      : 6,
                                         required : true,
                                         label : 'Ad',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        name  : 'surname',
-                                        col      : 3,
-                                        required : true,
-                                        label : 'Soyad',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -97,6 +88,7 @@
                                         class : ['form-control','mb-2','mb-md-0'],
                                         type  : 'select',
                                         col   : 6,
+                                        required : true,
                                         options  :  [],
                                         setOptions  : async () => {
                                             return this.formDataStore.facilities.map(inv => {
@@ -133,12 +125,28 @@
                                 ]
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
-                                type  : 'textarea',
-                                name  : 'answers',
-                                col      : 12,
-                                required : false,
-                                label : 'Test Cevapları (json)',
-                                oninput : (e) => this.submitDynamicChanges(e.target)
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'test-result',
+                                        col      : 6,
+                                        required : true,
+                                        label : 'Test Sonucu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'test-answers',
+                                        col      : 6,
+                                        required : true,
+                                        label : 'Test Cevapları',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'multiple',
@@ -167,7 +175,7 @@
                                         type  : 'text',
                                         col   : 6,
                                         name  : 'description',
-                                        label : 'Açıklama',
+                                        label : 'Ekipman Kodu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
                                 ]
@@ -236,7 +244,64 @@
                                 ]
                             },
                         ]
+                    },'op-doc-user-form'    : {
+                        showRemoveButton : false,
+                        oncreated        : (id) => {},
+                        fields           : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'main_name',
+                                        //isDate   : true,
+                                        required : true,
+                                        label : 'İsim & Soyisim',
+                                        col      : 3,
+                                        placeholder : 'İsim & Soyisim',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        name     : 'type_key',
+                                        col      : 3,
+                                        required : true,
+                                        label    : 'Tip',
+                                        options  : [
+                                            {
+                                                text  : 'Yönetici',
+                                                value : 'op-pert-admin'
+                                            }
+                                        ],
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'email',
+                                        name  : 'user_username',
+                                        required : true,
+                                        col : 3,
+                                        placeholder : 'Kullanıcı Email',
+                                        label : 'Kullanıcı Email',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'password',
+                                        name  : 'user_password',
+                                        //required : true,
+                                        col : 3,
+                                        label : 'Parola',
+                                        placeholder : '*********',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
                     },'op-doc-facility-form' : {
+                        hasLang          : ['tr','en','de'],
                         showRemoveButton : false,
                         oncreated       : (id) => {},
                         fields          : [
@@ -250,14 +315,22 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'title',
-                                        col      : 6,
+                                        col      : 4,
                                         required : true,
                                         label : 'Tesis İsmi',
                                         oninput : (e) => {
-                                            document.querySelector('input[name="qr_code"]').value =  btoa(encodeURIComponent(e.target.value.trim()));
+                                            document.querySelector('input[name="qr_code"]').value =  window.location.origin+'/facility/'+btoa(encodeURIComponent(e.target.value.trim()));
                                             document.querySelector('input[name="qr_code"]').dispatchEvent(new Event('input'));
                                             this.submitDynamicChanges(e.target);
                                         }
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'question_must_know',
+                                        col      : 2,
+                                        required : true,
+                                        label : 'Doğru Soru Limit',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class    : ['form-control','mb-2','mb-md-0','form-item'],
                                         type     : 'text',
@@ -280,7 +353,94 @@
                                 required : true,
                                 label : 'Adres',
                                 oninput : (e) => this.submitDynamicChanges(e.target)
-                            }
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_3',
+                                label : 'Videolar',
+                                group_key : 'videogroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'file',
+                                        col   : 4,
+                                        options  :  [],
+                                        name  : 'videoitem',
+                                        label : 'Video',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'select',
+                                        col   : 4,
+                                        options : [
+                                            {
+                                                text : 'Aktif',
+                                                value : '1'
+                                            },{
+                                                text : 'Pasif',
+                                                value : '0'
+                                            }
+                                        ],
+                                        name  : 'status',
+                                        label : 'Durum',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 4,
+                                        name  : 'description',
+                                        label : 'Açıklama',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_4',
+                                label : 'Sorular',
+                                group_key : 'questiongroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 4,
+                                        options  :  [],
+                                        name  : 'question',
+                                        label : 'Soru',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 4,
+                                        options  :  [],
+                                        multiple : true,
+                                        hasLetter: true,
+                                        name  : 'answer',
+                                        label : 'Cevaplar',
+                                        onremove : (column) => {
+                                            column.parentNode.querySelectorAll("[name^='answer']").forEach((el,i) => {
+                                                el.value = String.fromCharCode(65+i) + '-) '+ (el.value.split('-) ')[1] ?? el.value);
+                                                this.submitDynamicChanges(el);
+                                            });
+                                        },
+                                        oninput : (e) =>{
+                                            e.target.parentNode.parentNode.querySelectorAll("[name^='answer']").forEach((el,i) => {
+                                                el.value = String.fromCharCode(65+i) + '-) '+ (el.value.split('-) ')[1] ?? el.value);
+                                                this.submitDynamicChanges(el);
+                                            });
+                                            
+                                        } 
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 4,
+                                        options  :  [],
+                                        name  : 'rightletter',
+                                        label : 'Doğru Şık',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                ]
+                            },
                         ]
                     },'op-doc-calendar-form' : {
                         showRemoveButton : false,
@@ -454,65 +614,6 @@
                                 ]
                             }
                         ],
-                    },'op-doc-user-form'    : {
-                        showRemoveButton : false,
-                        oncreated        : (id) => {},
-                        fields           : [
-                            {
-                                class : ['form-control','mb-2','mb-md-0','form-item'],
-                                type  : 'sub',
-                                name  : 'sub_1',
-                                label : ' ',
-                                subs  : [
-                                    {
-                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        name  : 'main_name',
-                                        //isDate   : true,
-                                        required : true,
-                                        label : 'İsim & Soyisim',
-                                        col      : 3,
-                                        placeholder : 'İsim & Soyisim',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class    : ['form-control','mb-2','mb-md-0','date-input','form-item'],
-                                        type     : 'select',
-                                        name     : 'type_key',
-                                        col      : 3,
-                                        required : true,
-                                        label    : 'Tip',
-                                        options  : [
-                                            {
-                                                text  : 'Yönetici',
-                                                value : 'op-pert-admin'
-                                            },{
-                                                text  : 'Kat Maliki',
-                                                value : 'op-pert-buyer'
-                                            }
-                                        ],
-                                        oninput  : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'email',
-                                        name  : 'user_username',
-                                        required : true,
-                                        col : 3,
-                                        placeholder : 'Kullanıcı Email',
-                                        label : 'Kullanıcı Email',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'password',
-                                        name  : 'user_password',
-                                        //required : true,
-                                        col : 3,
-                                        label : 'Parola',
-                                        placeholder : '*********',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    }
-                                ]
-                            }
-                        ]
                     },'op-doc-meeting-form' : {
                         showRemoveButton : false,
                         oncreated        : (id) => {},
@@ -1070,10 +1171,10 @@
             },
 
             async buildDynamicFForm(tag,dynamicId = 'new-'+(new Date).getTime(),data = {},selector = null){
-                const form   = this.forms[tag];
-                const rowId    = dynamicId;
-                const row    = document.createElement('div');
-                const rowSub = document.createElement('div');
+                const form    = this.forms[tag];
+                const rowId   = dynamicId;
+                const row     = document.createElement('div');
+                const rowSub  = document.createElement('div');
                 let target;
 
                 row.dataset.id  = rowId;
@@ -1088,9 +1189,8 @@
                     target = document.querySelector(selector);
                 }
 
-                /**
-                 * this method will create language tabs
-                 */
+                
+
                 const createLangTabs = () => {
                     const langList = document.createElement('ul');
                     langList.classList.add('nav','nav-tabs');
@@ -1161,7 +1261,7 @@
 
                             const showB     = document.createElement('span');
                             showB.classList.add('input-group-text','rmv-btn-form');
-                            showB.innerHTML = '<i class="ph ph-file-arrow-up fs-5 text-body-emphasis"></i>';
+                            showB.innerHTML = '<i class="fa fa-camera fs-5 selectable-icon"></i>';
                             showB.onclick   = (e) => {
                                 window.open('/order-file/'+fileData?.description);
                             };
@@ -1202,7 +1302,10 @@
                                 });
                                 break;
                             case 'phone':
-                                new  VMasker(input).maskPattern("(999) 999-99-99");
+                                IMask(input, {
+                                    mask: '+{9\\0} (500) 000 00 00'
+                                });
+                                //new  VMasker(input).maskPattern("9 (999) 999-99-99");
                                 break;
                             case 'custom':
                                 new  VMasker(input).maskPattern(attr.format);
@@ -1228,7 +1331,8 @@
                         
 
                         flatpickr(input, {
-                            ...(attr?.hasTime ? {enableTime: true,dateFormat: 'd/m/Y H:i',} : {dateFormat: 'd/m/Y'})
+                            "locale": Turkish,
+                            ...(attr?.hasTime ? {enableTime: true,dateFormat: 'd/m/Y H:i',time_24hr : true} : {dateFormat: 'd/m/Y'})
                         });
                         
                         input.readOnly = true;
@@ -1316,6 +1420,7 @@
 
                         //add lang tag to name
                         if(fitem?.name) fitem.name           = fitem.name + (langTag !== 'tr' ? '--lng--'+langTag : '');
+                        if(langTag != 'tr') fitem.required = false;
 
                         const itemRow = document.createElement('div');
                         itemRow.classList.add('row','mt-3','mb-6','item-row');
@@ -1352,15 +1457,17 @@
                                         
                                         const el = {...element};
                                         el.name = el.name + (langTag !== 'tr' ? '--lng--'+langTag : '');
+                                        if(langTag != 'tr') el.required = false;
                                         //create unique nametag
                                         if(nameTag == null) nameTag = (new Date).getTime()+'-'+inputDiv.querySelectorAll("[name^="+el.name+"]").length;
                                         
                                         const rowElm = document.createElement('div');
                                         rowElm.classList.add('col-md-'+el.col);
                                         //item label
-                                        if(el?.label !== undefined && el?.label != ''){
-                                            let lbl   = document.createElement('label');
+                                        let lbl   = document.createElement('label');
                                             lbl.classList.add('form-label','mt-5');
+                                        if(el?.label !== undefined && el?.label != ''){
+                                            
                                             
                                             lbl.innerHTML = el.label + ' '+(langTag !== 'tr' ? '('+langTag+')' : '');
                                             
@@ -1381,58 +1488,47 @@
 
                                         //if sub element has subs :D
                                         if(el?.multiple){
-                                            lbl.classList.add('d-flex','justify-content-between','align-items-center')
-                                            const   inpPlus     = document.createElement('i');
-                                                    inpPlus.classList.add('fa','fa-plus','fs-4','selectable-icon');
-                                                    inpPlus.onclick   = async (e) => {
-                                                        nameTag = nameTag
-                                                        
-                                                        let inpGroup2 = document.createElement('div');
-                                                        inpGroup2.classList.add('input-group','mt-2');
-                                                        rowElm.appendChild(inpGroup2);
+                                            lbl.classList.add('d-flex','justify-content-between','align-items-center');
+                                            const   addSub    = async (name = null) => {
+                                                const inpGroup2 = document.createElement('div');
+                                                inpGroup2.classList.add('input-group','mt-2');
+                                                rowElm.appendChild(inpGroup2);
 
-                                                        const cloneElm = {...el};
+                                                const cloneElm = {...el};
 
-                                                        const number   = rowElm.querySelectorAll("[name^='"+el.name+"']").length;
-                                                        cloneElm.name += '-'+number;
-                                                        
-                                                        if(cloneElm.type == 'select'){
-                                                            await createSelect(cloneElm,rowElm);
-                                                        }else{
-                                                            createInput(cloneElm,inpGroup2);
-                                                        }
+                                                const number   = rowElm.querySelectorAll("[name^='"+el.name+"']").length;
+                                                cloneElm.name += '-'+number;
+                                                if(name != null) cloneElm.name = name;
+                                                cloneElm.type == 'select' ? await createSelect(cloneElm, rowElm) : createInput(cloneElm, inpGroup2);
+                                                
+                                                //sub item remove
+                                                const rmvInp     = document.createElement('span');
+                                                rmvInp.classList.add('input-group-text','rmv-btn-form');
+                                                rmvInp.innerHTML = '<i class="fa fa-trash fs-5 selectable-icon"></i>';
+                                                rmvInp.onclick   = (e) => {
+                                                    this.formData.removedData.push({
+                                                        id    : rowId,
+                                                        type  : 'entity',
+                                                        key   : cloneElm.name
+                                                    });
+                                                    delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[cloneElm.name];
 
-                                                        //custom for talk test system
-                                                        if(el?.hasLetter){
-                                                            const ltInp     = document.createElement('span');
-                                                            ltInp.classList.add('input-group-text','rmv-btn-form');
-                                                            ltInp.innerHTML = String.fromCharCode(65+number);
-                                                            inpGroup2.appendChild(ltInp);
-                                                        }
+                                                    inpGroup2.remove();
 
-                                                        //sub item remove
-                                                        const rmvInp     = document.createElement('span');
-                                                        rmvInp.classList.add('input-group-text','rmv-btn-form');
-                                                        rmvInp.innerHTML = '<i class="fa fa-trash fs-5 selectable-icon"></i>';
-                                                        rmvInp.onclick   = (e) => {
-                                                            this.formData.removedData.push({
-                                                                id    : rowId,
-                                                                type  : 'entity',
-                                                                key   : cloneElm.name
-                                                            });
-                                                            delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[cloneElm.name];
-
-                                                            inpGroup2.remove();
-                                                        };
-                                                        inpGroup2.appendChild(rmvInp);
-
-                                                    };
+                                                    //custom event for talk panel
+                                                    cloneElm?.onremove(rowElm);
+                                                };
+                                                inpGroup2.appendChild(rmvInp);
+                                            }
+                                            const   inpPlus   = document.createElement('i');
+                                            inpPlus.classList.add('fa','fa-plus','fs-4','selectable-icon');
+                                            inpPlus.onclick   = async (e) => addSub(e);
                                             lbl.prepend(inpPlus);
                                             
                                             //search if data has this items
                                             for(let key in data.entities){
                                                 if(key.includes(el.name) && key.split(el.name)[1] !== undefined && key.split(el.name)[1] !== ''){
-                                                    inpPlus.click();
+                                                    addSub(key);
                                                 }
                                             }
                                             
@@ -1506,26 +1602,10 @@
                                                     delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[rmElm.name];
                                                 });
                                                 row.remove();
-
-                                                
-                                                /*this.formData.removedData.push({
-                                                    id    : rowId,
-                                                    type  : 'entity',
-                                                    key   : el.name
-                                                });
-
-                                                delete this.formData?.dynamicF?.[tag+'**'+rowId]?.entities?.[el.name];
-                                                rowElm.remove();*/
                                             };
                                             inpGroup.appendChild(rmvInp);
-                                        }/*else{
-                                            inpGroup.classList.remove('input-group');
-                                            console.log(fitem.type);
-                                            //if(fitem.type == 'sub') inpGroup.classList.remove('input-group');
-                                        }*/
-
+                                        }
                                         
-                                    
                                         row.appendChild(rowElm);
                                     }
 
@@ -1538,6 +1618,7 @@
                                 const iconDiv = document.createElement('div');
                                 iconDiv.classList.add('align-items-center','bg-highlight','d-flex','flex-shrink-0','mb-2','h-10','justify-content-center','rounded-circle');
                                 
+                                //here check values are exist in given object
                                 if(fitem.type === 'multiple'){
                                     itemRow.classList.add('border','rounded','p-2');
                                     //inputDiv.classList.add('border','rounded','p-2');
@@ -1560,116 +1641,19 @@
                                     }
                                     
                                 } 
-                            
-                                //here check multiple input values if exist
-                                /*if(data?.entities !== undefined){
-                                    const keys = {};
-                                    Object.keys(data?.entities).filter(key => {
-                                        if(key.includes(fitem.group_key)){
-                                            keys[key.split('**')[1]+'**'+key.split('**')[2]] = true
-                                        }
-                                    });
-
-                                    //foreach grouıp key item add row
-                                    for(let key in keys) addElements();
-                                }else{
-                                    addElements();
-                                }*/
                                 
                                 if(fitem.type == 'sub') addElements();
                                 itemRow.appendChild(inputDiv);
                                 
                                 break;
-                            case 'section':
-                                labelDiv.remove();
-                                itemRow.appendChild(document.createElement('hr'));
-                                break;
-                            case 'yesno':
-                                
-                                const key = (new Date()).getTime();
-                                inputDiv = document.createElement('div');
-                                inputDiv.classList.add('col-lg-6','d-flex','flex-direction-row','justify-content-between');
-                                
-                                let checkDiv = document.createElement('div');
-                                checkDiv.classList.add('form-check','form-check-custom','form-check-solid','form-check-lg');
-
-                                
-                                input = document.createElement('input');
-                                input.type = 'radio';
-                                input.oninput = (e) => fitem.oninput(e);
-                                //input.dataset.fileId = fileId;
-                                input.dataset.rowId  = rowId;
-                                input.dataset.tag    = tag;
-                                input.value          = 1;
-                                input.name           = fitem.name+'*-*'+key;
-                                input.classList.add('form-check-input','valid');
-
-
-                                if( tag == 'op-doc-per-kanaat' && 
-                                    fitem.name == 'canWork' && 
-                                    document.querySelectorAll("[type='radio'][data-tag='"+tag+"'][name^='"+fitem.name+"']").length == 0 ){
-                                    input.checked = true;
-                                }
-
-
-                                if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 1) input.checked = true;
-
-                                checkDiv.appendChild(input);
-
-                                let label  = document.createElement('label');
-                                label.innerHTML = 'Evet';
-                                label.classList.add('form-check-label');
-
-                                checkDiv.appendChild(label);
-                            
-                                inputDiv.appendChild(checkDiv);
-                                
-                                checkDiv = document.createElement('div');
-                                checkDiv.classList.add('form-check','form-check-custom','form-check-solid','form-check-lg');
-
-                                input = document.createElement('input');
-                                input.type = 'radio';
-                                input.oninput = (e) => fitem.oninput(e);
-                                //input.dataset.fileId = fileId;
-                                input.dataset.rowId  = rowId;
-                                input.dataset.tag    = tag;
-                                input.name           = fitem.name+'*-*'+key;
-                                input.value          = 0;
-                                input.classList.add('form-check-input','valid');
-
-                                
-                                if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 0) input.checked = true;
-
-                                checkDiv.appendChild(input);
-
-                                label  = document.createElement('label');
-                                label.innerHTML = 'Hayır';
-                                label.classList.add('form-check-label');
-                                
-                                if( tag == 'op-doc-per-kanaat' && 
-                                    fitem.name == 'canWork' && 
-                                    document.querySelectorAll("[type='radio'][data-tag='"+tag+"'][name^='"+fitem.name+"']").length == 0 &&
-                                    (data?.entities[fitem.name] === undefined || data.entities[fitem.name] != 0)){
-                                    input.hidden = true;
-                                    label.hidden = true;
-                                }
-
-
-                                checkDiv.appendChild(label);
-                            
-                                inputDiv.appendChild(checkDiv);
-
-                                itemRow.appendChild(inputDiv);
-
-
-                                break;
                             case 'textarea':
                                 input                = document.createElement('textarea');
-                                input.name           = input.name + (langTag !== '' ? '**l**'+langTag : '');
+                                input.name           = fitem.name + (langTag !== 'tr' ? '**l**'+langTag : '');
                                 //input.dataset.fileId = fileId;
                                 input.dataset.rowId  = rowId;
                                 input.dataset.tag    = tag;
                                 input.classList.add(...fitem.class);
+
                                 if(fitem?.required !== undefined) input.required = fitem.required;
 
                             
@@ -1699,70 +1683,6 @@
                             case 'select':
                                 itemRow.appendChild(createSelect(fitem));
                                 break;
-                            case 'switch':
-                                inputDiv = document.createElement('div');
-                                inputDiv.classList.add('col-lg-4','fv-row','d-flex','align-items-center');
-                                
-                                const switchDiv = document.createElement('div');
-                                switchDiv.classList.add('form-check','form-switch','form-check-custom','form-check-solid','me-10');
-
-                                const lbl  = document.createElement('label');
-                                lbl.classList.add('switch');
-
-                                input = document.createElement('input');
-                                input.type = 'checkbox';
-                                input.oninput = (e) => fitem.oninput(e);
-                                //input.dataset.fileId = fileId;
-                                input.dataset.rowId  = rowId;
-                                input.dataset.tag    = tag;
-                                input.name           = fitem.name;
-                                if(fitem?.required !== undefined) input.required = fitem.required;
-
-                                if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 1) input.checked = true;
-
-                                lbl.appendChild(input);
-                                const sspan = document.createElement('span');
-                                sspan.classList.add('slider','round');
-                                lbl.appendChild(sspan);
-
-
-                                switchDiv.appendChild(lbl);
-                                inputDiv.appendChild(switchDiv);
-                                itemRow.appendChild(inputDiv);
-
-                                if(fitem?.sub){
-                                    for (let index = 0; index < fitem.sub.length; index++) {
-                                        const subItem = fitem.sub[index];
-
-                                        inputDiv = document.createElement('div');
-                                        inputDiv.classList.add('col-lg-4','fv-row');
-
-                                        const subDiv = document.createElement('div');
-                                        subDiv.classList.add('d-flex','align-items-center','gap-3');
-
-                                        const sinput = document.createElement('input');
-                                        sinput.type = subItem.type;
-                                        sinput.name = subItem.name;
-                                        sinput.placeholder = subItem.placeholder;
-                                        //sinput.dataset.fileId = fileId
-                                        sinput.dataset.rowId  = rowId;
-                                        sinput.dataset.tag    = tag;
-                                        sinput.oninput = (e) => subItem.oninput(e);
-                                        sinput.classList.add(...subItem.class);
-                                        if(fitem?.required !== undefined) sinput.required = fitem.required;
-
-                                        if(data?.entities[subItem.name] !== undefined) sinput.value = data.entities[subItem.name];
-
-                                        if(input.checked) sinput.style.visibility = 'visible';
-
-                                        subDiv.appendChild(sinput);
-
-
-                                        inputDiv.appendChild(subDiv);
-                                        itemRow.appendChild(inputDiv);
-                                    }
-                                }
-                                break;
                             default:
                                 itemRow.appendChild(createInput(fitem,inputDiv));
                                 break;
@@ -1787,59 +1707,12 @@
 
                 row.appendChild(rowSub);
 
-
-                const rmvBtn = document.createElement('a');
-                rmvBtn.classList.add('btn','btn-sm','btn-outline-danger','w-100','btn-block');
-                rmvBtn.href  = 'javascript:;';
-                rmvBtn.onclick = () => {
-                    /*if(!rowId.toString().includes('new')){
-                        this.formData.removedData.push({
-                            id    : rowId,
-                            type  : 'connection'
-                        });
-                    }else{
-                        delete this.formData.dynamicF[tag+'**'+rowId];
-                    }*/
-                    row.remove();
-                };
-                rmvBtn.innerHTML = `<i class="ki-duotone ki-trash fs-5">
-                                    <span class="path1"></span>
-                                    <span class="path2"></span><span class="path3"></span>
-                                    <span class="path4"></span><span class="path5"></span></i> Sil`;
                 const footer = document.createElement('div');
                 footer.classList.add('card-body');
-                footer.appendChild(rmvBtn);
+                
 
                 row.appendChild(footer);
-
-                if(form?.showRemoveButton == false) rmvBtn.remove();
-            
-                if(form?.isFoldable && data?.entities[form?.foldableTag] !== undefined ){
-                    const collBtn = document.createElement('button');
-                    collBtn.classList.add('btn','btn-outline-danger','btn-outline','row','w-100','m-0','fold-btn');
-                    collBtn.innerHTML = data.entities[form?.foldableTag];
-                    collBtn.type = 'button';
-                    collBtn.onclick = () => {
-                        target.querySelectorAll('.foldable-area').forEach(el => {if(el != row) el.hidden = true});
-                        row.hidden = !row.hidden;
-
-                        target.querySelectorAll('.fold-btn').forEach(el => {el.classList.remove('active')});
-
-                        if(!row.hidden) collBtn.classList.add('active');
-                    };
-                    //for section seperation
-                    target.appendChild(document.createElement('hr'));
-                    target.appendChild(collBtn);
-
-                    row.classList.add('foldable-area');
-                    row.hidden = true;
-                }
-
                 target.appendChild(row);
-
-                //for section seperation
-                if(form?.isFoldable) target.appendChild(document.createElement('hr'));
-
                 form.oncreated(rowId,row);
             },
         }
