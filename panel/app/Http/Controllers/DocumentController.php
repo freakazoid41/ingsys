@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Upload;
 use Illuminate\Support\Facades\Validator;
+use App\Models\User_logs;
+use App\Models\Sys_options;
 
 
 class DocumentController extends Controller
@@ -80,119 +82,99 @@ class DocumentController extends Controller
         return response()->json($response);
 	}
 
-    public function transaction(Request $request){
-        $logModel = 'trasnactions';
+    public function getFacility(Request $request){
+        $validateUser = Validator::make($request->all(),[
+            'code'     => 'required',
+        ]);
+
+        if($validateUser->fails()){
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing Parameters',
+                'error'   => $validateUser->errors()
+            ],401);
+        }else{
+            return  response()->json((new DocumentServiceProvider())->getFacility($request->all()));
+        }
+    }
+
+    public function newVisit(Request $request){
+        $logModel = 'documents';
         
-        /*if(!checkPermRoute($logModel,$request->method())) return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],401);*/
-        
-        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],403);
-       
         //$model = 'App\\Models\\Documents';
         switch(strtoupper($request->method())){
-            case "PUT":
-                /*$data = parsePut();
+            case "GET":
+                //$req = $request->all();
+                $res = (new DocumentServiceProvider())->getFormData($request->id);
+                $response = [
+                    'success' => !empty($res),
+                    'data' => $res,
+                ];
+                /*$res = [];
+                if($id != 0){
+                    $res = $model::where('id',$id)->first();
+                }else{
+                    $res = $model::all();
+                }
+				$res = $res->toarray();
+                //get request for data getting
+                $response = [
+                    'success' => !empty($res),
+                    'data' => $res,
+                ];*/
+                break;
+            case "POST":
+                $req  = $request->all();
+                $data = json_decode($req['data'],true);
+                $data['typeKey'] = "op-doc-visit";
                 
-                $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
+                $res = (new DocumentServiceProvider())->registerContent(0,$data,$request->files->all());
+                
+                if($res['id'] > 0){
+                    User_logs::create([
+                        'user_id'     => 0,
+                        'relation'    => 'visitors',
+                        'relation_id' => $res['id'],
+                        'type_id'     => Sys_options::select('id')->where('op_key', 'log-visiter-enter')->first()->id,
+                        'description' => json_encode(array(
+                            'desc' => array_values($data['dynamicF'])[0]['entities']['name'].' tesise giriş yaptı',
+                        ),JSON_UNESCAPED_UNICODE)
+                    ]);
+                }
+
 
                 $response = [
                     'success' => $res['id'] > 0,
                     'data' => $res,
-                ];*/
-			    break;
-			case "DELETE":
-                $res =  (new DocumentServiceProvider())->removeTransaction($request->id);
-                $response = [
-                    'success' => $res['success'],
                 ];
                 break;
+            case "PUT":
+                $data = parsePut();
+                $data = json_decode($data['data'],true);
+                $data['typeKey'] = "op-doc-visit";
+                $res = (new DocumentServiceProvider())->registerContent($request->id,$data,$_FILES);
+
+                if($res['id'] > 0 && isset(array_values($data['dynamicF'])[0]['entities']['exited_at'])){
+                    User_logs::create([
+                        'user_id'     => 0,
+                        'relation'    => 'visitors',
+                        'relation_id' => $res['id'],
+                        'type_id'     => Sys_options::select('id')->where('op_key', 'log-visiter-exit')->first()->id,
+                        'description' => json_encode(array(
+                            'desc' => $res['allEntities']['name'].' tesisten çıkış yaptı',
+                        ),JSON_UNESCAPED_UNICODE)
+                    ]);
+                }
+
+                $response = [
+                    'success' => $res['id'] > 0,
+                    'data' => $res,
+                ];
+			    break;
         }
 
         
 
         return response()->json($response);
-	}
-
-    public function preparePayment(Request $request){
-        return [
-            'success' => true,
-            'data' => (new DocumentServiceProvider())->paymentInfo(),
-        ];
     }
-
-    public function setPayment(Request $request){
-        $validateUser = Validator::make($request->all(),[
-            'amount'     => 'required',
-            'currency'   => 'required',
-            'note'       => 'required',
-            'period'     => 'required',
-        ]);
-
-        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],403);
-
-        if($validateUser->fails()){
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing Parameters',
-                'error'   => $validateUser->errors()
-            ],401);
-        }else{
-            return (new DocumentServiceProvider())->setPayment($request->all(),$request->trans_file);
-        }
-
-        
-    }
-
-    public function setStatus(Request $request){
-        $validateUser = Validator::make($request->all(),[
-            'id'       => 'required',
-            'op_key'   => 'required',
-        ]);
-
-        if($validateUser->fails()){
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing Parameters',
-                'error'   => $validateUser->errors()
-            ],401);
-        }else{
-            return (new DocumentServiceProvider())->setStatus($request->id,$request->op_key,$request->note);
-        }
-    }
-
-    public function getAparments(){
-        return (new ReportServiceProvider())->getAparments();
-    }
-
-    public function setAparments(Request $request){
-        $validateUser = Validator::make($request->all(),[
-            'title'     => 'required',
-        ]);
-
-        if(session('type_key') != 'op-pert-admin' ) return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],403);
-
-        if($validateUser->fails()){
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing Parameters',
-                'error'   => $validateUser->errors()
-            ],401);
-        }else{
-            return (new DocumentServiceProvider())->setAparments($request->all());
-        }
-
-        
-    }
-
 }

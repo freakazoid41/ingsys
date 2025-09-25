@@ -39,8 +39,8 @@ class UserSeeder extends Seeder
         // 4000 gdz elektrik
         $users = [
             ['op-pert-admin','Admin Kadir','kbbozat41@hotmail.com','Kadir412.' ,'9998826976'],
-            ['op-pert-admin','Admin Test' ,'admin@picklecan.me'   ,'Pickle412.','9998816976'],
-            ['op-pert-buyer','Kat Maliki' ,'malik@picklecan.me'   ,'Pickle412.','9994465454'],
+            ['op-pert-admin','Admin Test' ,'admin@talk.com.tr'   ,'Talk412.','9998816976'],
+            
         ];
 
         foreach($users as $u){

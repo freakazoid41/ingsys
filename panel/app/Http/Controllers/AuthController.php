@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use App\Providers\DocumentServiceProvider;
+
 
 class AuthController extends Controller
 {
@@ -34,6 +36,21 @@ class AuthController extends Controller
             ],
             //'pageScript' => '/system/front/pages/' . $page . '/page.js',
         ]);
+    }
+
+    public function frontLogin(Request $request,$facility,$facilityid){
+        //print_r(session('locale'));
+        //die;
+        app()->setLocale(session('locale') ?? 'tr');
+        //here find facility simple info
+        $facility = (new DocumentServiceProvider())->getFacility(['code' => $facility]);
+        if(empty($facility) || $facility['success'] == false) return abort(404);
+        //list all cards on here
+        return view('frontlogin', [
+            'title'   => $facility['data']['title'] ?? '-',
+            'address' => $facility['data']['address'] ?? '-',
+            'id'      => $facilityid
+         ]);
     }
     //
 
@@ -76,6 +93,96 @@ class AuthController extends Controller
             ],500);
         }
     }*/
+
+    public function loginFrontUser(Request $request){
+        
+        try {
+
+            $request->session()->flush();
+            //validate request sended parameters
+            $validateUser = Validator::make($request->all(),[
+                'phone'    => 'required',
+                'facility' => 'required'
+            ]);
+
+            if($validateUser->fails()){
+                return abort(404);
+                /*return response()->json([
+                    'success' => false,
+                    'message' => 'Form Validate Error',
+                    'error'   => $validateUser->errors()
+                ],401);*/
+            }
+
+            $post   =  $request->all();
+            //here search if anyone is entered with this phone 
+            $person = (new DocumentServiceProvider())->getPerson(['phone' => $post['phone']],false);
+           
+           
+            //set person phone
+            session(['phone'     => $post['phone']]);
+            session(['facility'  => $post['facility']]);
+           
+            if(!empty($person) && $person['success'] != false){
+                session(['qnid'      => $person['qnid']]);
+                session(['email'     => $person['data']['email']]);
+                session(['ptitle'    => $person['data']['name']]);
+                session(['connKey'   => 'op-doc-visit-form**'.$person['connId']]);
+            }
+           
+            /*User_logs::create([
+                'user_id'     => auth('sanctum')->user()->id,
+                'sys_code'    => $GLOBALS['SYS_CODE'] == 'GDZ' ? '4000' : '5000',
+                'relation'    => 'users',
+                'relation_id' => auth('sanctum')->user()->id,
+                'type_id'     => Sys_options::select('id')->where('op_key', 'log-login')->first()->id,
+                'description' => json_encode(array(
+                    'desc' => $person->name.' kullanıcısı sisteme giriş yaptı',
+                ),JSON_UNESCAPED_UNICODE)
+            ]);*/
+
+            //$token = $user->createToken("API TOKEN")->plainTextToken;
+            
+            ///neccessary for auth
+            $user = User::updateOrCreate(
+                ['email' => str_replace(' ', '', $post['phone']).'@visitor.aydem'],
+                [
+                    'email'     => str_replace(' ', '', $post['phone']).'@visitor.aydem',
+                    'person_id' => '0',
+                    'name'      => 'VISITOR',
+                    'password'  => Hash::make($post['phone'])
+                ]
+            );
+
+            Auth::login($user);
+            $token = $user->createToken("VISITOR TOKEN")->plainTextToken;
+            ///neccessary for auth
+
+            if(!empty($person) && !isset($person['data']['exited_at'])){
+                if(!isset($person['data']['test-answers'])){
+                    //means just connection drop
+                    return redirect('/facility/'.$post['facility'].'/quiz');  
+                }else{
+                    //means awaiting exit
+                    return redirect('/facility/'.$post['facility'].'/exit');  
+                }
+            }else{
+                $request->session()->flush();
+                session(['facility'  => $post['facility']]);
+                session(['phone'     => $post['phone']]);
+                //sometime can be old record
+                //video status
+                Auth::login($user);
+                if(!empty($person)) session(['mustWatch' => true]);
+                return redirect('/facility/'.$post['facility']);  
+            }
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ],500);
+        }
+    }
 
     public function loginUser(Request $request){
         try {
@@ -120,7 +227,6 @@ class AuthController extends Controller
                 session(['person_id' => $person->id]);
                 session(['email'     => $request->email]);
                 session(['ptitle'    => $person->name/*.' '.$person->surname*/]);
-                session(['grp_code'  => '-']);
                 session(['grp_code'  => 'op-apt-1']);
                 session(['grp_title' => 'Benim Sistemim']);
             }
@@ -217,19 +323,19 @@ class AuthController extends Controller
     }
 
     //this method will set current apartment
-    public function setapartment(Request $request,$apartment){
-        $apt = Sys_options::where('op_key',$apartment)->first();
-        session(['grp_code'   => $apartment]);
-        session(['grp_title'  => $apt->title ?? 'Apartmant Mevcut Değil']);
+    public function setfacility(Request $request,$facility){
+        $apt = Sys_options::where('op_key',$facility)->first();
+        session(['grp_code'   => $facility]);
+        session(['grp_title'  => $apt->title ?? 'Tesis Mevcut Değil']);
         return redirect()->route('app');
     }
 
     //this method will close apartment
-    public function closeapartment(Request $request){
+    public function closefacility(Request $request){
         $apt = Sys_options::where('op_key',session('grp_code'))->first();
         $apt->status = 0;
         $apt->save();
-        return redirect('/panel/apartments');
+        return redirect('/talkpanel/facility');
     }
 
     public function logout(Request $request){

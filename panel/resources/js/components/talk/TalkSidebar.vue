@@ -31,9 +31,33 @@ export default {
         <span>admin</span>
     </div>
     <div class="left-bar-menu">
-        <Simplebar>
+        
         <ul class="menu">
-            <li><a href="/talkpanel/flist" alt=""><span class="kontent-icon" name="Menu5Icon"></span> Örnek listeleme</a></li>
+            <li>
+                <router-link :to="{ name: 'Index' }" :class="$route.name == 'Index' ? 'active' : ''" alt="">
+                    <span class="kontent-icon" name="Menu1Icon"></span>{{ $t('menu.home')}}
+                </router-link>
+            </li>
+            <li>
+                <router-link :to="{ name: 'FList' }" :class="$route.name == 'FList'  || $route.name == 'FForm' ? 'active' : ''" alt="">
+                    <span class="kontent-icon" name="Menu2Icon"></span>{{ $t('menu.facility') }}
+                </router-link>
+            </li>
+            <li>
+                <router-link :to="{ name: 'IList' }" :class="$route.name == 'IList' || $route.name == 'IForm' ? 'active' : ''" alt=""><span class="kontent-icon" name="Menu5Icon">
+                    </span>{{ $t('menu.inventory') }}
+                </router-link>
+            </li>
+            <li>
+                <router-link :to="{ name: 'VList' }" :class="$route.name == 'VList'  || $route.name == 'VForm' ? 'active' : ''" alt="">
+                    <span class="kontent-icon" name="Menu3Icon"></span>{{ $t('menu.visit') }}
+                </router-link>
+            </li>
+            <li>
+                <router-link :to="{ name: 'UList' }" :class="$route.name == 'UList'  || $route.name == 'UForm' ? 'active' : ''" alt=""><span class="kontent-icon" name="Menu7Icon">
+                    </span>{{ $t('menu.users') }}
+                </router-link>
+            </li>
             <!--<li><a href="/admin/index.html" alt="" class="active"><span class="kontent-icon" name="Menu1Icon"></span> Giriş</a></li>
             <li><a href="/admin/cari.html" alt=""><span class="kontent-icon" name="Menu2Icon"></span> Cari Ekstre</a></li>
             <li><a href="/admin/mutabakat-listesi.html" alt=""><span class="kontent-icon" name="Menu3Icon"></span> Mutabakat Listesi</a></li>
@@ -42,9 +66,9 @@ export default {
             <li><a href="" alt=""><span class="kontent-icon" name="Menu6Icon"></span> Hata Bildir</a></li>
             <li><a href="" alt=""><span class="kontent-icon" name="Menu7Icon"></span> Kullanıcı Ayarları</a></li>-->
         </ul>
-        </Simplebar>
+        
     </div>
-    <div class="left-bar-fast">
+    <div class="left-bar-fast" hidden>
         <div>
             <span class="kontent-icon" name="Search"></span>
         </div>

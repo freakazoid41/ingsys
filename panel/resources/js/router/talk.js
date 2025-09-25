@@ -5,8 +5,17 @@ import { useAuthStore } from '@/stores/auth.js'
 import Talk from '@/layouts/Talk.vue'
 
 import TIndex from '@/pages/talk/TIndex.vue'
-import FList from '@/pages/talk/flats/FList.vue'
-import FForm from '@/pages/talk/flats/FForm.vue'
+import FList from '@/pages/talk/facility/FList.vue'
+import FForm from '@/pages/talk/facility/FForm.vue'
+
+import IList from '@/pages/talk/inventory/IList.vue'
+import IForm from '@/pages/talk/inventory/IForm.vue'
+
+import VList from '@/pages/talk/visit/VList.vue'
+import VForm from '@/pages/talk/visit/VForm.vue'
+
+import UList from '@/pages/talk/users/UList.vue'
+import UForm from '@/pages/talk/users/UForm.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,8 +27,13 @@ const router = createRouter({
       children: [
         { path: "/talkpanel", name: 'Index', component: TIndex },
         { path: "/talkpanel/flist", name: 'FList', component: FList },
-        { path: "/talkpanel/fform", name: 'FForm', component: FForm },
-
+        { path: "/talkpanel/flist/form/:id?", name: 'FForm', component: FForm },
+        { path: "/talkpanel/inventory", name: 'IList', component: IList },
+        { path: "/talkpanel/inventory/form/:id?", name: 'IForm', component: IForm },
+        { path: "/talkpanel/visit", name: 'VList', component: VList },
+        { path: "/talkpanel/visit/form/:id?", name: 'VForm', component: VForm },
+        { path: "/talkpanel/users", name: 'UList', component: UList },
+        { path: "/talkpanel/users/form/:id?", name: 'UForm', component: UForm },    
       ]
     },
     /*{

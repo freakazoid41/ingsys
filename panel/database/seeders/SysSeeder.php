@@ -39,7 +39,7 @@ class SysSeeder extends Seeder
         $apartment = [
             [
                 'parent_id' => 0,
-                'title'     => 'Benim Apartmanım',
+                'title'     => 'Benim Sistemim',
                 'ttitle'    => 'Sys_options',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-apt-1',
@@ -56,185 +56,6 @@ class SysSeeder extends Seeder
                 'op_key'    => 'op-perm',
                 'childs'    => [
                     [
-                        'parent_id' => 0,
-                        'title'     => 'Mail Bildirimleri',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-00',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'İhale Atama Maili (Yükleniciler İçin)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-00-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yüklenici İhale Düzenledi (İş Birimleri İçin)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-00-04',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Dosya Eklendi Bildirimi (İş Birimleri İçin)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-00-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Dosya Durum Bildirimleri (Yükleniciler İçin)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-00-03',
-                            ],
-                        ]
-                    ], [
-                        'parent_id' => 0,
-                        'title'     => 'Sistem Bildirimleri',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-07',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Ofis Bildirim Grubu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-07-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'İsg Ofis Bildirim Grubu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-07-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yönetici Bildirim Grubu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-07-03',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yüklenici Bildirim Grubu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-07-04',
-                            ]
-                        ]
-                    ],
-                    [
-                        'parent_id' => 0,
-                        'title'     => 'İhaleler',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-01',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'İhale Oluşturma / Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-03',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'İhale Deaktif Etme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-13',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Ana Bilgi Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-04',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yüklenici Atama',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-05',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yüklenici Girdi Alanları Güncelleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-06',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'ISG Girdi Alanları Güncelleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-07',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'ISG Girdi Alanları Görüntüleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-08',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Ünvan Dosya Gereksinimleri Alanları Güncelleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-09',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Ünvan Dosya Gereksinimleri Alanları Görüntüleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-10',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Personel Girişi Yapabilme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-11',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Alt Yüklenici Ekleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-12',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Yüklenici Kartları',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-02',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-02-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Oluşturma / Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-02-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Deaktif Etme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-02-03',
-                            ]
-                        ]
-                    ],[
                         'parent_id' => 0,
                         'title'     => 'Yüklenici Personel Kartları',
                         'ttitle'    => 'Perm_con_ops',
@@ -268,134 +89,6 @@ class SysSeeder extends Seeder
                                 'op_key'    => 'per-03-04',
                             ]
                         ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Sistem Kullanıcı Kartları',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-04',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-04-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Oluşturma / Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-04-02',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Sistem Dosyaları',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-05',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-05-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Düzenleme (Onay / Red)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-05-02',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Vardiyalar',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-06',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-06-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-06-02',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Raporlar',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-08',
-                        'childs'    => []
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Sistem Değişkenler',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-09',
-                        'childs'    => []
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Hakediş',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-10',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Kontrol İşlemleri',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-03',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Dosya Girişi (Hakediş Kaydetme)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-04',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Bordro Hazırla / Fark Analizi',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-05',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'İcmal Raporu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-06',
-                            ]
-                        ]
                     ]
                 ]
             ]
@@ -418,27 +111,6 @@ class SysSeeder extends Seeder
                 'op_key'    => 'log-logout',
             ],[
                 'parent_id' => 0,
-                'title'     => 'İhale Ekleme',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-tender-add',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'İhale Düzenleme',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-tender-update',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'İhale Hakediş Düzenleme',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-tender-period-update',
-            ],[
-                'parent_id' => 0,
                 'title'     => 'Sistem Girdileri Güncelleme',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
@@ -446,11 +118,25 @@ class SysSeeder extends Seeder
                 'op_key'    => 'log-sys-op-update',
             ],[
                 'parent_id' => 0,
-                'title'     => 'İhale Hakediş Kapatıldı',
+                'title'     => 'Notification Show',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
-                'op_key'    => 'log-tender-period-close',
+                'op_key'    => 'log-user-looked',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Ziyaretçi Giriş Yaptı',
+                'ttitle'    => 'User_logs',
+                'ctitle'    => 'log_id',
+                'group_key' => 'op-logs',
+                'op_key'    => 'log-visiter-enter',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Ziyaretçi Çıkış Yaptı',
+                'ttitle'    => 'User_logs',
+                'ctitle'    => 'log_id',
+                'group_key' => 'op-logs',
+                'op_key'    => 'log-visiter-exit',
             ],[
                 'parent_id' => 0,
                 'title'     => 'Dosya Girişi',
@@ -467,67 +153,11 @@ class SysSeeder extends Seeder
                 'op_key'    => 'log-file-status-trans',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Personel İzin Girişi',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-leave-added',
-            ],[
-                'parent_id' => 0,
                 'title'     => 'Dosya Düzenleme',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
                 'op_key'    => 'log-file-edited',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'İhale Başlatma',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-tender-start',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Yüklenici Personel Düzenleme',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-personnel-update',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Yüklenici Personel Ekleme',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-personnel-add',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Yüklenici Çoklu Personel Ekleme',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-personnel-add-multiple',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Yüklenici Ekleme',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-client-add',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Yüklenici Düzenleme',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-client-update',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Vardiya Düzenleme',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-shift-updated',
             ],[
                 'parent_id' => 0,
                 'title'     => 'Ekleme',
@@ -706,59 +336,24 @@ class SysSeeder extends Seeder
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Dönemler Ana Form',
+                'title'     => 'Tesis Ana Form',
                 'ttitle'    => 'Documents',
                 'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-period-form',
+                'op_key'    => 'op-doc-facility-form',
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Daireler Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-flat-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Kasalar Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-target-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Toplantı Sonuç Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-meeting-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Proje Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-project-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Aktivite Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-calendar-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Envanter Ana Form',
-                'ttitle'    => 'Documents',
+                'title'     => 'Ekipman',
+                'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-inventory-form',
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Apartman Ana Form',
-                'ttitle'    => 'Documents',
+                'title'     => 'Ziyaret',
+                'ttitle'    => '-',
                 'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-apartment-form',
+                'op_key'    => 'op-doc-visit-form',
                 'group_key' => 'op-doc-forms',
             ]
         ];
@@ -814,62 +409,6 @@ class SysSeeder extends Seeder
 
         $documentTypes = [
             [
-                'parent_id' => 0,
-                'title'     => 'Apartman Listesi',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-apartment',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Period',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-period',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Flat',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-flat',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Aktivite',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-calendar',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Account',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-target',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Meeting',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-meeting',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Project',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-project',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Inventory',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-inventory',
-                'group_key' => 'op-doc',
-            ],[
                 'parent_id' => 0,
                 'title'     => 'Tesis Listesi',
                 'ttitle'    => 'Documents',
@@ -995,10 +534,6 @@ class SysSeeder extends Seeder
             }
         }
 
-        
-
-        
-        
         return $i;
     }
 

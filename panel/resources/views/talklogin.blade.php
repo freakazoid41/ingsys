@@ -23,11 +23,11 @@
                 </div>
                 <form class="login-form-main"  action="{{route('login-user','admin')}}" method="POST" novalidate="novalidate"> <!-- <form> or <div> -->
                     <div class="mb-3 form-line">
-                        <input type="text" value="{{env('IS_TEST') ? 'admin@picklecan.me' : ''}}" class="form-control w-100" id="email-put" name="email" placeholder="Lütfen Giriniz">
+                        <input type="text" value="{{env('IS_TEST') ? 'admin@talk.com.tr' : ''}}" class="form-control w-100" id="email-put" name="email" placeholder="Lütfen Giriniz">
                         <label for="email-put" class="form-label">E-posta</label>
                     </div>
                     <div class="mb-3 mt-4 form-line">
-                        <input type="password" value="{{env('IS_TEST') ? 'Pickle412.' : ''}}" class="form-control w-100" id="phone-put" name="password" placeholder="********">
+                        <input type="password" value="{{env('IS_TEST') ? 'Talk412.' : ''}}" class="form-control w-100" id="phone-put" name="password" placeholder="********">
                         <label for="phone-put" class="form-label">Parola</label>
                     </div>
                     

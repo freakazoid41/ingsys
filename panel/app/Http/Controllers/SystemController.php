@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User_logs;
 /*use App\Models\Sys_options;
 use App\Models\User_logs;
 use App\Models\Document_con_ops;
@@ -41,6 +42,33 @@ class SystemController extends Controller
 		
         $response = $model::tableList(json_decode($req['tableReq'],true));
         return json_encode($response, true);
+    }
+
+    public function setNotificationStatus(Request $request){
+        $data = $request->all();
+        if(isset($data['notid'])){
+            $userId = auth('sanctum')->user() == null ? 0 : auth('sanctum')->user()->id;
+            $typeId = Sys_options::select('id')->where('op_key', 'log-user-looked')->first()->id;
+            User_logs::updateOrCreate(
+                ['relation' => 'user_logs', 'relation_id' => $data['notid'],'user_id' => $userId , 'type_id'     => $typeId,], //ask from this values
+                [
+                    'user_id'     => $userId,
+                    'type_id'     => $typeId,
+                    'relation'    => 'user_logs',
+                    'relation_id' => $data['notid'],
+                    'description'     => json_encode(
+                        array (
+                            'model'   => 'flag data',
+                        )
+                        ,JSON_UNESCAPED_UNICODE
+                    ),
+                ] 
+            );
+            return response()->json(['success' => 'true']);
+        }else{
+            return response()->json(['success' => 'false']);
+        }
+        
     }
 
 

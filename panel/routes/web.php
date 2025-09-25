@@ -5,61 +5,36 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
 
 
-Route::get('/',          [AuthController::class, 'login'])->name('login');
-Route::get('/logout',    [AuthController::class, 'logout'])->name('logout');
+Route::get('/talklogin',                                    [AuthController::class, 'login'])->name('login');
+Route::get('/ziyaretci/{facility}/{facilityid}',            [AuthController::class, 'frontLogin'])->name('frontLogin');
+Route::post('/ziyaretcikontrol',                            [AuthController::class, 'loginFrontUser']);
+
+Route::get('/logout',                   [AuthController::class, 'logout'])->name('logout');
 
 //test hook for permissions
 /*Route::get('/panel/users', function (){
     return 'test';
 })->where('any', '^((?!api).)*');*/
 
+Route::get('/facility',fn()      => view('frontapp'))->name('frontapp');
+Route::get('/facility/{any}',fn() => view('frontapp'))->where('any', '^((?!api).)*');
 
 Route::middleware(['auth:sanctum'])
     ->group(function () {
-        /*Route::get('/panel', fn () => view('app'))->name('app');
-        Route::get('/panel/users', function (){
-            return strpos(auth('sanctum')->user()->name,'Admin') !== false ? view('app') : abort('403');
-        })->where('any', '^((?!api).)*');
-        Route::get('/panel/{any}', fn () => view('app'))->where('any', '^((?!api).)*');*/
-
-        $auth = function (){
-            if(session('type_key') !== null){
-                return view('app',['type' => session('type_key') == 'op-pert-admin' ? 'admin' : 'client']);
-                /*switch(session('type_key')){
-                    case 'op-pert-admin':
-                        return view('app');
-                        break;
-                    case 'op-pert-buyer':
-                        //return redirect('/client'); // an alternative to "redirect()->to()"
-                        return view('client');
-                        break;
-                    default:
-                        abort('403');
-                    break;
-                }*/
-            }else{
-                abort('403');
-            }
-        };
-
-        Route::get('/panel',$auth)->name('app');
-        Route::get('/panel/{any}',$auth)->where('any', '^((?!api).)*');
+        
 
         Route::get('/talkpanel',fn() => view('talkapp'))->name('talkapp');
         Route::get('/talkpanel/{any}',fn() => view('talkapp'))->where('any', '^((?!api).)*');
 
-        /*Route::get('/client',$auth)->name('app');
-        Route::get('/client/{any}',$auth)->where('any', '^((?!api).)*');*/
 
-        Route::get('/order-file/{doc}', function ($doc){
-            return decryptFile($doc,'view');
-        })->name('documentRoute');
-
-        Route::post('/reportpdf/icmal',          [ExportController::class, 'reporticmal'])->name('.reportIcmal');
         Route::get('/export/{model}/{type?}',    [ExportController::class, 'index'])->name('.export-table');
-        Route::get('/setapartment/{apartment}',  [AuthController::class,   'setapartment']);
-        Route::get('/closeapartment',            [AuthController::class,   'closeapartment']);
+        Route::get('/setfacility/{facility}',  [AuthController::class,   'setfacility']);
+        Route::get('/closefacility',            [AuthController::class,   'closefacility']);
 });
+
+Route::get('/order-file/{doc}', function ($doc){
+    return decryptFile($doc,'view');
+})->name('documentRoute');
 
 
 

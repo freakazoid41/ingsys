@@ -29,6 +29,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['group_key'],'sys_options_1');
+            $table->index(['op_key'],'sys_options_2');
         });
 
     }

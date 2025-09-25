@@ -16,11 +16,13 @@ export default defineConfig({
   plugins: [
     laravel({
       input: [
-        'resources/js/app.js',
-        'public/js/index.js',
-        'public/js/vendor.js',
-        'public/css/theme.css',
-        'public/css/custom.css'
+        'resources/js/talk.js',
+        'resources/js/front.js',
+        'public/talk/js/bootstrap5.js',
+        'public/talk/css/main.css',
+        'public/talk/css/bootstrap5.css',
+        'public/talk/css/fontawesome5.css',
+        'public/front/assets/css/main.css'
       ],
       refresh: true,
       // detectTls: 'vue-laravel-spa.test',

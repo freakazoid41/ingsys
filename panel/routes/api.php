@@ -22,13 +22,29 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::any('/v1/getcurrent    ',                   [AuthController::class, 'getSession']);
     Route::any('/v1/document/{id?}',                   [DocumentController::class, 'index']);
     Route::any('/v1/transaction/{id?}',                [DocumentController::class, 'transaction']);
-    Route::get('/v1/get-apartments',                   [DocumentController::class, 'getAparments']);
-    Route::post('/v1/set-apartments',                  [DocumentController::class, 'setAparments']);
+   
+    Route::post('/v1/getfacility',                     [DocumentController::class, 'getFacility']);
     Route::post('/v1/table/{model}',                   [SystemController::class, 'table']);
     Route::any('/v1/persons/{id?}',                    [PersonsController::class, 'index']);
-    Route::get('/v1/trans/prepare-payment',            [DocumentController::class, 'preparePayment']);
-    Route::post('/v1/trans/set-payment',               [DocumentController::class, 'setPayment']);
-    Route::post('/v1/trans/set-status',                [DocumentController::class, 'setStatus']);
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
+
+    Route::any('/v1/yeniziyaret/{id?}',                    [DocumentController::class, 'newVisit']);
 });   
+
+
+Route::post('/set-locale', function (Request $request) {
+    $locale = $request->all()['locale'];
+    if (in_array($locale, ['en', 'tr'])) {  // Güvenlik için kontrol
+        session(['locale' => $locale]);
+        App::setLocale($locale);
+
+        return response()->json(['success' => true,'session' => session('locale')]);
+    }else{
+        return response()->json(['error' => 'setleyemedi bişey var']);
+    }
+    return response()->json(['success' => true]);
+});
+
+
+

@@ -44,7 +44,7 @@ class DocumentServiceProvider extends ServiceProvider
             }else{
                 $document->type_id = (\App\Models\Sys_options::where('op_key' , $typeKey)->first())->id;
             }
-
+            
             foreach ($requestData as $key => $value) {
                 if(strpos($key,'main_') !== false){
                     $key = explode('main_',$key)[1];
@@ -86,13 +86,15 @@ class DocumentServiceProvider extends ServiceProvider
 
             //////////////////////////////// Dynamic Fields ********************************
             //now add dynamic fields to the personnel (this is canon way for addional fields)
+            $connEntries  = [];
             $stypeIdMain  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-main'])->first())->id;
             $stypeIdFile  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-file'])->first())->id;
+            $allConnections = [];
             foreach($dynamicF as $key => $field){
                 $id      = explode('**',$key)[1];
                 $tag     = $field['tag'];
                 $typeId  = (Sys_options::where(['ctitle' => 'type_id','op_key' => $tag])->first())->id;
-
+                
                 //set new field
                 $conn  = new Sys_con_ops();
                 //for value update
@@ -104,7 +106,8 @@ class DocumentServiceProvider extends ServiceProvider
                 $conn->type_id     = $typeId;
                 $conn->sub_type_id = $stypeIdMain;
                 $conn->save();
-
+                $connEntries[$tag] = $conn->id;
+                
                 //now check if any entity sended
                 foreach($field['entities'] as $ekey => $value){
                     $entity  = new Sys_con_entities();
@@ -120,6 +123,11 @@ class DocumentServiceProvider extends ServiceProvider
 
                     $entity->save();
                 };
+
+                $entities = Sys_con_entities::where(['conn_id' => $conn->id,'table_tag' => 'sys_con_ops'])->get();
+                foreach($entities as $e){
+                    $allConnections[$e->entity_tag] = $e->entity_value;
+                }
 
                 //now check if any file is sended
                 $stypeId  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-file'])->first())->id;
@@ -159,7 +167,9 @@ class DocumentServiceProvider extends ServiceProvider
             return [
                 'success'          => $rsp,
                 'id'               => $document->id,
-                'data'             => $document
+                'data'             => $document,
+                'connEntries'      => $connEntries,
+                'allEntities'      => $allConnections
             ];
         } catch (\Exception $e) {
             
@@ -179,7 +189,6 @@ class DocumentServiceProvider extends ServiceProvider
         $dynamicF = [];
         //////////////////////////////// Dynamic Fields ********************************
         //get dynamic fields info
-        //$df = "'op-doc-main','op-doc-main-test','op-doc-flat-form','op-doc-period-form','op-doc-target-form','op-doc-meeting-form','op-doc-project-form'";
         $sql = "select  dco.id,
                         so.op_key,
                         sce.entity_tag,
@@ -262,288 +271,224 @@ class DocumentServiceProvider extends ServiceProvider
         return ['success' => true];
     }
 
-    public function removeTransaction($id){
-        //first find all attributes
-        $document    = Transactions::where('qnid',$id)->first();
-        //remove connected transaction 
-        $connTrans   = Transactions::where('trans_id',$document->id)->first();
-        if(!empty($connTrans)) $connTrans->delete();
-        //finaly remove main element
-        $document->delete();
+    /**
+     * this method will return facility informations from given qr_code
+     */
+    public function getFacility($data){
+        $dynamicF = [];
+        //get dfacility fields info
+        $sql = "select  sce2.entity_tag,
+                        (case
+                            when sce2.table_tag = 'document_files'
+                            then (  select  df.description
+                                    from document_files as df
+                                        where df.id = sce2.entity_value)
 
-        return ['success' => true];
-    }
+                            else  sce2.entity_value
+                        end) as entity_value,
+                        d.qnid
 
-    public function paymentInfo(){
-        return [
-            'success' => true,
-            'periods'  => DB::select("SELECT d.id,(SELECT      json_group_array(
-                                                            json_object(
-                                                                'Key',se.entity_tag,
-                                                                'Value' , se.entity_value
-                                                            )
-                                                        ) 
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-period-form'  and so.main_id = d.id)  as  main_attr from documents as d
-                                                        inner join sys_options as sp on sp.id = d.type_id
-                                                            where sp.op_key = 'op-doc-period'"),
-            'accounts' => DB::select("SELECT d.qnid as id,(SELECT      json_group_array(
-                                                            json_object(
-                                                                'Key',se.entity_tag,
-                                                                'Value' , se.entity_value
-                                                            )
-                                                        ) 
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-target-form'  and so.main_id = d.id)  as  main_attr 
-                                            from documents as d
-                                                inner join sys_options as sp on sp.id = d.type_id
-                                            where sp.op_key = 'op-doc-target' and d.grp_code='".session('grp_code')."'"),
-            'flats'  => DB::select("SELECT d.qnid as id,(SELECT      json_group_array(
-                                                            json_object(
-                                                                'Key',se.entity_tag,
-                                                                'Value' , se.entity_value
-                                                            )
-                                                        ) 
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-flat-form'  and so.main_id = d.id)  as  main_attr 
-                                        from documents as d
-                                            inner join sys_options as sp on sp.id = d.type_id
-                                        where sp.op_key = 'op-doc-flat' and d.grp_code='".session('grp_code')."'"),
-            'currencies' => Sys_options::where('group_key','op-cur-types')->get(),
-        ];
+                            from sys_con_ops dco 
+
+                    inner join sys_options so on so.id = dco.type_id
+                    left join sys_con_entities sce on sce.conn_id = dco.id 
+                    left join sys_con_entities sce2 on sce2.conn_id = dco.id
+                    inner join documents as d on d.id = dco.id
+
+                    where   so.op_key = 'op-doc-facility-form' and 
+                            dco.conn_id = 0 and 
+                            dco.status  = 1 and
+                            sce.entity_tag = 'qr_code' and sce.entity_value like '%".strip_tags($data['code'])."%'";
+
+        $data  = DB::select($sql);
+        
+        //also get inventory list
+        $invData = (new Documents())->tableList(['filter' => [
+                [
+                    'key'   => 'form-type',
+                    'type'  => '=',
+                    'value' => 'op-doc-inventory-form'
+                ],[
+                    'key'   => 'type',
+                    'type'  => '=',
+                    'value' => 'op-doc-inventory'
+                ]
+            ]
+        ])['data'];
+        
+        $invList = [];
+        foreach($invData as $d){
+            $detail = json_decode($d->main_attr,true);
+            foreach($detail as $row){
+                $detail[$row['Key']] = $row['Value'];
+
+                if(strpos($row['Key'],'per_name') !== false){
+                    if(!isset($detail['per_name'])) $detail['per_name'] = [];
+                    $detail['per_name'][] = $row['Value'];
+                }
+            }
+            $invList[$d->id] = [
+                'qnid'  => $d->id,
+                'title' => $detail['title'],
+                'code'  => $detail['code'],
+            ];
+        }
+
+
+        if(!empty($data)){
+            foreach ($data as $row) $dynamicF[$row->entity_tag] = $row->entity_value;
+            return [
+                'success'     => true,
+                'data'        => $dynamicF,
+                'inventories' => $invList,
+                'qnid'        => $data[0]->qnid
+            ];
+        }else{
+            return [
+                'success' => false,
+            ];
+        }
     }
 
     /**
-     * this method will set payment transactions for documents
+     * this method will return facility visitor informations from given phone number
      */
-    public function setPayment($data,$files){
-        try{
-            DB::beginTransaction(); // <= Starting the transaction
+    public function getPerson($data,$getOld = true){
+        $dynamicF = [];
+        //get dfacility fields info
+        $sql = "select  sce2.entity_tag,
+                        sce2.entity_value,
+                        dco.id  as  conn_id,
+                        p.qnid  as  qnid
 
-            $data['target_id']  = isset($data['target_id']) ? Documents::where('qnid',$data['target_id'])->first()->id : 0;
-            $data['account_id'] = isset($data['account_id']) ? Documents::where('qnid',$data['account_id'])->first()->id : 0;
-            $data['flat_id']    = isset($data['flat_id']) ? Documents::where('qnid',$data['flat_id'])->first()->id : 0;
-            $cur = Sys_options::where(['code' => $data['currency'] , 'group_key' => 'op-cur-types'])->first()->id;
 
-            $fileRelIds = [];
-            switch($data['op']){
-                case 'paydept':
-                    break;
-                case 'transfer':
-                    $typeId = Sys_options::where('op_key','doc_acc_transfer')->first()->id;
-                    //now make flat payment to us
-                    $etrans = new Transactions();
-                    $etrans->target_id = $data['account_id'];
-                    $etrans->type_id   = $typeId;
-                    $etrans->note      = $data['note'];
-                    $etrans->amount    = $data['amount'];
-                    $etrans->cur_id    = $cur;
-                    $etrans->rel_id    = $data['target_id']; 
-                    $etrans->sign      = 0;
-                    $etrans->period    = $data['period'];
+                            from sys_con_ops dco 
 
-                    $etrans->save();
+                    inner join sys_options so on so.id = dco.type_id
+                    left join sys_con_entities sce on sce.conn_id = dco.id 
+                    left join sys_con_entities sce2 on sce2.conn_id = dco.id
+                    inner join documents as p on p.id = dco.main_id
+    
+                    where   so.op_key = 'op-doc-visit-form' and 
+                            dco.conn_id = 0 and 
+                            dco.status  = 1 and
+                           
+                            sce.entity_tag like 'phone' and sce.entity_value like '%".strip_tags($data['phone'])."%' and
+                            sce.conn_id = (select conn_id from sys_con_entities 
+                                where entity_value like '%".strip_tags($data['phone'])."%' order by conn_id desc )
+                            order by sce2.id asc";
 
-                    $fileRelIds[] = $etrans->id;
+        $data  = DB::select($sql);
 
-                    //now enter money to us
-                    $trans = new Transactions();
-                    $trans->target_id = $data['target_id'];
-                    $trans->type_id   = $typeId;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = $data['account_id'];
-                    $trans->sign      = 1;
-                    $trans->period    = $data['period'];
+        if(!empty($data)){
+            foreach ($data as $row) $dynamicF[$row->entity_tag] = $row->entity_value;
+            
+            if(!$getOld){
+                $startDate = new \DateTime($dynamicF['entered_at']);
+                $endDate = new \DateTime(date('Y-m-h'));
 
-                    $trans->save();
-
-                    // enter reverse trans connection
-                    $trans->trans_id = $etrans->id;
-                    $trans->save();
-                    
-                    $etrans->trans_id = $trans->id;
-                    $etrans->save();
-                    // enter reverse trans connection
-
-                    $fileRelIds[] = $trans->id;
-                    break;
-                case 'income':
-                    $typeId = Sys_options::where('op_key',$data['type'])->first()->id;
-                   
-
-                    if(intval($data['from_safe']) == 1){
-                        //first add flat transactions 
-                        $trans = new Transactions();
-                        $trans->target_id = $data['flat_id'];
-                        $trans->type_id   = $typeId;
-                        $trans->note      = $data['note'];
-                        $trans->amount    = $data['amount'];
-                        $trans->cur_id    = $cur;
-                        $trans->rel_id    = 0; 
-                        $trans->sign      = 1;
-                        $trans->period    = $data['period'];
-        
-                        $trans->save();
-                    }
-
-                    //now make flat payment to us
-                    $etrans = new Transactions();
-                    $etrans->target_id = $data['flat_id'];
-                    $etrans->type_id   = $typeId;
-                    $etrans->note      = $data['note'];
-                    $etrans->amount    = $data['amount'];
-                    $etrans->cur_id    = $cur;
-                    $etrans->rel_id    = $data['account_id']; 
-                    $etrans->sign      = 0;
-                    $etrans->period    = $data['period'];
-
-                    $etrans->save();
-                    $fileRelIds[] = $etrans->id;
-
-                    //now enter money to us
-                    $trans = new Transactions();
-                    $trans->target_id = $data['account_id'];
-                    $trans->type_id   = $typeId;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = $data['flat_id'];
-                    $trans->sign      = 1;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    // enter reverse trans connection
-                    $trans->trans_id = $etrans->id;
-                    $trans->save();
-                    
-                    $etrans->trans_id = $trans->id;
-                    $etrans->save();
-                    // enter reverse trans connection
-
-                    $fileRelIds[] = $trans->id;
-                    break;
-                case 'outcome':
-                    //make aprartment to pay someone
-                    $trans = new Transactions();
-                    $trans->target_id = $data['account_id']; 
-                    $trans->type_id   = Sys_options::where('op_key','doc_acc_other')->first()->id;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = 0;
-                    $trans->sign      = 0;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    $fileRelIds[] = $trans->id;
-                    
-                    break;
-                case 'addbalance':
-                    //make aprartment to pay someone
-                    $trans = new Transactions();
-                    $trans->target_id = $data['flat_id'] ?? $data['account_id'];  // can be add from both listing pages.. 
-                    $trans->type_id   = Sys_options::where('op_key','doc_acc_other')->first()->id;
-                    $trans->note      = $data['note'] ?? '-';
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = 0;
-                    $trans->sign      = 1;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    $fileRelIds[] = $trans->id;
-                    break;
-            }
-
-            //enter file relations if file sended..
-            if(!empty($files) && !empty($fileRelIds)){
-                foreach($fileRelIds as $id){
-                    foreach($files as $file){
-                        $fileResponse = addFileToDb($file,'op-doc-trans-file',0,'transactions',$id);
-
-                        if($fileResponse['success'] == false) throw new \Exception('File Cannot Added To Server');
-                    }
+                $interval = $startDate->diff($endDate);
+                $months = $interval->y * 12 + $interval->m;
+                
+                if($months > 6){
+                    return [
+                        'success' => false,
+                    ];
                 }
             }
-            DB::commit(); // <= Commit the changes
-            return [
-                'success' => true,
-            ];
-        }catch(\Exception $e){
-            DB::rollBack(); // <= Rollback in case of an exception
+            //means is older data
+            /*if(isset($dynamicF['exited_at']) && new \DateTime($dynamicF['entered_at']) > new \DateTime($dynamicF['exited_at'])){
+                unset($dynamicF['exited_at']);
+            }*/
 
+
+            return [
+                'success'     => true,
+                'data'        => $dynamicF,
+                'connId'      => $data[0]->conn_id,
+                'qnid'        => $data[0]->qnid,
+            ];
+        }else{
             return [
                 'success' => false,
-                'msg'     => $e->getMessage(),
             ];
         }
-        
     }
 
+    
     /**
      * this method will prepare export data for documents
      */
     public function getExportData($type){
         $response = [];
         switch($type){
-            case 'flats':
-                $response[] = ['Daire İsmi','Kat Maliki','Güncel Bakiye'];
+            case 'visit':
+                $response[] = ['Ad Soyad','Telefon','E-Posta','Tesis','Giriş','Video Başlama','Video Bitiş','İzleme Süresi','İzleme Durum','Çıkış'];
                 $data = (new Documents())->tableList(['filter' => [
                         [
                             'key'   => 'form-type',
                             'type'  => '=',
-                            'value' => 'op-doc-flat-form'
+                            'value' => 'op-doc-visit-form'
                         ],[
                             'key'   => 'type',
                             'type'  => '=',
-                            'value' => 'op-doc-flat'
+                            'value' => 'op-doc-visit'
                         ]
                     ]
                 ])['data'];
                 break;
-            case 'accounts':
-                $response[] = ['Kasa','Güncel Bakiye'];
+            case 'facility':
+                $response[] = ['Tesis İsmi','Adresi','QR Kimlik'];
                 $data = (new Documents())->tableList(['filter' => [
                         [
                             'key'   => 'form-type',
                             'type'  => '=',
-                            'value' => 'op-doc-target-form'
+                            'value' => 'op-doc-facility-form'
                         ],[
                             'key'   => 'type',
                             'type'  => '=',
-                            'value' => 'op-doc-target'
+                            'value' => 'op-doc-facility'
                         ]
                     ]
                 ])['data'];
                 break;
-            case 'meetings':
-                $response[] = ['Tarih','Güncel Yönetici','Güncel Aidat'];
+            case 'inventory':
+                $response[] = ['Ekipman İsmi','Ekipman Kodu'];
                 $data = (new Documents())->tableList(['filter' => [
                         [
                             'key'   => 'form-type',
                             'type'  => '=',
-                            'value' => 'op-doc-meeting-form'
+                            'value' => 'op-doc-inventory-form'
                         ],[
                             'key'   => 'type',
                             'type'  => '=',
-                            'value' => 'op-doc-meeting'
+                            'value' => 'op-doc-inventory'
                         ]
                     ]
                 ])['data'];
+
                 break;
         }
 
+        $fancyTimeFormat = function ($duration){
+            $duration = intval($duration);
+            // Saat, dakika ve saniye hesaplamaları
+            $hrs = floor($duration / 3600);
+            $mins = floor(($duration % 3600) / 60);
+            $secs = floor($duration % 60);
+
+            // "1:01" veya "4:03:59" veya "123:03:59" formatında çıktı
+            $ret = "";
+
+            if ($hrs > 0) {
+                $ret .= $hrs . ":" . ($mins < 10 ? "0" : "");
+            }
+
+            $ret .= $mins . ":" . ($secs < 10 ? "0" : "");
+            $ret .= $secs;
+
+            return $ret;
+        };
        
         foreach($data as $d){
             $detail = json_decode($d->main_attr,true);
@@ -557,26 +502,35 @@ class DocumentServiceProvider extends ServiceProvider
             }
            
             switch($type){
-                case 'meetings':
+                 case 'visit':
                     $response[] = [
-                        $detail['meet_date'],
-                        $detail['meet_active_supervisor'],
-                        $detail['meet_amount'].' '.env('SYS_CUR'),
+                        $detail['name'].' '.$detail['surname'],
+                        $detail['phone'],
+                        $detail['email'],
+                        $detail['facility'],
+                        $detail['entered_at'],
+                        isset($detail['video_start']) ? explode(' ',$detail['video_start'])[1] : '-',
+                        isset($detail['video_end']) ? explode(' ',$detail['video_end'])[1] : '-',
+                        isset($detail['video_second']) ? $fancyTimeFormat($detail['video_second']) : '0:00',
+                        $detail['video_status'] ?? '-',
+                        $detail['exited_at'] ?? 'Bekleniyor',
                     ];
                     break;
-                case 'accounts':
+                case 'inventory':
                     $response[] = [
                         $detail['title'],
-                        ($d->balance_pure ?? 0).' '.($detail['currency'] ?? env('SYS_CUR')),
+                        $detail['code'],
                     ];
                     break;
-                case 'flats':
+                case 'facility':
                     $response[] = [
                         $detail['title'],
-                        implode(' , ',$detail['per_name']),
-                        ($d->balance_pure ?? 0).' '.($detail['currency'] ?? env('SYS_CUR')),
+                        $detail['address'],
+                        $detail['qr_code'],
+                        
                     ];
                     break;
+                
             }
         }
 
@@ -586,121 +540,6 @@ class DocumentServiceProvider extends ServiceProvider
         ];
     }
 
-    /**
-     * this method will set status for documents
-     */
-    public function setStatus($id,$statusKey,$note){
-        try{
-            $type = Sys_options::where('op_key',$statusKey)->first();
-            $trans = new Transactions();
-            $trans->target_id  = $id;  // can be add from both listing pages.. 
-            $trans->type_id    = $type->id;
-            $trans->note       = $note ?? '-';
-            $trans->amount     = 0;
-            $trans->cur_id     = 0;
-            $trans->rel_id     = 0;
-            $trans->sign       = 0;
-            $trans->period     = date('Y-m');
-            //$trans->created_at =  
-            $trans->save();
-
-            return [
-                'data'    => $type->title,
-                'success' => true,
-            ];
-        }catch(Exception $e){
-            return [
-                'success' => false,
-                'msg'     => $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
-     * this method will prepare export data for transactions
-     */
-    public function getTransExportData($id = null){
-        $response = [];
-        $filter   = [];
-        if($id != null){
-            $documentId = Documents::where('qnid',$id)->first();
-
-
-            $filter = [
-                [
-                    'key'   => 'target_id',
-                    'type'  => '=',
-                    'value' => $documentId->id
-                ]
-            ];
-
-            $data = $this->getFormData($id);
-            
-            $title = array_values(array_values($data)[0])[0][$documentId->id]['entities']['title'];
-            $response[] = ['Kasa : ',$title];
-            $response[] = [' '];
-        } 
-        $data = (new Transactions())->tableList(['filter' => $filter ])['data'];
-
-        $response[] = ['Periyod','Tarih','Kaynak','Hedef','Tip','Yön','Miktar','Birim','Açıklama'];
-        foreach($data as $d){
-            $conn = [];
-            foreach(json_decode($d->conn_info,true) as $cv){
-                $conn[$cv['Key']] = $cv['Value'];
-            }
-
-            $main = [];
-            foreach(json_decode($d->main_info,true) as $cv){
-                $main[$cv['Key']] = $cv['Value'];
-            }
-
-            
-
-            $response[] = [
-                $d->period,
-                $d->created_at,
-                $conn['title'],
-                $main['title'],
-                $d->type,
-                intval($d->sign) == 1 ? '->' : '<-',
-                (intval($d->sign) != 1 ? '-' : '').$d->amount,
-                $d->cur,
-                $d->note
-            ];
-        }
-
-        return [
-            'success' => true,
-            'data'    => $response
-        ];
-    }
-
-
-    /**
-     * this method will create new apartment for system
-     */
-    public function setAparments($data){
-        try{
-            $opKey = generateSeoURL(noInject($data['title']));
-            $data = Sys_options::updateOrCreate(
-                ['title' => $data['title'], 'op_key' => $opKey, 'group_key' => 'op-apt-types'],
-                [
-                    'title'     => $data['title'], 
-                    'op_key'    => $opKey, 
-                    'group_key' => 'op-apt-types',
-                    'ttitle'    => 'Sys_options',
-                    'ctitle'    => 'type_id'
-                ],
-            );
-            return [
-                'data'    => $data->op_key,
-                'success' => true,
-            ];
-        }catch(Exception $e){
-            return [
-                'success' => false,
-                'msg'     => $e->getMessage(),
-            ];
-        }
-    }
+   
+    
 }

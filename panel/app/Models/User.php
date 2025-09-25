@@ -28,6 +28,7 @@ class User extends Authenticatable
         'email',
         'password',
         'parent_id',
+        'person_id',
         'qnid',
         'grp_code'
     ];

@@ -2795,7 +2795,7 @@ table thead tr th .filter-btn svg {
 }
 @media (max-width: 1599px) {
   .admin-dashboard-l .min-card {
-    flex-direction: column;
+    /*flex-direction: column;*/
   }
 }
 @media (max-width: 1299px) {
@@ -2815,7 +2815,7 @@ table thead tr th .filter-btn svg {
   background-color: transparent;
   border: unset;
   border-radius: 30px;
-  background-image: url("/assets/img/dashboard-card.png");
+  background-image: url("/public/talk/img/dashboard-card.png");
   background-size: 100% 100%;
   padding: 25px 33px;
   position: relative;
@@ -2824,7 +2824,7 @@ table thead tr th .filter-btn svg {
 }
 @media (max-width: 1599px) {
   .admin-dashboard-l .min-card .card {
-    max-width: unset;
+    /*max-width: unset;*/
   }
 }
 @media (max-width: 991px) {

@@ -86,12 +86,8 @@ class Transactions extends Model
                                         inner join sys_options as sp on sp.id = d.type_id
                                     where       so.conn_id = 0 
                                             and spt.op_key = (case 
-                                                                when sp.op_key = 'op-doc-flat' 
-                                                                then 'op-doc-flat-form' 
-                                                                when sp.op_key = 'op-doc-target' 
-                                                                then 'op-doc-target-form' 
-                                                                when sp.op_key = 'op-doc-period' 
-                                                                then 'op-doc-period-form'
+                                                                when sp.op_key = 'op-doc-facility' 
+                                                                then 'op-doc-facility-form' 
                                                             end
                                                         )
                                             and d.id = i.rel_id)  as  conn_info",
