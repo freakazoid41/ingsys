@@ -428,7 +428,11 @@
     "isEntry": true
   },
   "resources/js/app.js": {
+<<<<<<< HEAD
     "file": "assets/app-DWF6ZyWA.js",
+=======
+    "file": "assets/app-BFMRXBwl.js",
+>>>>>>> panelMain
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
