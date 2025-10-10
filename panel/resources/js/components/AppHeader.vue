@@ -217,7 +217,7 @@ export default {
             <li class="dropdown"> 
                 <button type="button" class="h-11 me-n0.5 p-2 rounded w-11" data-bs-toggle="dropdown"
                     aria-expanded="false"> 
-                    <img class="h-8 rounded" src="http://icons.iconarchive.com/icons/sykonist/looney-tunes/256/Taz-icon.png"> 
+                    <i class="ph ph-buildings text-body-emphasis rounded"></i>
                 </button>
                 <div class="dropdown-menu"> 
                     <!--<a href="#" class="dropdown-item"> <i class="ph ph-user-circle"></i> Profile
