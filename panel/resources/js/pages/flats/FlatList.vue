@@ -124,9 +124,11 @@
                             div.classList.add('row','justify-content-center');
 
                             const edit       = document.createElement('a');
-                            edit.href        = '/panel/flats/form/'+columnData;
+                            //edit.href        = '/panel/flats/form/'+columnData;
+                            edit.href        = 'javascript:;';
                             edit.style.width = 'auto';
                             edit.innerHTML   = '<i class="fc-icon fc-icon- fs-4 ph ph-note-pencil" role="img"></i>';
+                            edit.onclick     = () => this.$router.push({ name: 'FlatForm' , params: { id: columnData }}),
                             div.appendChild(edit);
 
                             const del       = document.createElement('a');
