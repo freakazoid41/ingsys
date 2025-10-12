@@ -17,6 +17,24 @@ export default {
     mounted(){
         if(this.taskDataStore.tasks.length == 0) this.taskDataStore.setTaskData();
         if(this.taskDataStore.events.length == 0) this.taskDataStore.setEventData();
+
+        document.querySelectorAll(".sidebar-toggle").forEach(el => {
+            el.onclick = () => {
+                document.getElementById('sidebar').classList.add('toggled');
+
+                const clsButton = document.createElement('button');
+                clsButton.type = 'button';
+                clsButton.classList.add('backdrop','d-xl-none');
+                clsButton.onclick = () => {
+                    document.getElementById('sidebar').classList.remove('toggled');
+                    clsButton.remove();
+                }
+
+                document.getElementById('sidebar').addEventListener('click', e => {clsButton.remove();})
+
+                document.getElementById('app').appendChild(clsButton);
+            } 
+        })
     },  
     data() {
         return {
