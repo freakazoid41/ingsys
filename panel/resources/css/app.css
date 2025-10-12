@@ -47,3 +47,6 @@
 .swal2-success-circular-line-left,
 .swal2-success-circular-line-right{background-color: unset !important;}
 
+.btn_page > * {
+    pointer-events: none !important;
+}
