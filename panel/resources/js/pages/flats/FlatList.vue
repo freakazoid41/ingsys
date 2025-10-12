@@ -99,8 +99,10 @@
                             elm.style.setProperty('text-overflow', 'unset', 'important');
 
                             const span = document.createElement('span');
+                            span.classList.add('d-flex','justify-content-center','align-items-center','flex-row'); 
+
                             let btn = document.createElement('button');
-                            btn.classList.add('btn','btn-secondary','me-1');
+                            btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
                             btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis"></i> <span class="ms-2 icon-info">Bakiye</span>';
                             btn.onclick   = () => this.transmodal('addbalance',columnData,rowData.title);
                             span.appendChild(btn);
@@ -108,7 +110,7 @@
                             console.log(screen.width);
 
                             btn = document.createElement('button');
-                            btn.classList.add('btn','btn-secondary','me-1');
+                            btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
                             btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis"></i><span class="ms-2 icon-info">Ödeme</span>';
                             btn.onclick   = () => this.transmodal('income',columnData,rowData.title);
                             span.appendChild(btn);
@@ -118,11 +120,42 @@
                         title : '',
                         key   : 'id',
                         order : false,
+                        //colAlign : 'center',
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
-                            const div = document.createElement('div');
-                            div.classList.add('row','justify-content-center');
+                           
 
+                            const span = document.createElement('span');
+                            span.classList.add('d-flex','justify-content-center','align-items-center','flex-row');
+                            let btn = document.createElement('button');
+                            btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
+                            btn.innerHTML = '<i class="fs-4 ph ph-note-pencil text-body-emphasis" role="img"></i>';
+                            btn.onclick   = () => this.$router.push({ name: 'FlatForm' , params: { id: columnData }});
+                            span.appendChild(btn);
+
+                          
+
+                            btn = document.createElement('button');
+                            btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
+                            btn.innerHTML = '<i class="fc-icon fc-icon- fs-4 ph ph-x-circle"  role="img"></i>';
+                            btn.onclick   =  async () => {
+                                this.navigationStore.toggle(true);
+                                await this.plib.request({
+                                    url      : '/api/v1/document/'+columnData,
+                                    method   : 'DELETE',
+                                },null);
+
+                                this.table.deleteRow(columnData);
+                                setTimeout(() => {
+                                    this.navigationStore.toggle(false);
+                                }, 300);
+                                
+                            };
+                            span.appendChild(btn);
+                            return span;
+
+                            /*const div = document.createElement('div');
+                            div.classList.add('row','justify-content-center');
                             const edit       = document.createElement('a');
                             //edit.href        = '/panel/flats/form/'+columnData;
                             edit.href        = 'javascript:;';
@@ -148,7 +181,7 @@
                                 }, 300);
                                 
                             };
-                            div.appendChild(del);
+                            div.appendChild(del);*/
 
                             return div;
                         }
