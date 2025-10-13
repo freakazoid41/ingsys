@@ -176,14 +176,26 @@
             type: Function
         }
     },
-    
+    data : () => {
+        return {
+            status : 'await'
+        }
+    },  
     methods: {
-        execute() {
+        async execute() {
             // ... do something here
             //console.log(this.btntype);
-            if (this.callback) {
+            /*if (this.callback) {
                 document.querySelector('.fab-wrapper').hidden = true;
-                this.callback()
+                console.log(this.callback())
+            }*/
+
+            if (this.callback && this.status != 'loading') {
+                this.status = 'loading';
+                //document.querySelector('.fab-wrapper').hidden = true;
+                await this.callback();
+                //console.log(rsp)
+                this.status = 'await';
             }
         }
     }
@@ -194,7 +206,10 @@
         <input id="fabCheckbox" v-if="btntype==='options'" type="checkbox" class="fab-checkbox" />
         
         <label class="fab d-flex justify-content-center align-items-center" v-if="btntype==='saveBtn'" for="fabCheckbox" @click="execute">
-            <span class="ph ph-check-fat fs-1 text-body-emphasis"></span>
+            <span class="ph ph-check-fat fs-1 text-body-emphasis" v-if="status=='await'"></span>
+
+            
+            <span class="ph ph-lock fs-1 text-body-emphasis" v-if="status=='loading'"></span>
         </label>
         
         <label class="fab" v-if="btntype==='options'" for="fabCheckbox" @click="execute">

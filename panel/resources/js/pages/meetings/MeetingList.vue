@@ -93,25 +93,24 @@
                         title : '',
                         key   : 'id',
                         order : false,
-                        width : '5%',
                         type  : 'string', // if column is string then make type string
+                        colAlign : 'center',
                         columnFormatter : (elm,rowData,columnData) => {
-                            const div = document.createElement('div');
-                            div.classList.add('row','justify-content-center');
+                            
+                            const span = document.createElement('span');
+                            span.classList.add('d-flex','justify-content-center','align-items-center','flex-row');
+                            let btn = document.createElement('button');
+                            btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
+                            btn.innerHTML = '<i class="fs-4 ph ph-note-pencil text-body-emphasis" role="img"></i>';
+                            btn.onclick   = () => this.$router.push({ name: 'MeetingForm' , params: { id: columnData }});
+                            span.appendChild(btn);
 
-                            const edit       = document.createElement('a');
-                            edit.href        = 'javascript:;';
-                            //edit.href        = '/panel/meetings/form/'+columnData;
-                            edit.style.width = 'auto';
-                            edit.innerHTML   = '<i class="fc-icon fc-icon- fs-4 ph ph-note-pencil" role="img"></i>';
-                            edit.onclick     = () => this.$router.push({ name: 'MeetingForm' , params: { id: columnData }}),
-                            div.appendChild(edit);
+                          
 
-                            const del       = document.createElement('a');
-                            del.href        = 'javascript:;';
-                            del.style.width = 'auto';
-                            del.innerHTML   = '<i class="fc-icon fc-icon- fs-4 ph ph-x-circle"  role="img"></i>';
-                            del.onclick     = async () => {
+                            btn = document.createElement('button');
+                            btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
+                            btn.innerHTML = '<i class="fc-icon fc-icon- fs-4 ph ph-x-circle"  role="img"></i>';
+                            btn.onclick   =  async () => {
                                 this.navigationStore.toggle(true);
                                 await this.plib.request({
                                     url      : '/api/v1/document/'+columnData,
@@ -121,12 +120,11 @@
                                 this.table.deleteRow(columnData);
                                 setTimeout(() => {
                                     this.navigationStore.toggle(false);
-                                }, 200);
+                                }, 300);
                                 
                             };
-                            div.appendChild(del);
-
-                            return div;
+                            span.appendChild(btn);
+                            return span;
                         }
                     }
                 ];

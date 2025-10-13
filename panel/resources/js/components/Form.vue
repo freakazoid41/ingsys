@@ -116,7 +116,7 @@
                                         type  : 'text',
                                         name  : 'title1',
                                         col      : 4,
-                                        multiple : true,
+                                        //multiple : true,
                                         label : 'Envanter İsmi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
