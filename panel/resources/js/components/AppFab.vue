@@ -195,7 +195,10 @@
                 //document.querySelector('.fab-wrapper').hidden = true;
                 await this.callback();
                 //console.log(rsp)
-                this.status = 'await';
+                setTimeout(() => {
+                    this.status = 'await';
+                }, 500);
+                
             }
         }
     }
@@ -207,9 +210,8 @@
         
         <label class="fab d-flex justify-content-center align-items-center" v-if="btntype==='saveBtn'" for="fabCheckbox" @click="execute">
             <span class="ph ph-check-fat fs-1 text-body-emphasis" v-if="status=='await'"></span>
-
-            
-            <span class="ph ph-lock fs-1 text-body-emphasis" v-if="status=='loading'"></span>
+            <span class="spinner-grow spinner-grow-sm" v-if="status=='loading'" aria-hidden="true"></span> <span class="visually-hidden" role="status">Loading...</span> 
+           
         </label>
         
         <label class="fab" v-if="btntype==='options'" for="fabCheckbox" @click="execute">
