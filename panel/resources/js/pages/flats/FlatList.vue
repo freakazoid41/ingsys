@@ -123,8 +123,6 @@
                         //colAlign : 'center',
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
-                           
-
                             const span = document.createElement('span');
                             span.classList.add('d-flex','justify-content-center','align-items-center','flex-row');
                             let btn = document.createElement('button');
