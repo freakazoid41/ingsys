@@ -9,6 +9,7 @@ import { i18nVue } from 'laravel-vue-i18n';
 
 
 
+
 const pinia = createPinia();
 
 const app = createApp(App)

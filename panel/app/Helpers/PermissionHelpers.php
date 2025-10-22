@@ -74,7 +74,31 @@ if(!function_exists('noInject')){
 }
 
 if(!function_exists('checkPermRoute')){
-    
+    function checkPermRoute($type,$requestType){
+        $perms = [
+            'persons' => [
+                'GET'          => ['op-pert-admin'],
+                'POST'         => ['op-pert-admin'],
+                'PUT'          => ['op-pert-admin'],
+                'DELETE'       => ['op-pert-admin']
+            ],
+            'users'   => [
+                'GET'          => ['op-pert-admin'],
+                'POST'         => ['op-pert-admin'],
+                'PUT'          => ['op-pert-admin'],
+                'DELETE'       => ['op-pert-admin']
+            ],
+        ];
+       
+        //check 
+        if(isset($perms[strtolower($type)])){
+            $perms = $perms[strtolower($type)][strtoupper($requestType)];
+             
+            return in_array(session('type_key'),$perms);
+        }
+        return true;
+
+    }
 }
 
 if(!function_exists('hasMailPerm')){

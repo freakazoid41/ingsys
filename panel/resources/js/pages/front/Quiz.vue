@@ -5,19 +5,22 @@
   import Plib from '@/lib/pickle';
   import FrontLib from '@/lib/frontlib';
   import { wTrans } from 'laravel-vue-i18n';
-
+  
 
   export default {
     components: {
 
     },
     setup() {
+     
+
       // expose to template and other options API hooks
       return {
         useNavigationStore,
         FrontLib,
         Plib,
-        wTrans
+        wTrans,
+        
       }
     },
     mounted() {
@@ -25,13 +28,15 @@
       this.currentIndex = this.navigationStore?.facility?.questionKeys?.indexOf(String(this.$route.params.quiz)) ?? 0;
     },
     data() {
-
+      
       return {
-        questionKey: this.$route.params.quiz,
-        currentIndex: 0,
-        plib: new Plib(),
-        frontLib: new FrontLib(),
-        navigationStore: useNavigationStore(),
+        wrongAnswers    : {},
+        questionKey     : this.$route.params.quiz,
+        currentIndex    : 0,
+        plib            : new Plib(),
+        frontLib        : new FrontLib(),
+        navigationStore : useNavigationStore(),
+        
       }
     },
     methods: {
@@ -49,7 +54,9 @@
         }
       },
       stepChange(type = 'next') {
+        
         if (type == 'next') {
+          if(this.navigationStore.currentOpt[this.$route.params.quiz] === undefined) return false;
           this.currentIndex++;
         } else {
           this.currentIndex--;
@@ -69,13 +76,18 @@
       async checkOptions() {
         let trueCount = 0
         for(let key in this.navigationStore?.facility?.questions){
-          if(this.navigationStore?.facility?.questions[key].rightAnswer == this.navigationStore.currentOpt[key]) trueCount++;
+          if(this.navigationStore?.facility?.questions[key].rightAnswer == this.navigationStore.currentOpt[key]) {
+            trueCount++;
+          }else{
+            this.navigationStore.wrongAnswers[key] = this.navigationStore.currentOpt[key];
+          }
         }
-
+        //for removing spoiler clone object and store in temp position for progress bar colors
+        this.navigationStore.selectedRef = {...this.navigationStore.currentOpt};
 
         if(trueCount >= parseInt(this.navigationStore.facility.mustKnow)){
           this.navigationStore.isPassed = true;
-
+          this.navigationStore.isFailed = false;
           this.navigationStore.toggle(true);
           //save selections
           const envelope  = new FormData();
@@ -111,7 +123,7 @@
                 name: `Sonraki adıma geç <img src='/front/assets/img/rightArrowDark.png' class='arrow'>`,
                 proccess: () => {
                     document.querySelector("button.close").click();
-                    this.$router.push({ name: 'IShow' , params: { id  : this.navigationStore.facility.qr }});
+                    this.$router.push({ name: 'IWarn' , params: { id  : this.navigationStore.facility.qr }});
                 }
               }
             },
@@ -121,17 +133,22 @@
 
         }else{
           this.navigationStore.isPassed = false;
-
-
+          this.navigationStore.isFailed = true;
+          const questionCount = Object.keys(this.navigationStore?.facility?.questions).length;
+          const wrongCount    = Object.keys(this.navigationStore.wrongAnswers).length;
           this.frontLib.popup({
             text: {
               class : 'error-popup',
-              head: 'Hay Aksi!',
-              body: `<h4>Soruları doğru yanıtlamadınız.<br> Videoyu tekrar izleyiniz.</h4> <div class="view"><div class="icon"><img src='/front/assets/img/successCheck.svg'></div></div>`,
+              head: this.wTrans('quiz.failed.head').value,
+              body: ` <h4>
+                        ${this.wTrans('quiz.failed').value.replace('**x**',wrongCount).replace('**d**',(questionCount - wrongCount))}
+                      </h4> 
+                      <div class="view"><div class="icon"><img src='/front/assets/img/expl.svg'></div></div>`,
               button: {
                 name: `Videoyu tekrar izle <img src='/front/assets/img/rightArrowDark.png' class='arrow'>`,
                 proccess: () => {
                     document.querySelector("button.close").click();
+                    
                     this.$router.push({ name: 'VShow' , params: { id  : this.navigationStore.facility.qr }});
                 }
               }
@@ -152,15 +169,18 @@
   <div class="main-body questions">
     <div class="progress-head">
       <div class="label">{{this.currentIndex+1}}/{{navigationStore?.facility?.questionKeys?.length}}</div>
-      <div class="progress" :style="'--lenght: '+ navigationStore?.facility?.questionKeys?.length">
+      <div v-if="navigationStore?.isFailed" class="progress" :style="'--lenght: '+ navigationStore?.facility?.questionKeys?.length">
         <span  :class="{
-          invalid : navigationStore.isPassed == false && navigationStore.currentOpt[key] != navigationStore?.facility?.questions?.[key].rightAnswer
-        }" v-for="(value,key) in navigationStore?.facility?.questions"></span>
-
-        
+          invalid : navigationStore.isPassed == false && navigationStore.selectedRef[key] != navigationStore?.facility?.questions?.[key].rightAnswer
+        }" v-for="(value,key) in navigationStore?.facility?.questions">
+        </span>
+      </div>
+      <div v-if="!navigationStore?.isFailed" class="progress" :style="'--lenght: '+ navigationStore?.facility?.questionKeys?.length">
+        <span v-for="index in [...Array(this.currentIndex+1)]">
+        </span>
       </div>
     </div>
-    <div class="questions-img">
+    <div class="questions-img" v-if="false">
       <img src="/front/assets/img/photo.webp" alt="">
     </div>
     <div class="questions-head">
@@ -171,8 +191,14 @@
     <div class="questions-body">
       <div class="questions-reply" :class="{
           active : navigationStore.currentOpt[this.$route.params.quiz] == key,
-          valid  : navigationStore.isPassed == false && navigationStore.currentOpt[this.$route.params.quiz] == navigationStore?.facility?.questions[this.$route.params.quiz].rightAnswer && key == navigationStore?.facility?.questions?.[this.$route.params.quiz].rightAnswer,
-          invalid : navigationStore.isPassed == false && navigationStore.currentOpt[this.$route.params.quiz] != navigationStore?.facility?.questions[this.$route.params.quiz].rightAnswer && key == navigationStore.currentOpt[this.$route.params.quiz],
+          valid  :  navigationStore.isPassed == false && 
+                    navigationStore.wrongAnswers[this.$route.params.quiz] === undefined &&
+                    navigationStore.currentOpt[this.$route.params.quiz] == navigationStore?.facility?.questions[this.$route.params.quiz].rightAnswer && 
+                    key == navigationStore?.facility?.questions?.[this.$route.params.quiz].rightAnswer,
+          invalid : navigationStore.isPassed == false && 
+                    navigationStore.currentOpt[this.$route.params.quiz] != navigationStore?.facility?.questions[this.$route.params.quiz].rightAnswer && 
+                    key == navigationStore.wrongAnswers[this.$route.params.quiz] &&
+                    key == navigationStore.currentOpt[this.$route.params.quiz],
         }"
         @click="selectOption(key)" v-for="(value,key) in navigationStore?.facility?.questions?.[this.$route.params.quiz]?.answers">
         <input type="checkbox" id="reply-a">

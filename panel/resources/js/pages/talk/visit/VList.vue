@@ -6,6 +6,9 @@
     import Plib from '@/lib/pickle';
     import { wTrans } from 'laravel-vue-i18n';
     import Swal from 'sweetalert2';
+    import flatpickr from "flatpickr";
+    import { Turkish } from "flatpickr/dist/l10n/tr.js"
+    import 'flatpickr/dist/flatpickr.css';
 
     export default {
         setup() {
@@ -16,6 +19,7 @@
                 Plib,
                 wTrans,
                 Swal,
+                flatpickr,
             }
         },
         mounted(){
@@ -25,13 +29,21 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/panel',
+                    url   : '/talkpanel',
                 },
                 {
                     title : this.wTrans('menu.visit'),
-                    url   : '/panel/visit',
+                    url   : '/talkpanel/visit',
                 }
             ] ,this.wTrans('form.visit.list'));
+
+            document.querySelectorAll('.date-select').forEach(el => {
+                flatpickr(el, {
+                    "locale": Turkish,
+                    dateFormat: 'd/m/Y'
+                });
+            });
+            
 
             setTimeout(() => {
                 this.navigationStore.toggle(false);
@@ -83,8 +95,27 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
-                            columnData = columnData.split(' ');
-                            return columnData[0].split('-').reverse().join('/')+' '+columnData[1];
+                            if(rowData['inventory-taken']){
+                                columnData = columnData.split(' ');
+                                return columnData[0].split('-').reverse().join('/')+' '+columnData[1];
+                            }else{
+                                return 'Bekleniyor..';
+                            }
+                            
+                        }
+                    },{
+                        title : 'Çıkış',
+                        key   : 'exited_at',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData,columnData) => {
+                            if(columnData != null){
+                                columnData = columnData.split(' ');
+                                return columnData[0].split('-').reverse().join('/')+' '+columnData[1];
+                            }else{
+                                return 'Bekleniyor..';
+                            }
+                            
                         }
                     },{
                         title : 'Video Başlama',
@@ -96,7 +127,7 @@
                                 rowData['video_start'] = rowData['video_start'].split(' ');
                                 return rowData['video_start'][1];
                             }else{
-                                return '-'
+                                return 'Bekleniyor';
                             }
                             
                         }
@@ -110,7 +141,7 @@
                                 rowData['video_end'] = rowData['video_end'].split(' ');
                                 return rowData['video_end'][1];
                             }else{
-                                return '-'
+                                return 'Bekleniyor';
                             }
                             
                         }
@@ -144,20 +175,6 @@
                             return rowData['test-result'] != undefined ? rowData['test-result'].split('/')[1]  : '-';
                         }
                     },{
-                        title : 'Çıkış',
-                        key   : 'exited_at',
-                        order : true,
-                        type  : 'string', // if column is string then make type string
-                        columnFormatter : (elm,rowData,columnData) => {
-                            if(columnData != null){
-                                columnData = columnData.split(' ');
-                                return columnData[0].split('-').reverse().join('/')+' '+columnData[1];
-                            }else{
-                                return 'Bekleniyor..';
-                            }
-                            
-                        }
-                    },/*{
                         title : '',
                         key   : 'id',
                         order : false,
@@ -165,17 +182,30 @@
                         columnFormatter : (elm,rowData,columnData) => {
                             const div = document.createElement('div');
                             div.classList.add('row','justify-content-center');
+                            
+                            if(!rowData.exited_at){
+                                const exit       = document.createElement('a');
+                                exit.href        = 'javascript:;';
+                                exit.style.width = 'auto';
+                                exit.innerHTML   = '<i class="fs-6 far fa-share-square selectable-icon" style="color:#95818C"  role="img"></i>';
+                                exit.onclick     = () => {
+                                    //pop remaining inventories
+                                    this.popRemain(rowData);
+                                };
+                                div.appendChild(exit);
+                            }
+
 
                             const edit       = document.createElement('a');
                             edit.href        = '/talkpanel/visit/form/'+columnData;
                             edit.style.width = 'auto';
-                            edit.innerHTML   = '<i class="fs-5 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
+                            edit.innerHTML   = '<i class="fs-6 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
                             div.appendChild(edit);
 
                             const del       = document.createElement('a');
                             del.href        = 'javascript:;';
                             del.style.width = 'auto';
-                            del.innerHTML   = '<i class="fs-5 fa fa-trash selectable-icon" style="color:#95818C"  role="img"></i>';
+                            del.innerHTML   = '<i class="fs-6 fa fa-trash selectable-icon" style="color:#95818C"  role="img"></i>';
                             del.onclick     = async () => {
                                 this.navigationStore.toggle(true);
                                 await this.plib.request({
@@ -193,7 +223,7 @@
 
                             return div;
                         }
-                    }*/
+                    }
                 ];
                 
                 //initiate table
@@ -249,6 +279,12 @@
                         //modify row element
                         //elm.style.backgroundColor = 'yellow';
                         //modify data
+                        if(data.main_attr.includes('"{')){
+                            //mssql variation 
+                            //data.main_attr = data.main_attr.replace('"{','{').replace('}"','}');
+                        }
+
+
                         JSON.parse(data.main_attr).forEach(element => {
                             data[element['Key']] = element['Value'];
                             if(data['cont_name'] == undefined) data['cont_name'] = []
@@ -268,6 +304,86 @@
                         value : document.getElementById('mainSearch').value.trim()//wanted column value
                     }]
                 );
+            },
+            resetFilter(){
+                document.getElementById('mainSearch').value = '';
+                document.querySelectorAll('.date-select').forEach(el => el.value = '');
+                this.searchTable();
+            },
+            filterDate(e){
+                
+                const startDate = document.querySelector('.date-select[name="start_at"]')
+                const endDate   = document.querySelector('.date-select[name="end_at"]')
+                if(startDate.value != '' && endDate.value != ''){
+                    this.table.setFilter(
+                        [{
+                            key   : 'date-range', // column key
+                            type  : '=', // filtering type ('like','<','>')
+                            value : (startDate.value ?? '-')+'**'+(endDate.value ?? '-')//wanted column value
+                        }]
+                    );
+                }
+                
+            },
+            async popRemain(data){
+                const makeExit = async () => {
+                    this.navigationStore.toggle(true);
+                    const envelope  = new FormData();
+                    envelope.append('data',JSON.stringify({
+                        "dynamicF" : {
+                            ['op-doc-visit-form**'+data.entity_conn_id] : {
+                                "entities" : {
+                                    "exited_at" : this.plib.getConvertedDate(new Date())
+                                },
+                                "tag"      : "op-doc-visit-form"
+                            }
+                        }
+                    }));
+
+                    const response = await this.plib.request({
+                        url      : '/api/v1/yeniziyaret/'+data.id,
+                        method   : 'PUT',
+                    },null,envelope);
+
+                    this.table.setFilter([]);
+
+                    this.navigationStore.toggle(false);
+                }
+
+
+                const takenInv = [];
+                const recvInv  = [];
+                const attr = JSON.parse(data.main_attr);
+                attr.forEach(el => {
+                    if(el['Key'].includes('inventory**givengroup'))    takenInv.push(el['Value']);
+                    if(el['Key'].includes('inventory**revievedgroup')) recvInv.push(el['Value']);
+                });
+                if(recvInv.length != takenInv.length){
+                    Swal.fire({
+                        html: ` <style>.swal2-modal{width:500px !important;}</style>
+                                <div class="row w-100">
+                                    <div class="col-12">
+                                        <span>Kişi aşağıdaki ekipmanları henüz teslim etmemiştir.</span>
+                                        <ul class="list-group list-group-flush">
+                                            ${takenInv.map(inv => {
+                                                return !recvInv.includes(inv) ? '<li class="list-group-item text-start">- '+inv+'</li>' : '';
+                                            }).join('')}
+                                        </ul>
+                                    </div>
+                                </div>`,
+                        showConfirmButton : true,
+                        showCancelButton  : true,
+                        showCloseButton   : true,
+                        confirmButtonText : 'Yinede Çıkış Yap !',
+                        cancelButtonText  : 'İptal',
+                        preConfirm: async () => {
+                            await makeExit();
+                        }
+                    });
+                }else{
+                    await makeExit();
+                }
+                
             }
         }
     }
@@ -292,21 +408,22 @@
                     <button type="button" @click="searchTable">Sorgula <span class="kontent-icon" name="Search"></span></button>
                 </div>
                 <div class="table-custom-filter-button-group">
+                    <button class="reset-filters" @click="resetFilter">Filtre Sıfırla</button>
                     <button class="export-excel" onclick="window.location.href='/export/documents/visit'" id="exportExcel">Excel’e Aktar</button>
                 </div>
-                <!--<div class="table-custom-filter-date">
-                    <p>Tarih Aralığı</p>
+                <div class="table-custom-filter-date">
+                    <p>Ziyaret Tarih Aralığı</p>
                     <div class="date-form">
                         <label for="startDate">Başlangıç Tarihi:</label>
-                        <input type="text" id="startDate" placeholder="--.--.---">
-                        <span class="icon"><span class="kontent-icon" name="DownFeth"></span></span>
+                        <input type="text" name="start_at" @input="filterDate($event)" id="startDate" placeholder="--/--/---" class="hasDatepicker date-select">
+                        <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg></span>
                     </div>
                     <div class="date-form">
                         <label for="endDate">Bitiş Tarihi:</label>
-                        <input type="text" id="endDate" placeholder="--.--.----">
-                        <span class="icon"><span class="kontent-icon" name="DownFeth"></span></span>
+                        <input type="text" name="end_at" @input="filterDate($event)" id="endDate" placeholder="--/--/----" class="hasDatepicker date-select">
+                        <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg></span>
                     </div>
-                </div>-->
+                </div>
             </div>
             <div class="body-1 table-main"  >
                 <div id="div_table"></div>

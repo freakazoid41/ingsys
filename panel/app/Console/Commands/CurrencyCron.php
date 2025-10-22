@@ -7,7 +7,6 @@ use Illuminate\Console\Command;
 use App\Models\System_settings;
 use App\Classes\Currencies\TCMB;
 use Illuminate\Support\Facades\DB;
-use App\Classes\DataSources\Navision;
 
 class CurrencyCron extends Command
 {

@@ -31,7 +31,7 @@ return new class extends Migration
             $table->string('phone', 50)->default('-');
             $table->string('address', 250)->nullable()->default('-');
             $table->string('grp_code',100)->nullable()->default('-');
-            $table->uuid('qnid')->nullable();
+            $table->string('qnid')->nullable();
 
             $table->float('balance', 15, 3)->default('0');
 

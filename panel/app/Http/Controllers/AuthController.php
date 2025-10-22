@@ -43,7 +43,7 @@ class AuthController extends Controller
         //die;
         app()->setLocale(session('locale') ?? 'tr');
         //here find facility simple info
-        $facility = (new DocumentServiceProvider())->getFacility(['code' => $facility]);
+        $facility = (new DocumentServiceProvider())->getFacility(['code' => $facilityid]);
         if(empty($facility) || $facility['success'] == false) return abort(404);
         //list all cards on here
         return view('frontlogin', [
@@ -115,15 +115,20 @@ class AuthController extends Controller
             }
 
             $post   =  $request->all();
+           
+            //if (!str_starts_with($post['phone'], '+9')) $post['phone'] = '+9'.$post['phone'];
+            
             //here search if anyone is entered with this phone 
             $person = (new DocumentServiceProvider())->getPerson(['phone' => $post['phone']],false);
-           
+            
+            
            
             //set person phone
             session(['phone'     => $post['phone']]);
             session(['facility'  => $post['facility']]);
            
             if(!empty($person) && $person['success'] != false){
+                session(['type_key'  => 'op-pert-buyer']);
                 session(['qnid'      => $person['qnid']]);
                 session(['email'     => $person['data']['email']]);
                 session(['ptitle'    => $person['data']['name']]);
@@ -156,6 +161,9 @@ class AuthController extends Controller
 
             Auth::login($user);
             $token = $user->createToken("VISITOR TOKEN")->plainTextToken;
+            //for video pass
+            if(env('IS_TEST')) session(['mustWatch' => true]);
+
             ///neccessary for auth
 
             if(!empty($person) && !isset($person['data']['exited_at'])){
@@ -222,13 +230,14 @@ class AuthController extends Controller
             //set person type to session
             if(!empty($person)){
                 $personType = Sys_options::where('id',$person->type_id)->first();
-                session(['type_key' => $personType->op_key]);
+                session(['type_key'  => $personType->op_key]);
                 //session(['is_client' => $person->client_id != '0']);
                 session(['person_id' => $person->id]);
                 session(['email'     => $request->email]);
                 session(['ptitle'    => $person->name/*.' '.$person->surname*/]);
-                session(['grp_code'  => 'op-apt-1']);
-                session(['grp_title' => 'Benim Sistemim']);
+                session(['grp_code'  => $user->grp_code]);
+                /*session(['grp_code'  => 'op-apt-1']);
+                session(['grp_title' => 'Benim Sistemim']);*/
             }
             
             /*User_logs::create([
@@ -322,20 +331,19 @@ class AuthController extends Controller
         return $data;
     }
 
-    //this method will set current apartment
+    public function handlePanelRoute(Request $request){
+        if(\session('type_key') == null || \session('type_key') == 'op-pert-buyer'){
+            return redirect('talklogin');
+        }
+        return view('talkapp');
+    }
+
+    //this method will set current facility
     public function setfacility(Request $request,$facility){
         $apt = Sys_options::where('op_key',$facility)->first();
         session(['grp_code'   => $facility]);
         session(['grp_title'  => $apt->title ?? 'Tesis Mevcut Değil']);
         return redirect()->route('app');
-    }
-
-    //this method will close apartment
-    public function closefacility(Request $request){
-        $apt = Sys_options::where('op_key',session('grp_code'))->first();
-        $apt->status = 0;
-        $apt->save();
-        return redirect('/talkpanel/facility');
     }
 
     public function logout(Request $request){

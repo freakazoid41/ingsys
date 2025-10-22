@@ -44,7 +44,7 @@ class Transactions extends Model
 
     }
 
-    static function tableList($obj){
+    /*static function tableList($obj){
         $columns = array(
             'id'           => 'i.qnid  as  id',
             'type'         => 'st.title  as  type',
@@ -65,16 +65,16 @@ class Transactions extends Model
             'note'         => 'i.note',
             'created_at'   => 'i.created_at',
             'cur'          => 'cr.code  as  cur',
-            'trans_files'  => "(select json_group_array(
-                                            json_object(
+            'trans_files'  => "(select ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
+                                            ".(env('DB_CONNECTION') == 'pgsql' ? 'json_build_object' : 'json_object')."(
                                                 'file',df.description
                                             )
                                         ) as data
                                     FROM document_files as df 
                                             inner join sys_options as sf on sf.id = df.type_id
-                                        where df.relation_id = i.id and sf.op_key = 'op-doc-trans-file')  as  trans_files",
-            'conn_info'    => "(SELECT  json_group_array(
-                                            json_object(
+                                        where df.relation_id = i.id and sf.op_key = 'op-doc-trans-file')".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  trans_files",
+            'conn_info'    => "(SELECT  ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
+                                            ".(env('DB_CONNECTION') == 'pgsql' ? 'json_build_object' : 'json_object')."(
                                                 'Key',se.entity_tag,
                                                 'Value' , se.entity_value
                                             )
@@ -90,9 +90,9 @@ class Transactions extends Model
                                                                 then 'op-doc-facility-form' 
                                                             end
                                                         )
-                                            and d.id = i.rel_id)  as  conn_info",
-            'main_info'    => "(SELECT  json_group_array(
-                                            json_object(
+                                            and d.id = i.rel_id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  conn_info",
+            'main_info'    => "(SELECT  ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
+                                            ctjson_obje(
                                                 'Key',se.entity_tag,
                                                 'Value' , se.entity_value
                                             )
@@ -112,7 +112,7 @@ class Transactions extends Model
                                                                 then 'op-doc-period-form'
                                                             end
                                                         )
-                                            and d.id = i.target_id)  as  main_info"
+                                            and d.id = i.target_id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  main_info"
         );
         
         $limit = '';
@@ -165,21 +165,12 @@ class Transactions extends Model
                         foreach($columns as $k=>$v){
                             if($i!=0) $where.=' or ';
                             $column = explode('as  ',$columns[$k])[0];
-                            /*if($column === 'i.created_at'){
-                                $where.= env('DB_CONNECTION') == 'pgsql' ? 
-                                " TO_CHAR(".$column."::date, 'dd.mm.yyyy') like '%" . $value . "%' " :
-                                 ' convert(varchar, '.$column.', 104) like'."'%" . $value . "%' ";
-                            }else{
-                                $where .= " $column like '%$value%' ";
-                            }*/
+                            
                             $where .= " $column like '%$value%' ";
                             $i++;
                         }
                         $where .= ' ) ';
                     break;
-                    /*case 'target_id':
-                        $where = " and (target_id= '".$f['value']."' or rel_id = '".$f['value']."') ";
-                        break;*/
                     default:
                         if($f['key'] == 'ref_title')  $f['key'] = 'conn_info';
                         if($f['key'] == 'main_title') $f['key'] = 'main_info';
@@ -235,5 +226,5 @@ class Transactions extends Model
             'last_page'     => ceil(intval($total_count->row) / intval($obj['scale']['limit'])),
             'totals'        => $tresult[0]
         );
-    }
+    }*/
 }

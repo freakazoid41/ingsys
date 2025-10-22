@@ -15,18 +15,18 @@ class PersonsController extends Controller
 {
     public function index(Request $request){
         $logModel = 'persons';
-        
-        /*if(!checkPermRoute($logModel,$request->method())) return response()->json([
+        if(!checkPermRoute($logModel,$request->method())) return response()->json([
             'success' => false,
             'msg'     => 'not valid for system user...',
-        ],401);*/
-        
+        ],401);
+         
         
         //$model = 'App\\Models\\Documents';
         switch(strtoupper($request->method())){
             case "GET":
                 //$req = $request->all();
                 $res = (new PersonsServiceProvider())->getPerson($request->id);
+               
                 $response = [
                     'success' => !empty($res),
                     'data' => $res['person'][0] ?? [],
@@ -47,7 +47,7 @@ class PersonsController extends Controller
             case "POST":
                 $req = $request->all();
                 
-                $res = (new PersonsServiceProvider())->setPerson(0,json_decode($req['data'],true),$request->files->all(),'persons');
+                $res = (new PersonsServiceProvider())->setPerson(0,json_decode($req['data'] ?? '{}',true),$request->files->all(),'persons');
                 
                 $response = [
                     'success' => $res['id'] > 0,
@@ -56,8 +56,7 @@ class PersonsController extends Controller
                 break;
             case "PUT":
                 $data = parsePut();
-                
-                $res = (new PersonsServiceProvider())->setPerson($request->id,json_decode($data['data'],true),$_FILES,'persons');
+                $res = (new PersonsServiceProvider())->setPerson($request->id,json_decode($data['data'] ?? '{}',true),$_FILES,'persons');
 
                 $response = [
                     'success' => $res['id'] > 0,

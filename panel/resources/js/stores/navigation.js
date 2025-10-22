@@ -15,6 +15,7 @@ export const useNavigationStore = defineStore('navigation', {
       breadbuttons : [],
       facility     : {},
       isPassed     : null,
+      wrongAnswers : {},
       currentUser  : {},
       currentOpt   : {},
       testLog      : {},
@@ -137,7 +138,9 @@ export const useNavigationStore = defineStore('navigation', {
         this.facility.qr          = rsp?.data.qr_code.split("/").pop(); // facility qr hash
         this.facility.inventories = rsp?.inventories;                   // givable inventories to visitor
         this.facility.mustKnow    = rsp?.data.question_must_know ?? 0;  // question minimum true limit
-        
+        this.facility.qnid        = rsp?.qnid;
+
+        console.log(this.facility.inventories);
         //group questions
         this.facility.questions = {}
         this.facility.questionKeys = [];

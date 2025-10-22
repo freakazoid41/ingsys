@@ -17,6 +17,7 @@ class User_logs extends Model
         'relation_id',
         'relation',
         'description',
+        'grp_code'
     ];
 
     static function tableList($obj){
@@ -39,6 +40,9 @@ class User_logs extends Model
         $join = ' inner join sys_options as s on s.id = i.type_id';
         
         $where = " where i.description!=''  and s.op_key not in ('log-login','log-logout','log-user-looked','log-delete')";    
+        if(session('type_key') == 'op-pert-reseller'){
+            $where = " and i.grp_code='".session('grp_code')."'"; 
+        }
         //$where .= ' and i.sys_code = \''.($GLOBALS['SYS_CODE'] === 'ADM' ? '5000' : '4000')."'";
 
         //if person is client then filter results

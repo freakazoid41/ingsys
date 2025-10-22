@@ -37,7 +37,7 @@
                     title : this.wTrans('menu.users'),
                     url   : '/talkpanel/users',
                 }
-            ] ,this.wTrans('form.flats.list'));
+            ] ,this.wTrans('menu.users.list'));
 
             setTimeout(() => {
                 this.navigationStore.toggle(false);

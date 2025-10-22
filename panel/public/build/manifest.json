@@ -1,17 +1,17 @@
 {
-  "_App-DKVBE6Bo.js": {
-    "file": "assets/App-DKVBE6Bo.js",
+  "_App-Bs47lrPN.js": {
+    "file": "assets/App-Bs47lrPN.js",
     "name": "App",
     "css": [
-      "assets/App-DthtZU5g.css"
+      "assets/App-DY1cr80M.css"
     ]
   },
-  "_App-DthtZU5g.css": {
-    "file": "assets/App-DthtZU5g.css",
-    "src": "_App-DthtZU5g.css"
+  "_App-DY1cr80M.css": {
+    "file": "assets/App-DY1cr80M.css",
+    "src": "_App-DY1cr80M.css"
   },
   "public/front/assets/css/main.css": {
-    "file": "assets/main-D5vzOUQr.css",
+    "file": "assets/main-BhVGBmHZ.css",
     "src": "public/front/assets/css/main.css",
     "isEntry": true
   },
@@ -121,27 +121,27 @@
     "src": "public/talk/vendor/Font/Gilroy/Gilroy-UltraLightItalic.ttf"
   },
   "resources/js/front.js": {
-    "file": "assets/front-K_BYbGgU.js",
+    "file": "assets/front-Bv8ZW5r7.js",
     "name": "front",
     "src": "resources/js/front.js",
     "isEntry": true,
     "imports": [
-      "_App-DKVBE6Bo.js"
+      "_App-Bs47lrPN.js"
     ],
     "css": [
-      "assets/front-B17qna95.css"
+      "assets/front-BV_1U8oq.css"
     ]
   },
   "resources/js/talk.js": {
-    "file": "assets/talk-D7m3nfRP.js",
+    "file": "assets/talk-BXpdangC.js",
     "name": "talk",
     "src": "resources/js/talk.js",
     "isEntry": true,
     "imports": [
-      "_App-DKVBE6Bo.js"
+      "_App-Bs47lrPN.js"
     ],
     "css": [
-      "assets/talk-BgG5owcv.css"
+      "assets/talk-BtJqEqrU.css"
     ]
   }
 }

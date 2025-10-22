@@ -16,11 +16,9 @@ return new class extends Migration
        
         $db = DB::connection();
 
-        if ($db->getDriverName() !== 'sqlite') {
-            return;
+        if ($db->getDriverName() === 'sqlite') {
+            $db->unprepared('PRAGMA cache_size = 0; ');
         }
-
-        $db->unprepared('PRAGMA cache_size = 0; ');
 
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
@@ -31,8 +29,8 @@ return new class extends Migration
             $table->integer('person_id')->default(0); // this guy is client
             
             $table->string('title',300)->default('-');
-            $table->string('grp_code',100)->nullable()->default('op-apt-1');
-            $table->uuid('qnid')->nullable();
+            $table->string('grp_code',100)->nullable()->default('op-fclt-1');
+            $table->string('qnid')->nullable();
 
             $table->timestamp('starting_at')->nullable();
             $table->timestamp('ending_at')->nullable();

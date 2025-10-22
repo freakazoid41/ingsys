@@ -42,7 +42,7 @@ export default {
                   text: {
                       class : 'error-popup',
                       head: 'Üzgünüz..',
-                      body: `<h4>Aradığınız Tesis Mevcut Değildir..</h4> <div class="view"><div class="icon"><img src='/front/assets/img/successCheck.svg'></div></div>`,
+                      body: `<h4>Aradığınız Tesis Mevcut Değildir..</h4> <div class="view"><div class="icon"><img src='/front/assets/img/expl.svg'></div></div>`,
                       button: {
                       name: 'Görevli İle Görüşünüz..',
                           proccess: () => {}

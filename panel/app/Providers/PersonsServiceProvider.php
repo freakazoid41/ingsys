@@ -161,6 +161,13 @@ class PersonsServiceProvider extends ServiceProvider
                 $sr,
             );
         }
+        
+        if(!empty($user) && isset($user['grp_code'])){
+            User::updateOrInsert(
+                ['person_id' => $document->id],
+                ['grp_code'  => $user['grp_code']],
+            );
+        }
 
         /*if($files['bgfile']){
             User::updateOrInsert(
@@ -189,7 +196,9 @@ class PersonsServiceProvider extends ServiceProvider
                             i.status,
                             o.title  as  type_title,
                             o.op_key  as  type_key,
-                            u.email  as  user_name
+                            u.email  as  user_name,
+                            u.grp_code,
+                            u.grp_code  as  user_grp_code
                         from persons as i
                             left join users as u on u.person_id = i.id
                             left join sys_options as o on o.id = i.type_id ";

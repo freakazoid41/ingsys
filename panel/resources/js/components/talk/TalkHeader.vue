@@ -6,6 +6,7 @@ import Plib from '@/lib/pickle';
 import Swal from 'sweetalert2';
 import PickleTable from 'pickletable';
 import 'pickletable/assets/style.css';
+import notification from 'duct-notification'
 
 export default {
     components: {},
@@ -19,68 +20,85 @@ export default {
             Swal
         }
     },
-    mounted(){
+    mounted() {
         this.authDataStore.getData();
-        this.getNotifications();
+
+        //clear old notification interval
+        if(this.navigationStore.notificationInterval) clearInterval(this.navigationStore.notificationInterval);
+        //set new notification interval
+        this.navigationStore.notificationInterval = setInterval(() => {
+            this.getNotifications();
+        }, 1000);
+        
+
+        /*notification({
+            type: 'success',
+            head: 'Information Notification',
+            message: 'Lorem ipsum, dolor sit amet consectetur adipisicing elit. Dicta quaerat1 <b>TalkHeader 30. satır</b>',
+            timer: 15000,
+            hideClose: false
+        })*/
         //if(this.taskDataStore.tasks.length == 0) this.taskDataStore.setTaskData();
         //if(this.taskDataStore.events.length == 0) this.taskDataStore.setEventData();
-    },  
+    },
     data() {
         return {
-            showBlink       : false,
-            plib            : new Plib(),
-            taskDataStore   : useEventDataStore(),
-            navigationStore : useNavigationStore(),
-            authDataStore   : useAuthStore(),
-            title           : document.querySelector('input[name="header"]').value
+            nofifsList        : [],
+            showBlink         : false,
+            plib              : new Plib(),
+            taskDataStore     : useEventDataStore(),
+            navigationStore   : useNavigationStore(),
+            authDataStore     : useAuthStore(),
+            title             : document.querySelector('input[name="header"]').value
         };
     },
     methods: {
-        async getNotifications(){
+        async getNotifications() {
             this.plib.request({
-                url      : '/api/v1/dashboard/getLastNotifications',
-                method   : 'GET',
-            },null).then(rsp => {
-                this.showBlink = rsp.success;
+                url: '/api/v1/dashboard/getLastNotifications',
+                method: 'GET',
+            }, null).then(rsp => {
+                this.showBlink = rsp.newCount > 0;
+                this.nofifsList = rsp.data;
             });
         },
-        showNotifications(){
+        showNotifications() {
             Swal.fire({
-                html                : '<style>.swal2-modal{width:800px !important;}</style><div class="row w-100"><div class="col-12"><div id="logTable"></div></div></div></div>',
-                showConfirmButton   : false,
-                showCloseButton     : true,
-                willOpen : () => {
+                html: '<style>.swal2-modal{width:800px !important;}</style><div class="row w-100"><div class="col-12"><div id="logTable"></div></div></div></div>',
+                showConfirmButton: false,
+                showCloseButton: true,
+                willOpen: () => {
                     this.table = new PickleTable({
-                        container:'#logTable',
-                        nextPageIcon : '<i class="fa fa-solid fa-chevron-right"></i>',
-                        prevPageIcon : '<i class="fa fa-solid fa-chevron-left"></i>',
-                        headers:[{
-                                title:'Tip',
-                                key:'type',
-                                order:false,
-                               
-                                headAlign:'left',
-                                type:'string',
-                            },{
-                                title:'Tarih',
-                                key:'created_at',
-                                order:true,
-                                width : '250px',
-                                headAlign:'left',
-                                type:'string',
-                                columnFormatter : (elm,rowData,columnData) => {
-                                    return columnData.split(' ')[0].split('-').reverse().join('.')+' / '+columnData.split(' ')[1];
-                                }
-                            },{
-                                title:'Açıklama',
-                                key:'description',
-                                order:true,
-                                headAlign:'left',
-                                type:'string',
-                                columnFormatter : (elm,rowData,columnData) => {
-                                    return JSON.parse(columnData).desc;
-                                }
-                            }/*{
+                        container: '#logTable',
+                        nextPageIcon: '<i class="fa fa-solid fa-chevron-right"></i>',
+                        prevPageIcon: '<i class="fa fa-solid fa-chevron-left"></i>',
+                        headers: [{
+                            title: 'Tip',
+                            key: 'type',
+                            order: false,
+
+                            headAlign: 'left',
+                            type: 'string',
+                        }, {
+                            title: 'Tarih',
+                            key: 'created_at',
+                            order: true,
+                            width: '250px',
+                            headAlign: 'left',
+                            type: 'string',
+                            columnFormatter: (elm, rowData, columnData) => {
+                                return columnData.split(' ')[0].split('-').reverse().join('.') + ' / ' + columnData.split(' ')[1];
+                            }
+                        }, {
+                            title: 'Açıklama',
+                            key: 'description',
+                            order: true,
+                            headAlign: 'left',
+                            type: 'string',
+                            columnFormatter: (elm, rowData, columnData) => {
+                                return JSON.parse(columnData).desc;
+                            }
+                        }/*{
                                 title:'Detay',
                                 key:'id',
                                 order:false,
@@ -105,44 +123,46 @@ export default {
                                 }
                             }*/
                         ],
-                        type:'ajax',
-                        height:'400px',
-                        columnSearch : false, // true - false for opening and closig
-                        paginationType : 'number',// scroll - number (number for default)
-                        pageLimit:20, // put '-1' for getting all data
-                        initialFilter:[],
-                        ajax:{
-                            url:'/api/v1/table/user_logs',
-                            data:{
+                        type: 'ajax',
+                        height: '400px',
+                        columnSearch: false, // true - false for opening and closig
+                        paginationType: 'number',// scroll - number (number for default)
+                        pageLimit: 20, // put '-1' for getting all data
+                        initialFilter: [],
+                        ajax: {
+                            url: '/api/v1/table/user_logs',
+                            data: {
                                 //order:{},
                             }
                         },
                     });
                 },
             });
-        }
-        /*closeFacility(){
-            Swal.fire({
-                customClass         : {
-                    confirmButton : "btn btn-secondary me-3",
-                    cancelButton  : "btn btn-secondary me-3"
-                },
-                title               : 'Tesis Kapatılacak ve Bütün Bilgileri Kaybolacaktır Eminmisiniz ?',
-                showLoaderOnConfirm : true,
-                allowOutsideClick   : false,
-                showCloseButton     : true,
-                confirmButtonText   : 'Kapat ve Seçim Yap',
-                cancelButtonText    : 'İptal',
-                showCancelButton    : true,
+        },
+        async notcheck(e){
+            const ielm = document.querySelector('i[data-ic="'+e.id+'"]');
+            if(ielm != null){
+                this.navigationStore.active = true;
+                const   envelope = new FormData();
+                        envelope.append('notid',e.id); // main info 
+                const rsp = await this.plib.request({
+                    url      : '/api/v1/setnotificationstatus',
+                    method   : 'POST',
+                },null,envelope);
                 
-                willOpen : () => {
+                if(rsp.success){
                     
-                },
-                preConfirm : async () => {
-                    window.location.href = '/closefacility';
+                    this.getNotifications();
+
+                    ielm.remove();
+                    this.$router.push({ name: 'VList' });
+                    this.navigationStore.active = false;
                 }
-            });
-        },*/
+            }else{
+                this.$router.push({ name: 'VList' });
+            }
+            
+        }
     }
 }
 </script>
@@ -150,7 +170,9 @@ export default {
 <template>
     <div class="right-bar-header">
         <div class="right-bar-header-head">
-            <h1 v-html="navigationStore?.currentTitle == '' ? 'Seç Sistemine <b>Hoş geldiniz.</b>' : navigationStore?.currentTitle"></h1>  
+            <h1
+                v-html="navigationStore?.currentTitle == '' ? 'Seç Sistemine <b>Hoş geldiniz.</b>' : navigationStore?.currentTitle">
+            </h1>
             <ul class="breadcrumb">
                 <li v-for="item in navigationStore.breadcrumps">
                     <a :href=item.url>{{ item.title }}</a>
@@ -158,16 +180,33 @@ export default {
             </ul>
         </div>
         <div class="right-bar-header-menu">
-            <button class="h-button notification" @click="showNotifications()">
-                <span class="kontent-icon" name="Notification"></span>
-                <span class="ntf" v-if="showBlink"></span>
-            </button> 
+            <div class="dropdown">
+                <button class="h-button" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    <span class="kontent-icon" name="Notification"></span>
+                    <span class="ntf" v-if="showBlink"></span>
+                </button>
+                <ul class="dropdown-menu ntf-label-main">
+                    <li v-for="row in nofifsList">
+                        <div class="ntf-label-list" @click="notcheck(row)">
+                            <span class="d-flex justify-content-between align-items-center">{{ JSON.parse(row.description).desc }} <i :data-ic="row.id" class="fa fa-circle" v-if="!row.is_new" style="color:red"></i></span>
+                            <span class="text-muted">{{ row.created_at.split(' ')[0].split('-').reverse().join('/')+' '+row.created_at.split(' ')[1] }}</span>
+                        </div>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button class="dropdown-item" @click="showNotifications()">Tümünü Görüntüle</button></li>
+                </ul>
+            </div>
+            <!-- <button class="h-button" @click="showNotifications()">
+                
+            </button> -->
             <!--<button class="h-button notification"><span class="kontent-icon" name="Notification"></span><span class="ntf"></span></button> 
             <a href="" alt="" class="h-button settings"><span class="kontent-icon" name="Setting"></span></a> -->
             <div class="user-management h-button">
-                <button >
+                <button>
                     <span><span class="kontent-icon" name="HeaderUser"></span></span>
-                    <p>{{ authDataStore?.data?.ptitle }}<small>{{ authDataStore?.data?.type_key == 'op-pert-admin' ? 'Yönetici' : 'Normal Kullanıcı' }}</small></p>
+                    <p>{{ authDataStore?.data?.ptitle }}<small>{{ authDataStore?.data?.type_key == 'op-pert-admin' ?
+                        'Yönetici' : 'Normal Kullanıcı' }}</small></p>
                 </button>
                 <!--<div class="user-management-detail">
                     

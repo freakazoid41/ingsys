@@ -66,9 +66,23 @@ class Document_files extends Model
             'type_title'        => 'so.title  as  type_title',
             'type_key'          => 'so.op_key  as  type_key',
             'relation'          => 'i.relation',
-            'relation_detail'   => "CASE
+            'relation_detail'   => (env('DB_CONNECTION') == 'sqlsrv') ? 
+                                    "(CASE
                                         WHEN i.relation = 'transactions'
-                                        THEN (select    json_object(
+                                        THEN (select    CONCAT(
+                                                            '{\"type\":\"', sot.title, '\",\"period\":\"', t.period, '\"}'
+                                                        )
+                                                    from transactions as t
+                                                        inner join sys_options as sot on sot.id = t.type_id
+                                                        inner join documents as d on d.id = t.target_id
+
+                                                        where t.id = i.relation_id)
+                                    
+                                    END)  as  relation_detail"
+                                    : 
+                                    "(CASE
+                                        WHEN i.relation = 'transactions'
+                                        THEN (select    ".(env('DB_CONNECTION') == 'pgsql' ? 'json_build_object' : 'json_object')."(
                                                             'type',sot.title,
                                                             'period',t.period) 
                                                     from transactions as t
@@ -77,7 +91,7 @@ class Document_files extends Model
 
                                                         where t.id = i.relation_id)
                                     
-                                    END  as  relation_detail",
+                                    END)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  relation_detail",
             
             
         );
@@ -91,6 +105,9 @@ class Document_files extends Model
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);
             $limit =  " LIMIT " . $obj['scale']['limit'] . " OFFSET " . $start ;
+            if(env('DB_CONNECTION') == 'sqlsrv'){
+                $limit =  "OFFSET $start ROWS FETCH NEXT ".$obj['scale']['limit']." ROWS ONLY";
+            }
         }else{
             $obj['scale']['limit'] = 1;
         }

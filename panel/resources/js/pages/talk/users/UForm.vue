@@ -72,11 +72,11 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/panel',
+                    url   : '/talkpanel',
                 },
                 {
                     title : this.wTrans('menu.users'),
-                    url   : '/panel/users',
+                    url   : '/talkpanel/users',
                 }
             ] ,this.wTrans('form.users'));
         },  
@@ -99,6 +99,23 @@
                 this.formData.typeKey = this.formKey;
                 const rsp = this.plib.checkForm('.form-item');
                 if(rsp.valid){
+                    //here check passwords
+                    if(Object.values(this.formData.dynamicF)?.[0]?.entities.user_password){
+                        //check pass
+                        const fields = Object.values(this.formData.dynamicF)[0].entities;
+                        if(fields.user_password_check == undefined || fields.user_password != fields.user_password_check){
+                            this.navigationStore.toggle(false);
+                            this.plib.toast(this.Swal,'error','Parola alanları uyuşmamaktadır..',);
+                            document.querySelector('input[name="user_password"]').classList.add('is-invalid');
+                            document.querySelector('input[name="user_password_check"]').classList.add('is-invalid');
+                            return false;
+                        }
+                    }
+
+
+
+
+
                     const   envelope  = new FormData();
                         envelope.append('data',JSON.stringify(Object.values(this.formData.dynamicF)?.[0]?.entities));
                     //register files

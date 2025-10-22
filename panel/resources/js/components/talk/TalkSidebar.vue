@@ -17,6 +17,7 @@ export default {
     },  
     data() {
         return {
+            menubar        : document.querySelector('input[name="menubar"]').value,
             useAuthStore   : useAuthStore(),
             title          : document.querySelector('input[name="header"]').value
         };
@@ -27,7 +28,7 @@ export default {
 
 <template>
     <div class="left-bar-logo">
-        <img src="/talk/img/logo.svg" alt="" title="" />
+        <img src="/front/assets/img/logo.png" alt="" title="" width="200" />
         <span>admin</span>
     </div>
     <div class="left-bar-menu">
@@ -39,12 +40,12 @@ export default {
                 </router-link>
             </li>
             <li>
-                <router-link :to="{ name: 'FList' }" :class="$route.name == 'FList'  || $route.name == 'FForm' ? 'active' : ''" alt="">
+                <router-link  :to="{ name: 'FList' }" :class="$route.name == 'FList'  || $route.name == 'FForm' ? 'active' : ''" alt="">
                     <span class="kontent-icon" name="Menu2Icon"></span>{{ $t('menu.facility') }}
                 </router-link>
             </li>
             <li>
-                <router-link :to="{ name: 'IList' }" :class="$route.name == 'IList' || $route.name == 'IForm' ? 'active' : ''" alt=""><span class="kontent-icon" name="Menu5Icon">
+                <router-link v-if="menubar != 'op-pert-reseller'" :to="{ name: 'IList' }" :class="$route.name == 'IList' || $route.name == 'IForm' ? 'active' : ''" alt=""><span class="kontent-icon" name="Menu5Icon">
                     </span>{{ $t('menu.inventory') }}
                 </router-link>
             </li>
@@ -54,7 +55,7 @@ export default {
                 </router-link>
             </li>
             <li>
-                <router-link :to="{ name: 'UList' }" :class="$route.name == 'UList'  || $route.name == 'UForm' ? 'active' : ''" alt=""><span class="kontent-icon" name="Menu7Icon">
+                <router-link v-if="menubar != 'op-pert-reseller'" :to="{ name: 'UList' }" :class="$route.name == 'UList'  || $route.name == 'UForm' ? 'active' : ''" alt=""><span class="kontent-icon" name="Menu7Icon">
                     </span>{{ $t('menu.users') }}
                 </router-link>
             </li>

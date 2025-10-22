@@ -466,6 +466,11 @@ export default class Plib {
         }
     }
 
+    getConvertedDate(date){
+        date = (date).toLocaleString("tr-TR").split(' ');
+        return date[0].split('.').reverse().join('-')+' '+date[1];
+    }
+
     /**
      * Alert message (sweet alert 2)
      * @param {string} type

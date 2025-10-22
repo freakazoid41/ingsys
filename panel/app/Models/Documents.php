@@ -39,7 +39,7 @@ class Documents extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            $post->grp_code = session('grp_code') ?? 'op-apt-1';
+            //$post->grp_code = session('grp_code') ?? 'op-apt-1';
             // add other column as well
         });
 
@@ -47,9 +47,11 @@ class Documents extends Model
 
     static function tableList($obj){
         $columns = array(
-            'id'           => 'i.qnid  as  id',
-            'type'         => 'sp.op_key  as  type',
-            'main_attr'    => '',
+            'id'             => 'i.qnid  as  id',
+            'type'           => 'sp.op_key  as  type',
+            'entity_conn_id' => 'se.conn_id  as  entity_conn_id', 
+            'main_attr'      => '',
+            'created_at'     => 'i.created_at',
                         
         );
         
@@ -59,8 +61,13 @@ class Documents extends Model
                    inner join sys_con_ops as so on i.id = so.main_id 
                    inner join sys_con_entities as se on so.id = se.conn_id  ';
         
-        //$where = " where i.status = '1' and i.grp_code='".session('grp_code')."'"; 
+       
+
         $where = " where i.status = '1' ";   
+        $authWhere = '';
+        if(session('type_key') == 'op-pert-reseller'){
+            $authWhere = " and i.grp_code='".session('grp_code')."'"; 
+        }
         //$where .= " and i.sys_code::text like '%".($GLOBALS['SYS_CODE'] === 'ADM' ? '5000' : '4000')."%'";
 
 
@@ -70,6 +77,9 @@ class Documents extends Model
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);
             $limit =  " LIMIT " . $obj['scale']['limit'] . " OFFSET " . $start;
+            if(env('DB_CONNECTION') == 'sqlsrv'){
+                $limit =  "OFFSET $start ROWS FETCH NEXT ".$obj['scale']['limit']." ROWS ONLY";
+            }
         }else{
             $obj['scale']['limit'] = 1;
         }
@@ -82,7 +92,7 @@ class Documents extends Model
             }
             $order = ' order by ' .$column. ' ' . $obj['order']['style'].' ';
         }else{
-            $order = ' order by i.id desc ';
+            $order = ' order by i.created_at desc ';
         }
         
         if (isset($obj['filter'])){
@@ -93,8 +103,20 @@ class Documents extends Model
             }
 
             if(isset($obj['filterKeys']['form-type'])){
-                $columns['main_attr'] = "(SELECT    json_group_array(
-                                                                json_object(
+                if(env('DB_CONNECTION') == 'sqlsrv'){
+                    $columns['main_attr'] = "(SELECT    CONCAT(
+                                                                '[',STRING_AGG(
+                                                            CONCAT(
+                                                                '{\"Key\":\"', se.entity_tag, '\",\"Value\":\"', se.entity_value, '\"}'
+                                                            ), ','
+                                                        ) , ']')
+                                                        FROM sys_con_entities as se
+                                                            inner join sys_con_ops as so on so.id = se.conn_id 
+                                                            inner join sys_options as sp on sp.id = so.type_id
+                                                        where so.conn_id = 0 and sp.op_key = '".$obj['filterKeys']['form-type']."'  and so.main_id = i.id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  main_attr";
+                }else{
+                    $columns['main_attr'] = "(SELECT    ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
+                                                                ".(env('DB_CONNECTION') == 'pgsql' ? 'json_build_object' : 'json_object')."(
                                                                     'Key',se.entity_tag,
                                                                     'Value' , se.entity_value
                                                                 )
@@ -102,10 +124,20 @@ class Documents extends Model
                                                         FROM sys_con_entities as se
                                                             inner join sys_con_ops as so on so.id = se.conn_id 
                                                             inner join sys_options as sp on sp.id = so.type_id
-                                                        where so.conn_id = 0 and sp.op_key = '".$obj['filterKeys']['form-type']."'  and so.main_id = i.id)  as  main_attr";
+                                                        where so.conn_id = 0 and sp.op_key = '".$obj['filterKeys']['form-type']."'  and so.main_id = i.id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  main_attr";
+                }
+
+
+
+                
+
+
+                if(session('type_key') == 'op-pert-reseller' && $obj['filterKeys']['form-type'] == 'op-doc-facility-form'){
+                    $authWhere = " and i.id = (select d.id from documents d where d.qnid = '".session('grp_code')."' limit 1) "; 
+                }
             }
 
-
+            
 
             foreach($obj['filter'] as $f){
                 
@@ -114,7 +146,14 @@ class Documents extends Model
                 if(isset($f['value']) && $f['key'] !== 'transactions' ) $f['value'] = noInject(strip_tags($f['value']));
                 
                 switch($f['key']){
-                    
+                    case 'date-range':
+                        $dates = explode('**',$f['value']);
+                        $dates[0] = implode('-',array_reverse(explode('/',$dates[0])));
+                        $dates[1] = implode('-',array_reverse(explode('/',$dates[1])));
+
+                        $where .= " and (se.entity_tag = 'entered_at' and (DATE(se.entity_value) between DATE('".$dates[0]."') and DATE('".$dates[1]."'))) ";
+                        
+                        break;
                     case 'day-period':
                         $where .= " and (se.entity_tag = 'entered_at' and se.entity_value like '%".$f['value']."%')";
                         break;
@@ -125,8 +164,20 @@ class Documents extends Model
                     
                     case 'form-type':
                         $value = $f['value'];
-                        $columns['main_attr'] = "(SELECT    json_group_array(
-                                                                json_object(
+                        if(env('DB_CONNECTION') == 'sqlsrv'){
+                            $columns['main_attr'] = "(SELECT    CONCAT(
+                                                            '[',STRING_AGG(
+                                                        CONCAT(
+                                                            '{\"Key\":\"', se.entity_tag, '\",\"Value\":\"', se.entity_value, '\"}'
+                                                        ), ','
+                                                    ) , ']')
+                                                    FROM sys_con_entities as se
+                                                        inner join sys_con_ops as so on so.id = se.conn_id 
+                                                        inner join sys_options as sp on sp.id = so.type_id
+                                                    where so.conn_id = 0 and sp.op_key = '".$value."'  and so.main_id = i.id)  as  main_attr";
+                        }else{
+                            $columns['main_attr'] = "(SELECT    ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
+                                                                ".(env('DB_CONNECTION') == 'pgsql' ? 'json_build_object' : 'json_object')."(
                                                                     'Key',se.entity_tag,
                                                                     'Value' , se.entity_value
                                                                 )
@@ -134,7 +185,10 @@ class Documents extends Model
                                                         FROM sys_con_entities as se
                                                             inner join sys_con_ops as so on so.id = se.conn_id 
                                                             inner join sys_options as sp on sp.id = so.type_id
-                                                        where so.conn_id = 0 and sp.op_key = '".$value."'  and so.main_id = i.id)  as  main_attr";
+                                                        where so.conn_id = 0 and sp.op_key = '".$value."'  and so.main_id = i.id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  main_attr";
+                        }
+                        
+                        
                         break;
                     
                     case 'free':
@@ -153,7 +207,12 @@ class Documents extends Model
                             }else{
                                 $where .= " $column like '%$value%' ";
                             }*/
-                            $where .= " $column like '%$value%' ";
+                            if(env('DB_CONNECTION') == 'pgsql'){
+                                $where .= " $column::text ilike '%$value%' ";
+                            }else{
+                                $where .= " $column like '%$value%' ";
+                            }
+                           
                             $i++;
                         }
                         $where .= ' ) ';
@@ -164,7 +223,11 @@ class Documents extends Model
                             if($f['type'] != 'like'){
                                 $where .= " and $column = '".$f['value']."' ";
                             }else{
-                                $where .= " and $column like '%".$f['value']."%' ";
+                                if(env('DB_CONNECTION') == 'pgsql'){
+                                    $where .= " $column::text ilike '%".$f['value']."%' ";
+                                }else{
+                                    $where .= " $column like '%".$f['value']."%' ";
+                                }
                             }
                         }
                         break;
@@ -176,10 +239,10 @@ class Documents extends Model
        
         //create query    
         $sql = 'select distinct '.implode(",", array_values($columns)).'
-                    from documents as i '.$join.' ' . $where.$order.$limit ;
+                    from documents as i '.$join.' ' . $where.$authWhere.$order.$limit ;
         $result = DB::select($sql);
         //count query
-        $sql = 'select count(distinct i.id) as row from documents as i '.$join.' '. $where;
+        $sql = 'select count(distinct i.id) as row from documents as i '.$join.' '. $where.$authWhere;
         $total_count = DB::select($sql)[0];
         
         

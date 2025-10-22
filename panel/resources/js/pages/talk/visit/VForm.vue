@@ -60,13 +60,13 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/panel',
+                    url   : '/talkpanel',
                 },{
                     title : this.wTrans('menu.visit'),
-                    url   : '/panel/visit',
+                    url   : '/talkpanel/visit',
                 },{
                     title : this.wTrans('form.visit.list'),
-                    url   : '/panel/visit/form',
+                    url   : '/talkpanel/visit/form',
                 }
             ] ,this.wTrans('form.visit'));
 

@@ -34,7 +34,8 @@
         },
         "files": [
             "app/Helpers/DocumentHelpers.php",
-            "app/Helpers/ReportHelpers.php"
+            "app/Helpers/ReportHelpers.php",
+            "app/Helpers/PermissionHelpers.php"
         ]
     },
     "autoload-dev": {

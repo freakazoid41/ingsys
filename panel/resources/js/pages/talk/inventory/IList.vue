@@ -25,11 +25,11 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/panel',
+                    url   : '/talkpanel',
                 },
                 {
                     title : this.wTrans('menu.inventory'),
-                    url   : '/panel/inventory',
+                    url   : '/talkpanel/inventory',
                 }
             ] ,this.wTrans('form.inventory.list'));
 

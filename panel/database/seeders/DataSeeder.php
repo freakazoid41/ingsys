@@ -153,7 +153,7 @@ class DataSeeder extends Seeder
                         'entities' => [
                             'qr_code' => $p['url'],
                             'title' => $p['name'],
-                            'question_must_know' => '2',
+                            'question_must_know' => '3',
                             'address' => $p['name'],
                             'status**videogroup**SEEDV'.$uniqueCode.'-0' => '1',
                             'videoitem**videogroup**SEEDV'.$uniqueCode.'-0' => '1',
@@ -197,7 +197,7 @@ class DataSeeder extends Seeder
                             ////
 
                             'title--lng--en' =>  $p['name'].' EN',
-                            'question_must_know--lng--en' => '2',
+                            'question_must_know--lng--en' => '3',
                             'qr_code--lng--en' =>  $p['url'],
                             'address--lng--en' => $p['name'].' EN',
                             'status--lng--en**videogroup**SEEDV'.$uniqueCode.'-0' => '1',

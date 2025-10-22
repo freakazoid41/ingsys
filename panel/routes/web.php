@@ -16,19 +16,20 @@ Route::get('/logout',                   [AuthController::class, 'logout'])->name
     return 'test';
 })->where('any', '^((?!api).)*');*/
 
-Route::get('/facility',fn()      => view('frontapp'))->name('frontapp');
-Route::get('/facility/{any}',fn() => view('frontapp'))->where('any', '^((?!api).)*');
+
 
 Route::middleware(['auth:sanctum'])
     ->group(function () {
         
+        Route::get('/facility',fn()       => view('frontapp'))->name('frontapp');
+        Route::get('/facility/{any}',fn() => view('frontapp'))->where('any', '^((?!api).)*');
 
-        Route::get('/talkpanel',fn() => view('talkapp'))->name('talkapp');
-        Route::get('/talkpanel/{any}',fn() => view('talkapp'))->where('any', '^((?!api).)*');
+        Route::get('/talkpanel',       [AuthController::class,   'handlePanelRoute'])->name('talkapp');
+        Route::get('/talkpanel/{any}', [AuthController::class,   'handlePanelRoute'])->where('any', '^((?!api).)*');
 
 
-        Route::get('/export/{model}/{type?}',    [ExportController::class, 'index'])->name('.export-table');
-        Route::get('/setfacility/{facility}',  [AuthController::class,   'setfacility']);
+        Route::get('/export/{model}/{type?}',   [ExportController::class, 'index'])->name('.export-table');
+        Route::get('/setfacility/{facility}',   [AuthController::class,   'setfacility']);
         Route::get('/closefacility',            [AuthController::class,   'closefacility']);
 });
 

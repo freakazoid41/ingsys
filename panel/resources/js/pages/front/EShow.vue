@@ -47,7 +47,7 @@
                     });
 
                     invItems["inventory-given"] = true;
-                    invItems["exited_at"]       = (new Date()).toISOString().replace('T',' ').split('.')[0];
+                    invItems["exited_at"]       = this.plib.getConvertedDate(new Date());
 
                     this.navigationStore.toggle(true);
                     //save selections
@@ -102,7 +102,9 @@
             <p>{{ $t('exit.invwarn') }}</p>
         </div>
         <div class="check-list mt-4">
-            <div class="form-check" v-for="value,key in inventories">
+            <div class="form-check" v-for="value,key in inventories" v-show="
+                    this.navigationStore.currentLanguge != 'tr' ? (value?.['title--lng--'+this.navigationStore.currentLanguge] !== undefined) : (value?.title !== undefined)
+                ">
                 <div class="checkbox-theme md">
                     <input type="checkbox" :data-code="value.code" :data-title="value.title" class="inv-item" :id="'inv'+key " :name="'inv'+key " :value="value.qnid" />
                     <label :for="'inv'+key ">
@@ -111,7 +113,7 @@
                     </svg>
                     </label>
                 </div>
-                <label class="form-check-label text-dark" :for="'inv'+key ">{{ value.title }}</label>
+                <label class="form-check-label text-dark" :for="'inv'+key ">{{ this.navigationStore.currentLanguge != 'tr' ? value['title--lng--'+this.navigationStore.currentLanguge] : value.title }}</label>
             </div>
             <hr>
             <div class="form-check">

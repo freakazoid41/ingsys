@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('title','250')->default('-');
             $table->text('description')->default('-');
             $table->string('grp_code',100)->nullable()->default('-');
-            $table->uuid('qnid')->nullable();
+            $table->string('qnid')->nullable();
 
             $table->timestamp('selected_at')->useCurrent();
             $table->timestamps();

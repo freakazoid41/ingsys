@@ -88,6 +88,9 @@ class Persons extends Model
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);
             $limit = " LIMIT " . $obj['scale']['limit'] . " OFFSET " . $start;
+            if(env('DB_CONNECTION') == 'sqlsrv'){
+                $limit =  "OFFSET $start ROWS FETCH NEXT ".$obj['scale']['limit']." ROWS ONLY";
+            }
         }else{
             $obj['scale']['limit'] = 1;
         }
@@ -139,13 +142,12 @@ class Persons extends Model
         //create query    
         $sql = 'select '.implode(",", array_values($columns)).'
                     from persons as i '.$join.' ' . $where.$order.$limit ;
+       
         $result = DB::select($sql);
        
         //count query
         $sql = 'select count(*) as row from persons as i '.$join.' '. $where;
         $total_count = DB::select($sql)[0];
-        
-        
         return array(
             'data'          => $result,
             'pageCount'     => ceil(intval($total_count->row) / intval($obj['scale']['limit'])),

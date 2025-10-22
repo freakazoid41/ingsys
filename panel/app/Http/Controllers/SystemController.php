@@ -3,20 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User_logs;
-/*use App\Models\Sys_options;
-use App\Models\User_logs;
-use App\Models\Document_con_ops;
-use App\Models\Document_files;
-use App\Models\Sys_con_entities;
-use App\Providers\SmsProvider;
-use App\Providers\SystemSettingsService;
-use App\Providers\MailService;
-
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use App\Upload;
-use Illuminate\Support\Facades\Validator;*/
+use App\Models\Sys_options;
 use Illuminate\Http\Request;
 
 class SystemController extends Controller

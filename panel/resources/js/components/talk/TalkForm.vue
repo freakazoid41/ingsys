@@ -149,6 +149,14 @@
                                 ]
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'feedback_desc',
+                                col      : 12,
+                                required : true,
+                                label : 'Ziyaretçi Geri Bildirim Notu',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'multiple',
                                 name  : 'sub_3',
                                 label : 'Verilen Ekipmanlar',
@@ -156,9 +164,9 @@
                                 subs  : [
                                     {
                                         class : ['form-control','mb-2','mb-md-0'],
-                                        type  : 'select',
+                                        type  : 'text',
                                         col   : 6,
-                                        options  :  [],
+                                        /*options  :  [],
                                         setOptions  : async () => {
                                             return this.formDataStore.inventories.map(inv => {
                                                 return {
@@ -166,7 +174,39 @@
                                                     value : inv.title,
                                                 };
                                             });
-                                        },
+                                        },*/
+                                        name  : 'inventory',
+                                        label : 'Ekipman',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        name  : 'description',
+                                        label : 'Ekipman Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_3',
+                                label : 'Ziyaretçinin Getirdiği Ekipmanlar',
+                                group_key : 'visitorinvgroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        /*options  :  [],
+                                        setOptions  : async () => {
+                                            return this.formDataStore.inventories.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.title,
+                                                };
+                                            });
+                                        },*/
                                         name  : 'inventory',
                                         label : 'Ekipman',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -188,9 +228,9 @@
                                 subs  : [
                                     {
                                         class : ['form-control','mb-2','mb-md-0'],
-                                        type  : 'select',
+                                        type  : 'text',
                                         col   : 6,
-                                        options : [],
+                                        /*options : [],
                                         setOptions  : async () => {
                                             return this.formDataStore.inventories.map(inv => {
                                                 return {
@@ -198,7 +238,7 @@
                                                     value : inv.title,
                                                 };
                                             });
-                                        },
+                                        },*/
                                         name  : 'inventory',
                                         label : 'Ekipman',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -261,29 +301,48 @@
                                         //isDate   : true,
                                         required : true,
                                         label : 'İsim & Soyisim',
-                                        col      : 3,
+                                        col      : 4,
                                         placeholder : 'İsim & Soyisim',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class    : ['form-control','mb-2','mb-md-0','form-item'],
                                         type     : 'select',
                                         name     : 'type_key',
-                                        col      : 3,
+                                        col      : 4,
                                         required : true,
-                                        label    : 'Tip',
+                                        label    : 'Kullanıcı Tipi',
                                         options  : [
                                             {
                                                 text  : 'Yönetici',
                                                 value : 'op-pert-admin'
+                                            }, {
+                                                text  : 'Tesis Görevlisi',
+                                                value : 'op-pert-reseller'
                                             }
                                         ],
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        col      : 4,
+                                        label    : 'Tesis Sınırlaması',
+                                        setOptions  : async () => {
+                                            await this.formDataStore.setFacilitiesData()
+                                            return this.formDataStore.facilities.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.id,
+                                                };
+                                            });
+                                        },
+                                        name  : 'user_grp_code',
                                         oninput  : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'email',
                                         name  : 'user_username',
                                         required : true,
-                                        col : 3,
+                                        col : 4,
                                         placeholder : 'Kullanıcı Email',
                                         label : 'Kullanıcı Email',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -292,10 +351,41 @@
                                         type  : 'password',
                                         name  : 'user_password',
                                         //required : true,
-                                        col : 3,
+                                        col : 4,
                                         label : 'Parola',
                                         placeholder : '*********',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                        oninput : (e) => {
+
+                                            const main  = document.querySelector('input[name="user_password"]');
+                                            const check = document.querySelector('input[name="user_password_check"]');
+
+                                            if(main.value == check.value) {
+                                                main.classList.remove('is-invalid');
+                                                check.classList.remove('is-invalid');
+                                            }
+
+                                            this.submitDynamicChanges(e.target);
+                                        }
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'password',
+                                        name  : 'user_password_check',
+                                        //required : true,
+                                        col : 4,
+                                        label : 'Parola (Kontrol)',
+                                        placeholder : '*********',
+                                        oninput : (e) => {
+
+                                            const main  = document.querySelector('input[name="user_password"]');
+                                            const check = document.querySelector('input[name="user_password_check"]');
+
+                                            if(main.value == check.value) {
+                                                main.classList.remove('is-invalid');
+                                                check.classList.remove('is-invalid');
+                                            }
+
+                                            this.submitDynamicChanges(e.target);
+                                        }
                                     }
                                 ]
                             }
@@ -353,6 +443,38 @@
                                 required : true,
                                 label : 'Adres',
                                 oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_31',
+                                label : 'Tesise Özel Ekipmanlar',
+                                group_key : 'facilityinvetorygroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        /*options : [],
+                                        setOptions  : async () => {
+                                            return this.formDataStore.inventories.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.title,
+                                                };
+                                            });
+                                        },*/
+                                        name  : 'inventory',
+                                        label : 'Ekipman',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        name  : 'description',
+                                        label : 'Ekipman Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'multiple',

@@ -51,7 +51,11 @@
         <form action="/ziyaretcikontrol" id="enterform" method="post">
             <div class="form-group theme-group">
                 <label for="">{{ __('main.form.phone') }}</label>
-                <input type="text" id="phone" name="phone" class="form-control" placeholder="+90 (5__) ___ __ __">
+                <input type="text" id="phone" name="phone" class="form-control"   @if(App::getLocale() == 'tr')  
+                                                                                    placeholder="0 (5__) ___ __ __" 
+                                                                                  @else  
+                                                                                    placeholder="+90 (5__) ___ __ __"
+                                                                                  @endif>
                 <input hidden name="facility" value="{{$id}}">
             </div>
         </form>
@@ -69,9 +73,15 @@
   <script src="https://unpkg.com/imask"></script>
   <script>
     const element = document.getElementById('phone');
+    @if(App::getLocale() != 'en')
+      const maskOptions = {
+        mask: '{\\0} (500) 000 00 00'
+    };
+    @else
     const maskOptions = {
         mask: '+{9\\0} (500) 000 00 00'
     };
+    @endif
     const mask = IMask(element, maskOptions);
     document.getElementById('continueBtn').addEventListener('click',e => document.getElementById('enterform').submit());
 

@@ -103,46 +103,13 @@ class DocumentController extends Controller
         
         //$model = 'App\\Models\\Documents';
         switch(strtoupper($request->method())){
-            case "GET":
-                //$req = $request->all();
-                $res = (new DocumentServiceProvider())->getFormData($request->id);
-                $response = [
-                    'success' => !empty($res),
-                    'data' => $res,
-                ];
-                /*$res = [];
-                if($id != 0){
-                    $res = $model::where('id',$id)->first();
-                }else{
-                    $res = $model::all();
-                }
-				$res = $res->toarray();
-                //get request for data getting
-                $response = [
-                    'success' => !empty($res),
-                    'data' => $res,
-                ];*/
-                break;
             case "POST":
                 $req  = $request->all();
                 $data = json_decode($req['data'],true);
                 $data['typeKey'] = "op-doc-visit";
-                
+
                 $res = (new DocumentServiceProvider())->registerContent(0,$data,$request->files->all());
                 
-                if($res['id'] > 0){
-                    User_logs::create([
-                        'user_id'     => 0,
-                        'relation'    => 'visitors',
-                        'relation_id' => $res['id'],
-                        'type_id'     => Sys_options::select('id')->where('op_key', 'log-visiter-enter')->first()->id,
-                        'description' => json_encode(array(
-                            'desc' => array_values($data['dynamicF'])[0]['entities']['name'].' tesise giriş yaptı',
-                        ),JSON_UNESCAPED_UNICODE)
-                    ]);
-                }
-
-
                 $response = [
                     'success' => $res['id'] > 0,
                     'data' => $res,
@@ -157,11 +124,25 @@ class DocumentController extends Controller
                 if($res['id'] > 0 && isset(array_values($data['dynamicF'])[0]['entities']['exited_at'])){
                     User_logs::create([
                         'user_id'     => 0,
+                        'grp_code'    => $res['grpCode'],
                         'relation'    => 'visitors',
                         'relation_id' => $res['id'],
                         'type_id'     => Sys_options::select('id')->where('op_key', 'log-visiter-exit')->first()->id,
                         'description' => json_encode(array(
                             'desc' => $res['allEntities']['name'].' tesisten çıkış yaptı',
+                        ),JSON_UNESCAPED_UNICODE)
+                    ]);
+                }
+
+                if($res['id'] > 0 && isset(array_values($data['dynamicF'])[0]['entities']['inventory-taken'])){
+                    User_logs::create([
+                        'user_id'     => 0,
+                        'grp_code'    => $res['grpCode'],
+                        'relation'    => 'visitors',
+                        'relation_id' => $res['id'],
+                        'type_id'     => Sys_options::select('id')->where('op_key', 'log-visiter-enter')->first()->id,
+                        'description' => json_encode(array(
+                            'desc' => $res['allEntities']['name'].' tesise giriş yaptı',
                         ),JSON_UNESCAPED_UNICODE)
                     ]);
                 }

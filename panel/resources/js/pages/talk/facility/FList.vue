@@ -31,11 +31,11 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/panel',
+                    url   : '/talkpanel',
                 },
                 {
                     title : this.wTrans('menu.facility'),
-                    url   : '/panel/facility',
+                    url   : '/talkpanel/facility',
                 }
             ] ,this.wTrans('form.facility.list'));
 

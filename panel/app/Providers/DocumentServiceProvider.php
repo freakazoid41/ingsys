@@ -52,6 +52,8 @@ class DocumentServiceProvider extends ServiceProvider
                 }
             }
 
+            //if(isset($requestData['facility_id'])) $document->grp_code = $requestData['facility_id'];
+
             
             
             $rsp = $document->save();
@@ -169,7 +171,8 @@ class DocumentServiceProvider extends ServiceProvider
                 'id'               => $document->id,
                 'data'             => $document,
                 'connEntries'      => $connEntries,
-                'allEntities'      => $allConnections
+                'allEntities'      => $allConnections,
+                'grpCode'          => $document->grp_code
             ];
         } catch (\Exception $e) {
             
@@ -189,22 +192,34 @@ class DocumentServiceProvider extends ServiceProvider
         $dynamicF = [];
         //////////////////////////////// Dynamic Fields ********************************
         //get dynamic fields info
-        $sql = "select  dco.id,
-                        so.op_key,
-                        sce.entity_tag,
-                        (case
+        $caseSection = env('DB_CONNECTION') == 'sqlsrv' ? 
+                        "(case
                             when sce.table_tag = 'document_files'
-                            then (  select  json_object(
-                                                'description',description,
-                                                'id',df.id
+                            then (  select  CONCAT(
+                                                '{\"description\":\"', description, '\",\"id\":\"', df.id, '\"}'
                                             )
                                     from document_files as df
                                         where df.id = sce.entity_value)
 
                             else  sce.entity_value
-                        end) as entity_value
-                        
-       
+                        end) "
+                       :
+                        "(case
+                            when sce.table_tag = 'document_files'
+                            then (  select  ".(env('DB_CONNECTION') == 'pgsql' ? 'json_build_object' : 'json_object')."(
+                                                'description',description,
+                                                'id',df.id
+                                            )
+                                    from document_files as df
+                                        where df.id = sce.entity_value".(env('DB_CONNECTION') == 'pgsql' ? '::int' : '').")".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."
+
+                            else  sce.entity_value
+                        end)" ;
+
+        $sql = "select  dco.id,
+                        so.op_key,
+                        sce.entity_tag,
+                        $caseSection as entity_value
                             from sys_con_ops dco 
 
                     inner join sys_options so on so.id = dco.type_id
@@ -215,7 +230,6 @@ class DocumentServiceProvider extends ServiceProvider
                             dco.conn_id = 0 and 
                             dco.status  = 1 and
                             d.qnid = '".$id."'";
-
         $data  = DB::select($sql);
 
         foreach ($data as $row){
@@ -282,7 +296,7 @@ class DocumentServiceProvider extends ServiceProvider
                             when sce2.table_tag = 'document_files'
                             then (  select  df.description
                                     from document_files as df
-                                        where df.id = sce2.entity_value)
+                                        where df.id = sce2.entity_value ".(env('DB_CONNECTION') == 'pgsql' ? '::bigint' : '').")".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."
 
                             else  sce2.entity_value
                         end) as entity_value,
@@ -299,7 +313,6 @@ class DocumentServiceProvider extends ServiceProvider
                             dco.conn_id = 0 and 
                             dco.status  = 1 and
                             sce.entity_tag = 'qr_code' and sce.entity_value like '%".strip_tags($data['code'])."%'";
-
         $data  = DB::select($sql);
         
         //also get inventory list
@@ -315,28 +328,36 @@ class DocumentServiceProvider extends ServiceProvider
                 ]
             ]
         ])['data'];
-        
+       
         $invList = [];
         foreach($invData as $d){
             $detail = json_decode($d->main_attr,true);
             foreach($detail as $row){
                 $detail[$row['Key']] = $row['Value'];
-
-                if(strpos($row['Key'],'per_name') !== false){
-                    if(!isset($detail['per_name'])) $detail['per_name'] = [];
-                    $detail['per_name'][] = $row['Value'];
-                }
             }
-            $invList[$d->id] = [
+            $invList[$d->id] = /*[
                 'qnid'  => $d->id,
                 'title' => $detail['title'],
                 'code'  => $detail['code'],
-            ];
+            ]*/$detail;
         }
 
-
         if(!empty($data)){
-            foreach ($data as $row) $dynamicF[$row->entity_tag] = $row->entity_value;
+            foreach ($data as $row){
+                $dynamicF[$row->entity_tag] = $row->entity_value;
+
+                if(strpos($row->entity_tag,'facilityinvetorygroup') !== false){
+                    
+                    $key = explode('**',$row->entity_tag);
+                    if(!isset($invList[$key[1].$key[2]])) $invList[$key[1].$key[2]] = [];
+
+                    $key[0] = str_replace("inventory", "title", $key[0]);
+                    $key[0] = str_replace("description", "code", $key[0]);
+
+                    $invList[$key[1].$key[2]][$key[0]] = $row->entity_value;
+                    
+                }
+            } 
             return [
                 'success'     => true,
                 'data'        => $dynamicF,
@@ -374,10 +395,9 @@ class DocumentServiceProvider extends ServiceProvider
                             dco.status  = 1 and
                            
                             sce.entity_tag like 'phone' and sce.entity_value like '%".strip_tags($data['phone'])."%' and
-                            sce.conn_id = (select conn_id from sys_con_entities 
-                                where entity_value like '%".strip_tags($data['phone'])."%' order by conn_id desc )
+                            sce.conn_id = (select ".(env('DB_CONNECTION') == 'sqlsrv' ? 'TOP 1' : '')." conn_id from sys_con_entities 
+                                where entity_value like '%".strip_tags($data['phone'])."%' order by conn_id desc ".(env('DB_CONNECTION') == 'sqlsrv' ? '' : 'limit 1').")
                             order by sce2.id asc";
-
         $data  = DB::select($sql);
 
         if(!empty($data)){
@@ -509,8 +529,8 @@ class DocumentServiceProvider extends ServiceProvider
                         $detail['email'],
                         $detail['facility'],
                         $detail['entered_at'],
-                        isset($detail['video_start']) ? explode(' ',$detail['video_start'])[1] : '-',
-                        isset($detail['video_end']) ? explode(' ',$detail['video_end'])[1] : '-',
+                        isset($detail['video_start']) ? (explode(' ',$detail['video_start'])[1] ?? '-') : '-',
+                        isset($detail['video_end']) ? (explode(' ',$detail['video_end'])[1] ?? '-') : '-',
                         isset($detail['video_second']) ? $fancyTimeFormat($detail['video_second']) : '0:00',
                         $detail['video_status'] ?? '-',
                         $detail['exited_at'] ?? 'Bekleniyor',

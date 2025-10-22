@@ -7,7 +7,9 @@ import Front from '@/layouts/Front.vue';
 import FIndex from '@/pages/front/FIndex.vue';
 import VShow  from '@/pages/front/VShow.vue';
 import Quiz   from '@/pages/front/Quiz.vue';
-import IShow  from '@/pages/front/IShow.vue';
+import IWarn  from '@/pages/front/IWarn.vue';
+import IGiven from '@/pages/front/IGiven.vue';
+import IOwned from '@/pages/front/IOwned.vue';
 import EShow  from '@/pages/front/EShow.vue';
 import EMessage  from '@/pages/front/EMessage.vue';
 
@@ -22,7 +24,9 @@ const router = createRouter({
         { path: "/facility/:id?",             name: 'Index', component: FIndex },
         { path: "/facility/:id?/quiz",        name: 'VShow', component: VShow },
         { path: "/facility/:id?/quiz/:quiz",  name: 'Quiz',  component: Quiz },
-        { path: "/facility/:id?/inventory",   name: 'IShow', component: IShow },
+        { path: "/facility/:id?/imessage",    name: 'IWarn', component: IWarn },
+        { path: "/facility/:id?/inventory",   name: 'IGiven', component: IGiven },
+        { path: "/facility/:id?/myinventory", name: 'IOwned', component: IOwned },
         { path: "/facility/:id?/exit",        name: 'EShow', component: EShow },
         { path: "/facility/:id?/emessage",    name: 'EMessage', component: EMessage },
 

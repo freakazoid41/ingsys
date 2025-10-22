@@ -152,6 +152,10 @@
   width: 133px;
   height: 103px;
 }
+.popup .main .detail.login.error-popup .icon img, .popup .main .detail.error-popup .icon img, .popup .main .detail.error-popup.error-popup .icon img {
+  width: 100%;
+  height: 100%;
+}
 .popup .main .detail.login-popup {
   height: 100%;
   display: flex;
@@ -420,12 +424,12 @@ body {
   color: #d93043;
 }
 .main-body-head {
-  padding-top: 37px;
+  padding-top: 15px;
 }
 .main-body-head h1 {
   color: #3e3e3e;
-  font-size: 24px;
-  line-height: 28px;
+  font-size: 20px;
+  line-height: 24px;
   font-weight: 400;
   margin-bottom: 6px;
 }
@@ -437,7 +441,6 @@ body {
   color: #a7a7a7;
 }
 .main-body .form-main {
-  margin-top: 45px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -557,7 +560,12 @@ body {
   justify-content: center;
   gap: 10px;
 }
-
+.button-theme.back-custom{
+  width: 100px;
+}
+.button-theme.back-custom img{
+  width: 25px;
+}
 .button-theme {
   background: linear-gradient(81deg, #eb6514, #d4125a, #92388c);
   height: 60px;
@@ -637,8 +645,8 @@ body {
   align-items: center;
   flex-direction: row;
   gap: 11px;
-  margin-top: 34px;
-  margin-bottom: 18px;
+  margin-top: 14px;
+  margin-bottom: 10px;
 }
 .progress-head .label {
   font-size: 16px;
@@ -664,7 +672,11 @@ body {
 .progress-head .progress span.invalid {
   background-color: #FF5252;
 }
-
+.main-body .custom-h3{
+  font-size: 1rem;
+  text-align: left;
+  margin-right: auto;
+}
 .questions {
   width: 100%;
   width: 380px;
@@ -947,3 +959,98 @@ body {
   height: 100%;
   z-index: 3;
 }/*# sourceMappingURL=main.css.map */
+
+.main.column .main-footer{
+  height: 154px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: 10px;
+  align-items: start;
+}
+.main.column .main-body{
+  height: calc(100% - 113px - 154px);
+}
+
+
+.item-group-list{
+  width: 100%;
+  border: 1px solid #973487;
+  border-radius: 10px;
+  padding: 31px 27px 22px 27px;
+  color: #973487;
+  position: relative;
+  margin-top: 1rem;
+}
+
+.item-group-list .item-group-list-head{
+  font-size: 16px;
+  line-height: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 400;
+  position: absolute;
+  top: -10px;
+  background-color: #fff;
+  padding: 0 .5rem;
+  left: 27px;
+}
+
+.item-group-list .item-group-list-head .icon{
+  width: 18px;
+  height: 18px;
+}
+
+.item-group-list .list{
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.button-theme.body-custom{
+  background: #ffffff;
+  color: #4E4E4E;
+  border: 1px solid #B9B9B9;
+}
+
+.alert-group-box{
+  border: 1px solid #E61313;
+  background-color: #FFE3E3;
+  border-radius: 10px;
+  padding: 17px 22px;
+  margin-top: 1rem;
+}
+
+.alert-group-box h5{
+  color: #DB1F1F;
+  font-size: 24px;
+  line-height: 28px;
+  margin: 0 0 7px 0;
+  font-weight: 500;
+}
+.alert-group-box p{
+  color: #464646;
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  line-height: 16px;
+  color: #464646;
+  opacity: 0.8;
+}
+
+.alert-group-box .form-check .form-check-label{
+  color: #FF0B0B!important;
+}
+.alert-group-box .form-check .checkbox-theme label{
+  border: 2px solid #FF0B0B;
+  background-color: #FF0B0B15;
+}
+.alert-group-box .form-check{
+  margin-bottom: 13px;
+}
+
+.alert-group-box .form-check:last-child{
+  margin-bottom: 0;
+}

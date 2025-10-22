@@ -385,14 +385,14 @@ class SysSeeder extends Seeder
                 'group_key' => 'op-pert',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Müşteri',
+                'title'     => 'Ziyaretçi',
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-pert-buyer',
                 'group_key' => 'op-pert',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Bayii',
+                'title'     => 'Tesis Görevlisi',
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-pert-reseller',

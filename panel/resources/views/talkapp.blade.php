@@ -13,7 +13,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     @vite(['public/talk/css/bootstrap5.css','public/talk/css/fontawesome5.css','public/talk/css/main.css','resources/js/talk.js'])
     <input hidden name="header" value="{{session('grp_title') ?? env('APP_NAME')}}">
-    
+    <input hidden name="menubar" value="{{session('type_key')}}">
 
 <body class="">
     <div id="app" class="h-100" style="height:100% !important"></div>
