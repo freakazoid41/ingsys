@@ -17,7 +17,7 @@ Route::prefix('v1')
     ->group(function () {
         Route::get('/me', MeController::class);
     });*/
-Route::post('/v1/auth/login/{type?}',             [AuthController::class, 'loginUser'])->name('login-user');
+Route::post('/v1/auth/login/{type?}',             [AuthController::class, 'loginUser'])->name('login-user')->middleware('throttle:2,1');;
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::any('/v1/getcurrent    ',                   [AuthController::class, 'getSession']);
     Route::any('/v1/document/{id?}',                   [DocumentController::class, 'index']);
