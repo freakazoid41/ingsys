@@ -97,7 +97,9 @@ class Documents extends Model
         
         $limit = '';
         $order = '';
-        $join = ' inner join sys_options as sp on sp.id = i.type_id ';
+        $join = '   inner join sys_options as sp on sp.id = i.type_id 
+                    inner join sys_con_ops as so on i.id = so.main_id 
+                    inner join sys_con_entities as se on so.id = se.conn_id ';
         
         $where = " where i.status = '1' and i.grp_code='".session('grp_code')."'";   
         //$where .= " and i.sys_code::text like '%".($GLOBALS['SYS_CODE'] === 'ADM' ? '5000' : '4000')."%'";
@@ -243,6 +245,8 @@ class Documents extends Model
                         foreach($columns as $k=>$v){
                             if($i!=0) $where.=' or ';
                             $column = explode('as  ',$columns[$k])[0];
+
+                            if($k == 'main_attr') $column = 'se.entity_value';
                             /*if($column === 'i.created_at'){
                                 $where.= env('DB_CONNECTION') == 'pgsql' ? 
                                 " TO_CHAR(".$column."::date, 'dd.mm.yyyy') like '%" . $value . "%' " :
