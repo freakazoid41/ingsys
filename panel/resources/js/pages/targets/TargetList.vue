@@ -49,7 +49,7 @@
                 onclick   : () => window.open('/export/documents/accounts'),
               },{
                 icon : 'ph ph-plus-circle',
-                onclick   : () => this.$router.push({ name: 'TargetFom' }),
+                onclick   : () => this.$router.push({ name: 'TargetForm' }),
               }
             ]);
             setTimeout(() => {
