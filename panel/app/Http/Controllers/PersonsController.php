@@ -76,6 +76,8 @@ class PersonsController extends Controller
         return response()->json($response);
 	}
 
+    
+
     public function changeBackground(Request $request){
         $res = (new PersonsServiceProvider())->setPerson(auth('sanctum')->user()->person_id,[],$request->files->all(),'persons');
 

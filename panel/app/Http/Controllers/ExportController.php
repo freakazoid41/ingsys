@@ -14,6 +14,7 @@ use App\Providers\ReportServiceProvider;
 use App\Providers\DocumentServiceProvider;
 use PDF;    
 use App\Models\Documents;
+use App\Providers\VideoProvider; // Update this namespace if needed
 
 class ExportController extends Controller
 {
@@ -61,5 +62,22 @@ class ExportController extends Controller
         die;
     }
 
-    
+    public function stream(){
+        // IMPORTANT: Adjust the path where your video files are stored
+        $filePath = public_path("front/videos/default.mp4");
+
+        if (!file_exists($filePath)) {
+            abort(404, 'Video not found.');
+        }
+
+        try{
+            $stream = new VideoProvider($filePath);
+            $stream->start();
+        }catch(Exception $e){
+            print_r($e->getMessage());
+        }
+        
+
+        // Note: start() calls exit(), so no return is needed/possible.
+    }
 }

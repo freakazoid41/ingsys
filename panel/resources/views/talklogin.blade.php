@@ -3,17 +3,23 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Login</title>
         <link href="talk/css/bootstrap5.css" rel="stylesheet">
         <link rel="stylesheet" href="/talk/css/main.css">
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
     </head>
     <body>
         <div class="login">
             <div class="login-futured">
-                <iframe class="bg-video" src="https://www.youtube.com/embed/YoL_eDJz0U8?autoplay=1&mute=1&controls=0&playlist=YoL_eDJz0U8&loop=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                <video class="bg-video" autoplay muted loop playsinline>
+                    <source src="talk/loginbg.mp4" type="video/mp4">
+                </video>
+                
                 <div class="login-futured-main">
-                    <h1>Talk Panel'e <b>Hoş Geldiniz.</b></h1>
-                    <p>Anasayfaya dönmek için <a href="" alt="">lütfen tıklayın <svg xmlns="http://www.w3.org/2000/svg" width="10.945" height="11.774" viewBox="0 0 10.945 11.774"><g transform="translate(17.445 17.86) rotate(180)"><path d="M16.445,18H7.5" transform="translate(0 -6.027)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path d="M11.973,16.445,7.5,11.973,11.973,7.5" transform="translate(0 0)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg></a></p>
+                    <h1>SEÇ Ziyaretçi Paneline <b>Hoş Geldiniz.</b></h1>
+                    <p>Anasayfaya dönmek için <a href="/seclogin" alt="">lütfen tıklayın <svg xmlns="http://www.w3.org/2000/svg" width="10.945" height="11.774" viewBox="0 0 10.945 11.774"><g transform="translate(17.445 17.86) rotate(180)"><path d="M16.445,18H7.5" transform="translate(0 -6.027)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path d="M11.973,16.445,7.5,11.973,11.973,7.5" transform="translate(0 0)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg></a></p>
                 </div>
             </div>
             <div class="login-form">
@@ -22,12 +28,13 @@
                     <span>admin</span>
                 </div>
                 <form class="login-form-main"  action="{{route('login-user','admin')}}" method="POST" novalidate="novalidate"> <!-- <form> or <div> -->
+                    @csrf
                     <div class="mb-3 form-line">
-                        <input type="text" value="{{/*env('IS_TEST') ? 'admin@talk.com.tr' : ''*/}}" class="form-control w-100" id="email-put" name="email" placeholder="Lütfen Giriniz">
+                       <input type="text" value="{{env('IS_TEST') && env('IS_TEST') == true ? 'admin@talk.com.tr' : ''}}" class="form-control w-100" id="email-put" name="email" placeholder="Lütfen Giriniz">
                         <label for="email-put" class="form-label">E-posta</label>
                     </div>
                     <div class="mb-3 mt-4 form-line">
-                        <input type="password" value="{{/*env('IS_TEST') ? 'Talk412.' : ''*/}}" class="form-control w-100" id="phone-put" name="password" placeholder="********">
+                        <input type="password" value="{{env('IS_TEST') && env('IS_TEST') == true ? 'Talk412.' : ''}}" class="form-control w-100" id="phone-put" name="password" placeholder="********">
                         <label for="phone-put" class="form-label">Parola</label>
                     </div>
                     
@@ -38,6 +45,10 @@
                         </button>
                         <input name="apiKey" hidden readonly value= "{{\Session::get('login-success')}}">
                     @else
+                        <!-- reCAPTCHA Widget -->
+                        <div class="mb-3">
+                            <div class="g-recaptcha" data-sitekey="{{ env('RECAPTCHA_SITE_KEY') }}"></div>
+                        </div>
                         <button type="submit" id="submit-button" class="btn btn-theme w-100 mt-5">
                             <svg xmlns="http://www.w3.org/2000/svg" width="21.755" height="21.755" viewBox="0 0 21.755 21.755">
                                 <g transform="translate(0 0)">
@@ -73,17 +84,14 @@
                 
             </div>
         </div>
-        <script type="module">
+        <script type="module" >
             export default class Page {
                 constructor() {
-
-                    
-
                     const login = document.querySelector('input[name="apiKey"]');
                     if(login != null){
                         localStorage.setItem('token',login.value.trim());
                         setTimeout(() => {
-                            window.location.href = '/talkpanel';
+                            window.location.href = '/secpanel';
                         }, 400);
                     }else{
                         this.pageEvents();

@@ -9,7 +9,7 @@
 }
 
 .questions-reply  > * {pointer-events: none !important;}
-.playVideo > * {pointer-events: none !important;}
+/*.playVideo > * {pointer-events: none !important;}*/
 
 .iwarn-footer{
   height: 154px;

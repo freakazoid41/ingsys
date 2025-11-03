@@ -19,12 +19,32 @@
             }
         },
         mounted() {
-            this.navigationStore.getFacility().then(rsp => {
+            /*this.navigationStore.getFacility().then(rsp => {
+                
                 if(rsp) this.inventories  = this.navigationStore.facility.inventories;
+            });*/
+           
+            this.navigationStore.getPersonInventory(this.navigationStore.currentUser.qnid).then(rsp => {
+                const temp = {
+                    bringed : {},
+                    given   : {}
+                };
+                if(rsp.data){
+                    for(let key in rsp.data){
+                        const ik = key.split('**')[2];
+                        const tag = key.split('**')[1] == 'visitorinvgroup' ? 'bringed' : 'given';
+                        if(!temp[tag][ik]) temp[tag][ik] = {};
+
+                        temp[tag][ik][key.split('**')[0] == 'description' ? 'code' : 'title'] = rsp.data[key];
+                    }
+                   
+                    Object.keys(temp['given']).forEach(inv => this.inventories[temp['given'][inv]['code']] = temp['given'][inv]);
+                }
             });
         },  
         data() {
             return {
+                bringed         : {},
                 inventories     : {},
                 plib            : new Plib(),
                 frontLib        : new FrontLib(),
@@ -35,9 +55,27 @@
             async exitFacility(){
                 if(document.getElementById('teslim1').checked){
                     
-                
                     //get selected inventories
                     const items = document.querySelectorAll('.inv-item:checked');
+                    if(Object.keys(this.inventories).length != 0 && items.length != Object.keys(this.inventories).length){
+                        this.frontLib.popup({
+                            text: {
+                                class : 'login-popup',
+                                head: '',
+                                body: `
+                                    <div class="view" style="height:unset !important">
+                                        <div class="info-box">
+                                            <div class="info-box-head"><img src='/front/assets/img/yellowCirc.svg'>`+this.wTrans('inv.canenter.greet').value+`</div>
+                                            <p>`+this.wTrans('exit.signwarn1').value+`</p>
+                                        </div>
+                                    </div>
+                                `,
+                                
+                            },
+                            items: 'kvkk-choice'
+                        });
+                        return false;
+                    } 
                     let   invItems = {};
 
                     items.forEach((el,i) => {

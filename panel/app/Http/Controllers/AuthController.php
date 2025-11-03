@@ -7,7 +7,7 @@ use App\Models\Sys_options;
 use App\Models\User_logs;
 use App\Models\User;
 
-
+use App\Rules\Recaptcha;
 use App\Providers\PersonnelService;
 use Exception;
 use Illuminate\Http\Request;
@@ -100,21 +100,26 @@ class AuthController extends Controller
 
             $request->session()->flush();
             //validate request sended parameters
-            $validateUser = Validator::make($request->all(),[
+            /*$validateUser = Validator::make($request->all(),[
                 'phone'    => 'required',
                 'facility' => 'required'
+            ]);*/
+
+            $validateUser =  Validator::make($request->all(),[
+                'phone'    => 'required',
+                'facility' => 'required',
+                'g-recaptcha-response' => ['required', new Recaptcha()],
+            ], [
+                'g-recaptcha-response.required' => 'reCAPTCHA zorunludur.',
             ]);
 
+            $post   =  $request->all();
+
             if($validateUser->fails()){
-                return abort(404);
-                /*return response()->json([
-                    'success' => false,
-                    'message' => 'Form Validate Error',
-                    'error'   => $validateUser->errors()
-                ],401);*/
+                return redirect()->route('frontLogin',['facility' => $post['facility'],'facilityid' => $post['facility']])->with('login-error', 'Gerekli Bilgileri Doldurunuz...');
             }
 
-            $post   =  $request->all();
+            
            
             //if (!str_starts_with($post['phone'], '+9')) $post['phone'] = '+9'.$post['phone'];
             
@@ -162,7 +167,7 @@ class AuthController extends Controller
             Auth::login($user);
             $token = $user->createToken("VISITOR TOKEN")->plainTextToken;
             //for video pass
-            if(env('IS_TEST')) session(['mustWatch' => true]);
+            //if(env('IS_TEST') && env('IS_TEST') == true) session(['mustWatch' => true]);
 
             ///neccessary for auth
 
@@ -197,13 +202,21 @@ class AuthController extends Controller
 
             $request->session()->flush();
             //validate request sended parameters
-            $validateUser = Validator::make($request->all(),[
+            /*$validateUser = Validator::make($request->all(),[
                 'email'    => 'required',
                 'password' => 'required'
+            ]);*/
+
+            $validateUser =  Validator::make($request->all(),[
+                'email'    => 'required',
+                'password' => 'required',
+                'g-recaptcha-response' => ['required', new Recaptcha()],
+            ], [
+                'g-recaptcha-response.required' => 'reCAPTCHA zorunludur.',
             ]);
 
             if($validateUser->fails()){
-                return redirect()->route('login','admin')->with('login-error', 'Gerekli Bilgileri Doldurunuz...');
+                return redirect()->route('login')->with('login-error', 'Gerekli Bilgileri Doldurunuz...');
                 /*return response()->json([
                     'success' => false,
                     'message' => 'Form Validate Error',
@@ -218,7 +231,7 @@ class AuthController extends Controller
            
 
             if(!Auth::attempt(['email' => $request->email,'password' => $request->password]) || empty($person)){
-                return redirect()->route('login','admin')->with('login-error', 'Bilgiler Hatalıdır...');
+                return redirect()->route('login')->with('login-error', 'Bilgiler Hatalıdır...');
                 /*return response()->json([
                     'success' => false,
                     'message' => empty($user) ? 'Kullanıcı Bulunamadı..' : 'Şifrenizi Kontrol Edip Tekrar Giriş Yapınız..',
@@ -333,7 +346,7 @@ class AuthController extends Controller
 
     public function handlePanelRoute(Request $request){
         if(\session('type_key') == null || \session('type_key') == 'op-pert-buyer'){
-            return redirect('talklogin');
+            return redirect('seclogin');
         }
         return view('talkapp');
     }

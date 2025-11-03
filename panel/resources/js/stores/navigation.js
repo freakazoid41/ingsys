@@ -140,7 +140,7 @@ export const useNavigationStore = defineStore('navigation', {
         this.facility.mustKnow    = rsp?.data.question_must_know ?? 0;  // question minimum true limit
         this.facility.qnid        = rsp?.qnid;
 
-        console.log(this.facility.inventories);
+        
         //group questions
         this.facility.questions = {}
         this.facility.questionKeys = [];
@@ -181,6 +181,19 @@ export const useNavigationStore = defineStore('navigation', {
       }else{
         return true;
       }
+    },
+
+    //this method will get persons received equipments
+    async getPersonInventory(code){
+      const   envelope  = new FormData();
+              envelope.append('code',code);
+                  
+      const rsp = await (new Plib).request({
+          url      : '/api/v1/getpersoninventory',
+          method   : 'POST',
+      },null,envelope);
+
+      return rsp;
     }
   },
 })

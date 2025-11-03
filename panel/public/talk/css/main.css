@@ -549,7 +549,7 @@ span.badge.badge {
     left: 0;
     width: 100%;
     max-width: unset !important;
-    height: 80px;
+    height: 100px;
     padding: 0 1rem;
     align-items: center;
     justify-content: center;
@@ -632,7 +632,7 @@ span.badge.badge {
 }
 @media (max-width: 991px) {
   .right-bar-header {
-    padding-top: 100px;
+    padding-top: 134px;
   }
 }
 .right-bar-header-head h1 {
@@ -654,7 +654,7 @@ span.badge.badge {
 }
 @media (max-width: 991px) {
   .right-bar-header-menu {
-    display: none;
+    /* display: none; */
   }
 }
 .right-bar-header-menu .h-button {
@@ -2829,8 +2829,14 @@ table thead tr th .filter-btn svg {
 }
 @media (max-width: 991px) {
   .admin-dashboard-l .min-card .card {
+    max-width: unset;
     background-size: 150% 100%;
     background-position: center;
+  }
+  .admin-dashboard-l .min-card #carouselCard{
+    min-width: unset!important;
+    width: 100%;
+    padding: 0;
   }
 }
 @media (max-width: 768px) {

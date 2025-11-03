@@ -109,7 +109,7 @@ export default {
                                     elm.style.textAlign = 'center';
 
 
-                                    let link = '/talkpanel/visit/form/'+columnData
+                                    let link = '/secpanel/visit/form/'+columnData
                                     
 
                                     const tab          = document.createElement('a');

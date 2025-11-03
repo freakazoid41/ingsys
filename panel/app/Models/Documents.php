@@ -200,6 +200,11 @@ class Documents extends Model
                         foreach($columns as $k=>$v){
                             if($i!=0) $where.=' or ';
                             $column = explode('as  ',$columns[$k])[0];
+
+                            //here performance improvement
+                            if($k == 'main_attr') $column = 'se.entity_value';
+
+
                             /*if($column === 'i.created_at'){
                                 $where.= env('DB_CONNECTION') == 'pgsql' ? 
                                 " TO_CHAR(".$column."::date, 'dd.mm.yyyy') like '%" . $value . "%' " :
@@ -240,6 +245,7 @@ class Documents extends Model
         //create query    
         $sql = 'select distinct '.implode(",", array_values($columns)).'
                     from documents as i '.$join.' ' . $where.$authWhere.$order.$limit ;
+        
         $result = DB::select($sql);
         //count query
         $sql = 'select count(distinct i.id) as row from documents as i '.$join.' '. $where.$authWhere;

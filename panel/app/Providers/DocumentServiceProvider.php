@@ -435,6 +435,51 @@ class DocumentServiceProvider extends ServiceProvider
         }
     }
 
+    public function getInventory($id){
+        $id      = str_replace(',','',strip_tags($id));
+        
+        $dynamicF = [];
+        //get dfacility fields info
+        $sql = "select  sce2.entity_tag,
+                        sce2.entity_value,
+                        dco.id  as  conn_id,
+                        p.qnid  as  qnid
+
+
+                            from sys_con_ops dco 
+
+                    inner join sys_options so on so.id = dco.type_id
+                    left join sys_con_entities sce on sce.conn_id = dco.id 
+                    left join sys_con_entities sce2 on sce2.conn_id = dco.id
+                    inner join documents as p on p.id = dco.main_id
+    
+                    where   so.op_key = 'op-doc-visit-form' and 
+                            dco.conn_id = 0 and 
+                            dco.status  = 1 and
+                           
+                            p.qnid ='".$id."' 
+                            order by sce2.id asc";
+        $data  = DB::select($sql);
+
+        if(!empty($data)){
+            foreach ($data as $row) {
+                if(strpos($row->entity_tag,'**givengroup') !== false || strpos($row->entity_tag,'**visitorinvgroup') !== false){
+                    $dynamicF[$row->entity_tag] = $row->entity_value;
+                }
+            }
+            
+            return [
+                'success'     => true,
+                'data'        => $dynamicF,
+                'connId'      => $data[0]->conn_id,
+                'qnid'        => $data[0]->qnid,
+            ];
+        }else{
+            return [
+                'success' => false,
+            ];
+        }
+    }
     
     /**
      * this method will prepare export data for documents

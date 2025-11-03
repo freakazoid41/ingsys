@@ -98,6 +98,22 @@ class DocumentController extends Controller
         }
     }
 
+    public function getPersonInventories(Request $request){
+        $validateUser = Validator::make($request->all(),[
+            'code'     => 'required',
+        ]);
+
+        if($validateUser->fails()){
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing Parameters',
+                'error'   => $validateUser->errors()
+            ],401);
+        }else{
+            return  response()->json((new DocumentServiceProvider())->getInventory($request->all()['code']));
+        }
+    }
+
     public function newVisit(Request $request){
         $logModel = 'documents';
         

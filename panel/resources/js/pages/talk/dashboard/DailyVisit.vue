@@ -135,7 +135,7 @@
 
 <template>
     <div class="min-card row m-0">
-        <div class="card col-3">
+        <div class="card col-md-6 col-lg-3">
             <span class="icon"><span class="kontent-icon" name="Attach"></span></span>
             <router-link :to="{ name: 'VList' }">
                 <a href="#" alt="" class="stretched-link">Günlük Ziyaretçi</a>
@@ -147,7 +147,7 @@
             <span class="arrow"><span class="kontent-icon" name="DownRight"></span></span>
         </div>
 
-        <div id="carouselCard" class="carousel slide col-3">
+        <div id="carouselCard" class="carousel slide col-md-6 col-lg-3">
             <div class="carousel-indicators">
                 <button type="button" data-bs-target="#carouselCard" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
                 <button type="button" data-bs-target="#carouselCard" data-bs-slide-to="1" aria-label="Slide 2"></button>

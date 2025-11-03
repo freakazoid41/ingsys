@@ -29,11 +29,11 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/talkpanel',
+                    url   : '/secpanel',
                 },
                 {
                     title : this.wTrans('menu.visit'),
-                    url   : '/talkpanel/visit',
+                    url   : '/secpanel/visit',
                 }
             ] ,this.wTrans('form.visit.list'));
 
@@ -197,7 +197,7 @@
 
 
                             const edit       = document.createElement('a');
-                            edit.href        = '/talkpanel/visit/form/'+columnData;
+                            edit.href        = '/secpanel/visit/form/'+columnData;
                             edit.style.width = 'auto';
                             edit.innerHTML   = '<i class="fs-6 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
                             div.appendChild(edit);
@@ -209,7 +209,7 @@
                             del.onclick     = async () => {
                                 this.navigationStore.toggle(true);
                                 await this.plib.request({
-                                    url      : '/api/v1/document/'+columnData,
+                                    url      : '/api/v1/content/'+columnData,
                                     method   : 'DELETE',
                                 },null);
 
@@ -281,7 +281,7 @@
                         //modify data
                         if(data.main_attr.includes('"{')){
                             //mssql variation 
-                            //data.main_attr = data.main_attr.replace('"{','{').replace('}"','}');
+                            data.main_attr = data.main_attr.replace('"{','{').replace('}"','}');
                         }
 
 
@@ -364,7 +364,8 @@
                                 <div class="row w-100">
                                     <div class="col-12">
                                         <span>Kişi aşağıdaki ekipmanları henüz teslim etmemiştir.</span>
-                                        <ul class="list-group list-group-flush">
+                                        <br>
+                                        <ul class="list-group list-group-flush mt-3">
                                             ${takenInv.map(inv => {
                                                 return !recvInv.includes(inv) ? '<li class="list-group-item text-start">- '+inv+'</li>' : '';
                                             }).join('')}
@@ -374,7 +375,7 @@
                         showConfirmButton : true,
                         showCancelButton  : true,
                         showCloseButton   : true,
-                        confirmButtonText : 'Yinede Çıkış Yap !',
+                        confirmButtonText : 'Yine de Çıkış Yap !',
                         cancelButtonText  : 'İptal',
                         preConfirm: async () => {
                             await makeExit();

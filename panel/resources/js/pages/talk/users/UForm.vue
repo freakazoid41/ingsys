@@ -72,11 +72,11 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/talkpanel',
+                    url   : '/secpanel',
                 },
                 {
                     title : this.wTrans('menu.users'),
-                    url   : '/talkpanel/users',
+                    url   : '/secpanel/users',
                 }
             ] ,this.wTrans('form.users'));
         },  

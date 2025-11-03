@@ -31,11 +31,11 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/talkpanel',
+                    url   : '/secpanel',
                 },
                 {
                     title : this.wTrans('menu.users'),
-                    url   : '/talkpanel/users',
+                    url   : '/secpanel/users',
                 }
             ] ,this.wTrans('menu.users.list'));
 
@@ -80,7 +80,7 @@
                             div.classList.add('row','justify-content-center');
 
                             const edit       = document.createElement('a');
-                            edit.href        = '/talkpanel/users/form/'+columnData;
+                            edit.href        = '/secpanel/users/form/'+columnData;
                             edit.style.width = 'auto';
                             edit.innerHTML   = '<i class="fs-5 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
                             div.appendChild(edit);
@@ -92,7 +92,7 @@
                             del.onclick     = async () => {
                                 this.navigationStore.toggle(true);
                                 await this.plib.request({
-                                    url      : '/api/v1/document/'+columnData,
+                                    url      : '/api/v1/content/'+columnData,
                                     method   : 'DELETE',
                                 },null);
 

@@ -41,6 +41,15 @@
     },
     methods: {
       selectOption(selectedOption) {
+        if( this.navigationStore.isPassed == false && 
+            selectedOption != this.navigationStore?.facility?.questions?.[this.$route.params.quiz].rightAnswer &&
+            this.navigationStore.wrongAnswers[this.$route.params.quiz] === undefined
+        ){
+          console.log('here is already true');
+          return false;
+        }
+
+
         this.navigationStore.currentOpt[this.$route.params.quiz] = selectedOption;
 
         const questionRef = this.navigationStore?.facility?.questions[this.$route.params.quiz];

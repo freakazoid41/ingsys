@@ -15,13 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         //$middleware->append(StartSession::class);
-
+        
         $middleware->web(append: [
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ])->statefulApi();
-        $middleware->validateCsrfTokens(except: [
-            '*',
-        ]);
+        $middleware->validateCsrfTokens(except: ['']);
+        $middleware->append(\App\Http\Middleware\CspMiddleware::class);
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {

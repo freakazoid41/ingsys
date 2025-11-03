@@ -67,6 +67,9 @@
     "exit.invwarn"          : "Please tick the equipment you provide",
     "exit.invsign"          : "I confirm that I have delivered the equipment in full.",
     "exit.signwarn"         : "Please confirm that you have returned the equipment before checking out !",
+    "exit.signwarn1"        : "Please return all equipment before logging out!",
+
+
     "exit.exitbutton"       : "Exit From Facility",
     "exit.exithappend"      : "Checked Out <br> Succesfully !",
     "exit.exitmsg"          : "Thank you for visiting.",

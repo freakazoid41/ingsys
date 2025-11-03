@@ -14,7 +14,7 @@
     <link href="/talk/css/bootstrap5.css" rel="stylesheet">
     <link href="/front/assets/css/main.css" rel="stylesheet">
     <input hidden name="header" value="{{session('grp_title') ?? env('APP_NAME')}}">
-    
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <body class="">
     <div class="main">
@@ -49,6 +49,7 @@
       </div>
       <div class="form-main mt-0">
         <form action="/ziyaretcikontrol" id="enterform" method="post">
+          @csrf
             <div class="form-group theme-group">
                 <label for="">{{ __('main.form.phone') }}</label>
                 <input type="text" id="phone" name="phone" class="form-control"   @if(App::getLocale() == 'tr')  
@@ -57,6 +58,15 @@
                                                                                     placeholder="+90 (5__) ___ __ __"
                                                                                   @endif>
                 <input hidden name="facility" value="{{$id}}">
+                <div class="mb-3">
+                    <div class="g-recaptcha mt-2 d-flex justify-content-center" data-sitekey="{{ env('RECAPTCHA_SITE_KEY') }}"></div>
+                </div>
+                @if (\Session::has('login-error'))
+                    <br>
+                    <div class="d-flex justify-content-center bg-opacity-75 btn btn-secondary w-100">
+                        {!! \Session::get('login-error') !!}
+                    </div>
+                @endif
             </div>
         </form>
       </div>

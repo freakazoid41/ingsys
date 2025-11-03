@@ -31,7 +31,7 @@
                 //if has id param get document data first
                 if(this.id !== undefined && this.id !== ''){
                     const rsp = await this.plib.request({
-                        url      : '/api/v1/document/'+this.id,
+                        url      : '/api/v1/content/'+this.id,
                         method   : 'GET',
                     },null);
 
@@ -59,13 +59,13 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/talkpanel',
+                    url   : '/secpanel',
                 },{
                     title : this.wTrans('menu.inventory'),
-                    url   : '/talkpanel/inventory',
+                    url   : '/secpanel/inventory',
                 },{
                     title : this.wTrans('form.inventory.list'),
-                    url   : '/talkpanel/inventory/form',
+                    url   : '/secpanel/inventory/form',
                 }
             ] ,this.wTrans('form.inventory'));
         },  
@@ -95,7 +95,7 @@
                         envelope.append(key,this.formData.files[key]);
                     }
                     const rsp = await this.plib.request({
-                        url      : '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),
+                        url      : '/api/v1/content'+(this.id !== undefined ? '/'+this.id : ''),
                         method   : this.id !== undefined ? 'PUT' : 'POST',
                     },null,envelope);
                     

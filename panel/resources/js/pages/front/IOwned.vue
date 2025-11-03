@@ -151,7 +151,7 @@
         <div class="main-rew-head">
             <h3>{{ $t('invlist.header') }}</h3>
         </div>
-        <div class="check-list mt-4">
+        <div class="check-list mt-0">
             <div class="form-check" v-for="value,key in inventories" v-show="
                     this.navigationStore.currentLanguge != 'tr' ? (value?.['title--lng--'+this.navigationStore.currentLanguge] !== undefined) : (value?.title !== undefined)
                 ">

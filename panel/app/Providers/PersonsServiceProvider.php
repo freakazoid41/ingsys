@@ -218,6 +218,8 @@ class PersonsServiceProvider extends ServiceProvider
         ];
     }
 
+    
+
     public function getPersonsExportData(){
         $response = [['Tip','Ünvan','Cari Kodu','Adres','Bakiye']];
 

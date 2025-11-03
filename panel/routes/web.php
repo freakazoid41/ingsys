@@ -4,8 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
 
-
-Route::get('/talklogin',                                    [AuthController::class, 'login'])->name('login');
+//Route::get('/',                                             [AuthController::class, 'login'])->name('index');
+Route::get('/seclogin',                                    [AuthController::class, 'login'])->name('login');
 Route::get('/ziyaretci/{facility}/{facilityid}',            [AuthController::class, 'frontLogin'])->name('frontLogin');
 Route::post('/ziyaretcikontrol',                            [AuthController::class, 'loginFrontUser']);
 
@@ -17,20 +17,23 @@ Route::get('/logout',                   [AuthController::class, 'logout'])->name
 })->where('any', '^((?!api).)*');*/
 
 
-
+Route::redirect('/talklogin', '/seclogin', 301);
+Route::redirect('/talkpanel', '/seclogin', 301);
 Route::middleware(['auth:sanctum'])
     ->group(function () {
         
         Route::get('/facility',fn()       => view('frontapp'))->name('frontapp');
         Route::get('/facility/{any}',fn() => view('frontapp'))->where('any', '^((?!api).)*');
 
-        Route::get('/talkpanel',       [AuthController::class,   'handlePanelRoute'])->name('talkapp');
-        Route::get('/talkpanel/{any}', [AuthController::class,   'handlePanelRoute'])->where('any', '^((?!api).)*');
+        Route::get('/secpanel',       [AuthController::class,   'handlePanelRoute'])->name('talkapp');
+        Route::get('/secpanel/{any}', [AuthController::class,   'handlePanelRoute'])->where('any', '^((?!api).)*');
 
 
         Route::get('/export/{model}/{type?}',   [ExportController::class, 'index'])->name('.export-table');
         Route::get('/setfacility/{facility}',   [AuthController::class,   'setfacility']);
         Route::get('/closefacility',            [AuthController::class,   'closefacility']);
+
+        Route::get('/stream/video/default.mp4', [ExportController::class,   'stream']);
 });
 
 Route::get('/order-file/{doc}', function ($doc){

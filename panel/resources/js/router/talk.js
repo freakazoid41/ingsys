@@ -21,19 +21,19 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/talkpanel',
+      path: '/secpanel',
       component: Talk,
       //meta: { requiresAuth: true },
       children: [
-        { path: "/talkpanel", name: 'Index', component: TIndex },
-        { path: "/talkpanel/flist", name: 'FList', component: FList },
-        { path: "/talkpanel/flist/form/:id?", name: 'FForm', component: FForm },
-        { path: "/talkpanel/inventory", name: 'IList', component: IList },
-        { path: "/talkpanel/inventory/form/:id?", name: 'IForm', component: IForm },
-        { path: "/talkpanel/visit", name: 'VList', component: VList },
-        { path: "/talkpanel/visit/form/:id?", name: 'VForm', component: VForm },
-        { path: "/talkpanel/users", name: 'UList', component: UList },
-        { path: "/talkpanel/users/form/:id?", name: 'UForm', component: UForm },    
+        { path: "/secpanel", name: 'Index', component: TIndex },
+        { path: "/secpanel/flist", name: 'FList', component: FList },
+        { path: "/secpanel/flist/form/:id?", name: 'FForm', component: FForm },
+        { path: "/secpanel/inventory", name: 'IList', component: IList },
+        { path: "/secpanel/inventory/form/:id?", name: 'IForm', component: IForm },
+        { path: "/secpanel/visit", name: 'VList', component: VList },
+        { path: "/secpanel/visit/form/:id?", name: 'VForm', component: VForm },
+        { path: "/secpanel/users", name: 'UList', component: UList },
+        { path: "/secpanel/users/form/:id?", name: 'UForm', component: UForm },    
       ]
     },
     /*{

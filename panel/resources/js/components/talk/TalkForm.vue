@@ -431,7 +431,7 @@
                                         required : true,
                                         label    : 'QR Kodu',
                                         oninput  : (e) => this.submitDynamicChanges(e.target)
-                                    },
+                                    }
                                     
                                 ]
                             },
@@ -443,6 +443,36 @@
                                 required : true,
                                 label : 'Adres',
                                 oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_31',
+                                label : 'İletişim',
+                                group_key : 'facilitycontactgroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 4,
+                                        name  : 'supervisor',
+                                        label : 'Görevli',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 4,
+                                        name  : 'job',
+                                        label : 'Görev',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 4,
+                                        name  : 'contact_mail',
+                                        label : 'E-Posta',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'multiple',

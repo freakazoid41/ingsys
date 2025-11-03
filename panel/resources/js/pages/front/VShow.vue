@@ -102,11 +102,12 @@
             const video        = document.createElement('video');
             video.style.height = '100%';
             video.type         = 'video/mp4';
-            //video.controls     = true;
+            video.controls     = true;
+            video.controlsList = "nodownload";
             video.classList.add('video-element');
 
 
-            document.onclick = () => {
+            /*document.onclick = () => {
               if (document.fullscreenElement === video) {
                   if(video.paused){
                     video.play();
@@ -115,8 +116,8 @@
                   }
                   // Add code to execute when entering fullscreen
               } 
-            }
-
+              
+            }*/
             //listen document visibilitiy for tab change
             document.onvisibilitychange = () => {
               if(document.visibilityState === 'visible'){
@@ -128,8 +129,9 @@
 
             const sourceElm = document.createElement('source');
             sourceElm.src   = '/order-file/'+this.navigationStore.facility.currentVideo;
+            
             sourceElm.onerror      = () => {
-              sourceElm.src = '/front/videos/default.mp4';
+              sourceElm.src = '/stream/video/default.mp4';
               videoButton.innerHTML = '';
               videoButton.appendChild(video);
               video.play();
@@ -151,7 +153,7 @@
             video.onended = () =>{
               this.videoEnd = true;
               this.buttonShow = true;
-              this.endAt = this.getConvertedDate(new Date());
+              this.endAt = this.plib.getConvertedDate(new Date());
 
               setTimeout(() => {
                 clearInterval(updateUserCount);
@@ -168,7 +170,23 @@
               }
 
               delete this.currentVideoElm;
-            } 
+            }; 
+
+            //disabling foward
+            let previousTime = 0;
+            video.ontimeupdate = () => {
+              setTimeout(() => {
+                previousTime = video.currentTime;
+              }, 1000)
+            }
+
+            video.onseeking = () => {
+              console.log('did')
+              console.log(video.currentTime , previousTime)
+              if (video.currentTime > previousTime) {
+                  video.currentTime = previousTime;
+              }
+            }
 
             videoButton.innerHTML = '';
             videoButton.appendChild(video);
