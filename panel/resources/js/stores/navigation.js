@@ -7,19 +7,20 @@ import { loadLanguageAsync,getActiveLanguage } from 'laravel-vue-i18n';
 
 export const useNavigationStore = defineStore('navigation', {
   state: () => {
+    //console.log(getActiveLanguage())
     return { 
-      active       : false,
-      currentTitle : '',
-      currentLanguge : getActiveLanguage(),
-      breadcrumps  : [],
-      breadbuttons : [],
-      facility     : {},
-      isPassed     : null,
-      wrongAnswers : {},
-      currentUser  : {},
-      currentOpt   : {},
-      testLog      : {},
-      svgIcons     : {
+    active       : false,
+    currentTitle : '',
+    currentLanguage : getActiveLanguage(),
+    breadcrumps  : [],
+    breadbuttons : [],
+    facility     : {},
+    isPassed     : null,
+    wrongAnswers : {},
+    currentUser  : {},
+    currentOpt   : {},
+    testLog      : {},
+    svgIcons     : {
           Menu1Icon : `<svg xmlns="http://www.w3.org/2000/svg" width="31.531" height="33.077" viewBox="0 0 31.531 33.077"><g transform="translate(0 0)"><path d="M18.022,21.981a3.352,3.352,0,0,1,3.359,3.336v4.731a.726.726,0,0,0,.723.721h2.932a4.166,4.166,0,0,0,4.188-4.134V13.217A2.578,2.578,0,0,0,28.2,11.2L18.057,3.117a3.716,3.716,0,0,0-4.631,0L3.354,11.2a2.577,2.577,0,0,0-1.047,2.043V26.636A4.166,4.166,0,0,0,6.5,30.77H9.455a.747.747,0,0,0,.755-.737,1.242,1.242,0,0,1,.029-.263V25.318a3.356,3.356,0,0,1,3.336-3.336Zm7.014,11.1H22.076a3.027,3.027,0,0,1-3-3.029V25.318a1.042,1.042,0,0,0-1.052-1.029H13.583a1.042,1.042,0,0,0-1.037,1.029v4.716a1.117,1.117,0,0,1-.048.331,3.06,3.06,0,0,1-3.044,2.713H6.5A6.476,6.476,0,0,1,0,26.636v-13.4a4.851,4.851,0,0,1,1.936-3.85L11.988,1.316a6.017,6.017,0,0,1,7.506,0L29.618,9.387A4.857,4.857,0,0,1,31.531,13.2V26.636a6.476,6.476,0,0,1-6.5,6.442Z" transform="translate(0 0)" fill="currentColor" fill-rule="evenodd"/></g></svg>`,
           Menu2Icon : `<svg xmlns="http://www.w3.org/2000/svg" width="29.993" height="29.993" viewBox="0 0 29.993 29.993"><g transform="translate(0 0)"><path d="M6.537,16.919c6.259,0,6.537,2.123,6.537,6.537,0,2.212,0,3.785-.929,4.937-1.069,1.327-3.015,1.6-5.608,1.6S2,29.721.929,28.393C0,27.241,0,25.669,0,23.495l1.154-.038H0C0,19.042.278,16.919,6.537,16.919Zm16.919,0c6.259,0,6.537,2.123,6.537,6.537,0,2.212,0,3.785-.929,4.937-1.069,1.327-3.015,1.6-5.608,1.6s-4.539-.272-5.608-1.6c-.929-1.152-.929-2.724-.929-4.9l1.154-.038H16.919C16.919,19.042,17.2,16.919,23.456,16.919Zm-16.6,2.308H6.537c-4.013,0-4.219.288-4.229,3.656v1.312a5.217,5.217,0,0,0,.416,2.753c.408.5,1.618.738,3.813.738s3.405-.235,3.813-.74.417-1.749.417-3.453C10.767,19.647,10.767,19.245,6.854,19.227Zm16.919,0h-.317c-4.013,0-4.219.288-4.229,3.656v1.312a5.217,5.217,0,0,0,.416,2.753c.408.5,1.618.738,3.813.738s3.405-.235,3.813-.74.417-1.749.417-3.453C27.686,19.647,27.686,19.245,23.773,19.227ZM6.537,0c6.259,0,6.537,2.123,6.537,6.537,0,2.212,0,3.785-.929,4.937-1.069,1.327-3.015,1.6-5.608,1.6S2,12.8.929,11.474C0,10.322,0,8.75,0,6.575l1.154-.038H0C0,2.123.278,0,6.537,0ZM23.456,0c6.259,0,6.537,2.123,6.537,6.537,0,2.212,0,3.785-.929,4.937-1.069,1.327-3.015,1.6-5.608,1.6s-4.539-.272-5.608-1.6c-.929-1.152-.929-2.724-.929-4.9l1.154-.038H16.919C16.919,2.123,17.2,0,23.456,0ZM6.854,2.308H6.537c-4.013,0-4.219.288-4.229,3.656V7.276a5.217,5.217,0,0,0,.416,2.753c.408.5,1.618.738,3.813.738s3.405-.235,3.813-.74.417-1.749.417-3.453C10.767,2.728,10.767,2.326,6.854,2.308Zm16.919,0h-.317c-4.013,0-4.219.288-4.229,3.656V7.276a5.217,5.217,0,0,0,.416,2.753c.408.5,1.618.738,3.813.738s3.405-.235,3.813-.74.417-1.749.417-3.453C27.686,2.728,27.686,2.326,23.773,2.308Z" fill="currentColor" fill-rule="evenodd"/></g></svg>`,
           Menu3Icon : `<svg xmlns="http://www.w3.org/2000/svg" width="33.069" height="33.069" viewBox="0 0 33.069 33.069"><g transform="translate(0 0)"><path d="M23.742,0c5.579,0,9.327,3.916,9.327,9.744V23.325c0,5.828-3.748,9.744-9.327,9.744H9.327C3.748,33.069,0,29.153,0,23.325V9.744C0,3.916,3.748,0,9.327,0Zm0,2.307H9.327c-4.264,0-7.02,2.918-7.02,7.437V23.325c0,4.519,2.756,7.437,7.02,7.437H23.742c4.265,0,7.02-2.918,7.02-7.437V9.744C30.762,5.225,28.007,2.307,23.742,2.307ZM9.415,12.616a1.154,1.154,0,0,1,1.154,1.154V24.321a1.154,1.154,0,1,1-2.307,0V13.77A1.154,1.154,0,0,1,9.415,12.616Zm7.178-5.051a1.154,1.154,0,0,1,1.154,1.154v15.6a1.154,1.154,0,1,1-2.307,0V8.719A1.154,1.154,0,0,1,16.593,7.565Zm7.06,10.627a1.154,1.154,0,0,1,1.154,1.154V24.32a1.154,1.154,0,1,1-2.307,0V19.345A1.154,1.154,0,0,1,23.654,18.192Z" fill="currentColor" fill-rule="evenodd"/></g></svg>`,
@@ -84,9 +85,8 @@ export const useNavigationStore = defineStore('navigation', {
           await loadLanguageAsync(lang);  // Dili yükle ve Vue'yu güncelle
           // Opsiyonel: Backend'e bildirim gönder (aşağıda detaylı)
           await this.updateLaravelLocale(lang);
-
-          this.currentLanguge = getActiveLanguage();
-
+         
+          this.currentLanguage = getActiveLanguage();
           await this.getFacility(true);
       } catch (error) {
           console.error('Dil yüklenemedi:', error);
@@ -136,10 +136,17 @@ export const useNavigationStore = defineStore('navigation', {
        
         this.facility             = rsp?.data;                          // all facility data
         this.facility.qr          = rsp?.data.qr_code.split("/").pop(); // facility qr hash
-        this.facility.inventories = rsp?.inventories;                   // givable inventories to visitor
+        this.facility.inventories = rsp?.inventories;     
+        this.facility.invdetail   = {};              // givable inventories to visitor
         this.facility.mustKnow    = rsp?.data.question_must_know ?? 0;  // question minimum true limit
         this.facility.qnid        = rsp?.qnid;
 
+        for(let key in this.facility.inventories){
+           this.facility.invdetail[key] = {};
+           this.facility.inventories[key].forEach(item => {
+              this.facility.invdetail[key][item.Key] = item.Value;
+           });
+        }
         
         //group questions
         this.facility.questions = {}
@@ -152,7 +159,7 @@ export const useNavigationStore = defineStore('navigation', {
           }
 
           //questions
-          const langAdd = this.currentLanguge != 'tr' ? '--lng--'+this.currentLanguge : '';
+          const langAdd = this.currentLanguage != 'tr' ? '--lng--'+this.currentLanguage : '';
           if(key.includes('questiongroup')){
               
               const questionKey = key.split('**')[2].split('-')[0];

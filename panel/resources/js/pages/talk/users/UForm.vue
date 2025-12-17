@@ -6,9 +6,9 @@
 <script>
     import { wTrans } from 'laravel-vue-i18n';
     import Plib from '@/lib/pickle';
-    import { useRoute } from 'vue-router'
-    import { useNavigationStore } from '@/stores/navigation'
-    import { useFormDataStore } from '@/stores/formdata'
+    import { useRoute } from 'vue-router';
+    import { useNavigationStore } from '@/stores/navigation';
+    import { useFormDataStore } from '@/stores/formdata';
     import Swal from 'sweetalert2';
     
     import TalkForm from '@/components/talk/TalkForm.vue';
@@ -61,7 +61,21 @@
                         }
                     }
                 });
-               
+
+
+                //here set facility options
+                let facilities = JSON.parse(response?.data?.facilities ?? '[]');
+                if(facilities.length > 0){
+                    facilities.forEach(obj => response.data[obj.Key] = obj.Value);
+                    this.formDataStore.setData({
+                        'op-doc-user-form' : {
+                            [this.id] : {
+                                'entities' : response?.data
+                            }
+                        }
+                    });
+                }
+
                 this.loadForm = true;
                 setTimeout(() => {
                     this.navigationStore.toggle(false);
@@ -84,6 +98,7 @@
             const route = useRoute();
             return {
                 formKey         : 'op-doc-user',
+                typeKey         : document.querySelector('input[name="menubar"]').value,
                 loadForm        : false,
                 plib            : new Plib(),
                 navigationStore : useNavigationStore(),
@@ -99,11 +114,22 @@
                 this.formData.typeKey = this.formKey;
                 const rsp = this.plib.checkForm('.form-item');
                 if(rsp.valid){
+
+                    //check pass
+                    const fields = Object.values(this.formData.dynamicF)[0]?.entities;
+                    //here check if username is entered but password is empty
+                    if(fields?.user_username != undefined && (fields?.user_password == undefined || fields?.user_password == '')){
+                        this.navigationStore.toggle(false);
+                        this.plib.toast(this.Swal,'error','Parola alanı boş bırakılamaz..',);
+                        document.querySelector('input[name="user_password"]').classList.add('is-invalid');
+                        return false;
+                    }
+
+
                     //here check passwords
-                    if(Object.values(this.formData.dynamicF)?.[0]?.entities.user_password){
-                        //check pass
-                        const fields = Object.values(this.formData.dynamicF)[0].entities;
-                        if(fields.user_password_check == undefined || fields.user_password != fields.user_password_check){
+                    if(fields?.user_password){
+                        
+                        if(fields?.user_password_check == undefined || fields?.user_password != fields?.user_password_check){
                             this.navigationStore.toggle(false);
                             this.plib.toast(this.Swal,'error','Parola alanları uyuşmamaktadır..',);
                             document.querySelector('input[name="user_password"]').classList.add('is-invalid');
@@ -111,13 +137,10 @@
                             return false;
                         }
                     }
-
-
-
-
-
+                    
                     const   envelope  = new FormData();
-                        envelope.append('data',JSON.stringify(Object.values(this.formData.dynamicF)?.[0]?.entities));
+                        envelope.append('data',JSON.stringify(fields));
+                        envelope.append('alldata',JSON.stringify(this.formData));
                     //register files
                     for(let key in this.formData.files){
                         envelope.append(key,this.formData.files[key]);
@@ -130,7 +153,9 @@
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            this.$router.push({ name: 'UList' })
+                            if(this.typeKey !== "op-pert-reseller"){
+                                this.$router.push({ name: 'UList' });
+                            }
                         });
                     }, 300);
 
@@ -148,8 +173,8 @@
 <template>
     <div class="table-tab">
         <div class="table-tab-head">
-            <router-link :to="{ name: 'UList' }"><button class="table-toggle" body="1">{{ $t('menu.users.list') }}</button></router-link>
-            <button class="table-toggle active" body="2">{{ $t('form.users') }}</button>
+            <router-link v-if="typeKey !== 'op-pert-reseller'" :to="{ name: 'UList' }"><button class="table-toggle" body="1">{{ $t('menu.users.list') }}</button></router-link>
+            <button class="table-toggle active"  body="2">{{ $t('form.users') }}</button>
         </div>
         <div class="table-tab-body">
             <div class="body-1 table-main"  >

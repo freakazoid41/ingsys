@@ -72,6 +72,10 @@
     "exit.exithappend"      : "Çıkış Yapıldı!",
     "exit.exitmsg"          : "Teşekkür Ederiz!",
     "quiz.failed.head"      : "Hay Aksi !.",
-    "quiz.failed"           : "Yanlış Soru **x** / Doğru Soru **d** <br>Lütfen videoyu yeniden izleyiniz.. "
+    "quiz.failed"           : "Yanlış Soru **x** / Doğru Soru **d** <br>Lütfen videoyu yeniden izleyiniz.. ",
+    "quiz.success"          : "Testi başarıyla tamamladınız. Bir sonraki adıma geçebilirsiniz.",
+    "quiz.success.btn"      : "Sonraki adıma geç",
+    "quiz.success.header"   : "Tebrikler !",
+    "exit.invsign.empty"    : "Size atanmış ekipman bulunmamaktadır. Tesisten çıkabilirsiniz."
 
 }

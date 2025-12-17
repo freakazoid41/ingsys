@@ -6,7 +6,7 @@
     import Plib from '@/lib/pickle';
     import { wTrans } from 'laravel-vue-i18n';
     import Swal from 'sweetalert2';
-    import VMasker  from 'vanilla-masker';
+    import { useRouter } from 'vue-router';
     import { Datepicker } from 'vanillajs-datepicker';
     import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
 
@@ -14,6 +14,9 @@
     export default {
         setup() {
             Object.assign(Datepicker.locales, tr);
+            if(document.querySelector('input[name="menubar"]').value === "op-pert-reseller"){
+                useRouter().push({ name: 'Index' });
+            }
             // expose to template and other options API hooks
             return {
                 useNavigationStore,
@@ -66,6 +69,11 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
+                        title : 'Tip',
+                        key   : 'type_title',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                    },{
                         title : 'Kullanıcı Adı',
                         key   : 'username',
                         order : true,
@@ -92,7 +100,7 @@
                             del.onclick     = async () => {
                                 this.navigationStore.toggle(true);
                                 await this.plib.request({
-                                    url      : '/api/v1/content/'+columnData,
+                                    url      : '/api/v1/persons/'+columnData,
                                     method   : 'DELETE',
                                 },null);
 
@@ -127,8 +135,8 @@
                     initialFilter : [
                         
                     ],
-                    nextPageIcon : '<i class="ph ph-arrow-right  text-body-emphasis"></i>',
-                    prevPageIcon : '<i class="ph ph-arrow-left text-body-emphasis"></i>',
+                    nextPageIcon : '<i class="fa fa-solid fa-chevron-right"></i>',
+                    prevPageIcon : '<i class="fa fa-solid fa-chevron-left"></i>',
                     rowFormatter:(elm,data)=>{
                         //console.log(elm,data);
                         //modify row element
@@ -143,7 +151,15 @@
                     },
                 });
             },
-            
+            searchTable(){
+                this.table.setFilter(
+                    [{
+                        key   : 'all', // column key
+                        type  : '=', // filtering type ('like','<','>')
+                        value : document.getElementById('mainSearch').value.trim()//wanted column value
+                    }]
+                );
+            }
         }
     }
 

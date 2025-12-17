@@ -184,7 +184,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
   font-size: 14px;
   font-family: "Gilroy-Regular";
 }
-.form-control[type=text]::placeholder, .form-control[type=number]::placeholder, textarea.form-control::placeholder {
+.form-control[type=text]::placeholder, .form-control[type=number]::placeholder, .form-control::placeholder {
   color: #BFBFBF;
   font-size: 14px;
   font-family: "Gilroy-Regular";

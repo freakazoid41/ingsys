@@ -13,8 +13,8 @@ export const useAuthStore = defineStore('auth', {
     setData(data){this.data = data},
     async getData(){
       const rsp = await (new Plib).request({
-          url      : '/api/v1/getcurrent',
-          method   : 'POST',
+          url      : '/api/v1/getcurrentf',
+          method   : 'GET',
       },null).then(rsp => {return rsp});
 
       for(let key in rsp) this.data[key] = rsp[key];

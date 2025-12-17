@@ -22,7 +22,6 @@ export default {
     },
     mounted() {
         this.authDataStore.getData();
-
         //clear old notification interval
         if(this.navigationStore.notificationInterval) clearInterval(this.navigationStore.notificationInterval);
         //set new notification interval
@@ -208,10 +207,12 @@ export default {
                     <p>{{ authDataStore?.data?.ptitle }}<small>{{ authDataStore?.data?.type_key == 'op-pert-admin' ?
                         'Yönetici' : 'Normal Kullanıcı' }}</small></p>
                 </button>
-                <!--<div class="user-management-detail">
+                <div class="user-management-detail mb-5 ">
                     
-                    <router-link :to="{ name: 'FList' }"><a href="javascript:;" class="dropdown-item"> <i class="ph ph-buildings text-body-emphasis"></i> Tesis Listesi </a></router-link>
-                </div>-->
+                    <router-link :to="{ name: 'UForm',params: {id:authDataStore?.data?.qnid} }" class="dropdown-item  mb-3 mt-2 d-flex justify-content-start align-items-center">
+                        <i class="fa fa-user me-2 ms-4" style="font-size: x-large !important;"></i> Kullanıcı Bilgileri 
+                    </router-link>
+                </div>
             </div>
             <a href="/logout" alt="" class="h-button logout"><span class="kontent-icon" name="Logout"></span></a>
             <button class="mobileButton"><span class="kontent-icon" name="MobileButton"></span></button>

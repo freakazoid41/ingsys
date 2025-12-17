@@ -19,7 +19,7 @@
             }
         },
         mounted() {
-            this.inventories  = this.navigationStore.facility.inventories;
+            this.inventories  = this.navigationStore.facility.invdetail;
         },  
         data() {
             return {
@@ -152,9 +152,8 @@
             <h3>{{ $t('invlist.header') }}</h3>
         </div>
         <div class="check-list mt-0">
-            <div class="form-check" v-for="value,key in inventories" v-show="
-                    this.navigationStore.currentLanguge != 'tr' ? (value?.['title--lng--'+this.navigationStore.currentLanguge] !== undefined) : (value?.title !== undefined)
-                ">
+            <div class="form-check" v-for="value,key in inventories"
+                v-show="inventories[key][this.navigationStore.currentLanguage != 'tr' ? 'title--lng--'+this.navigationStore.currentLanguage : 'title'] !== undefined">
                 <div class="checkbox-theme md">
                     <input type="checkbox" :data-code="value.code" :data-id="key" :data-title="value.title" class="inv-item" :id="'inv'+key " :name="'inv'+key " :value="value.qnid" />
                     <label :for="'inv'+key ">
@@ -163,15 +162,16 @@
                     </svg>
                     </label>
                 </div>
-                <label class="form-check-label text-dark" :for="'inv'+key ">{{ this.navigationStore.currentLanguge != 'tr' ? value['title--lng--'+this.navigationStore.currentLanguge] : value.title }}</label>
+                <label class="form-check-label text-dark" :for="'inv'+key ">
+                    {{ inventories[key][this.navigationStore.currentLanguage != 'tr' ? 'title--lng--'+this.navigationStore.currentLanguage : 'title'] }}
+                </label>
             </div>
         </div>
         <div class="alert-group-box" v-if="Object.keys(hasMissing).length > 0">
             <h5>{{ $t('invlist.warnh') }}</h5>
             <p>{{ $t('invlist.warnd') }}</p>
-            <div class="form-check" v-for="value,key in inventories" v-show="
-                    this.navigationStore.currentLanguge != 'tr' ? (value?.['title--lng--'+this.navigationStore.currentLanguge] !== undefined) : (value?.title !== undefined)
-                ">
+            <div class="form-check" v-for="value,key in inventories" 
+                v-show="inventories[key][this.navigationStore.currentLanguage != 'tr' ? 'title--lng--'+this.navigationStore.currentLanguage : 'title'] !== undefined">
                 <div class="checkbox-theme md"  v-if="hasMissing[key] !== undefined">
                     <input type="checkbox" @click="checkMissings($event)" :data-code="value.code" :data-id="key" :data-title="value.title" class="minv-item" :id="'minv'+key " :name="'minv'+key " :value="value.qnid">
                     <label :for="'minv'+key ">
@@ -180,7 +180,9 @@
                     </svg>
                     </label>
                 </div>
-                <label v-if="hasMissing[key] !== undefined" class="form-check-label text-dark" for="isguvenligi7">{{ this.navigationStore.currentLanguge != 'tr' ? value['title--lng--'+this.navigationStore.currentLanguge] : value.title }}*</label>
+                <label v-if="hasMissing[key] !== undefined" class="form-check-label text-dark" for="isguvenligi7">
+                    {{ inventories[key][this.navigationStore.currentLanguage != 'tr' ? 'title--lng--'+this.navigationStore.currentLanguage : 'title'] }}*
+                </label>
             </div>
         </div>
     </div>

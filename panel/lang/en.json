@@ -74,5 +74,10 @@
     "exit.exithappend"      : "Checked Out <br> Succesfully !",
     "exit.exitmsg"          : "Thank you for visiting.",
     "quiz.failed.head"      : "Oops..",
-    "quiz.failed"           : "**x** Wrong Answers / **d** True Answers <br>Please rewatch the video.."
+    "quiz.failed"           : "**x** Wrong Answers / **d** True Answers <br>Please rewatch the video..",
+    "quiz.success"          : "You have successfully completed the test. You can proceed to the next step.",
+    "quiz.success.btn"      : "Proceed to Next Step",
+    "quiz.success.header"   : "Congratulations !",
+    "exit.invsign.empty"    : "There is no equipment assigned to you. You may exit from the facility."
+
 }

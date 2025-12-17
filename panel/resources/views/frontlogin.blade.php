@@ -98,12 +98,20 @@
     //listen lang buttons for lang change on login screen
     document.querySelectorAll('.dropdown-item').forEach(element => {
         element.addEventListener('click', async e=> {
+          e.preventDefault();
           const envelope  = new FormData();
           envelope.append('locale',e.target.dataset.lang);
           await fetch("/api/set-locale", {
             method: "POST",
             body: envelope,
-            // …
+            headers : {
+                'credentials': 'include',
+                'X-CSRF-TOKEN' : document.querySelector('meta[name="csrf-token"]').content,
+                ...(localStorage.getItem('token') !== null ? {
+                    'Authorization' : 'Bearer '+ localStorage.getItem('token')
+                }: {})
+            },
+           // …
           }).then(rsp => window.location.reload());
         });
     });

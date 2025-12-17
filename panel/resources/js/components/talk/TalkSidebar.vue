@@ -1,7 +1,6 @@
 <script>
 import Simplebar from 'simplebar-vue';
 import 'simplebar-vue/dist/simplebar.min.css';
-import { useAuthStore } from '@/stores/auth';
 export default {
     components: {
         Simplebar
@@ -9,7 +8,7 @@ export default {
     setup() {
         // expose to template and other options API hooks
         return {
-            useAuthStore,
+            
         }
     },
     mounted(){
@@ -18,7 +17,6 @@ export default {
     data() {
         return {
             menubar        : document.querySelector('input[name="menubar"]').value,
-            useAuthStore   : useAuthStore(),
             title          : document.querySelector('input[name="header"]').value
         };
     },
@@ -29,7 +27,7 @@ export default {
 <template>
     <div class="left-bar-logo">
         <img src="/front/assets/img/logo.png" alt="" title="" width="200" />
-        <span>admin</span>
+        <span>Yönetim Paneli</span>
     </div>
     <div class="left-bar-menu">
         

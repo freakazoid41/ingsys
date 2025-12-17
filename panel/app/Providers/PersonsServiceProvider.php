@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Models\Sys_options;
+use App\Models\Sys_con_entities;
 use App\Models\Sys_con_ops;
 use App\Models\Persons;
 use App\Models\User;
@@ -22,14 +23,16 @@ class PersonsServiceProvider extends ServiceProvider
         return Sys_options::where(['group_key' => 'op-pert'])->get();
     }
 
-    public function setPerson($id = 0,$data,$files = [],$fileGroup = 'persons'){
-        $formData     = $data;
+    public function setPerson($id = 0,$data,$files = [],$fileGroup = 'persons',$allData = []){
+        $formData     = $data ?? [];
         $contacts     = [];
         $user         = [];
+        $facilities   = [];
         $permissions  = json_decode($data['permissions'] ?? "[]",true);
-        
         $removed      = json_decode($data['removed'] ?? "[]",true);
-       
+        $typeId       = (Sys_options::where(['op_key' => 'per-perm-facility'])->first())->id;
+        $stypeIdMain  = (Sys_options::where(['op_key' => 'personnel-main'])->first())->id;
+        
         /*$permConn     = Sys_options::where([
                 ['ctitle', '=', 'op_id'],
                 ['op_key', '=', 'op-perm'],
@@ -39,7 +42,7 @@ class PersonsServiceProvider extends ServiceProvider
         $document = new Persons();
 
         if($id != 0) $document = Persons::where('qnid',$id)->first();
-
+       
         foreach ($formData as $key => $value) {
             //here split data types and set main person data
             if(strpos($key,'main_') !== false){
@@ -50,11 +53,16 @@ class PersonsServiceProvider extends ServiceProvider
                 $contacts = json_decode(strip_tags($value),true);
             }
 
-            if(strpos($key,'user') !== false){
+            if(strpos($key,'user') !== false && isset(explode('user_',$key)[1])){
                 $user[explode('user_',$key)[1]] = $value;
             }
 
-            if($key == 'type_key'){
+            if(strpos($key,'userfacilitygroup') !== false){
+                if(!isset($facilities[explode('**',$key)[2]]))$facilities[explode('**',$key)[2]] = [];
+                $facilities[explode('**',$key)[2]][explode('**',$key)[0]] = $value;
+            }
+
+            if($key == 'type_key' && session('type_key') != 'op-pert-reseller'){
                 $type = Sys_options::where('op_key',$value)->first();
                 $document->type_id = $type->id;
             }
@@ -63,42 +71,18 @@ class PersonsServiceProvider extends ServiceProvider
 
         $rsp = $document->save();
         
-       
-        
-        //delete removed items from database
-        foreach ($removed as $s) {
-            if(intval($s['id'] ?? 0) != 0){
-                switch ($s['table']) {
-                    case 'discountConnections':
-                        $d = Discounts::where(['type_id' => $discConn->id,'main_id' => $document->id,'conn_id' => $s['conn_id']]);
-                        $d->delete();
-                        break;
-                    case 'brandConnections':
-                        //remove brand connection
-                        $d = Sys_con_ops::where(['type_id' => $brandConn->id,'main_id' => $document->id,'conn_id' => $s['id']])->first();
-                        $d->delete();
-
-                        //remove discounts
-                        /*$d = Discounts::where(['type_id' => $discConn->id,'main_id' => $document->id,'conn_id' => $s['id']]);
-                        $d->delete();*/
-                        break;
-                    case 'branchConnections':
-                        //remove brand connection
-                        $d = Sys_con_ops::where(['type_id' => $branchConn->id,'main_id' => $document->id,'conn_id' => $s['id']])->first();
-                        $d->delete();
-
-                        //remove discounts
-                        /*$d = Discounts::where(['type_id' => $discConn->id,'main_id' => $document->id,'conn_id' => $s['id']]);
-                        $d->delete();*/
-                        break;
-                    case 'permConnections':
-                        $perm = Sys_options::where('op_key',$s['op_key'])->first();
-                        $d    = Sys_con_ops::where(['type_id' => $permConn->id,'main_id' => $s['id'],'conn_id' => $perm->id])->first();
-                        $d->delete();
-                        break;
-                    
-                }
-            }
+        if(!empty($allData['alldata'])){
+            $allData['alldata'] = json_decode($allData['alldata'],true);
+            if(isset($allData['alldata']['removedData']) && !empty($allData['alldata']['removedData'])) $removed = $allData['alldata']['removedData'];
+        }
+        //delete removed perm connections from here
+        $conn = Sys_con_ops::where(
+            ['main_id' => $document->id,'type_id' => $typeId,'sub_type_id' => $stypeIdMain], //ask from this values
+        )->first();
+        foreach ($removed as $row) {
+            
+            $check = Sys_con_entities::where(['conn_id' => $conn->id,'entity_tag' => $row['key']])->first();
+            if(!empty($check))$check->delete();
         }
 
 
@@ -162,11 +146,32 @@ class PersonsServiceProvider extends ServiceProvider
             );
         }
         
-        if(!empty($user) && isset($user['grp_code'])){
-            User::updateOrInsert(
-                ['person_id' => $document->id],
-                ['grp_code'  => $user['grp_code']],
-            );
+
+        if(!empty($facilities) && session('type_key') != 'op-pert-reseller'){
+            foreach($facilities as $k => $f){
+                $conn = Sys_con_ops::updateOrCreate(
+                    ['main_id' => $document->id,'type_id' => $typeId,'sub_type_id' => $stypeIdMain], //ask from this values
+                    [
+                       'main_id' => $document->id,
+                       'type_id' => $typeId,
+                       'sub_type_id' => $stypeIdMain,
+                       'conn_id'  => 0
+                    ] 
+                );
+
+                //now check if any entity sended
+                foreach($f as $ekey => $value){
+                    Sys_con_entities::updateOrCreate(
+                        ['conn_id' => $conn->id,'entity_tag' => ($ekey.'**userfacilitygroup**'.$k)], //ask from this values
+                        [
+                            'table_tag' => 'user_con_ops',
+                            'conn_id' => $conn->id,
+                            'entity_tag' => ($ekey.'**userfacilitygroup**'.$k),
+                            'entity_value' => $value
+                        ]
+                    );
+                };
+            }
         }
 
         /*if($files['bgfile']){
@@ -186,9 +191,37 @@ class PersonsServiceProvider extends ServiceProvider
         
     }
 
-    public function getPerson($id = 0,$search = null){
+    public function getPerson($id = 0,$search = null,$getPerms = false){
         $id      = str_replace(',','',strip_tags($id));
         $search  = str_replace(',','',strip_tags($search));
+        if(env('DB_CONNECTION') == 'sqlsrv'){
+            $facilities = "(SELECT    CONCAT(
+                                                        '[',STRING_AGG(
+                                                    CONCAT(
+                                                        '{\"Key\":\"', se.entity_tag, '\",\"Value\":\"', se.entity_value, '\"}'
+                                                    ), ','
+                                                ) , ']')
+                                                FROM sys_con_entities as se
+                                                    inner join sys_con_ops as so on so.id = se.conn_id 
+                                                    inner join sys_options as sp on sp.id = so.type_id
+                                                where so.conn_id = 0 and sp.op_key = 'per-perm-facility'  and so.main_id = i.id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  facilities";
+        }else{
+            $facilities = "(SELECT    ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
+                                                        ".(env('DB_CONNECTION') == 'pgsql' ? 'json_build_object' : 'json_object')."(
+                                                            'Key',se.entity_tag,
+                                                            'Value' , se.entity_value
+                                                        )
+                                                    ) 
+                                                FROM sys_con_entities as se
+                                                    inner join sys_con_ops as so on so.id = se.conn_id 
+                                                    inner join sys_options as sp on sp.id = so.type_id
+                                                where so.conn_id = 0 and sp.op_key = 'per-perm-facility'  and so.main_id = i.id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  facilities";
+        }
+       
+        if(!$getPerms){
+            $facilities = "'1'  as  facilities";
+        }
+           
         $sql     = "select  i.id,
                             i.name,
                             i.type_id,
@@ -198,7 +231,8 @@ class PersonsServiceProvider extends ServiceProvider
                             o.op_key  as  type_key,
                             u.email  as  user_name,
                             u.grp_code,
-                            u.grp_code  as  user_grp_code
+                            u.grp_code  as  user_grp_code,
+                            $facilities
                         from persons as i
                             left join users as u on u.person_id = i.id
                             left join sys_options as o on o.id = i.type_id ";

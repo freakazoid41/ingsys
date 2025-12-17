@@ -36,13 +36,16 @@
                         if(!temp[tag][ik]) temp[tag][ik] = {};
 
                         temp[tag][ik][key.split('**')[0] == 'description' ? 'code' : 'title'] = rsp.data[key];
+
+                        
                     }
-                   
+                    
                     Object.keys(temp['given']).forEach(inv => this.inventories[temp['given'][inv]['code']] = temp['given'][inv]);
                 }
             });
         },  
         data() {
+            
             return {
                 bringed         : {},
                 inventories     : {},
@@ -137,12 +140,10 @@
         <div class="main-rew-head">
             <img src="/front/assets/img/logout.png" class="icon" alt="">
             <h3>{{ $t('exit.invheader') }}</h3>
-            <p>{{ $t('exit.invwarn') }}</p>
+            <p v-if="Object.keys(inventories).length > 0">{{ $t('exit.invwarn') }}</p>
         </div>
         <div class="check-list mt-4">
-            <div class="form-check" v-for="value,key in inventories" v-show="
-                    this.navigationStore.currentLanguge != 'tr' ? (value?.['title--lng--'+this.navigationStore.currentLanguge] !== undefined) : (value?.title !== undefined)
-                ">
+            <div  class="form-check" v-for="value,key in inventories">
                 <div class="checkbox-theme md">
                     <input type="checkbox" :data-code="value.code" :data-title="value.title" class="inv-item" :id="'inv'+key " :name="'inv'+key " :value="value.qnid" />
                     <label :for="'inv'+key ">
@@ -151,20 +152,21 @@
                     </svg>
                     </label>
                 </div>
-                <label class="form-check-label text-dark" :for="'inv'+key ">{{ this.navigationStore.currentLanguge != 'tr' ? value['title--lng--'+this.navigationStore.currentLanguge] : value.title }}</label>
+                <label class="form-check-label text-dark" :for="'inv'+key ">{{ value.title + " (" + value.code + ")"}}</label>
             </div>
             <hr>
-            <div class="form-check">
+            <div v-show="Object.keys(inventories).length > 0" class="form-check">
                 <div class="checkbox-theme">
-                    <input type="checkbox" id="teslim1" name="" />
+                    <input type="checkbox" id="teslim1" name=""  checked="{{ Object.keys(inventories).length == 0 ? 'checked' : '' }}" />
                     <label for="teslim1">
                     <svg viewBox="0,0,50,50">
                         <path d="M5 30 L 20 45 L 45 5"></path>
                     </svg>
                     </label>
                 </div>
-                <label class="form-check-label" for="teslim1">{{ $t('exit.invsign') }}</label>
+                <label class="form-check-label"for="teslim1">{{ $t('exit.invsign') }}</label>
             </div>
+            <label class="" v-if="Object.keys(inventories).length == 0" for="teslim1">{{ $t('exit.invsign.empty') }}</label>
         </div>
        
     </div>

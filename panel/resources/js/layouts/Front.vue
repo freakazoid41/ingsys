@@ -37,6 +37,7 @@ export default {
     mounted() {
       this.navigationStore.toggle(true);
       this.navigationStore.getFacility().then(rsp => {
+        
           if(!rsp){
               this.frontLib.popup({
                   text: {

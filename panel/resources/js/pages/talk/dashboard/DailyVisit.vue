@@ -98,6 +98,9 @@
                 method   : 'GET',
             },null).then(rsp => {
                 rsp.data.forEach(r => {
+                    //mssql variation 
+                    r.main_attr = r.main_attr.replace('"{','{').replace('}"','}');
+
                     const mainInfo = JSON.parse(r.main_attr);
                     
                     JSON.parse(r.main_attr).forEach(element => {
@@ -158,9 +161,9 @@
                     <div class="carousel-caption card w-100">
                         <span class="icon"><span class="kontent-icon" name="User"></span></span>
                         <div class="pie-main">
-                            <div class="pie animate" :style="'--p:'+(((dailyVisit.total - dailyVisit.notExited) / dailyVisit.total) * 100)">
+                            <div class="pie animate" :style="'--p:'+(((dailyVisit.total) / dailyVisit.total) * 100)">
                                 <div class="detail">
-                                    <p>Giriş Yapan Kullanıcı <span>{{ dailyVisit.total - dailyVisit.notExited }}</span></p>
+                                    <p>Giriş Yapan Kullanıcı <span>{{ dailyVisit.total}}</span></p>
                                 </div>
                             </div>
                         </div>
@@ -194,7 +197,7 @@
             <div class="list-card" v-for="visit in dailyVisit.data">
                 
                 <div class="list-card-head">
-                    <h4>{{ visit.name + ' '+visit.surname}}</h4>
+                    <h4>{{ visit.name }}</h4>
                     <span>{{ visit.phone }}</span>
                 </div>
                 <p class="list-card-status me-5" :class="{'text-danger':visit.exited_at == undefined}" style="width: 200px !important;">

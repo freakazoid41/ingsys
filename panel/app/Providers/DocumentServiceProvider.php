@@ -264,8 +264,13 @@ class DocumentServiceProvider extends ServiceProvider
 
     public function removeContent($id){
         //first find all attributes
-        $document    = Documents::where('qnid',$id)->first();
-        $connections = Sys_con_ops::where('main_id',$document->id)->get();
+        $document     = Documents::where('qnid',$id)->first();
+        $stypeIdMain  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-main'])->first())->id;
+        $stypeIdFile  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-file'])->first())->id;
+
+
+        $connections = Sys_con_ops::where(['main_id' => $document->id,'sub_type_id' =>  $stypeIdMain])->get();
+        $connections = $connections->merge(Sys_con_ops::where(['main_id' => $document->id,'sub_type_id' =>  $stypeIdFile])->get());
         $entites     = [];
 
         foreach($connections as $c){
@@ -331,9 +336,12 @@ class DocumentServiceProvider extends ServiceProvider
        
         $invList = [];
         foreach($invData as $d){
-            $detail = json_decode($d->main_attr,true);
-            foreach($detail as $row){
-                $detail[$row['Key']] = $row['Value'];
+            $detail = json_decode($d->main_attr ?? '{}',true);
+
+            if($detail === null){
+                //check if is fixable (json is valid accualy but mssql is braking a bit (because string methods))
+                $detail = repair_json_string($d->main_attr ?? '{}',true);
+                if($detail == false) continue;
             }
             $invList[$d->id] = /*[
                 'qnid'  => $d->id,
@@ -374,13 +382,14 @@ class DocumentServiceProvider extends ServiceProvider
     /**
      * this method will return facility visitor informations from given phone number
      */
-    public function getPerson($data,$getOld = true){
+    public function getPerson($data,$getOld = true,$facilityId = 0){
         $dynamicF = [];
         //get dfacility fields info
         $sql = "select  sce2.entity_tag,
                         sce2.entity_value,
                         dco.id  as  conn_id,
-                        p.qnid  as  qnid
+                        p.qnid  as  qnid,
+                        p.grp_code as grp_code
 
 
                             from sys_con_ops dco 
@@ -399,18 +408,19 @@ class DocumentServiceProvider extends ServiceProvider
                                 where entity_value like '%".strip_tags($data['phone'])."%' order by conn_id desc ".(env('DB_CONNECTION') == 'sqlsrv' ? '' : 'limit 1').")
                             order by sce2.id asc";
         $data  = DB::select($sql);
-
+        $allConnections = [];
         if(!empty($data)){
             foreach ($data as $row) $dynamicF[$row->entity_tag] = $row->entity_value;
-            
+            //here detect for video replay pass
             if(!$getOld){
-                $startDate = new \DateTime($dynamicF['entered_at']);
-                $endDate = new \DateTime(date('Y-m-h'));
 
-                $interval = $startDate->diff($endDate);
-                $months = $interval->y * 12 + $interval->m;
-                
-                if($months > 6){
+                $startDate = new \DateTime($dynamicF['entered_at']);
+                $endDate = new \DateTime(); // today
+                // total full days between the two dates
+                $dayCount = (int) $startDate->diff($endDate)->format('%a');
+                //here detect daycount and facility info
+               
+                if($dayCount > 29 || (isset($dynamicF['facility_id']) && $facilityId != 0 && $dynamicF['facility_id'] != $facilityId)){
                     return [
                         'success' => false,
                     ];
@@ -420,13 +430,16 @@ class DocumentServiceProvider extends ServiceProvider
             /*if(isset($dynamicF['exited_at']) && new \DateTime($dynamicF['entered_at']) > new \DateTime($dynamicF['exited_at'])){
                 unset($dynamicF['exited_at']);
             }*/
-
-
+            $dynamicF['qnid'] = $data[0]->qnid;
             return [
                 'success'     => true,
                 'data'        => $dynamicF,
+                'connEntries' => ['op-doc-visit-form' => $data[0]->conn_id],
+                'allEntities' => $dynamicF,
                 'connId'      => $data[0]->conn_id,
                 'qnid'        => $data[0]->qnid,
+                'id'          => $data[0]->qnid,
+                'grpCode'     => $data[0]->grp_code
             ];
         }else{
             return [
@@ -484,12 +497,18 @@ class DocumentServiceProvider extends ServiceProvider
     /**
      * this method will prepare export data for documents
      */
-    public function getExportData($type){
+    public function getExportData($type,$filter){
         $response = [];
+        // normalize $filter (list of JSON objects) into an array of associative arrays
+        // normalize filter (accept JSON string or array of json strings/objects/arrays)
+        if (is_string($filter)) { $tmp = json_decode($filter, true); $filter = json_last_error() === JSON_ERROR_NONE ? ($tmp ?? []) : [$filter]; }
+        if (!is_array($filter)) $filter = [];
+        $filter = array_values(array_map(function($it){ if (is_string($it)){ $d = json_decode(trim($it, "\"'"), true); return json_last_error()===JSON_ERROR_NONE ? $d : $it; } if (is_object($it)) return json_decode(json_encode($it), true); return $it; }, $filter));
+        
         switch($type){
             case 'visit':
                 $response[] = ['Ad Soyad','Telefon','E-Posta','Tesis','Giriş','Video Başlama','Video Bitiş','İzleme Süresi','İzleme Durum','Çıkış'];
-                $data = (new Documents())->tableList(['filter' => [
+                $data = (new Documents())->tableList(['filter' => array_merge([
                         [
                             'key'   => 'form-type',
                             'type'  => '=',
@@ -499,7 +518,7 @@ class DocumentServiceProvider extends ServiceProvider
                             'type'  => '=',
                             'value' => 'op-doc-visit'
                         ]
-                    ]
+                        ],$filter)
                 ])['data'];
                 break;
             case 'facility':
@@ -556,7 +575,23 @@ class DocumentServiceProvider extends ServiceProvider
         };
        
         foreach($data as $d){
-            $detail = json_decode($d->main_attr,true);
+
+            //here clear for mssql,
+            /*$d->main_attr = str_replace('"":""','":"',$d->main_attr);
+            $d->main_attr = str_replace('"",""','","',$d->main_attr);
+            $d->main_attr = str_replace('{""','{"',$d->main_attr);
+            $d->main_attr = str_replace('""}','"}',$d->main_attr);
+            /*$d->main_attr = str_replace('"{','{',$d->main_attr);
+            $d->main_attr = str_replace('}"','}',$d->main_attr);*/
+
+            $detail = json_decode($d->main_attr ?? '{}',true);
+
+            if($detail === null){
+                //check if is fixable (json is valid accualy but mssql is braking a bit (because string methods))
+                $detail = repair_json_string($d->main_attr ?? '{}',true);
+                if($detail == false) continue;
+            }
+
             foreach($detail as $row){
                 $detail[$row['Key']] = $row['Value'];
 
@@ -571,9 +606,9 @@ class DocumentServiceProvider extends ServiceProvider
                     $response[] = [
                         $detail['name'].' '.$detail['surname'],
                         $detail['phone'],
-                        $detail['email'],
-                        $detail['facility'],
-                        $detail['entered_at'],
+                        $detail['email'] ?? '-',
+                        $detail['facility'] ?? '-',
+                        $detail['entered_at'] ?? '-',
                         isset($detail['video_start']) ? (explode(' ',$detail['video_start'])[1] ?? '-') : '-',
                         isset($detail['video_end']) ? (explode(' ',$detail['video_end'])[1] ?? '-') : '-',
                         isset($detail['video_second']) ? $fancyTimeFormat($detail['video_second']) : '0:00',

@@ -35,7 +35,8 @@
         "files": [
             "app/Helpers/DocumentHelpers.php",
             "app/Helpers/ReportHelpers.php",
-            "app/Helpers/PermissionHelpers.php"
+            "app/Helpers/PermissionHelpers.php",
+            "app/Helpers/JsonRepairHelper.php"
         ]
     },
     "autoload-dev": {

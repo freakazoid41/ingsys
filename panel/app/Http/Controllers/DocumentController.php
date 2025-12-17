@@ -124,8 +124,15 @@ class DocumentController extends Controller
                 $data = json_decode($req['data'],true);
                 $data['typeKey'] = "op-doc-visit";
 
-                $res = (new DocumentServiceProvider())->registerContent(0,$data,$request->files->all());
-                
+                //here we need to check existing visitor record info for last 30 days by phone number and facility id
+                $entities   = array_values($data['dynamicF'])[0]['entities'];
+                $personInfo = (new DocumentServiceProvider())->getPerson($entities,false,$entities['facility_id']);
+                //if person exist just update record else add new visitor record
+                if($personInfo['success'] == true && !isset($personInfo['data']['exited_at'])){
+                    $res = $personInfo;
+                }else{
+                    $res = (new DocumentServiceProvider())->registerContent(0,$data,$request->files->all());
+                }
                 $response = [
                     'success' => $res['id'] > 0,
                     'data' => $res,

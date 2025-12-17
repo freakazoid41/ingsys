@@ -51,9 +51,11 @@
         },  
         data() {
             return {
-                pageStatus      : 'list',
-                plib            : new Plib(),
-                navigationStore : useNavigationStore(),
+                pageStatus       : 'list',
+                plib             : new Plib(),
+                navigationStore  : useNavigationStore(),
+                currentFacillity : null,
+                currentFilter    : null,
             }
         },
         methods: {
@@ -297,31 +299,48 @@
                 });
             },
             searchTable(){
-                this.table.setFilter(
-                    [{
-                        key   : 'all', // column key
-                        type  : '=', // filtering type ('like','<','>')
-                        value : document.getElementById('mainSearch').value.trim()//wanted column value
-                    }]
-                );
+                this.getFilters();
+                this.table.setFilter(this.currentFilter);
             },
             resetFilter(){
                 document.getElementById('mainSearch').value = '';
                 document.querySelectorAll('.date-select').forEach(el => el.value = '');
-                this.searchTable();
-            },
-            filterDate(e){
+                this.currentFacillity = null;
+                this.currentFilter    = null;
+                this.table.setFilter([]);
                 
+            },
+            getFilters(){
+                const filter = [];
+                const text = document.getElementById('mainSearch').value;
+                if(text != ''){
+                    filter.push({
+                        key   : 'all', // column key
+                        type  : '=', // filtering type ('like','<','>')
+                        value : text.trim()//wanted column value
+                    }); 
+                }    
+
                 const startDate = document.querySelector('.date-select[name="start_at"]')
                 const endDate   = document.querySelector('.date-select[name="end_at"]')
                 if(startDate.value != '' && endDate.value != ''){
-                    this.table.setFilter(
-                        [{
-                            key   : 'date-range', // column key
-                            type  : '=', // filtering type ('like','<','>')
-                            value : (startDate.value ?? '-')+'**'+(endDate.value ?? '-')//wanted column value
-                        }]
-                    );
+                    filter.push({
+                        key   : 'date-range', // column key
+                        type  : '=', // filtering type ('like','<','>')
+                        value : (startDate.value ?? '-')+'**'+(endDate.value ?? '-')//wanted column value
+                    }); 
+                }
+
+                this.currentFilter = filter;
+                return filter;
+
+            },
+            filterDate(e){
+                this.getFilters();
+                const startDate = document.querySelector('.date-select[name="start_at"]')
+                const endDate   = document.querySelector('.date-select[name="end_at"]')
+                if(startDate.value != '' && endDate.value != ''){
+                    this.table.setFilter(this.currentFilter);
                 }
                 
             },
@@ -385,6 +404,128 @@
                     await makeExit();
                 }
                 
+            },
+            facilityFilter(){
+                Swal.fire({
+                    title: 'Tesis Seç',
+                    
+                    html:`<div id="table-facility"></div>`,
+                    showCloselButton: true,
+                    willOpen:() => {
+                        //set headers
+                        const headers = [
+                            {
+                                title : 'Tesis İsmi',
+                                key   : 'title',
+                                order : true,
+                                type  : 'string', // if column is string then make type string
+                            },{
+                                title : 'Adres',
+                                key   : 'address',
+                                order : true,
+                                colAlign : 'right',
+                                type  : 'string', // if column is string then make type string
+                            },{
+                                title : '',
+                                key   : 'id',
+                                order : false,
+                                type  : 'string', // if column is string then make type string
+                                columnFormatter : (elm,rowData,columnData) => {
+                                    const div = document.createElement('div');
+                                    div.classList.add('row','justify-content-center');
+
+                                    const edit       = document.createElement('a');
+                                    edit.style.width = 'auto';
+                                    edit.innerHTML   = '<i class="fs-5 fa fa-arrow-right selectable-icon" style="color:#95818C"  role="img"></i>';
+                                    edit.onclick     = () => {
+                                        this.table.setFilter(
+                                            [{
+                                                key   : 'facility_id', // column key
+                                                type  : 'like', // filtering type ('like','<','>')
+                                                value : columnData//wanted column value
+                                            }]
+                                        );
+                                            console.log(rowData);
+                                        this.currentFacillity = rowData.title
+                                        Swal.close();
+                                    };
+                                    div.appendChild(edit);
+
+                                    return div;
+                                }
+                            }
+                        ];
+                        
+                        //initiate table
+                        this.facilityTable = new PickleTable({
+                            container : '#table-facility', //table target div
+                            headers   : headers,
+                            pageLimit : 10, // -1 for closing pagination
+                            columnSearch : true,
+                            height    : '50vh',
+                            type      : 'ajax',
+                            //columnSearch : true, // true - false for opening and closig
+                            paginationType : 'number',// scroll - number (number for default)
+                            ajax:{
+                                url:'/api/v1/table/documents',
+                                data:{
+                                    //order:{},
+                                }
+                            },
+                            // do anything from returned data
+                            ajaxReturnCallback : (data) => {
+                                setTimeout(() => {
+                                    try{
+                                        const currentPage = document.querySelector('.btn_page.current').dataset.page;
+                                        const limit = currentPage * data.filteredCount;
+                                        const start = (currentPage - 1) * data.filteredCount;
+
+                                        let span = document.querySelector('.divPagination span');
+                                        if(span == null) {
+                                            span = document.createElement('span');
+                                            document.querySelector('.divPagination').appendChild(span);
+                                        }
+
+                                        span.innerHTML = data.totalCount+' Adet kayıttan '+start+' - '+limit+' arası gösteriliyor.';
+                                    }catch(e){
+
+                                    }
+                                }, 200);
+                            },
+                            initialFilter : [
+                                {
+                                    key   : 'form-type',
+                                    type  : '=',
+                                    value : 'op-doc-facility-form'
+                                },{
+                                    key   : 'type',
+                                    type  : '=',
+                                    value : 'op-doc-facility'
+                                }
+                            ],
+                            nextPageIcon : '<i class="fa fa-solid fa-chevron-right"></i>',
+                            prevPageIcon : '<i class="fa fa-solid fa-chevron-left"></i>',
+                            rowFormatter:(elm,data)=>{
+                                //console.log(elm,data);
+                                //modify row element
+                                //elm.style.backgroundColor = 'yellow';
+                                //modify data
+                                if(data.main_attr.includes('"{')){
+                                    //mssql variation 
+                                    data.main_attr = data.main_attr.replace('"{','{').replace('}"','}');
+                                }
+                                JSON.parse(data.main_attr).forEach(element => {
+                                    data[element['Key']] = element['Value'];
+                                    if(data['cont_name'] == undefined) data['cont_name'] = []
+                                    if(element['Key'].includes('cont_name')) data['cont_name'].push(element['Value']);
+                                });
+                                data['cont_name'] = (data['cont_name'] ?? []).join(' , ');
+                                //data.status = JSON.parse(data.status).OpTitle;
+                                return data;
+                            },
+                        });
+                    }
+                });
             }
         }
     }
@@ -410,7 +551,8 @@
                 </div>
                 <div class="table-custom-filter-button-group">
                     <button class="reset-filters" @click="resetFilter">Filtre Sıfırla</button>
-                    <button class="export-excel" onclick="window.location.href='/export/documents/visit'" id="exportExcel">Excel’e Aktar</button>
+                    <button class="reset-filters" @click="facilityFilter">Tesis Seç</button>
+                    <button class="export-excel"  @click="plib.openTab('GET','/export/documents/visit',currentFilter, '_blank')" id="exportExcel">Excel’e Aktar</button>
                 </div>
                 <div class="table-custom-filter-date">
                     <p>Ziyaret Tarih Aralığı</p>
@@ -426,7 +568,10 @@
                     </div>
                 </div>
             </div>
-            <div class="body-1 table-main"  >
+            <div class="body-1 table-main">
+                <div v-if="currentFacillity" class="alert alert-secondary" role="alert">
+                    {{currentFacillity ?? ''  }}
+                </div>
                 <div id="div_table"></div>
             </div>
         </div>

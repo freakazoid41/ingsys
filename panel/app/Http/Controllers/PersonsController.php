@@ -25,29 +25,22 @@ class PersonsController extends Controller
         switch(strtoupper($request->method())){
             case "GET":
                 //$req = $request->all();
-                $res = (new PersonsServiceProvider())->getPerson($request->id);
+                if(session('type_key') == 'op-pert-reseller' && $request->id != session('qnid')){
+                    return response()->json([
+                        'success' => false,
+                        'msg'     => 'not valid for system user...',
+                    ],401);
+                }
+                $res = (new PersonsServiceProvider())->getPerson($request->id,null,true);
                
                 $response = [
                     'success' => !empty($res),
                     'data' => $res['person'][0] ?? [],
                 ];
-                /*$res = [];
-                if($id != 0){
-                    $res = $model::where('id',$id)->first();
-                }else{
-                    $res = $model::all();
-                }
-				$res = $res->toarray();
-                //get request for data getting
-                $response = [
-                    'success' => !empty($res),
-                    'data' => $res,
-                ];*/
                 break;
             case "POST":
                 $req = $request->all();
-                
-                $res = (new PersonsServiceProvider())->setPerson(0,json_decode($req['data'] ?? '{}',true),$request->files->all(),'persons');
+                $res = (new PersonsServiceProvider())->setPerson(0,json_decode($req['data'] ?? '{}',true),$request->files->all(),'persons',$req);
                 
                 $response = [
                     'success' => $res['id'] > 0,
@@ -55,8 +48,16 @@ class PersonsController extends Controller
                 ];
                 break;
             case "PUT":
+
+                if(session('type_key') == 'op-pert-reseller' && $request->id != session('qnid')){
+                    return response()->json([
+                        'success' => false,
+                        'msg'     => 'not valid for system user...',
+                    ],401);
+                }
+
                 $data = parsePut();
-                $res = (new PersonsServiceProvider())->setPerson($request->id,json_decode($data['data'] ?? '{}',true),$_FILES,'persons');
+                $res = (new PersonsServiceProvider())->setPerson($request->id,json_decode($data['data'] ?? '{}',true),$_FILES,'persons',$data);
 
                 $response = [
                     'success' => $res['id'] > 0,
@@ -70,8 +71,6 @@ class PersonsController extends Controller
                 ];
                 break;
         }
-
-        
 
         return response()->json($response);
 	}

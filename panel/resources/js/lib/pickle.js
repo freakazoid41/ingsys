@@ -468,7 +468,10 @@ export default class Plib {
 
     getConvertedDate(date){
         date = (date).toLocaleString("tr-TR").split(' ');
-        return date[0].split('.').reverse().join('-')+' '+date[1];
+        const time = date[1];
+        date = date[0].split('.');
+        if(date[0].length == 1) date[0] = '0'+date[0];
+        return date.reverse().join('-')+' '+time;
     }
 
     /**

@@ -122,8 +122,20 @@ class ClearVisitors extends \App\Classes\Utils
                 if(strpos($visitor->main_attr,'exited_at') === false){
                     $this->infoPrint($visitor->id. ' Çıkış yapmamış kapatılıyor....');
 
+                    
+                    /*$visitor->main_attr = str_replace('""','"',$visitor->main_attr);
+                    $visitor->main_attr = str_replace('"{','{',$visitor->main_attr);
+                    $visitor->main_attr = str_replace('}"','}',$visitor->main_attr);*/
+                       
                     //here add person to list
                     $visitor->main_attr = json_decode($visitor->main_attr);
+                    //here clear for mssql,
+                    if($visitor->main_attr === null){
+                        //check if is fixable (json is valid accualy but mssql is braking a bit (because string methods))
+                        $visitor->main_attr = repair_json_string($visitor->main_attr ?? '{}',true);
+                        if($visitor->main_attr == false) continue;
+                    }
+                    
                     foreach($visitor->main_attr as $a){
                         $visitor->{$a->Key} = $a->Value;
                     }
@@ -134,7 +146,7 @@ class ClearVisitors extends \App\Classes\Utils
                     $data      = [
                         $visitor->name,
                         $visitor->phone,
-                        $visitor->email,
+                        $visitor->email ?? '-',
                         $visitor->facility,
                         $visitor->created_at,
                         $visitor->entered_at

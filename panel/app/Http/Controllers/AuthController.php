@@ -8,7 +8,7 @@ use App\Models\User_logs;
 use App\Models\User;
 
 use App\Rules\Recaptcha;
-use App\Providers\PersonnelService;
+use App\Providers\PersonsServiceProvider;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,8 +39,7 @@ class AuthController extends Controller
     }
 
     public function frontLogin(Request $request,$facility,$facilityid){
-        //print_r(session('locale'));
-        //die;
+        
         app()->setLocale(session('locale') ?? 'tr');
         //here find facility simple info
         $facility = (new DocumentServiceProvider())->getFacility(['code' => $facilityid]);
@@ -97,8 +96,15 @@ class AuthController extends Controller
     public function loginFrontUser(Request $request){
         
         try {
-
+            $locale = session('locale') ?? 'tr'; //comes from login page
+            //dd($locale);
+            
             $request->session()->flush();
+
+            session(['locale' => $locale]);
+            app()->setLocale($locale);
+            \App::setLocale($locale);
+            //dd(session('locale').'--'.app()->getLocale());
             //validate request sended parameters
             /*$validateUser = Validator::make($request->all(),[
                 'phone'    => 'required',
@@ -124,10 +130,9 @@ class AuthController extends Controller
             //if (!str_starts_with($post['phone'], '+9')) $post['phone'] = '+9'.$post['phone'];
             
             //here search if anyone is entered with this phone 
-            $person = (new DocumentServiceProvider())->getPerson(['phone' => $post['phone']],false);
+            $facility = (new DocumentServiceProvider())->getFacility(['code' => $post['facility']]);
+            $person   = (new DocumentServiceProvider())->getPerson(['phone' => $post['phone']],false,$facility['qnid']);
             
-            
-           
             //set person phone
             session(['phone'     => $post['phone']]);
             session(['facility'  => $post['facility']]);
@@ -135,7 +140,7 @@ class AuthController extends Controller
             if(!empty($person) && $person['success'] != false){
                 session(['type_key'  => 'op-pert-buyer']);
                 session(['qnid'      => $person['qnid']]);
-                session(['email'     => $person['data']['email']]);
+                session(['email'     => $person['data']['email'] ?? '-']);
                 session(['ptitle'    => $person['data']['name']]);
                 session(['connKey'   => 'op-doc-visit-form**'.$person['connId']]);
             }
@@ -167,10 +172,9 @@ class AuthController extends Controller
             Auth::login($user);
             $token = $user->createToken("VISITOR TOKEN")->plainTextToken;
             //for video pass
-            //if(env('IS_TEST') && env('IS_TEST') == true) session(['mustWatch' => true]);
+            if(env('IS_TEST') && env('IS_TEST') == true) session(['mustWatch' => true]);
 
             ///neccessary for auth
-
             if(!empty($person) && !isset($person['data']['exited_at'])){
                 if(!isset($person['data']['test-answers'])){
                     //means just connection drop
@@ -183,9 +187,14 @@ class AuthController extends Controller
                 $request->session()->flush();
                 session(['facility'  => $post['facility']]);
                 session(['phone'     => $post['phone']]);
+
+                session(['locale' => $locale]);
+                app()->setLocale($locale ?? 'tr');
+                \App::setLocale($locale);
+                Auth::login($user);
                 //sometime can be old record
                 //video status
-                Auth::login($user);
+
                 if(!empty($person)) session(['mustWatch' => true]);
                 return redirect('/facility/'.$post['facility']);  
             }
@@ -193,12 +202,14 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
+                'line'    => $e->getLine(),
+                'file'    => $e->getFile(),
             ],500);
         }
     }
 
     public function loginUser(Request $request){
-        try {
+        //try {
 
             $request->session()->flush();
             //validate request sended parameters
@@ -247,10 +258,26 @@ class AuthController extends Controller
                 //session(['is_client' => $person->client_id != '0']);
                 session(['person_id' => $person->id]);
                 session(['email'     => $request->email]);
+                session(['qnid'      => $person->qnid]);
                 session(['ptitle'    => $person->name/*.' '.$person->surname*/]);
-                session(['grp_code'  => $user->grp_code]);
-                /*session(['grp_code'  => 'op-apt-1']);
-                session(['grp_title' => 'Benim Sistemim']);*/
+
+                //here set facility permissionss
+                $person = (new PersonsServiceProvider())->getPerson($person->qnid,null,true);
+                if(!empty($person['person'][0]->facilities)){
+                    $groups = [];
+                    $facilities = json_decode($person['person'][0]->facilities);
+                    foreach($facilities as $f){
+                        if(strpos($f->Key,'grp_code') !== false) $groups[] = $f->Value;
+                    }
+
+                    session(['grp_code'  => implode(',',$groups)]);
+                }   
+                
+
+
+
+                //session(['grp_code'  => $user->grp_code]);
+                
             }
             
             /*User_logs::create([
@@ -270,12 +297,12 @@ class AuthController extends Controller
 
             
 
-        } catch (\Throwable $e) {
+        /*} catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ],500);
-        }
+        }*/
     }
 
     public function passwordReset(Request $request,$code){
@@ -337,7 +364,7 @@ class AuthController extends Controller
     }
 
     public function getSession(){
-        $data = ['type_key','email','ptitle'];
+        $data = ['type_key','email','ptitle','qnid'];
         foreach($data as $d){
             $data[$d] = session($d);
         }

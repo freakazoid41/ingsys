@@ -14,6 +14,7 @@ class DataSeeder extends Seeder
     public function run(): void
     {
         $this->seedFacilities();
+        //this->seedPersons();
     }
 
     private function seedFacilities(){
@@ -519,6 +520,58 @@ class DataSeeder extends Seeder
             //print_r($res);
             print_r($i['title'].' Added..'.PHP_EOL);
         }
+    }
+
+    private function seedPersons(){
+
+        for($i = 999; $i <= 3000;$i++ ){
+            $data = [
+                'main_grp_code' => '43b59b95-e914-49fa-8bc3-62645c60976d',
+                'dynamicF' => [
+                    
+                    'op-doc-visit-form**new' => [
+                        'entities' => [
+                            'exited_at'  => '2025-12-16 11:47:14',
+                            'inventory-given' => '1',
+                            'inventory-taken' => '1',
+                            'description**visitorinvgroup**1765874810520-'.$i => 'baret1',
+                            'inventory**visitorinvgroup**1765874810520-'.$i => 'Baret',
+                            'test-answers' => '{"SEED169083f8c0f052":{"question":"Asagidakilerden hangisi ziyaretçilerin asgari olarak kullanilmasi zorunlu KKD’lerden biri degildir?","trueOption":"D","trueDesc":"Izole Eldiven","selectedOption":"B","selectedDesc":"Is Güvenligi Ayakkabisi"},"SEED269083f8c0f052":{"question":"Yasanan ramak kala olaylari ve tespit edilen tehlikeli durum/davranislar için en dogru yaklasim hangisidir?","trueOption":"A","trueDesc":"Bildirmek","selectedOption":"A","selectedDesc":"Bildirmek"},"SEED369083f8c0f052":{"question":"Isletmede yer alan uyari ve ikaz levhalarinin temel amaci nedir?","trueOption":"A","trueDesc":"Çalisanlari ve ziyaretçileri tehlikelere karsi bilgilendirmek ve yönlendirmek","selectedOption":"A","selectedDesc":"Çalisanlari ve ziyaretçileri tehlikelere karsi bilgilendirmek ve yönlendirmek"},"SEED469083f8c0f052":{"question":"Bir acil durum meydana geldiginde toplanma alanina ulasirken çalisanlarin öncelikli davranisi nedir?","trueOption":"B","trueDesc":"Hizli adimlarla, panik yapmadan ve yönlendirme levhalarini takip etmek","selectedOption":"B","selectedDesc":"Hizli adimlarla, panik yapmadan ve yönlendirme levhalarini takip etmek"},"SEED569083f8c0f052":{"question":"Asagidaki atiklardan hangisi sifir atik geri dönüsüm kutularina atilmasi gereken atiklardan degildir?","trueOption":"C","trueDesc":"Atik yaglar","selectedOption":"C","selectedDesc":"Atik yaglar"}}',
+                            "test-result" => '5 Toplam Soru / 4 Dogru / 3 Bilinmesi Gereken',
+                            "shall_pass" => '1',
+                            "video_status" => 'Tamamlandi',
+                            "video_end" => '2025-12-16 11:46:13',
+                            "video_second" => '361',
+                            "video_start" => '2025-12-16 11:40:12',
+                            "entered_at"    => '2025-12-16 11:46:50',
+                            "facility_id"       => '43b59b95-e914-49fa-8bc3-62645c60976d',
+                            "facility"         => 'Çirakdami HES',
+                            "kvkk"             => '1',
+                            "phone"            => '0 (543) 882 69 76',
+                            "surname"          => '-',
+                            "name"             => 'seed'.$i,
+                            
+
+                        ],
+                        'tag' => 'op-doc-visit-form',
+                    ],
+                ],
+                'removedData' => [],
+                'typeKey' => 'op-doc-visit',
+            ];
+
+            $res = (new DocumentServiceProvider())->registerContent(0,$data,[]);
+            //print_r($res);
+            print_r('seed'.$i.' Added..'.PHP_EOL);
+
+            $i++;
+        }
+
+
+
+       
+                    
+                   
     }
     
 }

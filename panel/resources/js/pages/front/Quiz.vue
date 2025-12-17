@@ -45,7 +45,6 @@
             selectedOption != this.navigationStore?.facility?.questions?.[this.$route.params.quiz].rightAnswer &&
             this.navigationStore.wrongAnswers[this.$route.params.quiz] === undefined
         ){
-          console.log('here is already true');
           return false;
         }
 
@@ -126,10 +125,10 @@
           this.frontLib.popup({
             text: {
               class : 'success-popup',
-              head: 'Tebrikler!',
-              body: `<h4>Testi başarıyla tamamladınız. Bir sonraki adıma geçebilirsiniz.</h4> <div class="view"><div class="icon"><img src='/front/assets/img/successCheck.svg'></div></div>`,
+              head: this.wTrans('quiz.success.header').value,
+              body: `<h4>${this.wTrans('quiz.success').value}</h4> <div class="view"><div class="icon"><img src='/front/assets/img/successCheck.svg'></div></div>`,
               button: {
-                name: `Sonraki adıma geç <img src='/front/assets/img/rightArrowDark.png' class='arrow'>`,
+                name: `${this.wTrans('quiz.success.btn').value} <img src='/front/assets/img/rightArrowDark.png' class='arrow'>`,
                 proccess: () => {
                     document.querySelector("button.close").click();
                     this.$router.push({ name: 'IWarn' , params: { id  : this.navigationStore.facility.qr }});

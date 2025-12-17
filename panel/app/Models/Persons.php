@@ -71,6 +71,7 @@ class Persons extends Model
             'status'       => 'i.status',
             'id'           => 'i.qnid  as  id',
             'name'         => 'i.name',
+            'type_title'   => 't.title  as  type_title',
             'username'     => 'u.email  as  username',
         );
 
@@ -79,12 +80,14 @@ class Persons extends Model
 
         $limit = '';
         $order = '';
-        $join = '   ---inner join sys_options as o on o.id = i.type_id 
+        $join = '   inner join sys_options as t on t.id = i.type_id 
                     inner join users as u on u.person_id = i.id';
         
-        $where = " where i.name != '' and u.email != 'kbbozat41@hotmail.com' and i.grp_code='".session('grp_code')."'";  
-        
-
+        $where = " where i.name != '' and u.email != 'kbbozat41@hotmail.com' ";  
+        $authWhere = '';
+        if(session('type_key') == 'op-pert-reseller'){
+            $authWhere = " and i.qnid = '".session('qnid')."' "; 
+        }
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);
             $limit = " LIMIT " . $obj['scale']['limit'] . " OFFSET " . $start;
@@ -141,7 +144,7 @@ class Persons extends Model
         }     
         //create query    
         $sql = 'select '.implode(",", array_values($columns)).'
-                    from persons as i '.$join.' ' . $where.$order.$limit ;
+                    from persons as i '.$join.' ' . $where.$authWhere.$order.$limit ;
        
         $result = DB::select($sql);
        

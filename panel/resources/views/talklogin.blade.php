@@ -25,7 +25,7 @@
             <div class="login-form">
                 <div class="login-form-logo admin">
                     <img src="/front/assets/img/logo.png" style="width: 242px; height: auto" />
-                    <span>admin</span>
+                    <span>Yönetim Paneli</span>
                 </div>
                 <form class="login-form-main"  action="{{route('login-user','admin')}}" method="POST" novalidate="novalidate"> <!-- <form> or <div> -->
                     @csrf

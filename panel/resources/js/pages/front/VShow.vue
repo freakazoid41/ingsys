@@ -9,6 +9,9 @@
            
         },
         setup() {
+            if(useNavigationStore().facility?.questions == undefined){
+              useNavigationStore().getFacility()
+            }
             // expose to template and other options API hooks
             return {
                 useNavigationStore,
@@ -128,10 +131,10 @@
             };
 
             const sourceElm = document.createElement('source');
-            sourceElm.src   = '/order-file/'+this.navigationStore.facility.currentVideo;
-            
+            //sourceElm.src   = '/order-file/'+this.navigationStore.facility.currentVideo;
+            sourceElm.src = '/stream/video/default.mp4';
             sourceElm.onerror      = () => {
-              sourceElm.src = '/stream/video/default.mp4';
+              //sourceElm.src = '/stream/video/default.mp4';
               videoButton.innerHTML = '';
               videoButton.appendChild(video);
               video.play();
@@ -181,8 +184,6 @@
             }
 
             video.onseeking = () => {
-              console.log('did')
-              console.log(video.currentTime , previousTime)
               if (video.currentTime > previousTime) {
                   video.currentTime = previousTime;
               }
@@ -207,8 +208,8 @@
       <h3 v-if="videoEnd && !canPass" class="custom-h3">{{ $t('video.end.header') }}</h3>
       <p v-if="videoEnd && !canPass">{{ $t('video.end.subheader') }}</p>
       <ul v-if="videoEnd && !canPass">
-        <li>{{ $t('video.end.test').replace('{x}',Object.keys(navigationStore.facility.questions).length) }}</li>
-        <li>{{ $t('video.end.test1').replace('{x}',navigationStore.facility.mustKnow) }}</li>
+        <li>{{ $t('video.end.test').replace('{x}', Object.keys(navigationStore?.facility?.questions || {}).length) }}</li>
+        <li>{{ $t('video.end.test1').replace('{x}', navigationStore?.facility?.mustKnow || 0) }}</li>
         <li>{{ $t('video.end.testwarn') }}</li>
       </ul>
       <p class="text-muted" v-if="videoEnd && !canPass">{{ $t('video.end.greet') }}</p>
@@ -218,8 +219,8 @@
       <h3 v-if="canPass">{{ $t('video.end.repeat') }}</h3>
       <p v-if="canPass">{{ $t('video.end.repeatwarn') }}</p>
       <ul v-if="canPass">
-         <li>{{ $t('video.end.test').replace('{x}',Object.keys(navigationStore.facility.questions).length) }}</li>
-        <li>{{ $t('video.end.test1').replace('{x}',navigationStore.facility.mustKnow) }}</li>
+         <li>{{ $t('video.end.test').replace('{x}', Object.keys(navigationStore?.facility?.questions || {}).length) }}</li>
+        <li>{{ $t('video.end.test1').replace('{x}', navigationStore?.facility?.mustKnow || 0) }}</li>
       </ul>
       <p class="text-muted" v-if="canPass">{{ $t('video.end.greet') }}</p>
 
@@ -229,7 +230,7 @@
     </div>
     <div class="main-footer twin-button" v-if="videoEnd || canPass">
       <button class="button-theme outline" @click="startVideo" v-if="buttonShow">{{ $t('video.repeat') }} <img src="/front/assets/img/return.svg" alt=""></button>
-      <router-link class="button-theme playVideo" :to="{ name: 'Quiz'  , params: {id:this.navigationStore.facility.qr, quiz  : Object.keys(navigationStore.facility.questions)[0] }}" >
+      <router-link class="button-theme playVideo" :to="{ name: 'Quiz'  , params: {id:this.navigationStore.facility.qr, quiz  : Object.keys(navigationStore?.facility?.questions || {})?.[0] || '-' }}" >
         {{$t('video.pass')}} <img src="/front/assets/img/contentMarketing.svg" alt="">
       </router-link>
     </div>

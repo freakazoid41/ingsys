@@ -21,10 +21,10 @@ class ExportController extends Controller
     public function index(Request $request,$model,$type = null){
         $data = [];
 
-
+        
         switch($model){
             case 'documents':
-                $data = (new DocumentServiceProvider())->getExportData($type)['data'];
+                $data = (new DocumentServiceProvider())->getExportData($type,$request->all())['data'];
                 break;
             case 'transactions':
                 $data = (new DocumentServiceProvider())->getTransExportData($type)['data'];

@@ -181,6 +181,10 @@
                         //modify row element
                         //elm.style.backgroundColor = 'yellow';
                         //modify data
+                        if(data.main_attr.includes('"{')){
+                            //mssql variation 
+                            data.main_attr = data.main_attr.replace('"{','{').replace('}"','}');
+                        }
                         JSON.parse(data.main_attr).forEach(element => {
                             data[element['Key']] = element['Value'];
                             if(data['cont_name'] == undefined) data['cont_name'] = []
@@ -224,7 +228,7 @@
                     <button type="button" @click="searchTable">Sorgula <span class="kontent-icon" name="Search"></span></button>
                 </div>
                 <div class="table-custom-filter-button-group">
-                    <button class="export-excel" onclick="window.location.href='/export/documents/inventory'" id="exportExcel">Excel’e Aktar</button>
+                    <button class="export-excel"  @click="plib.openTab('GET','/export/documents/inventory',null, '_blank')"id="exportExcel">Excel’e Aktar</button>
                 </div>
                 <!--<div class="table-custom-filter-date">
                     <p>Tarih Aralığı</p>

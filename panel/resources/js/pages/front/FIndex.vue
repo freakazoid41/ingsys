@@ -26,10 +26,9 @@ export default {
         }
     },
     data() {
-        //console.log(dayjs().format());
         return {
             pageStatus: 'list',
-            activeLang: useNavigationStore().currentLanguge,
+            activeLang: useNavigationStore().currentLanguage,
             plib: new Plib(),
             frontLib: new FrontLib(),
             navigationStore: useNavigationStore(),
@@ -100,7 +99,7 @@ export default {
             
             if (rsp.valid) {
 
-                rsp.obj.phone = document.querySelector('input[name="phone-'+this.navigationStore.currentLanguge+'"]').value.trim();
+                rsp.obj.phone = document.querySelector('input[name="phone-'+this.navigationStore.currentLanguage+'"]').value.trim();
                 
 
                 const date = new Date();
@@ -178,8 +177,8 @@ export default {
     <div class="main-body">
         <div class="main-body-head">
 
-            <h1 v-if="this.navigationStore.currentLanguge == 'tr'">{{ this.navigationStore.facility?.title }}’e {{ $t('main.greet') }}</h1>
-            <h1 v-if="this.navigationStore.currentLanguge != 'tr'">{{ $t('main.greet') }} {{ this.navigationStore.facility?.title }}</h1>
+            <h1 v-if="this.navigationStore.currentLanguage == 'tr'">{{ this.navigationStore.facility?.title }}’e {{ $t('main.greet') }}</h1>
+            <h1 v-if="this.navigationStore.currentLanguage != 'tr'">{{ $t('main.greet') }} {{ this.navigationStore.facility?.title }}</h1>
             <p>{{ $t('main.desc') }}</p>
         </div>
         <div class="form-main">
@@ -187,12 +186,12 @@ export default {
                 <label for="">{{ $t('main.form.namesurname') }}</label>
                 <input type="text" name="name" required class="form-control" :placeholder="$t('main.form.enterinfo')">
             </div>
-            <div class="form-group theme-group" v-show="this.navigationStore.currentLanguge != 'en'">
+            <div class="form-group theme-group" v-show="this.navigationStore.currentLanguage != 'en'">
                 <label for="">{{ $t('main.form.phone') }}</label>
                 <input type="text" readonly name="phone-tr" required id="phone2" class="form-control"
                     placeholder="+90 (5__) ___ __ __">
             </div>
-            <div class="form-group theme-group" v-show="this.navigationStore.currentLanguge == 'en'">
+            <div class="form-group theme-group" v-show="this.navigationStore.currentLanguage == 'en'">
                 <label for="">{{ $t('main.form.phone') }}</label>
                 <input type="text" readonly name="phone-en" required id="phone" class="form-control"
                     placeholder="0 (5__) ___ __ __">

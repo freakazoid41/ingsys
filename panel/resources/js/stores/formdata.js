@@ -38,6 +38,7 @@ export const useFormDataStore = defineStore('formdata', {
         const list = {};
         rsp.data.forEach(t => {
             const maindata = {};
+            t.main_attr = t.main_attr.replace('"{','{').replace('}"','}');
             JSON.parse(t.main_attr).forEach(element => {
                 maindata[element['Key']] = element['Value'];
             });

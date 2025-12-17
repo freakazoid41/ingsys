@@ -3,6 +3,8 @@
     import TalkFab from '@/components/talk/TalkFab.vue';
     import flatpickr from "flatpickr";
     import { Turkish } from "flatpickr/dist/l10n/tr.js"
+    import NiceSelect from "nice-select2";
+    import "nice-select2/dist/css/nice-select2.css";
 
     import 'flatpickr/dist/flatpickr.css';
     import VMasker  from 'vanilla-masker';
@@ -308,6 +310,7 @@
                                         class    : ['form-control','mb-2','mb-md-0','form-item'],
                                         type     : 'select',
                                         name     : 'type_key',
+                                        disabled : useAuthStore().data.type_key === 'op-pert-reseller',
                                         col      : 4,
                                         required : true,
                                         label    : 'Kullanıcı Tipi',
@@ -321,10 +324,11 @@
                                             }
                                         ],
                                         oninput  : (e) => this.submitDynamicChanges(e.target)
-                                    },{
+                                    },/*{
                                         class    : ['form-control','mb-2','mb-md-0','form-item'],
                                         type     : 'select',
                                         col      : 4,
+                                        hasMultiple : true,
                                         label    : 'Tesis Sınırlaması',
                                         setOptions  : async () => {
                                             await this.formDataStore.setFacilitiesData()
@@ -337,7 +341,7 @@
                                         },
                                         name  : 'user_grp_code',
                                         oninput  : (e) => this.submitDynamicChanges(e.target)
-                                    },{
+                                    },*/{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'email',
                                         name  : 'user_username',
@@ -386,9 +390,41 @@
 
                                             this.submitDynamicChanges(e.target);
                                         }
+                                    },
+                                ],
+                            },...[(useAuthStore().data.type_key !== 'op-pert-reseller' ? {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_31',
+                                label : 'İletişim',
+                                group_key : 'userfacilitygroup',
+                                subs  : [
+                                    {
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        col      : 6,
+                                        label    : 'Tesis Sınırlaması',
+                                        setOptions  : async () => {
+                                            await this.formDataStore.setFacilitiesData()
+                                            return this.formDataStore.facilities.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.id,
+                                                };
+                                            });
+                                        },
+                                        name  : 'user_grp_code',
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        name  : 'userjob',
+                                        label : 'Görev',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
                                 ]
-                            }
+                            } : {})]
                         ]
                     },'op-doc-facility-form' : {
                         hasLang          : ['tr','en'],
@@ -859,8 +895,10 @@
                     input.dataset.tag    = tag;
                     input.name           = attr.name;
 
-                    if(attr?.class !== undefined)    input.classList.add(...attr?.class);
+
                     
+                    if(attr?.class !== undefined)    input.classList.add(...attr?.class);
+                    if(attr?.disabled !== undefined) input.disabled = attr?.disabled;
                     if(attr?.required !== undefined) input.required = attr.required;
                     
                     let op      = document.createElement('option');
@@ -892,8 +930,11 @@
                     input.oninput = (e) => attr.oninput(e);
 
                     iDiv.appendChild(input);
-                    //NiceSelect.bind(input, attr?.isSearchable ? {searchable : true} : {});
-
+                    
+                    if(attr?.hasMultiple !== undefined){
+                        input.multiple = true;
+                        const valued = new NiceSelect(input, {searchable: true});
+                    } 
                     return iDiv;
                 };
 
@@ -903,6 +944,7 @@
                 const createElements = async (langTag = 'tr',fromLang = false) => {
                     for (let index = 0; index < form.fields.length; index++) {
                         const fitem = form.fields[index];
+                        if(Object.keys(fitem).length == 0) continue;
 
                         //add lang tag to name
                         if(fitem?.name) fitem.name           = fitem.name + (langTag !== 'tr' ? '--lng--'+langTag : '');

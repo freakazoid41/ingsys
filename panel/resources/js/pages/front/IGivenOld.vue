@@ -110,8 +110,8 @@ export default {
                         </svg>
                     </label>
                 </div>
-                <label class="form-check-label text-dark" :for="'inv' + key">{{ this.navigationStore.currentLanguge !=
-                    'tr' ? value['title--lng--' + this.navigationStore.currentLanguge] : value.title }}</label>
+                <label class="form-check-label text-dark" :for="'inv' + key">{{ this.navigationStore.currentLanguage !=
+                    'tr' ? value['title--lng--' + this.navigationStore.currentLanguage] : value.title }}</label>
             </div>
         </div>
     </div>

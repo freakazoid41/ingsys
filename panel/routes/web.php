@@ -4,8 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
 
-//Route::get('/',                                             [AuthController::class, 'login'])->name('index');
-Route::get('/seclogin',                                    [AuthController::class, 'login'])->name('login');
+Route::get('/',                                             [AuthController::class, 'login'])->name('index');
+Route::get('/seclogin',                                     [AuthController::class, 'login'])->name('login');
 Route::get('/ziyaretci/{facility}/{facilityid}',            [AuthController::class, 'frontLogin'])->name('frontLogin');
 Route::post('/ziyaretcikontrol',                            [AuthController::class, 'loginFrontUser']);
 

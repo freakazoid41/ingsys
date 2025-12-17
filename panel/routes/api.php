@@ -19,7 +19,7 @@ Route::prefix('v1')
     });*/
 Route::post('/v1/auth/login/{type?}',             [AuthController::class, 'loginUser'])->name('login-user')->middleware('throttle:5,1');
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::any('/v1/getcurrent',                       [AuthController::class, 'getSession']);
+    Route::any('/v1/getcurrentf',                      [AuthController::class, 'getSession']);
     Route::any('/v1/content/{id?}',                    [DocumentController::class, 'index']);
     Route::any('/v1/transaction/{id?}',                [DocumentController::class, 'transaction']);
    
@@ -31,7 +31,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
     Route::any('/v1/setnotificationstatus',            [SystemController::class, 'setNotificationStatus']);
 
-    Route::any('/v1/yeniziyaret/{id?}',                    [DocumentController::class, 'newVisit']);
+    Route::any('/v1/yeniziyaret/{id?}',                [DocumentController::class, 'newVisit']);
 });   
 
 

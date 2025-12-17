@@ -77,9 +77,9 @@ if(!function_exists('checkPermRoute')){
     function checkPermRoute($type,$requestType){
         $perms = [
             'persons' => [
-                'GET'          => ['op-pert-admin'],
+                'GET'          => ['op-pert-admin','op-pert-reseller'],
                 'POST'         => ['op-pert-admin'],
-                'PUT'          => ['op-pert-admin'],
+                'PUT'          => ['op-pert-admin','op-pert-reseller'],
                 'DELETE'       => ['op-pert-admin']
             ],
             'users'   => [

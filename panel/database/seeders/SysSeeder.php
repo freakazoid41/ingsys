@@ -355,6 +355,13 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-visit-form',
                 'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Personel Tesis Yetki',
+                'ttitle'    => '-',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'per-perm-facility',
+                'group_key' => 'per-perm-facility',
             ]
         ];
 
@@ -372,7 +379,14 @@ class SysSeeder extends Seeder
                 'ttitle'    => 'Documents',
                 'ctitle'    => 'sub_type_id',
                 'op_key'    => 'form-file',
-            ]
+            ],
+            [
+                'parent_id' => 0,
+                'title'     => 'Personel Bağlantı',
+                'ttitle'    => 'sys_con_ops',
+                'ctitle'    => 'sub_type_id',
+                'op_key'    => 'personnel-main',
+            ],
         ];
 
         $personTypes = [

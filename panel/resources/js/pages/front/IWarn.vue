@@ -19,7 +19,8 @@
             }
         },
         mounted() {
-            this.inventories  = this.navigationStore.facility.inventories;
+            this.inventories  = this.navigationStore.facility.invdetail;
+            
         },  
         data() {
             return {
@@ -45,10 +46,8 @@
         <div class="item-group-list">
             <h5 class="item-group-list-head"><img src="/front/assets/img/page20i.svg" class="icon"> {{ $t('inv.header') }}</h5>
             <ul class="list">
-                <li v-for="value,key in inventories" v-show="
-                this.navigationStore.currentLanguge != 'tr' ? (value?.['title--lng--'+this.navigationStore.currentLanguge] !== undefined) : (value?.title !== undefined)
-                ">
-                    * {{ this.navigationStore.currentLanguge != 'tr' ? value['title--lng--'+this.navigationStore.currentLanguge] : value.title }}
+                <li v-for="value,key in inventories">
+                    * {{ inventories[key][this.navigationStore.currentLanguage != 'tr' ? 'title--lng--'+this.navigationStore.currentLanguage : 'title'] }} 
                 </li>
                
             </ul>
