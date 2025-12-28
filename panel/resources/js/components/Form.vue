@@ -303,7 +303,7 @@
                                 ]
                             }
                         ],
-                    },'op-doc-user-form'    : {
+                    },'op-doc-user1-form'    : {
                         showRemoveButton : false,
                         oncreated        : (id) => {},
                         fields           : [
@@ -1011,7 +1011,97 @@
                                 ]
                             }
                         ]
-                    }
+                    },'op-doc-user-form'    : {
+                        showRemoveButton : false,
+                        oncreated        : (id) => {},
+                        fields           : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'main_name',
+                                        //isDate   : true,
+                                        required : true,
+                                        label : 'İsim & Soyisim',
+                                        col      : 4,
+                                        placeholder : 'İsim & Soyisim',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        name     : 'type_key',
+                                        col      : 4,
+                                        required : true,
+                                        label    : 'Kullanıcı Tipi',
+                                        options  : [
+                                            {
+                                                text  : 'Yönetici',
+                                                value : 'op-pert-admin'
+                                            }, {
+                                                text  : 'Tesis Görevlisi',
+                                                value : 'op-pert-reseller'
+                                            }
+                                        ],
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'email',
+                                        name  : 'user_username',
+                                        required : true,
+                                        col : 4,
+                                        placeholder : 'Kullanıcı Email',
+                                        label : 'Kullanıcı Email',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'password',
+                                        name  : 'user_password',
+                                        //required : true,
+                                        col : 4,
+                                        label : 'Parola',
+                                        placeholder : '*********',
+                                        oninput : (e) => {
+                                            console.log('sdasa')
+                                            const main  = document.querySelector('input[name="user_password"]');
+                                            const check = document.querySelector('input[name="user_password_check"]');
+
+                                            if(main.value == check.value) {
+                                                main.classList.remove('is-invalid');
+                                                check.classList.remove('is-invalid');
+                                            }
+
+                                            this.submitDynamicChanges(e.target);
+                                        }
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'password',
+                                        name  : 'user_password_check',
+                                        //required : true,
+                                        col : 4,
+                                        label : 'Parola (Kontrol)',
+                                        placeholder : '*********',
+                                        oninput : (e) => {
+
+                                            const main  = document.querySelector('input[name="user_password"]');
+                                            const check = document.querySelector('input[name="user_password_check"]');
+
+                                            if(main.value == check.value) {
+                                                main.classList.remove('is-invalid');
+                                                check.classList.remove('is-invalid');
+                                            }
+
+                                            this.submitDynamicChanges(e.target);
+                                        }
+                                    },
+                                ],
+                            }
+                        ]
+                    },
                 },
                 formData        : {
                     dynamicF : {},
