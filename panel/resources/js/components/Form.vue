@@ -1032,19 +1032,19 @@
                                         placeholder : 'İsim & Soyisim',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
-                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        class    : ['form-control','mb-2','mb-md-0','date-input','form-item'],
                                         type     : 'select',
                                         name     : 'type_key',
-                                        col      : 4,
+                                        col      : 3,
                                         required : true,
-                                        label    : 'Kullanıcı Tipi',
+                                        label    : 'Tip',
                                         options  : [
                                             {
                                                 text  : 'Yönetici',
                                                 value : 'op-pert-admin'
-                                            }, {
-                                                text  : 'Tesis Görevlisi',
-                                                value : 'op-pert-reseller'
+                                            },{
+                                                text  : 'Kat Maliki',
+                                                value : 'op-pert-buyer'
                                             }
                                         ],
                                         oninput  : (e) => this.submitDynamicChanges(e.target)
@@ -1066,7 +1066,6 @@
                                         label : 'Parola',
                                         placeholder : '*********',
                                         oninput : (e) => {
-                                            console.log('sdasa')
                                             const main  = document.querySelector('input[name="user_password"]');
                                             const check = document.querySelector('input[name="user_password_check"]');
 
@@ -1205,7 +1204,19 @@
                         }
                         
 
-                        const input          = document.createElement('input');
+                        const input = document.createElement('input');
+                        // try to prevent browser autofill
+                        input.setAttribute('autocomplete', 'off');
+                        input.autocomplete = 'off';
+                        input.setAttribute('autocorrect', 'off');
+                        input.autocapitalize = 'off';
+                        input.setAttribute('spellcheck', 'false');
+                        if (attr?.type === 'password') {
+                            // stronger hint for password fields
+                            input.setAttribute('autocomplete', 'new-password');
+                            input.autocomplete = 'new-password';
+                        }
+                        
                         input.type           = attr.type;
                         input.name           = attr.name;
                         input.dataset.rowId  = rowId;
