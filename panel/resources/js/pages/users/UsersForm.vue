@@ -95,11 +95,36 @@
                 this.formData = formData;
                 //console.log(formData);
                 this.navigationStore.toggle(true);
-                this.formData.typeKey = 'op-doc-flat';
+                this.formData.typeKey = this.formKey;
                 const rsp = this.plib.checkForm('.form-item');
                 if(rsp.valid){
+
+                    //check pass
+                    const fields = Object.values(this.formData.dynamicF)[0]?.entities;
+                    //here check if username is entered but password is empty
+                    if(fields?.user_username != undefined && (fields?.user_password == undefined || fields?.user_password == '')){
+                        this.navigationStore.toggle(false);
+                        this.plib.toast(this.Swal,'error','Parola alanı boş bırakılamaz..',);
+                        document.querySelector('input[name="user_password"]').classList.add('is-invalid');
+                        return false;
+                    }
+
+                    //here check passwords
+                    
+                    if(fields?.user_password){
+                        
+                        if(fields?.user_password_check == undefined || fields?.user_password != fields?.user_password_check){
+                            this.navigationStore.toggle(false);
+                            this.plib.toast(this.Swal,'error','Parola alanları uyuşmamaktadır..',);
+                            document.querySelector('input[name="user_password"]').classList.add('is-invalid');
+                            document.querySelector('input[name="user_password_check"]').classList.add('is-invalid');
+                            return false;
+                        }
+                    }
+                    
                     const   envelope  = new FormData();
-                        envelope.append('data',JSON.stringify(Object.values(this.formData.dynamicF)?.[0]?.entities));
+                        envelope.append('data',JSON.stringify(fields));
+                        envelope.append('alldata',JSON.stringify(this.formData));
                     //register files
                     for(let key in this.formData.files){
                         envelope.append(key,this.formData.files[key]);

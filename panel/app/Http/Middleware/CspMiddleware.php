@@ -26,7 +26,7 @@ class CspMiddleware
         $policy = implode('; ', $csp);
        
         $response = $next($request);
-        $response->headers->set('Content-Security-Policy', $policy);
+        if(!env('IS_TEST')) $response->headers->set('Content-Security-Policy', $policy);
 
         // Blade'de kullanmak için nonce paylaş
         // 4. Response içeriğini değiştir (Blade'e nonce ekle)
