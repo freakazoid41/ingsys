@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\SystemController;
+use App\Http\Controllers\Api\V1\User\MeController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\PersonsController;
 use App\Http\Controllers\AuthController;
@@ -18,6 +19,8 @@ Route::prefix('v1')
         Route::get('/me', MeController::class);
     });*/
 Route::post('/v1/auth/login/{type?}',             [AuthController::class, 'loginUser'])->name('login-user')->middleware('throttle:2,1');
+// expose authenticated user endpoint for tests and API clients
+Route::middleware('auth')->get('/v1/me', MeController::class);
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::any('/v1/document/{id?}',                   [DocumentController::class, 'index']);
     Route::any('/v1/transaction/{id?}',                [DocumentController::class, 'transaction']);
