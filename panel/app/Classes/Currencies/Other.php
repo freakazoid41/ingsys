@@ -2,7 +2,7 @@
 
 namespace App\Classes\Currencies;
 
-class Tcmb
+class Other
 {
     /**
      * Create a new class instance.
