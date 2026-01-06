@@ -65,16 +65,16 @@ class Transactions extends Model
             'note'         => 'i.note',
             'created_at'   => 'i.created_at',
             'cur'          => 'cr.code  as  cur',
-            'trans_files'  => "(select json_group_array(
-                                            json_object(
+            'trans_files'  => "(select json_agg(
+                                            json_build_object(
                                                 'file',df.description
                                             )
                                         ) as data
                                     FROM document_files as df 
                                             inner join sys_options as sf on sf.id = df.type_id
                                         where df.relation_id = i.id and sf.op_key = 'op-doc-trans-file')  as  trans_files",
-            'conn_info'    => "(SELECT  json_group_array(
-                                            json_object(
+            'conn_info'    => "(SELECT  json_agg(
+                                            json_build_object(
                                                 'Key',se.entity_tag,
                                                 'Value' , se.entity_value
                                             )
@@ -95,8 +95,8 @@ class Transactions extends Model
                                                             end
                                                         )
                                             and d.id = i.rel_id)  as  conn_info",
-            'main_info'    => "(SELECT  json_group_array(
-                                            json_object(
+            'main_info'    => "(SELECT  json_agg(
+                                            json_build_object(
                                                 'Key',se.entity_tag,
                                                 'Value' , se.entity_value
                                             )

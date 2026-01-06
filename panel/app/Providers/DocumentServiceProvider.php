@@ -185,7 +185,7 @@ class DocumentServiceProvider extends ServiceProvider
                         sce.entity_tag,
                         (case
                             when sce.table_tag = 'document_files'
-                            then (  select  json_object(
+                            then (  select  json_build_object(
                                                 'description',description,
                                                 'id',df.id
                                             )
@@ -277,8 +277,8 @@ class DocumentServiceProvider extends ServiceProvider
     public function paymentInfo(){
         return [
             'success' => true,
-            'periods'  => DB::select("SELECT d.id,(SELECT      json_group_array(
-                                                            json_object(
+            'periods'  => DB::select("SELECT d.id,(SELECT      json_agg(
+                                                            json_build_object(
                                                                 'Key',se.entity_tag,
                                                                 'Value' , se.entity_value
                                                             )
@@ -289,8 +289,8 @@ class DocumentServiceProvider extends ServiceProvider
                                                     where so.conn_id = 0 and sp.op_key = 'op-doc-period-form'  and so.main_id = d.id)  as  main_attr from documents as d
                                                         inner join sys_options as sp on sp.id = d.type_id
                                                             where sp.op_key = 'op-doc-period'"),
-            'accounts' => DB::select("SELECT d.qnid as id,(SELECT      json_group_array(
-                                                            json_object(
+            'accounts' => DB::select("SELECT d.qnid as id,(SELECT      json_agg(
+                                                            json_build_object(
                                                                 'Key',se.entity_tag,
                                                                 'Value' , se.entity_value
                                                             )
@@ -302,8 +302,8 @@ class DocumentServiceProvider extends ServiceProvider
                                             from documents as d
                                                 inner join sys_options as sp on sp.id = d.type_id
                                             where sp.op_key = 'op-doc-target' and d.grp_code='".session('grp_code')."'"),
-            'flats'  => DB::select("SELECT d.qnid as id,(SELECT      json_group_array(
-                                                            json_object(
+            'flats'  => DB::select("SELECT d.qnid as id,(SELECT      json_agg(
+                                                            json_build_object(
                                                                 'Key',se.entity_tag,
                                                                 'Value' , se.entity_value
                                                             )

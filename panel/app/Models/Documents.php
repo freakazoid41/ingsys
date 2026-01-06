@@ -134,8 +134,8 @@ class Documents extends Model
             }
 
             if(isset($obj['filterKeys']['form-type'])){
-                $columns['main_attr'] = "(SELECT    json_group_array(
-                                                                json_object(
+                $columns['main_attr'] = "(SELECT    json_agg(
+                                                                json_build_object(
                                                                     'Key',se.entity_tag,
                                                                     'Value' , se.entity_value
                                                                 )
@@ -218,8 +218,8 @@ class Documents extends Model
                         break;
                     case 'form-type':
                         $value = $f['value'];
-                        $columns['main_attr'] = "(SELECT    json_group_array(
-                                                                json_object(
+                        $columns['main_attr'] = "(SELECT    json_agg(
+                                                                json_build_object(
                                                                     'Key',se.entity_tag,
                                                                     'Value' , se.entity_value
                                                                 )

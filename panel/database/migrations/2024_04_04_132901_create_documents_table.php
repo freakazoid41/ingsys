@@ -16,11 +16,7 @@ return new class extends Migration
        
         $db = DB::connection();
 
-        if ($db->getDriverName() !== 'sqlite') {
-            return;
-        }
-
-        $db->unprepared('PRAGMA cache_size = 0; ');
+        if($db->getDriverName() == 'sqlite') $db->unprepared('PRAGMA cache_size = 0; ');
 
         Schema::create('documents', function (Blueprint $table) {
             $table->id();

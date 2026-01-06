@@ -25,8 +25,8 @@ class ReportServiceProvider extends ServiceProvider
         $systemCur = Sys_options::where('code' , env('SYS_CUR'))->first();
         switch($type){
             case 'updatedstatus':
-                $sql = "select  (SELECT     json_group_array(
-                                                json_object(
+                $sql = "select  (SELECT     json_agg(
+                                                json_build_object(
                                                     'key',se.entity_tag,
                                                     'value' , se.entity_value
                                                 )
@@ -36,8 +36,8 @@ class ReportServiceProvider extends ServiceProvider
                                             inner join sys_options as sp on sp.id = so.type_id
                                         where so.conn_id = 0 and sp.op_key = 'op-doc-meeting-form'  and so.main_id = d.id)  as  main_attr,
                                 (select icon from sys_options where code = '".env('SYS_CUR')."') as cur,
-                                (select json_group_array(
-                                    json_object(
+                                (select json_agg(
+                                    json_build_object(
                                         'key'   , target_cur,
                                         'value' , amount
                                     )
@@ -139,8 +139,8 @@ class ReportServiceProvider extends ServiceProvider
                                             d.id = i.id and t.status = 1 and
                                             st.group_key in ('op-trans-payment')
                                 )  as  balance,
-                                (SELECT    json_group_array(
-                                                                json_object(
+                                (SELECT    json_agg(
+                                                                json_build_object(
                                                                     'Key',se.entity_tag,
                                                                     'Value' , se.entity_value
                                                                 )
@@ -164,8 +164,8 @@ class ReportServiceProvider extends ServiceProvider
                 //die;
                 break;
             case 'updatedmeeting':
-                $sql = "select  (SELECT     json_group_array(
-                                                json_object(
+                $sql = "select  (SELECT     json_agg(
+                                                json_build_object(
                                                     'key',se.entity_tag,
                                                     'value' , se.entity_value
                                                 )
@@ -175,8 +175,8 @@ class ReportServiceProvider extends ServiceProvider
                                             inner join sys_options as sp on sp.id = so.type_id
                                         where so.conn_id = 0 and sp.op_key = 'op-doc-meeting-form'  and so.main_id = d.id)  as  main_attr,
                                 
-                                (select json_group_array(
-                                    json_object(
+                                (select json_agg(
+                                    json_build_object(
                                         'key'   , target_cur,
                                         'value' , amount
                                     )
@@ -231,7 +231,7 @@ class ReportServiceProvider extends ServiceProvider
                                     st.title,
                                     t.note,
                                     t.id,
-                                    (SELECT  json_group_array(se.entity_value) as data
+                                    (SELECT  json_agg(se.entity_value) as data
                                     FROM sys_con_entities as se
                                         inner join sys_con_ops as so on so.id = se.conn_id 
                                         inner join sys_options as spt on spt.id = so.type_id
@@ -248,7 +248,7 @@ class ReportServiceProvider extends ServiceProvider
                                                             end
                                                         )
                                             and d.id = ".($type == 'income' ? 't.rel_id' : 't.target_id').")  as  main_info,
-                                    (SELECT  json_group_array(se.entity_value) as data
+                                    (SELECT  json_agg(se.entity_value) as data
                                     FROM sys_con_entities as se
                                         inner join sys_con_ops as so on so.id = se.conn_id 
                                         inner join sys_options as spt on spt.id = so.type_id
@@ -314,7 +314,7 @@ class ReportServiceProvider extends ServiceProvider
     public function contacts(){
         $list = [];
         $sql  = "SELECT     
-                            json_object(
+                            json_build_object(
                                 'key',se.entity_tag,
                                 'value' , se.entity_value
                             ) as main_attr,

@@ -68,7 +68,7 @@ class Document_files extends Model
             'relation'          => 'i.relation',
             'relation_detail'   => "CASE
                                         WHEN i.relation = 'transactions'
-                                        THEN (select    json_object(
+                                        THEN (select    json_build_object(
                                                             'type',sot.title,
                                                             'period',t.period) 
                                                     from transactions as t
