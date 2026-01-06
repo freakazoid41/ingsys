@@ -124,7 +124,7 @@ class ReportServiceProvider extends ServiceProvider
                                                 (select amount from currencies where target_cur = cur.code) * 
                                                 CAST(
                                                     (CASE
-                                                        when t.sign = 0 then '-' || t.amount
+                                                        when t.sign = 0 then -t.amount
                                                         else t.amount
                                                     end) as float 
                                                 )
@@ -221,67 +221,80 @@ class ReportServiceProvider extends ServiceProvider
                 }
             case 'income': // this month
             case 'outcome': // this month
-                $sql = "select      Sum( 
-                                        (select amount from currencies where target_cur = cur.code) * t.amount
-                                    ) as amount,
-                                    (select icon from sys_options where code = '".env('SYS_CUR')."') as cur,
-                                    t.amount as amount_pure,
-                                    cur.code as cur_pure,
-                                    st.op_key,
-                                    st.title,
-                                    t.note,
-                                    t.id,
-                                    (SELECT  json_agg(se.entity_value) as data
-                                    FROM sys_con_entities as se
-                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                        inner join sys_options as spt on spt.id = so.type_id
-                                        inner join documents as d on d.id = so.main_id
-                                        inner join sys_options as sp on sp.id = d.type_id
-                                    where       so.conn_id = 0 
-                                            and spt.op_key = (case 
-                                                                when sp.op_key = 'op-doc-flat' 
-                                                                then 'op-doc-flat-form' 
-                                                                when sp.op_key = 'op-doc-target' 
-                                                                then 'op-doc-target-form' 
-                                                                when sp.op_key = 'op-doc-period' 
-                                                                then 'op-doc-period-form'
-                                                            end
-                                                        )
-                                            and d.id = ".($type == 'income' ? 't.rel_id' : 't.target_id').")  as  main_info,
-                                    (SELECT  json_agg(se.entity_value) as data
-                                    FROM sys_con_entities as se
-                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                        inner join sys_options as spt on spt.id = so.type_id
-                                        inner join documents as d on d.id = so.main_id
-                                        inner join sys_options as sp on sp.id = d.type_id
-                                    where       so.conn_id = 0 
-                                            and spt.op_key = (case 
-                                                                when sp.op_key = 'op-doc-flat' 
-                                                                then 'op-doc-flat-form' 
-                                                                when sp.op_key = 'op-doc-target' 
-                                                                then 'op-doc-target-form' 
-                                                                when sp.op_key = 'op-doc-period' 
-                                                                then 'op-doc-period-form'
-                                                            end
-                                                        )
-                                            and d.id = ".($type == 'income' ? 't.target_id' : 't.rel_id').")  as  acc_info
-                                    from documents as d
-                        inner join sys_options as so on so.id = d.type_id
-                        inner join transactions as t on t.target_id = d.id
-                        inner join sys_options as cur on cur.id= t.cur_id
-                        inner join sys_options as st on st.id = t.type_id
+                $sql = "SELECT DISTINCT ON (t.id)  -- Better than DISTINCT on whole row
+                                t.id,
+                                SUM(
+                                    COALESCE(
+                                        (SELECT amount FROM currencies WHERE target_cur = cur.code),
+                                        1  -- fallback rate if no conversion
+                                    ) * t.amount
+                                ) OVER (PARTITION BY t.id) AS amount,  -- Sum per transaction (if multiple rows, adjust logic)
 
-                            where   so.op_key = 'op-doc-target' and t.status = 1 and 
-                                    t.sign = ".($type == 'income' ? '1' : '0')." and 
-                                    st.group_key in ('op-trans-payment') and
-                                    d.grp_code = '".session('grp_code')."'
-                                    ";
+                                (SELECT icon FROM sys_options WHERE code = 'TRY') AS cur,
+
+                                t.amount AS amount_pure,
+                                cur.code AS cur_pure,
+                                st.op_key,
+                                st.title,
+                                t.note,
+
+                                -- Main info (target document)
+                                main_info.data AS main_info,
+
+                                -- Account info (related document)
+                                acc_info.data AS acc_info
+
+                            FROM transactions t
+                            INNER JOIN documents d ON d.id = t.target_id
+                            INNER JOIN sys_options so ON so.id = d.type_id
+                            INNER JOIN sys_options cur ON cur.id = t.cur_id
+                            INNER JOIN sys_options st ON st.id = t.type_id
+
+                            -- Lateral join for main_info (target document attributes)
+                            LEFT JOIN LATERAL (
+                                SELECT json_agg(se.entity_value) AS data
+                                FROM sys_con_entities se
+                                INNER JOIN sys_con_ops sco ON sco.id = se.conn_id
+                                INNER JOIN sys_options spt ON spt.id = sco.type_id
+                                WHERE sco.conn_id = 0
+                                AND sco.main_id = ".($type == 'income' ? 't.rel_id' : 't.target_id')."
+                                AND spt.op_key = CASE so.op_key
+                                                    WHEN 'op-doc-flat'    THEN 'op-doc-flat-form'
+                                                    WHEN 'op-doc-target'  THEN 'op-doc-target-form'
+                                                    WHEN 'op-doc-period'  THEN 'op-doc-period-form'
+                                                END
+                            ) main_info ON TRUE
+
+                            -- Lateral join for acc_info (rel document attributes)
+                            LEFT JOIN LATERAL (
+                                SELECT json_agg(se.entity_value) AS data
+                                FROM sys_con_entities se
+                                INNER JOIN sys_con_ops sco ON sco.id = se.conn_id
+                                INNER JOIN sys_options spt ON spt.id = sco.type_id
+                                INNER JOIN documents rel_doc ON rel_doc.id = t.rel_id
+                                INNER JOIN sys_options rel_type ON rel_type.id = rel_doc.type_id
+                                WHERE sco.conn_id = 0
+                                AND sco.main_id = ".($type == 'income' ? 't.target_id' : 't.rel_id')."
+                                AND spt.op_key = CASE rel_type.op_key
+                                                    WHEN 'op-doc-flat'   THEN 'op-doc-flat-form'
+                                                    WHEN 'op-doc-target' THEN 'op-doc-target-form'
+                                                    WHEN 'op-doc-period' THEN 'op-doc-period-form'
+                                                    ELSE NULL
+                                                END
+                            ) acc_info ON TRUE
+
+                            WHERE so.op_key = 'op-doc-target'
+                            AND t.status = 1
+                            AND t.sign =  ".($type == 'income' ? '1' : '0')."
+                            AND st.group_key IN ('op-trans-payment')
+                            AND d.grp_code =  '".session('grp_code')."' ";
+                            
                 if($period != null){
-                    $data['list']  = DB::select($sql." and t.period >= '".$period[0]."' and t.period <= '".$period[1]."' GROUP BY t.id");
+                    $data['list']  = DB::select($sql." and t.period >= '".$period[0]."' and t.period <= '".$period[1]."' ");
                     $data['ratio'] = [];
                 }else{
-                    $data['list']  = DB::select($sql." and t.period = '".(date('Y-m'))."' GROUP BY t.id");
-                    $data['ratio'] = DB::select($sql." and t.period = '".(date("Y-m",strtotime("-1 month")))."' GROUP BY t.id");
+                    $data['list']  = DB::select($sql." and t.period = '".(date('Y-m'))."' ");
+                    $data['ratio'] = DB::select($sql." and t.period = '".(date("Y-m",strtotime("-1 month")))."' ");
                 }
                
                 $data['cur']  = $systemCur->icon;
@@ -367,7 +380,7 @@ class ReportServiceProvider extends ServiceProvider
                                 (select amount from currencies where target_cur = cur.code) * 
                                 CAST(
                                     (CASE
-                                        when t.sign = 0 then '-' || t.amount
+                                        when t.sign = 0 then -t.amount
                                         else t.amount
                                     end) as float 
                                 )
@@ -381,6 +394,7 @@ class ReportServiceProvider extends ServiceProvider
 
                     where   so.op_key = 'op-doc-target' and  t.status = 1 and
                             d.grp_code = '".session('grp_code')."' and
+                            t.period != '-' and
                             st.op_key in ('doc_acc_aidat','doc_acc_other','doc_acc_rent','doc_acc_sometinguntransable','doc_acc_fuel')";
 
 

@@ -47,13 +47,14 @@ class Documents extends Model
 
     static function tableList($obj){
         $columns = array(
+            'main_id'      => 'i.id  as  main_id',
             'id'           => 'i.qnid  as  id',
             'type'         => 'sp.op_key  as  type',
             'cur'          => " (select icon from sys_options where code = '".env('SYS_CUR')."')  as  cur ",
             'balance_pure' => " (select Sum(
                                             CAST(
                                                 (CASE
-                                                    when t.sign = 0 then '-' || t.amount
+                                                    when t.sign = 0 then -t.amount
                                                     else t.amount
                                                 end) as float 
                                             )
@@ -72,7 +73,7 @@ class Documents extends Model
                                                 (select amount from currencies where target_cur = cur.code) * 
                                                 CAST(
                                                     (CASE
-                                                        when t.sign = 0 then '-' || t.amount
+                                                        when t.sign = 0 then -t.amount
                                                         else t.amount
                                                     end) as float 
                                                 )
@@ -143,7 +144,7 @@ class Documents extends Model
                                                         FROM sys_con_entities as se
                                                             inner join sys_con_ops as so on so.id = se.conn_id 
                                                             inner join sys_options as sp on sp.id = so.type_id
-                                                        where so.conn_id = 0 and sp.op_key = '".$obj['filterKeys']['form-type']."'  and so.main_id = i.id)  as  main_attr";
+                                                        where so.conn_id = 0 and sp.op_key = '".$obj['filterKeys']['form-type']."'  and so.main_id = i.id)::text  as  main_attr";
             }
 
 
@@ -178,7 +179,7 @@ class Documents extends Model
                                         (select amount from currencies where target_cur = cur.code) * 
                                         CAST(
                                             (CASE
-                                                when t.sign = 0 then '-' || t.amount
+                                                when t.sign = 0 then -t.amount
                                                 else t.amount
                                             end) as float 
                                         )
@@ -198,7 +199,7 @@ class Documents extends Model
                         $columns['balance_pure'] = " (select      Sum(
                                         CAST(
                                             (CASE
-                                                when t.sign = 0 then '-' || t.amount
+                                                when t.sign = 0 then -t.amount
                                                 else t.amount
                                             end) as float 
                                         )
@@ -227,7 +228,7 @@ class Documents extends Model
                                                         FROM sys_con_entities as se
                                                             inner join sys_con_ops as so on so.id = se.conn_id 
                                                             inner join sys_options as sp on sp.id = so.type_id
-                                                        where so.conn_id = 0 and sp.op_key = '".$value."'  and so.main_id = i.id)  as  main_attr";
+                                                        where so.conn_id = 0 and sp.op_key = '".$value."'  and so.main_id = i.id)::text  as  main_attr";
                         break;
                     case 'transactions':
                         $sql = "  and (select    so.op_key
@@ -254,7 +255,7 @@ class Documents extends Model
                             }else{
                                 $where .= " $column like '%$value%' ";
                             }*/
-                            $where .= " $column like '%$value%' ";
+                            $where .= " $column ilike '%$value%' ";
                             $i++;
                         }
                         $where .= ' ) ';
@@ -265,7 +266,7 @@ class Documents extends Model
                             if($f['type'] != 'like'){
                                 $where .= " and $column = '".$f['value']."' ";
                             }else{
-                                $where .= " and $column like '%".$f['value']."%' ";
+                                $where .= " and $column ilike '%".$f['value']."%' ";
                             }
                         }
                         break;
@@ -278,6 +279,8 @@ class Documents extends Model
         //create query    
         $sql = 'select distinct '.implode(",", array_values($columns)).'
                     from documents as i '.$join.' ' . $where.$order.$limit ;
+
+            
         $result = DB::select($sql);
         //count query
         $sql = 'select count(distinct i.id) as row from documents as i '.$join.' '. $where;
