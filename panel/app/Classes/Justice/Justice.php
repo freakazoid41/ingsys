@@ -32,12 +32,30 @@ class Justice extends \App\Classes\Utils
 
     private function get_pdo() {
         $dsn = "pgsql:host={$this->pg_host};port={$this->pg_port};dbname={$this->pg_db}";
-        $pdo = new PDO($dsn, $this->pg_user, $this->pg_pass);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo = new \PDO($dsn, $this->pg_user, $this->pg_pass);
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         return $pdo;
     }
 
-    public function ask_ollama(string $system, string $context, string $question, string $model = 'llama3.1'): string {
+    private function get_cached_embedding(string $text): ?array {
+        $cache_key = 'embedding_' . md5($text);
+        $stmt = $this->pdo->prepare("SELECT embedding FROM embedding_cache WHERE cache_key = ? AND created_at > NOW() - INTERVAL '24 hours'");
+        $stmt->execute([$cache_key]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if ($result) {
+            return json_decode($result['embedding'], true);
+        }
+        return null;
+    }
+
+    private function cache_embedding(string $text, array $embedding): void {
+        $cache_key = 'embedding_' . md5($text);
+        $embedding_json = json_encode($embedding);
+        $stmt = $this->pdo->prepare("INSERT INTO embedding_cache (cache_key, text_content, embedding, created_at) VALUES (?, ?, ?, NOW()) ON CONFLICT (cache_key) DO UPDATE SET embedding = EXCLUDED.embedding, created_at = NOW()");
+        $stmt->execute([$cache_key, $text, $embedding_json]);
+    }
+
+    public function ask_ollama(string $system, string $context, string $question, string $model = 'llama3.1:8b'): string {
         $prompt = $system . "\n\nContext:\n" . $context . "\n\nQuestion:\n" . $question;
         $tmp = tempnam(sys_get_temp_dir(), 'ollama_prompt_');
         file_put_contents($tmp, $prompt);
@@ -72,7 +90,7 @@ class Justice extends \App\Classes\Utils
         $placeholders = str_repeat('?,', count($sources) - 1) . '?';
         $stmt = $this->pdo->prepare("SELECT content, metadata FROM vector_documents WHERE metadata->>'source' IN ($placeholders) ORDER BY metadata->>'source', (metadata->>'chunk_index')::int");
         $stmt->execute($sources);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function vector_query(array $query_embedding, int $top_k = 5): array {
@@ -85,7 +103,7 @@ class Justice extends \App\Classes\Utils
                 $stmt = $this->pdo->prepare("SELECT content, metadata FROM vector_documents ORDER BY embedding <=> ?::vector");
                 $stmt->execute([$vec_str]);
             }
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             fwrite(STDERR, "PG query failed: " . $e->getMessage() . "\n");
             return [];
@@ -128,61 +146,46 @@ class Justice extends \App\Classes\Utils
     }
 
     public function embed_texts_ollama(array $texts): array {
-        $variants_to_try = [];
-        $variants_to_try[] = ['type' => 'plain', 'payload' => implode("\n\n", array_values($texts))];
-        $variants_to_try[] = ['type' => 'json_array', 'payload' => json_encode(['texts' => array_values($texts)], JSON_UNESCAPED_UNICODE)];
-        $lines = array_map(function($t){ return json_encode(['text' => $t], JSON_UNESCAPED_UNICODE); }, array_values($texts));
-        $variants_to_try[] = ['type' => 'jsonl', 'payload' => implode("\n", $lines)];
-        $instr = "EMBEDDING_REQUEST: Return a JSON object with key \"embeddings\" containing an array of numeric vectors (one per input). No explanation.";
-        $variants_to_try[] = ['type' => 'instr_plain', 'payload' => $instr . "\n\n" . implode("\n\n", array_values($texts))];
+        // Use the run command with nomic-embed-text model
+        $payload = 'EMBEDDING_REQUEST: Return a JSON object with key "embeddings" containing an array of numeric vectors (one per input). No explanation.' . "\n\n" . json_encode(['texts' => array_values($texts)], JSON_UNESCAPED_UNICODE);
+        $tmp = tempnam(sys_get_temp_dir(), 'ollama_embed_');
+        file_put_contents($tmp, $payload);
 
-        $last_out = '';
-        foreach ($variants_to_try as $v) {
-            $tmp = tempnam(sys_get_temp_dir(), 'ollama_embed_');
-            file_put_contents($tmp, $v['payload']);
-            $cmds = [
-                'ollama embed ' . escapeshellarg($this->ollama_embed_model) . ' < ' . escapeshellarg($tmp) . ' 2>&1',
-                'ollama embed --model ' . escapeshellarg($this->ollama_embed_model) . ' < ' . escapeshellarg($tmp) . ' 2>&1',
-                'ollama run ' . escapeshellarg($this->ollama_embed_model) . ' < ' . escapeshellarg($tmp) . ' 2>&1',
-            ];
-            foreach ($cmds as $cmd) {
-                $out = shell_exec($cmd);
-                if ($out === null) continue;
-                $last_out = $out;
-                $clean = preg_replace('/\x1B\[[0-9;]*[A-Za-z]/u', '', $out);
-                $clean = preg_replace('/^\xEF\xBB\xBF/u', '', $clean);
-                $clean = preg_replace('/^```(?:json)?\s*/u', '', $clean);
-                $clean = preg_replace('/\s*```$/u', '', $clean);
-                $clean = trim($clean);
-                $firstBrace = strpos($clean, '{');
-                $firstBracket = strpos($clean, '[');
-                if ($firstBrace !== false) $clean = substr($clean, $firstBrace);
-                elseif ($firstBracket !== false) $clean = substr($clean, $firstBracket);
+        $cmd = 'ollama run ' . escapeshellarg($this->ollama_embed_model) . ' < ' . escapeshellarg($tmp) . ' 2>&1';
+        $out = shell_exec($cmd);
+
+        if ($out !== null) {
+            $clean = preg_replace('/\x1B\[[0-9;]*[A-Za-z]/u', '', $out);
+            $clean = trim($clean);
+
+            // Try to parse as JSON first
+            $dec = json_decode($clean, true);
+            if (json_last_error() === JSON_ERROR_NONE && isset($dec['embeddings']) && is_array($dec['embeddings'])) {
+                @unlink($tmp);
+                return $dec['embeddings'];
+            }
+
+            // If not JSON, try to parse as direct array output
+            if (preg_match('/^\[[\s\S]*\]$/', $clean)) {
                 $dec = json_decode($clean, true);
-                if (json_last_error() === JSON_ERROR_NONE && isset($dec['embeddings']) && is_array($dec['embeddings'])) {
+                if (json_last_error() === JSON_ERROR_NONE && is_array($dec)) {
                     @unlink($tmp);
-                    return $dec['embeddings'];
-                } elseif (json_last_error() === JSON_ERROR_NONE && is_array($dec) && count($dec) > 0 && is_numeric($dec[0] ?? null)) {
+                    return [$dec]; // Single embedding
+                }
+            }
+
+            // Try to extract array from mixed output
+            if (preg_match('/\[[\d\.\-\,\s]+\]/', $clean, $matches)) {
+                $dec = json_decode($matches[0], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($dec)) {
                     @unlink($tmp);
                     return [$dec];
                 }
-                if (preg_match('/"embeddings"\s*:\s*(\[[\s\S]*\])/i', $clean, $m)) {
-                    $try = '{"embeddings":' . $m[1] . '}';
-                    $dec2 = json_decode($try, true);
-                    if (json_last_error() === JSON_ERROR_NONE && isset($dec2['embeddings'])) {
-                        @unlink($tmp);
-                        return $dec2['embeddings'];
-                    }
-                }
             }
-            @unlink($tmp);
         }
-        if ($last_out !== '') {
-            fwrite(STDERR, "Could not parse embeddings from ollama output. Last raw output:\n" . $last_out . "\n");
-        } else {
-            fwrite(STDERR, "ollama did not return any output for embedding attempts.\n");
-        }
-        return [];
+
+        @unlink($tmp);
+        return []; // Return empty to trigger fallback
     }
 
     public function embed_texts_local(array $texts): array {
@@ -208,8 +211,39 @@ class Justice extends \App\Classes\Utils
         return $out;
     }
 
+    public function save_message(string $session_id, string $role, string $content): bool {
+        try {
+            $stmt = $this->pdo->prepare("INSERT INTO conversations (session_id, role, content, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
+            return $stmt->execute([$session_id, $role, $content]);
+        } catch (Exception $e) {
+            fwrite(STDERR, "Failed to save message: " . $e->getMessage() . "\n");
+            return false;
+        }
+    }
+
+    public function get_conversation_history(string $session_id, int $limit = 10): array {
+        try {
+            $stmt = $this->pdo->prepare("SELECT role, content FROM conversations WHERE session_id = ? ORDER BY created_at ASC LIMIT ?");
+            $stmt->execute([$session_id, $limit]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            fwrite(STDERR, "Failed to load conversation history: " . $e->getMessage() . "\n");
+            return [];
+        }
+    }
+
+    public function reset_conversation(string $session_id): bool {
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM conversations WHERE session_id = ?");
+            return $stmt->execute([$session_id]);
+        } catch (Exception $e) {
+            fwrite(STDERR, "Failed to reset conversation: " . $e->getMessage() . "\n");
+            return false;
+        }
+    }
+
     public function insert_documents(): void {
-        $mdDir = __DIR__ . DIRECTORY_SEPARATOR . 'files_md';
+        $mdDir = public_path('aidocuments');
        
         $files = array_values(array_filter(scandir($mdDir), function($f) use ($mdDir) {
             if (in_array($f, ['.', '..'])) return false;
@@ -258,21 +292,66 @@ class Justice extends \App\Classes\Utils
        
     }
 
-    public function answer_question(string $question): void {
-        $system = "You are an expert research assistant will analyze, correlate, and extract relevant information from the given context and answer questions asked by the user. Your output should be precise and accurate. Include references to the sources (headers,meta data including date or number ,file names) where the information comes from, and mention any unique codes, IDs, or metadata from the source labels if relevant. Provide the answer in natural language, not JSON also you always answer with question's local language while returning answer.Do not forget to mention the source of the information in your answer.";
+    public function answer_question(string $question, string $session_id = null): void {
+        // Detect question language and enforce response language
+        $language_instruction = " IMPORTANT : detect the language of the question and respond in the same language.";
 
-        $question_embedding_arr = $this->embed_texts_ollama([$question]);
-        if (count($question_embedding_arr) === 0) {
-            fwrite(STDOUT, "Ollama failed to embed question; using local fallback.\n");
-            $question_embedding_arr = $this->embed_texts_local([$question]);
-            if (count($question_embedding_arr) === 0) {
-                fwrite(STDERR, "Failed to produce embedding for the question even with local fallback.\n");
-                return;
+        $system = "You are an expert research assistant engaged in a conversation with a user. You must maintain context from the previous conversation and answer questions based on both the conversation history and the provided document context.
+
+            $language_instruction
+
+            IMPORTANT: When answering follow-up questions, reference and build upon what was discussed previously in the conversation. Do not ignore the conversation history.
+
+            IMPORTANT: For each answer, you must start giving information with origin,id,Ülke,Karar tarihi, Karar numarası then Include references to the sources (headers,karar numarası , ülke,karar tarihi,meta data including date or number ,file names,origin,date) where the information comes from, and mention any unique codes, IDs,origin,date, or metadata from the source labels if relevant.
+        Provide the answer in natural language, not JSON. Do not forget to mention the source of the information in your answer.";
+
+        // Load conversation history if session_id is provided (limit to last 5 messages for performance)
+        $conversation_context = "";
+        $enhanced_question = $question;
+        if ($session_id) {
+            $history = $this->get_conversation_history($session_id, 5); // Limit to 5 recent messages
+            if (!empty($history)) {
+                $conversation_context = "\n\nPrevious conversation:\n";
+                foreach ($history as $msg) {
+                    $role = $msg['role'] === 'user' ? 'User' : 'Assistant';
+                    // Truncate long messages to keep context manageable
+                    $content = strlen($msg['content']) > 500 ? substr($msg['content'], 0, 500) . '...' : $msg['content'];
+                    $conversation_context .= "$role: " . $content . "\n";
+                }
+                $conversation_context .= "\n";
+
+                // Create a more concise enhanced question
+                $last_assistant_msg = '';
+                foreach (array_reverse($history) as $msg) {
+                    if ($msg['role'] === 'assistant') {
+                        $last_assistant_msg = substr($msg['content'], 0, 200);
+                        break;
+                    }
+                }
+                if ($last_assistant_msg) {
+                    $enhanced_question = "Continuing our conversation about: " . $last_assistant_msg . ". Now: " . $question;
+                }
             }
+        }
+
+        $question_embedding_arr = $this->get_cached_embedding($question);
+        if ($question_embedding_arr === null) {
+            $question_embedding_arr = $this->embed_texts_ollama([$question]);
+            if (count($question_embedding_arr) === 0) {
+                fwrite(STDOUT, "Ollama failed to embed question; using local fallback.\n");
+                $question_embedding_arr = $this->embed_texts_local([$question]);
+                if (count($question_embedding_arr) === 0) {
+                    fwrite(STDERR, "Failed to produce embedding for the question even with local fallback.\n");
+                    return;
+                }
+            }
+            $this->cache_embedding($question, $question_embedding_arr[0]);
+        } else {
+            $question_embedding_arr = [$question_embedding_arr];
         }
         $question_embedding = $question_embedding_arr[0];
 
-        $retrieved = $this->vector_query($question_embedding, $this->top_k);
+        $retrieved = $this->vector_query($question_embedding, $this->top_k); 
 
         // Extract unique sources from retrieved documents
         $sources = [];
@@ -307,14 +386,22 @@ class Justice extends \App\Classes\Utils
 
         $context = implode("\n\n---\n\n", $context_parts);
 
-        $result = $this->ask_ollama($system, $context, $question);
+        $full_context = $conversation_context . $context;
+
+        $result = $this->ask_ollama($system, $full_context, $enhanced_question);
 
         echo $result . "\n";
+
+        // Save to conversation history if session_id is provided
+        if ($session_id) {
+            $this->save_message($session_id, 'user', $question);
+            $this->save_message($session_id, 'assistant', $result);
+        }
     }
 
-    public function process_documents_and_answer(string $question): void {
+    public function process_documents_and_answer(string $question, string $session_id = null): void {
         $this->insert_documents();
-        $this->answer_question($question);
+        $this->answer_question($question, $session_id);
     }
 
     
