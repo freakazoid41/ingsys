@@ -36,18 +36,6 @@ class DocumentController extends Controller
                     'success' => !empty($res),
                     'data' => $res,
                 ];
-                /*$res = [];
-                if($id != 0){
-                    $res = $model::where('id',$id)->first();
-                }else{
-                    $res = $model::all();
-                }
-				$res = $res->toarray();
-                //get request for data getting
-                $response = [
-                    'success' => !empty($res),
-                    'data' => $res,
-                ];*/
                 break;
             case "POST":
                 $req = $request->all();
@@ -65,8 +53,14 @@ class DocumentController extends Controller
                     //not working on apache server
                     $data = parsePut();
                 }
+
+                $files = $request->files->all();
+                if(empty($files)){
+                    //not working on apache server
+                    $files = $_FILES;
+                }
                 
-                $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
+                $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$files);
 
                 $response = [
                     'success' => $res['id'] > 0,
