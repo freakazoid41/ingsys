@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Providers\ReportServiceProvider;
 use App\Providers\DocumentServiceProvider;
 use Illuminate\Http\Request;
-use App\Models\Documents;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -36,18 +36,6 @@ class DocumentController extends Controller
                     'success' => !empty($res),
                     'data' => $res,
                 ];
-                /*$res = [];
-                if($id != 0){
-                    $res = $model::where('id',$id)->first();
-                }else{
-                    $res = $model::all();
-                }
-				$res = $res->toarray();
-                //get request for data getting
-                $response = [
-                    'success' => !empty($res),
-                    'data' => $res,
-                ];*/
                 break;
             case "POST":
                 $req = $request->all();
@@ -59,9 +47,20 @@ class DocumentController extends Controller
                 ];
                 break;
             case "PUT":
-                $data = parsePut();
+                //normally we have a middleware to parse PUT multipart data but in case it fails we fallback here with custom helper
+                $data = $request->all();
+                if(empty($data)){
+                    //not working on apache server
+                    $data = parsePut();
+                }
+
+                $files = $request->files->all();
+                if(empty($files)){
+                    //not working on apache server
+                    $files = $_FILES;
+                }
                 
-                $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
+                $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$files);
 
                 $response = [
                     'success' => $res['id'] > 0,
@@ -169,27 +168,31 @@ class DocumentController extends Controller
         }
     }
 
-    public function checkUniqueLink(Request $request){
-        $data = (new Documents())->tableList(['filter' => [
-                [
-                    'key'   => 'form-type',
-                    'type'  => '=',
-                    'value' => 'op-doc-link-form'
-                ],[
-                    'key'   => 'type',
-                    'type'  => '=',
-                    'value' => 'op-doc-link'
-                ],[
-                    'key'   => 'short_link',
-                    'type'  => '=',
-                    'value' => $request->get('key')
-                ]
-            ]
-        ])['data'] ?? [];
+    public function getAparments(){
+        return (new ReportServiceProvider())->getAparments();
+    }
 
-        return [
-            'success' => empty($data)
-        ];
+    public function setAparments(Request $request){
+        $validateUser = Validator::make($request->all(),[
+            'title'     => 'required',
+        ]);
+
+        if(session('type_key') != 'op-pert-admin' ) return response()->json([
+            'success' => false,
+            'msg'     => 'not valid for system user...',
+        ],403);
+
+        if($validateUser->fails()){
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing Parameters',
+                'error'   => $validateUser->errors()
+            ],401);
+        }else{
+            return (new DocumentServiceProvider())->setAparments($request->all());
+        }
+
+        
     }
 
 }
