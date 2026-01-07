@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Upload;
 use Illuminate\Support\Facades\Validator;
+use Riverline\MultiPartParser\StreamedPart;
 
 
 class DocumentController extends Controller
@@ -64,7 +65,6 @@ class DocumentController extends Controller
 
                 require 'vendor/autoload.php';
 
-use Riverline\MultiPartParser\StreamedPart;
 
 $rawBody = file_get_contents('php://input');
 
