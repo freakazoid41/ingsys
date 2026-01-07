@@ -60,6 +60,8 @@ class DocumentController extends Controller
                 break;
             case "PUT":
                 $data = parsePut();
+                 print_r($data);
+                die;
                 $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
 
                 $response = [
