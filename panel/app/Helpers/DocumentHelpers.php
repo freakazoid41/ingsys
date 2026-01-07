@@ -487,8 +487,6 @@ if(!function_exists('uploadFile')){
                     $file,
                     $filename
                 );
-                var_dump($rsp);
-                die;
                 $enc = new EncryptionProvider();
                 return [
                     'data' =>$enc->encrypt($filename,'pickle'),
@@ -534,8 +532,6 @@ if(!function_exists('uploadFile')){
     function addFileToDb($f,$tag,$rowId = 0,$reletion = '-',$reletion_id = '0',$logMessage = ''){
          
         $fileRsp = uploadFile($f);
-        print_r($fileRsp);
-        die;
         if($fileRsp['success']){
            
             //get file type id
