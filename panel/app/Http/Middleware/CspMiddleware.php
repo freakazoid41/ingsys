@@ -11,8 +11,7 @@ class CspMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $response = $next($request);
-        /*$nonce = base64_encode(random_bytes(16));
+        $nonce = base64_encode(random_bytes(16));
 
         // Sadece kendi domain + nonce ile script izin ver
         $csp = [
@@ -41,7 +40,7 @@ class CspMiddleware
             $content = str_replace("<script", '<script nonce="'.$nonce.'" ', $content);
 
             $response->setContent($content);
-        }*/
+        }
 
         // 5. Request'e de ekle (gerekirse)
         //$request->attributes->set('csp_nonce', $nonce);

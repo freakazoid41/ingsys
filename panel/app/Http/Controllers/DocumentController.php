@@ -59,27 +59,6 @@ class DocumentController extends Controller
                 ];
                 break;
             case "PUT":
-
-                error_reporting(E_ALL);
-                ini_set('display_errors', 1);
-
-                echo "Method: " . $_SERVER['REQUEST_METHOD'] . "\n";
-                echo "Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'none') . "\n";
-                echo "Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'none') . "\n";
-                echo "Raw body length: " . strlen(file_get_contents('php://input')) . "\n";  // Should be >0
-
-                // Try parsing
-                try {
-                    [$fields, $files] = request_parse_body();
-                    var_dump($fields, $files);
-                } catch (RequestParseBodyException $e) {
-                    echo "Parsing error: " . $e->getMessage();
-                }
-                
-
-                die;
-
-
                 $data = parsePut();
                 
                 $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
