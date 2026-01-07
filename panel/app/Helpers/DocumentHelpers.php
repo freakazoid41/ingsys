@@ -477,18 +477,25 @@ if(!function_exists('uploadFile')){
         try{
             //check file size and type (40 mb)
             if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['heic','jpg','png','jpeg','pdf','xls','xlsx']) ){
-                $extension = strtolower($file->getClientOriginalExtension());
-                if($extension === 'heic'){
-                    // Convert HEIC to JPEG
-                    $image = \Intervention\Image\Facades\Image::make($file->getRealPath());
-                    $image->encode('jpg', 90);
-                    $fileContent = $image->getEncoded();
-                    $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.jpg';
-                    $rsp = Illuminate\Support\Facades\Storage::disk('public')->put('documents/'.$filename, $fileContent);
-                }else{
-                    $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
-                    $rsp = Illuminate\Support\Facades\Storage::disk('public')->put('documents/'.$filename, file_get_contents($file->getRealPath()));
+                $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
+                try {
+                    $rsp = Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
+                        'documents',
+                        $file,
+                        $filename
+                    );
+                    // Remove debug print_r and die to allow proper function return
+                    // print_r($rsp); die;
+                } catch (\Exception $e) {
+                    print_r($e->getMessage());
+                    die;
+                    return [
+                        'msg' => 'File upload failed: ' . $e->getMessage(),
+                        'success' => false
+                    ];
                 }
+                print_r($rsp);
+                die;
                 $enc = new EncryptionProvider();
                 return [
                     'data' =>$enc->encrypt($filename,'pickle'),
@@ -532,6 +539,8 @@ if(!function_exists('uploadFile')){
     function addFileToDb($f,$tag,$rowId = 0,$reletion = '-',$reletion_id = '0',$logMessage = ''){
          
         $fileRsp = uploadFile($f);
+        print_r($fileRsp);
+        die;
         if($fileRsp['success']){
            
             //get file type id
