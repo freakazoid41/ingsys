@@ -478,13 +478,14 @@ if(!function_exists('uploadFile')){
             //check file size and type (40 mb)
             if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['heic','jpg','png','jpeg','pdf','xls','xlsx']) ){
                 $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
-                var_dump($file);
-                die;
+                
                 $rsp = Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
                     'documents',
                     $file,
                     $filename
                 );
+                var_dump($rsp);
+                die;
                 $enc = new EncryptionProvider();
                 return [
                     'data' =>$enc->encrypt($filename,'pickle'),
@@ -498,6 +499,8 @@ if(!function_exists('uploadFile')){
                 ];
             }
         }catch(Exception $e){
+            var_dump($e->getMessage());
+                die;
             return [
                 'msg'     => $e->getMessage(),
                 'success' => false
