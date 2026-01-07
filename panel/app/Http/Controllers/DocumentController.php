@@ -47,9 +47,7 @@ class DocumentController extends Controller
                 ];
                 break;
             case "PUT":
-                \print_r($request->all());
-                die;
-                $data = parsePut();
+                $data = $request->all();
                 
                 $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
 
