@@ -16,13 +16,13 @@ Artisan::command('ai:test {--chat : Enable conversation mode} {--session= : Sess
     $chatMode = $this->option('chat');
     $sessionId = $this->option('session');
     $reset = $this->option('reset');
-
+    
     if (!$question) {
         $question = <<<'Q'
-        ABC-67890 hakkında detaylı bilgi ver böyle konfor özelliklerinden falan bahset.
+        bana toyota hakkında bilgi ver
         Q;
     }
-
+    //$lib->insert_documents();
     if ($reset && $sessionId) {
         $lib->reset_conversation($sessionId);
         $this->info("Conversation reset for session: $sessionId");
@@ -36,8 +36,8 @@ Artisan::command('ai:test {--chat : Enable conversation mode} {--session= : Sess
 
     if ($chatMode) {
         $this->info("Chat mode enabled with session: $sessionId");
-        $lib->answer_question($question, $sessionId);
+        print_r($lib->answer_question($question, $sessionId));
     } else {
-        $lib->answer_question($question);
+        print_r($lib->answer_question($question));
     }
 })->describe('AI question answering with optional conversation mode');

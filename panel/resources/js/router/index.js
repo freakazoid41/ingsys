@@ -34,6 +34,7 @@ import InventoryList from '@/pages/inventory/InventoryList.vue'
 import InventoryForm from '@/pages/inventory/InventoryForm.vue'
 
 import DocumentList from '@/pages/documentFiles/DocumentList.vue'
+import AiFront from '@/pages//aifront/AiFront.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -63,7 +64,8 @@ const router = createRouter({
         { path: "/panel/projects", name: 'ProjectList', component: ProjectList },
         { path: "/panel/projects/form/:id?", name: 'ProjectForm', component: ProjectForm },
         { path: "/panel/inventory", name: 'InventoryList', component: InventoryList },
-        { path: "/panel/inventory/form/:id?", name: 'InventoryForm', component: InventoryForm }
+        { path: "/panel/inventory/form/:id?", name: 'InventoryForm', component: InventoryForm },
+        { path: "/panel/workspace", name: 'WorkSpace', component: AiFront }
         /*{ path: "/panel/documents", name: 'DocumentList', component: DocumentList },
         { path: "/panel/documents/form/:id?", name: 'Documents', component: Documents },*/
 
