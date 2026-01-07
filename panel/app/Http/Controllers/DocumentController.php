@@ -59,6 +59,21 @@ class DocumentController extends Controller
                 ];
                 break;
             case "PUT":
+
+                error_reporting(E_ALL);
+                ini_set('display_errors', 1);
+
+                var_dump($_SERVER['REQUEST_METHOD']);
+                var_dump($_SERVER['CONTENT_TYPE'] ?? 'none');
+                var_dump($_SERVER['CONTENT_LENGTH'] ?? 'none');
+                var_dump(file_get_contents('php://input'));
+
+                // Log headers for more insight
+                file_put_contents('debug.log', print_r(getallheaders(), true));
+
+                die;
+
+
                 $data = parsePut();
                 
                 $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
