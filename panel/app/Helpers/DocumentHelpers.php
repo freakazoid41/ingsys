@@ -356,7 +356,8 @@ if(!function_exists('parsePut')){
 
         /* Close the streams */
         fclose($putdata);
-
+        print_r($raw_data);
+        die;
         // Fetch content and determine boundary
         $boundary = substr($raw_data, 0, strpos($raw_data, "\r\n"));
 
