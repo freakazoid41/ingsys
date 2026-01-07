@@ -67,7 +67,7 @@ class DocumentController extends Controller
                 var_dump($_SERVER['CONTENT_TYPE'] ?? 'none');
                 var_dump($_SERVER['CONTENT_LENGTH'] ?? 'none');
                 var_dump(file_get_contents('php://input'));
-
+                \var_dump($_POST);
                 // Log headers for more insight
                 file_put_contents('debug.log', print_r(getallheaders(), true));
 
