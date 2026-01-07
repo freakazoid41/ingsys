@@ -344,7 +344,8 @@ if(!function_exists('parsePut')){
 
         /* PUT data comes in on the stdin stream */
         $putdata = fopen("php://input", "r");
-
+        print_r("php://input");
+        die;
         /* Open a file for writing */
         // $fp = fopen("myputfile.ext", "w");
 
