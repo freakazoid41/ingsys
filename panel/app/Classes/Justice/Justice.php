@@ -120,6 +120,7 @@ class Justice extends \App\Classes\Utils
         try {
             $this->pdo->exec("CREATE EXTENSION IF NOT EXISTS vector");
             $this->pdo->exec("CREATE TABLE IF NOT EXISTS vector_documents (id SERIAL PRIMARY KEY, content TEXT,origin TEXT,year_code TEXT, embedding VECTOR(" . intval($this->local_embed_dim) . "), metadata JSONB)");
+            
             $this->pdo->beginTransaction();
 
             $batchSize = max(1, intval(env('PG_INSERT_BATCH', 256)));
