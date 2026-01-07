@@ -346,7 +346,7 @@ if(!function_exists('parsePut')){
         $putdata = fopen("php://input", "r");
         /* Open a file for writing */
         // $fp = fopen("myputfile.ext", "w");
-
+       
         $raw_data = '';
 
         /* Read the data 1 KB at a time
