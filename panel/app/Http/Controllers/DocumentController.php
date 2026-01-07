@@ -53,8 +53,14 @@ class DocumentController extends Controller
                     //not working on apache server
                     $data = parsePut();
                 }
+
+                $files = $request->files->all();
+                if(empty($files)){
+                    //not working on apache server
+                    $files = $_FILES;
+                }
                 
-                $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
+                $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$files);
 
                 $response = [
                     'success' => $res['id'] > 0,
