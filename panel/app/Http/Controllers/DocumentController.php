@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Upload;
 use Illuminate\Support\Facades\Validator;
-use Riverline\MultiPartParser\StreamedPart;
 
 
 class DocumentController extends Controller
@@ -37,18 +36,6 @@ class DocumentController extends Controller
                     'success' => !empty($res),
                     'data' => $res,
                 ];
-                /*$res = [];
-                if($id != 0){
-                    $res = $model::where('id',$id)->first();
-                }else{
-                    $res = $model::all();
-                }
-				$res = $res->toarray();
-                //get request for data getting
-                $response = [
-                    'success' => !empty($res),
-                    'data' => $res,
-                ];*/
                 break;
             case "POST":
                 $req = $request->all();
@@ -60,17 +47,7 @@ class DocumentController extends Controller
                 ];
                 break;
             case "PUT":
-                error_reporting(E_ALL);
-                ini_set('display_errors', 1);
-
-                
-
-
-
-                $parser = new StreamedParser();
-                $document = $parser->parse('data://' . $contentType . ',' . $rawBody);  
-                print_r($document);
-
+                \print_r($request->all());
                 die;
                 $data = parsePut();
                 
