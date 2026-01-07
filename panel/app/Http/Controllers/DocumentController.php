@@ -36,18 +36,6 @@ class DocumentController extends Controller
                     'success' => !empty($res),
                     'data' => $res,
                 ];
-                /*$res = [];
-                if($id != 0){
-                    $res = $model::where('id',$id)->first();
-                }else{
-                    $res = $model::all();
-                }
-				$res = $res->toarray();
-                //get request for data getting
-                $response = [
-                    'success' => !empty($res),
-                    'data' => $res,
-                ];*/
                 break;
             case "POST":
                 $req = $request->all();
@@ -59,7 +47,13 @@ class DocumentController extends Controller
                 ];
                 break;
             case "PUT":
-                $data = parsePut();
+                //normally we have a middleware to parse PUT multipart data but in case it fails we fallback here with custom helper
+                $data = $request->all();
+                if(empty($data)){
+                    //not working on apache server
+                    $data = parsePut();
+                }
+                
                 $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
 
                 $response = [
