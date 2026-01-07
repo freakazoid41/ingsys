@@ -63,13 +63,8 @@ class DocumentController extends Controller
                 error_reporting(E_ALL);
                 ini_set('display_errors', 1);
 
-                var_dump($_SERVER['REQUEST_METHOD']);
-                var_dump($_SERVER['CONTENT_TYPE'] ?? 'none');
-                var_dump($_SERVER['CONTENT_LENGTH'] ?? 'none');
-                var_dump(file_get_contents('php://input'));
-                \var_dump(file_get_contents('php://stdin'));
-                // Log headers for more insight
-                file_put_contents('debug.log', print_r(getallheaders(), true));
+                var_dump(request_parse_body());
+                
 
                 die;
 
