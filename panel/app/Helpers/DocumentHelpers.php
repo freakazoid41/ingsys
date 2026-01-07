@@ -343,19 +343,19 @@ if(!function_exists('parsePut')){
         global $_PUT;
 
         /* PUT data comes in on the stdin stream */
-        $putdata = fopen("php://input", "r");
-        /* Open a file for writing */
-        // $fp = fopen("myputfile.ext", "w");
+        //$putdata = fopen("php://input", "r");
+        
        
-        $raw_data = '';
+       
+       $raw_data = file_get_contents("php://input");
 
         /* Read the data 1 KB at a time
         and write to the file */
-        while ($chunk = fread($putdata, 1024))
+        /*while ($chunk = fread($putdata, 1024))
             $raw_data .= $chunk;
 
-        /* Close the streams */
-        fclose($putdata);
+        
+        fclose($putdata);*/
         print_r($raw_data);
         die;
         // Fetch content and determine boundary
