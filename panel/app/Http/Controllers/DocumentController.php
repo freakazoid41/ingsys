@@ -66,11 +66,7 @@ class DocumentController extends Controller
                 
 
 
-$rawBody = file_get_contents('php://input');
 
-if (empty($rawBody)) {
-    die('Raw body empty – likely consumed early');
-}
 
 // Parse the streamed body
 $part = StreamedPart::parse(fopen('php://input', 'r'), $_SERVER['CONTENT_TYPE'] ?? '');
