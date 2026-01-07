@@ -22,7 +22,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             '*',
         ]);
-        $middleware->append(\App\Http\Middleware\CspMiddleware::class);
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {

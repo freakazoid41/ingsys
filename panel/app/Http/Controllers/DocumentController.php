@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Providers\ReportServiceProvider;
 use App\Providers\DocumentServiceProvider;
 use Illuminate\Http\Request;
 
