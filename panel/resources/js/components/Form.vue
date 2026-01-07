@@ -1856,3 +1856,4 @@
     <AppFab v-if="authStore.data.type=='admin'" btntype="saveBtn" :callback="formCallback"/>
     
 </template>
+
