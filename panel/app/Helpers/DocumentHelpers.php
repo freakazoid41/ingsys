@@ -477,12 +477,22 @@ if(!function_exists('uploadFile')){
         try{
             //check file size and type (40 mb)
             if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['heic','jpg','png','jpeg','pdf','xls','xlsx']) ){
-                $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
-                $rsp = Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
-                    'documents',
-                    $file,
-                    $filename
-                );
+                $extension = strtolower($file->getClientOriginalExtension());
+                if($extension === 'heic'){
+                    // Convert HEIC to JPEG
+                    $image = \Intervention\Image\Facades\Image::make($file->getRealPath());
+                    $image->encode('jpg', 90);
+                    $fileContent = $image->getEncoded();
+                    $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.jpg';
+                    $rsp = Illuminate\Support\Facades\Storage::disk('public')->put('documents/'.$filename, $fileContent);
+                }else{
+                    $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
+                    $rsp = Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
+                        'documents',
+                        $file,
+                        $filename
+                    );
+                }
                 print_r($rsp);
                 die;
                 $enc = new EncryptionProvider();
