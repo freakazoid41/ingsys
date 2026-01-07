@@ -34,8 +34,7 @@ class CspMiddleware
             $content = $response->getContent();
             
             // </head> öncesi nonce meta ekle
-            /*$meta = '<meta name="csp-nonce" content="' . $nonce . '">';
-            $content = preg_replace('/<\/head>/i', $meta . "\n</head>", $content, 1);*/
+           
             // <script> etiketlerine otomatik nonce ekle
             $content = str_replace("<style", '<style nonce="'.$nonce.'" ', $content);
             $content = str_replace("<script", '<script nonce="'.$nonce.'" ', $content);

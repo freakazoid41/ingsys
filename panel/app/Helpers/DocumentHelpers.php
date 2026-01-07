@@ -344,10 +344,9 @@ if(!function_exists('parsePut')){
 
         /* PUT data comes in on the stdin stream */
         $putdata = fopen("php://input", "r");
-
         /* Open a file for writing */
         // $fp = fopen("myputfile.ext", "w");
-
+       
         $raw_data = '';
 
         /* Read the data 1 KB at a time
@@ -357,7 +356,7 @@ if(!function_exists('parsePut')){
 
         /* Close the streams */
         fclose($putdata);
-
+        
         // Fetch content and determine boundary
         $boundary = substr($raw_data, 0, strpos($raw_data, "\r\n"));
 
@@ -475,15 +474,18 @@ if(!function_exists('uploadFile')){
     
     function uploadFile($file){
         try{
+            ini_set('upload_max_filesize', '50M'); 
+            ini_set('post_max_size', '50M');
+            ini_set('memory_limit', '128M');
             //check file size and type (40 mb)
             if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['heic','jpg','png','jpeg','pdf','xls','xlsx']) ){
                 $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
+                
                 $rsp = Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
                     'documents',
                     $file,
                     $filename
                 );
-                
                 $enc = new EncryptionProvider();
                 return [
                     'data' =>$enc->encrypt($filename,'pickle'),
@@ -497,6 +499,8 @@ if(!function_exists('uploadFile')){
                 ];
             }
         }catch(Exception $e){
+            var_dump($e->getMessage());
+                die;
             return [
                 'msg'     => $e->getMessage(),
                 'success' => false
