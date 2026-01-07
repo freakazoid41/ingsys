@@ -23,6 +23,7 @@ class ParsePutMultipart
                     // Merge into the request so $request->all(), $request->file() work
                     $request->merge($post);
                     $request->files->replace($files);  // Or use add() if replace not available
+                    $_FILES = $files; // Superglobal for compatibility
                 } catch (\Throwable $e) {
                     // Log or handle error
                 }
