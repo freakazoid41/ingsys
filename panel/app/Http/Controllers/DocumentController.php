@@ -55,9 +55,6 @@ class DocumentController extends Controller
                 }
 
                 $files = $request->files->all();
-                print_r($files);
-                print_r($_FILES);
-                die;
                 if(empty($files)){
                     //not working on apache server
                     $files = $_FILES;
