@@ -59,54 +59,21 @@ class DocumentController extends Controller
                 ];
                 break;
             case "PUT":
-                $raw = file_get_contents('php://input');  // Do this FIRST if stream is still available
+                error_reporting(E_ALL);
+                ini_set('display_errors', 1);
 
-if (strlen($raw) === 0) {
-    die('Raw body empty — something consumed it early');
-}
+                echo "Method: " . $_SERVER['REQUEST_METHOD'] . "\n";
+                echo "Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'none') . "\n";
+                echo "Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'none') . "\n";
+                echo "Raw body : ". file_get_contents('php://input') . "\n";  // Should be >0
 
-// Extract boundary from header
-$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-preg_match('/boundary=(.*)$/', $contentType, $matches);
-if (empty($matches[1])) {
-    die('Missing boundary');
-}
-$boundary = '--' . $matches[1];
-
-// Simple multipart parser (expand for full needs)
-$parts = explode($boundary, $raw);
-// Skip first and last empty/close parts
-array_shift($parts);
-array_pop($parts);
-
-$fields = [];
-$files = [];
-foreach ($parts as $part) {
-    if (trim($part) === '--') break;
-    // Split headers and body
-    [$headers, $body] = explode("\r\n\r\n", ltrim($part, "\r\n"), 2);
-    // Parse Content-Disposition
-    preg_match('/name="([^"]+)"/', $headers, $nameMatch);
-    $name = $nameMatch[1] ?? null;
-    if (preg_match('/filename="([^"]+)"/', $headers, $fileMatch)) {
-        // File part — save to temp
-        $filename = $fileMatch[1];
-        $tmpPath = tempnam(sys_get_temp_dir(), 'upload_');
-        file_put_contents($tmpPath, $body);
-        $files[$name] = [
-            'name' => $filename,
-            'tmp_name' => $tmpPath,
-            'size' => strlen($body),
-            'error' => UPLOAD_ERR_OK,
-        ];
-    } else {
-        // Text field
-        $fields[$name] = trim($body);
-    }
-}
-
-print_r($fields);
-print_r($files);
+                // Try parsing
+                try {
+                    [$fields, $files] = request_parse_body();
+                    var_dump($fields, $files);
+                } catch (RequestParseBodyException $e) {
+                    echo "Parsing error: " . $e->getMessage();
+                }
                 
 
                 die;
