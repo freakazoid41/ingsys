@@ -62,18 +62,41 @@ class DocumentController extends Controller
                 error_reporting(E_ALL);
                 ini_set('display_errors', 1);
 
-                echo "Method: " . $_SERVER['REQUEST_METHOD'] . "\n";
-                echo "Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'none') . "\n";
-                echo "Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'none') . "\n";
-                echo "Raw body : ". file_get_contents('php://input') . "\n";  // Should be >0
+                require 'vendor/autoload.php';
 
-                // Try parsing
-                try {
-                    [$fields, $files] = request_parse_body();
-                    var_dump($fields, $files);
-                } catch (RequestParseBodyException $e) {
-                    echo "Parsing error: " . $e->getMessage();
-                }
+use Riverline\MultiPartParser\StreamedPart;
+
+$rawBody = file_get_contents('php://input');
+
+if (empty($rawBody)) {
+    die('Raw body empty – likely consumed early');
+}
+
+// Parse the streamed body
+$part = StreamedPart::parse(fopen('php://input', 'r'), $_SERVER['CONTENT_TYPE'] ?? '');
+
+$fields = [];
+$files = [];
+
+foreach ($part->getParts() as $subPart) {
+    $name = $subPart->getFieldName();
+    if ($subPart->isFile()) {
+        $filename = $subPart->getFileName();
+        $tmpPath = tempnam(sys_get_temp_dir(), 'upload_');
+        file_put_contents($tmpPath, $subPart->getBody());
+        $files[$name] = [
+            'name' => $filename,
+            'tmp_name' => $tmpPath,
+            'size' => $subPart->getSize(),
+            'error' => UPLOAD_ERR_OK,
+        ];
+    } else {
+        $fields[$name] = $subPart->getBody();
+    }
+}
+
+print_r($fields);
+print_r($files);
                 
 
                 die;
