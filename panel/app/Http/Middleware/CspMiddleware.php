@@ -11,7 +11,8 @@ class CspMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $nonce = base64_encode(random_bytes(16));
+        $response = $next($request);
+        /*$nonce = base64_encode(random_bytes(16));
 
         // Sadece kendi domain + nonce ile script izin ver
         $csp = [
@@ -34,14 +35,13 @@ class CspMiddleware
             $content = $response->getContent();
             
             // </head> öncesi nonce meta ekle
-            /*$meta = '<meta name="csp-nonce" content="' . $nonce . '">';
-            $content = preg_replace('/<\/head>/i', $meta . "\n</head>", $content, 1);*/
+           
             // <script> etiketlerine otomatik nonce ekle
             $content = str_replace("<style", '<style nonce="'.$nonce.'" ', $content);
             $content = str_replace("<script", '<script nonce="'.$nonce.'" ', $content);
 
             $response->setContent($content);
-        }
+        }*/
 
         // 5. Request'e de ekle (gerekirse)
         //$request->attributes->set('csp_nonce', $nonce);
