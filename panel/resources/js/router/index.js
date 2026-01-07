@@ -65,7 +65,7 @@ const router = createRouter({
         { path: "/panel/projects/form/:id?", name: 'ProjectForm', component: ProjectForm },
         { path: "/panel/inventory", name: 'InventoryList', component: InventoryList },
         { path: "/panel/inventory/form/:id?", name: 'InventoryForm', component: InventoryForm },
-        { path: "/panel/workspace", name: 'WorkSpace', component: AiFront }
+        { path: "/panel/aigreet", name: 'AiGreet', component: AiFront }
         /*{ path: "/panel/documents", name: 'DocumentList', component: DocumentList },
         { path: "/panel/documents/form/:id?", name: 'Documents', component: Documents },*/
 
