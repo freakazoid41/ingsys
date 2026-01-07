@@ -475,6 +475,9 @@ if(!function_exists('uploadFile')){
     
     function uploadFile($file){
         try{
+            ini_set('upload_max_filesize', '50M'); 
+            ini_set('post_max_size', '50M');
+            ini_set('memory_limit', '128M');
             //check file size and type (40 mb)
             if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['heic','jpg','png','jpeg','pdf','xls','xlsx']) ){
                 $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
