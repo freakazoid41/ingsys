@@ -47,7 +47,12 @@ class DocumentController extends Controller
                 ];
                 break;
             case "PUT":
+                //normally we have a middleware to parse PUT multipart data but in case it fails we fallback here with custom helper
                 $data = $request->all();
+                if(empty($data)){
+                    //not working on apache server
+                    $data = parsePut();
+                }
                 
                 $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
 
