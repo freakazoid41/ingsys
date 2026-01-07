@@ -487,11 +487,7 @@ if(!function_exists('uploadFile')){
                     $rsp = Illuminate\Support\Facades\Storage::disk('public')->put('documents/'.$filename, $fileContent);
                 }else{
                     $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
-                    $rsp = Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
-                        'documents',
-                        $file,
-                        $filename
-                    );
+                    $rsp = Illuminate\Support\Facades\Storage::disk('public')->put('documents/'.$filename, file_get_contents($file->getRealPath()));
                 }
                 $enc = new EncryptionProvider();
                 return [
