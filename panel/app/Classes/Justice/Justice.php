@@ -34,23 +34,51 @@ class Justice extends \App\Classes\Utils
 
     private function get_pdo() {
         $dsn = "pgsql:host={$this->pg_host};port={$this->pg_port};dbname={$this->pg_db}";
-        $pdo = new \PDO($dsn, $this->pg_user, $this->pg_pass);
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo = new \PDO($dsn, $this->pg_user, $this->pg_pass, [
+            \PDO::ATTR_PERSISTENT => true,
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+        ]);
         return $pdo;
     }
 
     public function ask_ollama(string $system, string $context, string $question, string $model = 'llama3.1'): string {
+        // Validate inputs to prevent injection
+        if (empty($system) || empty($question)) {
+            return json_encode(['answer' => 'Invalid input', 'answerHtml' => 'Invalid input']);
+        }
+
         $prompt = $system . "\n\nContext:\n" . $context . "\n\nQuestion:\n" . $question;
-        $tmp = tempnam(sys_get_temp_dir(), 'ollama_prompt_');
-        file_put_contents($tmp, $prompt);
-        $cmd = 'ollama run ' . escapeshellarg($model) . ' < ' . escapeshellarg($tmp) . ' 2>&1';
-        $output = shell_exec($cmd);
-        @unlink($tmp);
-        if ($output === null) {
+
+        // Use HTTP API instead of shell_exec for security
+        $ollama_url = env('OLLAMA_URL', 'http://localhost:11434');
+        $timeout = intval(env('OLLAMA_TIMEOUT', 60));
+        $data = [
+            'model' => $model,
+            'prompt' => $prompt,
+            'stream' => false
+        ];
+
+        $ch = curl_init($ollama_url . '/api/generate');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout); // Timeout to prevent hanging
+
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($response === false || $http_code !== 200) {
             return json_encode(['answer' => '', 'answerHtml' => '']);
         }
 
-        $answer = trim($output);
+        $result = json_decode($response, true);
+        if (!isset($result['response'])) {
+            return json_encode(['answer' => '', 'answerHtml' => '']);
+        }
+
+        $answer = trim($result['response']);
 
         // Remove ANSI escape codes from the answer
         $answer = preg_replace('/\x1B\[[0-9;?]*[A-Za-z]/u', '', $answer);
@@ -159,19 +187,26 @@ class Justice extends \App\Classes\Utils
                 $stmt->execute([$vec_str]);
             }
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             fwrite(STDERR, "PG query failed: " . $e->getMessage() . "\n");
             return [];
         }
     }
 
     public function extract_metadata_from_file(string $file_path): array {
+        // Security: Prevent path traversal
+        $real_path = realpath($file_path);
+        $allowed_dir = realpath(public_path('aidocuments'));
+        if ($real_path === false || strpos($real_path, $allowed_dir) !== 0) {
+            return ['source' => basename($file_path)];
+        }
+
         $metadata = ['source' => basename($file_path)];
 
         
 
         // Extract from content: custom meta headers starting with **
-        $content = file_get_contents($file_path);
+        $content = file_get_contents($real_path);
         if ($content !== false) {
             $lines = explode("\n", $content);
             foreach ($lines as $line) {
@@ -201,84 +236,52 @@ class Justice extends \App\Classes\Utils
     }
 
     public function embed_texts_ollama(array $texts): array {
-        $variants_to_try = [];
-        $variants_to_try[] = ['type' => 'plain', 'payload' => implode("\n\n", array_values($texts))];
-        $variants_to_try[] = ['type' => 'json_array', 'payload' => json_encode(['texts' => array_values($texts)], JSON_UNESCAPED_UNICODE)];
-        $lines = array_map(function($t){ return json_encode(['text' => $t], JSON_UNESCAPED_UNICODE); }, array_values($texts));
-        $variants_to_try[] = ['type' => 'jsonl', 'payload' => implode("\n", $lines)];
-        $instr = "EMBEDDING_REQUEST: Return a JSON object with key \"embeddings\" containing an array of numeric vectors (one per input). No explanation.";
-        $variants_to_try[] = ['type' => 'instr_plain', 'payload' => $instr . "\n\n" . implode("\n\n", array_values($texts))];
+        if (empty($texts)) return [];
 
-        $last_out = '';
-        foreach ($variants_to_try as $v) {
-            $tmp = tempnam(sys_get_temp_dir(), 'ollama_embed_');
-            file_put_contents($tmp, $v['payload']);
-            $cmds = [
-                'ollama embed ' . escapeshellarg($this->ollama_embed_model) . ' < ' . escapeshellarg($tmp) . ' 2>&1',
-                'ollama embed --model ' . escapeshellarg($this->ollama_embed_model) . ' < ' . escapeshellarg($tmp) . ' 2>&1',
-                'ollama run ' . escapeshellarg($this->ollama_embed_model) . ' < ' . escapeshellarg($tmp) . ' 2>&1',
+        // Use HTTP API for security
+        $ollama_url = env('OLLAMA_URL', 'http://localhost:11434');
+        $timeout = intval(env('OLLAMA_TIMEOUT', 60));
+        $embeddings = [];
+        foreach ($texts as $text) {
+            $data = [
+                'model' => $this->ollama_embed_model,
+                'prompt' => $text
             ];
-            foreach ($cmds as $cmd) {
-                $out = shell_exec($cmd);
-                if ($out === null) continue;
-                $last_out = $out;
-                $clean = preg_replace('/\x1B\[[0-9;]*[A-Za-z]/u', '', $out);
-                $clean = preg_replace('/^\xEF\xBB\xBF/u', '', $clean);
-                $clean = preg_replace('/^```(?:json)?\s*/u', '', $clean);
-                $clean = preg_replace('/\s*```$/u', '', $clean);
-                $clean = trim($clean);
-                $firstBrace = strpos($clean, '{');
-                $firstBracket = strpos($clean, '[');
-                if ($firstBrace !== false) $clean = substr($clean, $firstBrace);
-                elseif ($firstBracket !== false) $clean = substr($clean, $firstBracket);
-                $dec = json_decode($clean, true);
-                if (json_last_error() === JSON_ERROR_NONE && isset($dec['embeddings']) && is_array($dec['embeddings'])) {
-                    @unlink($tmp);
-                    return $dec['embeddings'];
-                } elseif (json_last_error() === JSON_ERROR_NONE && is_array($dec) && count($dec) > 0 && is_numeric($dec[0] ?? null)) {
-                    @unlink($tmp);
-                    return [$dec];
-                }
-                if (preg_match('/"embeddings"\s*:\s*(\[[\s\S]*\])/i', $clean, $m)) {
-                    $try = '{"embeddings":' . $m[1] . '}';
-                    $dec2 = json_decode($try, true);
-                    if (json_last_error() === JSON_ERROR_NONE && isset($dec2['embeddings'])) {
-                        @unlink($tmp);
-                        return $dec2['embeddings'];
-                    }
-                }
+
+            $ch = curl_init($ollama_url . '/api/embeddings');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+
+            $response = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($response === false || $http_code !== 200) {
+                fwrite(STDERR, "Ollama embed API failed for text; using local fallback.\n");
+                return $this->embed_texts_local($texts);
             }
-            @unlink($tmp);
+
+            $result = json_decode($response, true);
+            if (isset($result['embedding']) && is_array($result['embedding'])) {
+                $embeddings[] = $result['embedding'];
+            } else {
+                fwrite(STDERR, "Failed to parse embedding from Ollama API; using local fallback.\n");
+                return $this->embed_texts_local($texts);
+            }
         }
-        if ($last_out !== '') {
-            fwrite(STDERR, "Could not parse embeddings from ollama output. Last raw output:\n" . $last_out . "\n");
-        } else {
-            fwrite(STDERR, "ollama did not return any output for embedding attempts.\n");
-        }
-        return [];
+        return $embeddings;
     }
 
-    public function embed_texts_local(array $texts): array {
-        $out = [];
-        foreach ($texts as $t) {
-            $t = (string)$t;
-            $h = hash('sha256', $t, true);
-            $bytes = array_values(unpack('C*', $h));
-            $nb = count($bytes);
-            if ($nb === 0) $nb = 1;
-            $vec = [];
-            for ($i = 0; $i < $this->local_embed_dim; $i++) {
-                $b = $bytes[$i % $nb];
-                $v = ($b / 255.0) * 2.0 - 1.0;
-                $vec[] = $v;
-            }
-            $sum = 0.0;
-            foreach ($vec as $v) $sum += $v * $v;
-            $norm = sqrt(max($sum, 1e-12));
-            for ($i = 0; $i < $this->local_embed_dim; $i++) $vec[$i] /= $norm;
-            $out[] = $vec;
+    private function get_embeddings_with_fallback(array $texts): array {
+        $embeddings = $this->embed_texts_ollama($texts);
+        if (count($embeddings) !== count($texts)) {
+            fwrite(STDOUT, "Ollama embedding failed; using local fallback.\n");
+            $embeddings = $this->embed_texts_local($texts);
         }
-        return $out;
+        return $embeddings;
     }
 
     public function insert_documents(): void {
@@ -293,6 +296,14 @@ class Justice extends \App\Classes\Utils
         foreach ($files as $file) {
             $path = $mdDir . DIRECTORY_SEPARATOR . $file;
             fwrite(STDOUT, "Processing MD: $path\n");
+
+            // Performance: Skip files larger than 10MB to prevent memory issues
+            $maxFileSize = 10 * 1024 * 1024; // 10MB
+            if (filesize($path) > $maxFileSize) {
+                fwrite(STDERR, "Skipping file $file: too large (>10MB)\n");
+                continue;
+            }
+
             $text = file_get_contents($path);
             if ($text === false || trim($text) === '') {
                 fwrite(STDERR, "Failed to read or empty MD file: $path\n");
@@ -354,7 +365,7 @@ class Justice extends \App\Classes\Utils
 
         $system = "You are an expert research assistant. Maintain conversation context and answer based on the conversation history and the provided document context. If asked question is not relevant with the document context just say 'question is not relevant'.\n\n" .          $language_instruction . "\n\n" .
             "NEVER mix languages in a single response: respond solely in the detected language for the user query.\n\n" .
-            "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that header, provide the answer and include references to sources (file names, metadata, dates, IDs) when relevant. Keep answers concise, user-friendly, and directly responsive to the question. Do not output JSON or any diagnostic commentary. If the user input is only a greeting, respond politely in the detected language without the header.";
+            "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that info pass to new line, provide the answer and include references to sources (file names, metadata, dates, IDs) when relevant. Keep answers concise, user-friendly, and directly responsive to the question. Do not output JSON or any diagnostic commentary. If the user input is only a greeting, respond politely in the detected language without the header.";
             
         $enhanced_question = $question;
         if ($session_id) {
@@ -383,14 +394,10 @@ class Justice extends \App\Classes\Utils
             }
         }
 
-        $question_embedding_arr = $this->embed_texts_ollama([$question]);
-        if (count($question_embedding_arr) === 0) {
-            fwrite(STDOUT, "Ollama failed to embed question; using local fallback.\n");
-            $question_embedding_arr = $this->embed_texts_local([$question]);
-            if (count($question_embedding_arr) === 0) {
-                fwrite(STDERR, "Failed to produce embedding for the question even with local fallback.\n");
-                return;
-            }
+        $question_embedding_arr = $this->get_embeddings_with_fallback([$question]);
+        if (empty($question_embedding_arr)) {
+            fwrite(STDERR, "Failed to produce embedding for the question even with local fallback.\n");
+            return;
         }
         $question_embedding = $question_embedding_arr[0];
 
@@ -464,11 +471,7 @@ class Justice extends \App\Classes\Utils
             $total = count($to_fetch);
             for ($s = 0; $s < $total; $s += $batch_size) {
                 $slice = array_slice($to_fetch, $s, $batch_size);
-                $res = $this->embed_texts_ollama($slice);
-                if (count($res) !== count($slice)) {
-                    fwrite(STDOUT, "Embedding batch failed for slice; using local fallback.\n");
-                    $res = $this->embed_texts_local($slice);
-                }
+                $res = $this->get_embeddings_with_fallback($slice);
 
                 foreach ($res as $j => $emb) {
                     $orig_index = $index_map[$s + $j];
