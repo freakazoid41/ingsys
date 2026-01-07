@@ -483,7 +483,8 @@ if(!function_exists('uploadFile')){
                     $file,
                     $filename
                 );
-                
+                print_r($rsp);
+                die;
                 $enc = new EncryptionProvider();
                 return [
                     'data' =>$enc->encrypt($filename,'pickle'),
