@@ -67,33 +67,9 @@ class DocumentController extends Controller
 
 
 
-
-// Parse the streamed body
-$part = StreamedPart::parse(fopen('php://input', 'r'), $_SERVER['CONTENT_TYPE'] ?? '');
-
-$fields = [];
-$files = [];
-
-foreach ($part->getParts() as $subPart) {
-    $name = $subPart->getFieldName();
-    if ($subPart->isFile()) {
-        $filename = $subPart->getFileName();
-        $tmpPath = tempnam(sys_get_temp_dir(), 'upload_');
-        file_put_contents($tmpPath, $subPart->getBody());
-        $files[$name] = [
-            'name' => $filename,
-            'tmp_name' => $tmpPath,
-            'size' => $subPart->getSize(),
-            'error' => UPLOAD_ERR_OK,
-        ];
-    } else {
-        $fields[$name] = $subPart->getBody();
-    }
-}
-
-print_r($fields);
-print_r($files);
-                
+                $parser = new StreamedParser();
+                $document = $parser->parse('data://' . $contentType . ',' . $rawBody);  
+                print_r($document);
 
                 die;
                 $data = parsePut();
