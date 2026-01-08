@@ -26,7 +26,7 @@ class Justice extends \App\Classes\Utils
         $this->pg_user = env('DB_USERNAME', 'postgres');
         $this->pg_pass = env('DB_PASSWORD', 'password');
         $this->ollama_embed_model = env('OLLAMA_EMBED_MODEL', 'nomic-embed-text');
-        $this->local_embed_dim = intval(env('LOCAL_EMBED_DIM', 768));
+        $this->local_embed_dim = intval(env('LOCAL_EMBED_DIM', 1024));
         $this->chunk_size = intval(env('CHUNK_SIZE', 1000));
         $this->chunk_overlap = intval(env('CHUNK_OVERLAP', 200));
         $this->top_k = intval(env('CHROMA_TOP_K', 5)); // Default to 5 for better performance
@@ -131,7 +131,7 @@ class Justice extends \App\Classes\Utils
         $start_time = microtime(true);
         try {
             $this->pdo->exec("CREATE EXTENSION IF NOT EXISTS vector");
-            $this->pdo->exec("CREATE TABLE IF NOT EXISTS vector_documents (id SERIAL PRIMARY KEY, content TEXT,origin TEXT,year_code TEXT, embedding VECTOR(" . intval($this->local_embed_dim) . "), metadata JSONB)");
+            $this->pdo->exec("CREATE TABLE IF NOT EXISTS vector_documents (id SERIAL PRIMARY KEY, content TEXT,origin TEXT,year_code TEXT, embedding VECTOR(" . $this->local_embed_dim . "), metadata JSONB)");
             
             $this->pdo->beginTransaction();
 
@@ -501,7 +501,7 @@ class Justice extends \App\Classes\Utils
     private function build_system_prompt(): string {
         $language_instruction = "IMPORTANT: Detect the language of the question and respond in the same language. If the question is Turkish, reply exclusively in natural, idiomatic Turkish. Do NOT include fragments, phrases, or characters from other languages (for example Chinese, English insertions, or emojis). If you cannot express something clearly in Turkish, ask a clarifying question in Turkish.";
 
-        return "You are an expert research assistant. Maintain conversation context and answer based on the conversation history and the provided document context. If the question cannot be answered at all based on the document context, just say 'question is not relevant'.\n\n" . $language_instruction . "\n\n" .
+        return "You are an expert research assistant. ONLY use information from the provided document context below. Do NOT use any external knowledge, general knowledge, or information not present in the context. Maintain conversation context and answer based on the conversation history and the provided document context. If the question cannot be answered at all using ONLY the document context, just say 'question is not relevant'.\n\n" . $language_instruction . "\n\n" .
             "NEVER mix languages in a single response: respond solely in the detected language for the user query.\n\n" .
             "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that info pass to new line, provide the answer.\n\n" .
             "IMPORTANT : At the very end of your answer pass to next line and always include **ID: [id_value]** where [id_value] is the exact ID from the context metadata.\n" .
