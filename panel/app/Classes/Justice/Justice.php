@@ -29,7 +29,7 @@ class Justice extends \App\Classes\Utils
         $this->local_embed_dim = intval(env('LOCAL_EMBED_DIM', 768));
         $this->chunk_size = intval(env('CHUNK_SIZE', 1000));
         $this->chunk_overlap = intval(env('CHUNK_OVERLAP', 200));
-        $this->top_k = intval(env('CHROMA_TOP_K', 0)); // 0 means no limit
+        $this->top_k = intval(env('CHROMA_TOP_K', 5)); // Default to 5 for better performance
         $this->model = env('OLLAMA_CHAT_MODEL', 'llama3.1');
         $this->pdo = $this->get_pdo();
     }
@@ -501,7 +501,7 @@ class Justice extends \App\Classes\Utils
     private function build_system_prompt(): string {
         $language_instruction = "IMPORTANT: Detect the language of the question and respond in the same language. If the question is Turkish, reply exclusively in natural, idiomatic Turkish. Do NOT include fragments, phrases, or characters from other languages (for example Chinese, English insertions, or emojis). If you cannot express something clearly in Turkish, ask a clarifying question in Turkish.";
 
-        return "You are an expert research assistant. Maintain conversation context and answer based on the conversation history and the provided document context. If asked question is not relevant with the document context just say 'question is not relevant'.\n\n" . $language_instruction . "\n\n" .
+        return "You are an expert research assistant. Maintain conversation context and answer based on the conversation history and the provided document context. If the question cannot be answered at all based on the document context, just say 'question is not relevant'.\n\n" . $language_instruction . "\n\n" .
             "NEVER mix languages in a single response: respond solely in the detected language for the user query.\n\n" .
             "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that info pass to new line, provide the answer.\n\n" .
             "IMPORTANT : At the very end of your answer pass to next line and always include **ID: [id_value]** where [id_value] is the exact ID from the context metadata.\n" .
@@ -536,18 +536,8 @@ class Justice extends \App\Classes\Utils
     }
 
     private function prepare_context_and_meta(array $retrieved): array {
-        $sources = [];
-        foreach ($retrieved as $row) {
-            $meta = json_decode($row['metadata'], true);
-            if (isset($meta['source']) && !in_array($meta['source'], $sources)) {
-                $sources[] = $meta['source'];
-            }
-        }
-
-        $full_retrieved = $this->get_all_chunks_from_sources($sources);
-
         $meta = [];
-        foreach ($full_retrieved as $row) {
+        foreach ($retrieved as $row) {
             $row_meta = json_decode($row['metadata'], true);
             $id = $row_meta['id'] ?? null;
             if ($id && !isset($meta[$id])) {
@@ -557,7 +547,7 @@ class Justice extends \App\Classes\Utils
         $meta = array_values($meta);
 
         $context_parts = [];
-        foreach ($full_retrieved as $row) {
+        foreach ($retrieved as $row) {
             $meta_data = json_decode($row['metadata'], true);
             $src = $meta_data['source'] ?? 'unknown';
             $chunk_idx = isset($meta_data['chunk_index']) ? ' (chunk ' . $meta_data['chunk_index'] . ')' : '';
@@ -605,7 +595,7 @@ class Justice extends \App\Classes\Utils
 
             $response = json_decode($result, true);
             if ($response && isset($response['answer'])) {
-                $response['meta'] = $this->filter_meta_by_id($meta, $response['answer']);
+                $response['meta'] = $meta; // Return all retrieved metadata instead of filtering by ID
                 $end_time = microtime(true);
                 $duration = $end_time - $start_time;
                 Log::info('Justice::answer_question: Successful response', [
