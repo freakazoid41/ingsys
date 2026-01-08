@@ -381,9 +381,8 @@
                             },null,envelope);
 
                             if(rsp.success == true){
-                                this.plib.toast(this.Swal,'success','Transfer Hareketi Tamamlandı',() => {
-                                    window.location.reload();
-                                });
+                                this.table.changePage(this.table.config.currentPage)
+                                this.plib.toast(this.Swal,'success','Transfer Hareketi Tamamlandı',() => {});
                             }else{
                                 Swal.showValidationMessage('Hata Oluştu..');
                                 return false;

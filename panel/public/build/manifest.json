@@ -428,12 +428,16 @@
     "isEntry": true
   },
   "resources/js/app.js": {
+<<<<<<< HEAD
     "file": "assets/app-CSpHgkfo.js",
+=======
+    "file": "assets/app-DlG1fZGj.js",
+>>>>>>> panelMain
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "css": [
-      "assets/app-BT8Ns7Dh.css"
+      "assets/app-DDQETlzj.css"
     ]
   }
 }

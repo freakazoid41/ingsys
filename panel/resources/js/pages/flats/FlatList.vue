@@ -107,8 +107,6 @@
                             btn.onclick   = () => this.transmodal('addbalance',columnData,rowData.title);
                             span.appendChild(btn);
 
-                            console.log(screen.width);
-
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
                             btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis"></i><span class="ms-2 icon-info">Ödeme</span>';
@@ -385,7 +383,8 @@
                             },null,envelope);
 
                             if(rsp.success == true){
-                                this.plib.toast(this.Swal,'success','Transfer Hareketi Tamamlandı',() => {window.location.reload();});
+                                this.table.changePage(this.table.config.currentPage)
+                                this.plib.toast(this.Swal,'success','Transfer Hareketi Tamamlandı',() => {});
                             }else{
                                 Swal.showValidationMessage('Hata Oluştu..');
                                 return false;
