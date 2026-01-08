@@ -88,23 +88,7 @@ class Justice extends \App\Classes\Utils
         $answer = preg_replace('/[\x{2800}-\x{28FF}]/u', '', $answer);
 
         // Create HTML version before normalizing whitespace
-        $answerHtml = htmlspecialchars($answer, ENT_QUOTES, 'UTF-8');
-        // Convert line breaks to <br> tags
-        $answerHtml = nl2br($answerHtml);
-        // Simple markdown-like formatting for HTML
-        $answerHtml = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $answerHtml);
-        $answerHtml = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $answerHtml);
-        // Add line breaks for structured information (common in responses)
-        $answerHtml = preg_replace('/(Ülke\s*:)/', '<br>$1', $answerHtml);
-        $answerHtml = preg_replace('/(Yıl\s*:)/', '<br>$1', $answerHtml);
-        $answerHtml = preg_replace('/(Karar\s+Numarası\s*:)/', '<br>$1', $answerHtml);
-        $answerHtml = preg_replace('/(Karar\s+Tarihi\s*:)/', '<br>$1', $answerHtml);
-        $answerHtml = preg_replace('/(Kaynaklar?:)/', '<br><br>$1', $answerHtml);
-        // Add paragraph breaks for better readability (split on numbered lists, bullet points, etc.)
-        $answerHtml = preg_replace('/(\d+\.\s)/', '<br>$1', $answerHtml);
-        $answerHtml = preg_replace('/(\*\s|\-\s)/', '<br>$1', $answerHtml);
-        // Wrap in a div for better formatting
-        $answerHtml = '<div class="ai-response">' . $answerHtml . '</div>';
+        $answerHtml = $this->format_answer_html($answer);
 
         // Now normalize whitespace for plain text answer
         $answer = preg_replace('/\s+/', ' ', $answer); // Normalize whitespace
@@ -355,66 +339,44 @@ class Justice extends \App\Classes\Utils
         }
     }
 
-    public function reset_conversation(string $session_id): bool {
-        try {
-            $stmt = $this->pdo->prepare("DELETE FROM conversations WHERE session_id = ?");
-            return $stmt->execute([$session_id]);
-        } catch (\Exception $e) {
-            fwrite(STDERR, "Failed to reset conversation: " . $e->getMessage() . "\n");
-            return false;
-        }
-    }
-
-    public function answer_question(string $question, string $session_id = null) {
+    private function build_system_prompt(): string {
         $language_instruction = "IMPORTANT: Detect the language of the question and respond in the same language. If the question is Turkish, reply exclusively in natural, idiomatic Turkish. Do NOT include fragments, phrases, or characters from other languages (for example Chinese, English insertions, or emojis). If you cannot express something clearly in Turkish, ask a clarifying question in Turkish.";
 
-        $system = "You are an expert research assistant. Maintain conversation context and answer based on the conversation history and the provided document context. If asked question is not relevant with the document context just say 'question is not relevant'.\n\n" .          $language_instruction . "\n\n" .
+        return "You are an expert research assistant. Maintain conversation context and answer based on the conversation history and the provided document context. If asked question is not relevant with the document context just say 'question is not relevant'.\n\n" . $language_instruction . "\n\n" .
             "NEVER mix languages in a single response: respond solely in the detected language for the user query.\n\n" .
-            "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that info pass to new line, provide the answer.
-            
-            IMPORTANT : At the very end of your answer pass to next line and always include **ID: [id_value]** where [id_value] is the exact ID from the context metadata.
-            Keep answers concise, user-friendly, and directly responsive to the question. Do not output JSON or any diagnostic commentary. If the user input is only a greeting, respond politely in the detected language without the header.";
-            
-        $enhanced_question = $question;
-        if ($session_id) {
-            $history = $this->get_conversation_history($session_id, 5); // Limit to 5 recent messages
-            if (!empty($history)) {
-                $conversation_context = "\n\nPrevious conversation:\n";
-                foreach ($history as $msg) {
-                    $role = $msg['role'] === 'user' ? 'User' : 'Assistant';
-                    // Truncate long messages to keep context manageable
-                    $content = strlen($msg['content']) > 500 ? substr($msg['content'], 0, 500) . '...' : $msg['content'];
-                    $conversation_context .= "$role: " . $content . "\n";
-                }
-                $conversation_context .= "\n";
+            "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that info pass to new line, provide the answer.\n\n" .
+            "IMPORTANT : At the very end of your answer pass to next line and always include **ID: [id_value]** where [id_value] is the exact ID from the context metadata.\n" .
+            "Keep answers concise, user-friendly, and directly responsive to the question. Do not output JSON or any diagnostic commentary. If the user input is only a greeting, respond politely in the detected language without the header.";
+    }
 
-                // Create a more concise enhanced question
-                $last_assistant_msg = '';
-                foreach (array_reverse($history) as $msg) {
-                    if ($msg['role'] === 'assistant') {
-                        $last_assistant_msg = substr($msg['content'], 0, 200);
-                        break;
-                    }
-                }
-                if ($last_assistant_msg) {
-                    $enhanced_question = "Continuing our conversation about: " . $last_assistant_msg . ". Now: " . $question;
-                }
+    private function enhance_question_with_history(string $question, ?string $session_id): string {
+        if (!$session_id) return $question;
+
+        $history = $this->get_conversation_history($session_id, 5);
+        if (empty($history)) return $question;
+
+        $conversation_context = "\n\nPrevious conversation:\n";
+        foreach ($history as $msg) {
+            $role = $msg['role'] === 'user' ? 'User' : 'Assistant';
+            $content = strlen($msg['content']) > 500 ? substr($msg['content'], 0, 500) . '...' : $msg['content'];
+            $conversation_context .= "$role: " . $content . "\n";
+        }
+        $conversation_context .= "\n";
+
+        $last_assistant_msg = '';
+        foreach (array_reverse($history) as $msg) {
+            if ($msg['role'] === 'assistant') {
+                $last_assistant_msg = substr($msg['content'], 0, 200);
+                break;
             }
         }
-
-        $question_embedding_arr = $this->get_embeddings_with_fallback([$question]);
-        if (empty($question_embedding_arr)) {
-            return [
-                'answer' => 'Api is not available right now..',
-                'answerHtml' => 'Api is not available right now..',
-                'meta' => []
-            ];
+        if ($last_assistant_msg) {
+            return "Continuing our conversation about: " . $last_assistant_msg . ". Now: " . $question;
         }
-        $question_embedding = $question_embedding_arr[0];
+        return $question;
+    }
 
-        $retrieved = $this->vector_query($question_embedding, $this->top_k);
-
-        // Extract unique sources from retrieved documents
+    private function prepare_context_and_meta(array $retrieved): array {
         $sources = [];
         foreach ($retrieved as $row) {
             $meta = json_decode($row['metadata'], true);
@@ -423,7 +385,6 @@ class Justice extends \App\Classes\Utils
             }
         }
 
-        // Get all chunks from these sources to ensure connected context
         $full_retrieved = $this->get_all_chunks_from_sources($sources);
 
         $meta = [];
@@ -434,12 +395,12 @@ class Justice extends \App\Classes\Utils
                 $meta[$id] = $row_meta;
             }
         }
-        $meta = array_values($meta); // Convert back to indexed array
+        $meta = array_values($meta);
 
         $context_parts = [];
         foreach ($full_retrieved as $row) {
             $meta_data = json_decode($row['metadata'], true);
-            $src = isset($meta_data['source']) ? $meta_data['source'] : 'unknown';
+            $src = $meta_data['source'] ?? 'unknown';
             $chunk_idx = isset($meta_data['chunk_index']) ? ' (chunk ' . $meta_data['chunk_index'] . ')' : '';
             $extra = '';
 
@@ -447,7 +408,6 @@ class Justice extends \App\Classes\Utils
                 $prefix = in_array($key, ['source', 'chunk_index', 'file_id', 'make', 'model']) ? '' : '**';
                 $extra .= ' ' . $prefix . ucfirst($key) . ':' . $value;
             }
-
 
             if (isset($meta_data['id'])) $extra .= ' ContentID:' . $meta_data['id'];
             if (isset($meta_data['person_id'])) $extra .= ' PersonID:' . $meta_data['person_id'];
@@ -457,22 +417,33 @@ class Justice extends \App\Classes\Utils
 
         $context = implode("\n\n---\n\n", $context_parts);
 
-        $result = $this->ask_ollama($system, $context, $question,$this->model);
+        return ['context' => $context, 'meta' => $meta];
+    }
+
+    public function answer_question(string $question, string $session_id = null) {
+        $system = $this->build_system_prompt();
+        $enhanced_question = $this->enhance_question_with_history($question, $session_id);
+
+        $question_embedding_arr = $this->get_embeddings_with_fallback([$enhanced_question]);
+        if (empty($question_embedding_arr)) {
+            return [
+                'answer' => 'Api is not available right now..',
+                'answerHtml' => 'Api is not available right now..',
+                'meta' => []
+            ];
+        }
+        $question_embedding = $question_embedding_arr[0];
+
+        $retrieved = $this->vector_query($question_embedding, $this->top_k);
+        $context_and_meta = $this->prepare_context_and_meta($retrieved);
+        $context = $context_and_meta['context'];
+        $meta = $context_and_meta['meta'];
+
+        $result = $this->ask_ollama($system, $context, $enhanced_question, $this->model);
 
         $response = json_decode($result, true);
         if ($response && isset($response['answer'])) {
-            // Filter meta to only include the ID referenced in the answer
-            $referenced_id = null;
-            if (preg_match('/\*\*ID:\s*([^\*]+)\*\*/u', $response['answer'], $match)) {
-                $referenced_id = trim($match[1]);
-            }
-            $filtered_meta = [];
-            foreach ($meta as $m) {
-                if (($m['id'] ?? '') === $referenced_id) {
-                    $filtered_meta[] = $m;
-                }
-            }
-            $response['meta'] = $filtered_meta;
+            $response['meta'] = $this->filter_meta_by_id($meta, $response['answer']);
             return $response;
         } else {
             return [
@@ -538,6 +509,35 @@ class Justice extends \App\Classes\Utils
             $out[] = $embeddings[$i] ?? null;
         }
         return $out;
+    }
+
+    private function filter_meta_by_id(array $meta, string $answer): array {
+        $referenced_id = null;
+        if (preg_match('/\*\*ID:\s*([^\*]+)\*\*/u', $answer, $match)) {
+            $referenced_id = trim($match[1]);
+        }
+        $filtered_meta = [];
+        foreach ($meta as $m) {
+            if (($m['id'] ?? '') === $referenced_id) {
+                $filtered_meta[] = $m;
+            }
+        }
+        return $filtered_meta;
+    }
+
+    private function format_answer_html(string $answer): string {
+        $answerHtml = htmlspecialchars($answer, ENT_QUOTES, 'UTF-8');
+        $answerHtml = nl2br($answerHtml);
+        $answerHtml = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $answerHtml);
+        $answerHtml = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $answerHtml);
+        $answerHtml = preg_replace('/(Ülke\s*:)/', '<br>$1', $answerHtml);
+        $answerHtml = preg_replace('/(Yıl\s*:)/', '<br>$1', $answerHtml);
+        $answerHtml = preg_replace('/(Karar\s+Numarası\s*:)/', '<br>$1', $answerHtml);
+        $answerHtml = preg_replace('/(Karar\s+Tarihi\s*:)/', '<br>$1', $answerHtml);
+        $answerHtml = preg_replace('/(Kaynaklar?:)/', '<br><br>$1', $answerHtml);
+        $answerHtml = preg_replace('/(\d+\.\s)/', '<br>$1', $answerHtml);
+        $answerHtml = preg_replace('/(\*\s|\-\s)/', '<br>$1', $answerHtml);
+        return '<div class="ai-response">' . $answerHtml . '</div>';
     }
 
     
