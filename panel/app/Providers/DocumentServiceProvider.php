@@ -449,7 +449,7 @@ class DocumentServiceProvider extends ServiceProvider
                     
                     break;
                 case 'addbalance':
-                    $targetId = $data['flat_id'] && intbval($data['flat_id']) != 0 ? $data['flat_id'] : $data['account_id'];
+                    $targetId = $data['flat_id'] && intval($data['flat_id']) != 0 ? $data['flat_id'] : $data['account_id'];
                     //make aprartment to pay someone
                     $trans = new Transactions();
                     $trans->target_id = $targetId;
