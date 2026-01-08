@@ -15,10 +15,11 @@ class AiController extends Controller
 
         $lib      = new Justice();
         $question = strip_tags($request->input('question'));
-        
+        $response = $lib->answer_question($question,session('email').'aisession');
         $response = [
             'question' => $question,
-            'answer'   => $lib->answer_question($question,session('email').'aisession')['answerHtml']
+            'answer'   => $response['answerHtml'],
+            'meta'     => $response['meta'] ?? [],
         ];
 
         return response()->json($response);

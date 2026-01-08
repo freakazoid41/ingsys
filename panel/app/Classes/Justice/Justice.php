@@ -371,8 +371,8 @@ class Justice extends \App\Classes\Utils
         $system = "You are an expert research assistant. Maintain conversation context and answer based on the conversation history and the provided document context. If asked question is not relevant with the document context just say 'question is not relevant'.\n\n" .          $language_instruction . "\n\n" .
             "NEVER mix languages in a single response: respond solely in the detected language for the user query.\n\n" .
             "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that info pass to new line, provide the answer.
-            IMPORTANT : Always give relevant file location as reference in new line if the answer is found in the context (check url key on metadata) and in new line include references to sources (file names, metadata, dates, IDs) when relevant.
-            IMPORTANT : At the very end of your answer, always include **ID: [id_value]** where [id_value] is the exact ID from the context metadata.
+            
+            IMPORTANT : At the very end of your answer pass to next line and always include **ID: [id_value]** where [id_value] is the exact ID from the context metadata.
             Keep answers concise, user-friendly, and directly responsive to the question. Do not output JSON or any diagnostic commentary. If the user input is only a greeting, respond politely in the detected language without the header.";
             
         $enhanced_question = $question;

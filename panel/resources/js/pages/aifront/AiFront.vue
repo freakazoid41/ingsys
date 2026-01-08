@@ -119,7 +119,7 @@
                     
                     if(response?.answer){
                         this.messages.pop(); //remove thinking message
-                        this.messages.push({ id: Date.now() + 2, sender: 'bot', text: response.answer });
+                        this.messages.push({ id: Date.now() + 2, sender: 'bot', text: response.answer,meta:response.meta });
                         this.isLoading = false;
                         this.$nextTick(() => {
                             if (div) div.scrollTo(0, div.scrollHeight);
@@ -153,6 +153,14 @@
                     }">
                         <div v-for="msg in messages" :key="msg.id" :class="['chat-msg', msg.sender === 'me' ? 'me' : 'bot']">
                             <div class="chat-text text-left" v-html="msg.text"></div>
+                            <div class="chat-text text-left" v-if="msg.sender === 'bot' && msg?.meta?.length > 0" >
+                                {{ msg.meta.length > 0 ? 'Referanslar:' : '' }}
+                                <ul>
+                                    <li v-for="meta in msg.meta">
+                                        ID : {{ meta?.id }} / Referans : {{ meta?.url }}
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                     </Simplebar>
@@ -174,53 +182,3 @@
     </div>
 </template>
 
-<style scoped>
-.animated-grow{
-    transition: padding 0.18s ease, font-size 0.18s ease, box-shadow 0.18s ease;
-    padding-top: 0.375rem;
-    padding-bottom: 0.375rem;
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
-    font-size: 1.02rem;
-    box-shadow: 0 0 0 0.15rem rgba(13,110,253,0.12);
-    outline: none;
-}
-
-.chat-card{
-    max-width: 100%;
-}
-.chat-messages .chat-msg{
-    margin-bottom: 0.5rem;
-    display: flex;
-}
-.chat-messages .chat-msg.me{
-    justify-content: flex-end;
-}
-.chat-messages .chat-msg.bot{
-    justify-content: flex-start;
-}
-.chat-text{
-    text-align: left;
-    display: inline-block;
-    padding: 0.5rem 0.75rem;
-    border-radius: 14px;
-    max-width: 80%;
-    word-break: break-word;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-.chat-msg.me .chat-text{
-     border: 1px solid #dee2e6;
-    color:#f1f3f5;
-}
-.chat-msg.bot .chat-text{
-    background-color: #000000b1;
-    color:#f1f3f5;
-}
-
-.chat-messages{
-    
-    max-height: 40vh !important;
-    flex: 1 1 auto;
-    min-height: 0; /* allow proper scrolling inside flex containers */
-}
-</style>
