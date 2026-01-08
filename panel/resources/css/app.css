@@ -50,3 +50,16 @@
 .btn_page > * {
     pointer-events: none !important;
 }
+.pickletable .divPagination button{
+    margin-left: unset !important;
+    margin: 5px !important;
+    display: flex;
+    align-items: center;
+   
+}
+.pickletable .btn_number.current{
+    border: 1px solid white !important;
+    border-radius: 5px !important;
+    padding-left: 5px;
+    padding-right: 5px;
+}
