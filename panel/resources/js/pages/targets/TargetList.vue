@@ -239,7 +239,7 @@
                                                         </div>
                                                         ` : ``}
                                 
-                                <div class="col-${type == 'income' ? '5' : '12'} mt-5">
+                                ${type == 'income' || type == 'outcome' ? `<div class="col-${type == 'income' ? '5' : '12'} mt-5">
                                     <select class="form-select trans-form" name="type" required aria-label="Default select example"> 
                                         <option selected="" value="">İşlem Tipi</option> 
                                         <option value="doc_acc_rent">Kira</option> 
@@ -249,7 +249,7 @@
                                         <option value="doc_acc_other">Diğer</option> 
                                         <option value="doc_acc_dept">Borç</option> 
                                     </select>
-                                </div>
+                                </div>`: ''}
                                 <div class="col-5 mt-5">
                                     <select class="form-select trans-form" disabled name="account_id" required aria-label="Default select example"> 
                                         <option selected="" value="">Kasa</option> 
@@ -373,6 +373,7 @@
                             form.s_file.forEach((element,i)=> {
                                 envelope.append('trans_file[]',element);
                             });
+
                             
                             const rsp = await this.plib.request({
                                 url      : '/api/v1/trans/set-payment',

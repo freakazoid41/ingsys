@@ -449,9 +449,12 @@ class DocumentServiceProvider extends ServiceProvider
                     
                     break;
                 case 'addbalance':
+                    
+
+                    $targetId = $data['flat_id'] && intbval($data['flat_id']) != 0 ? $data['flat_id'] : $data['account_id'];
                     //make aprartment to pay someone
                     $trans = new Transactions();
-                    $trans->target_id = $data['flat_id'] ?? $data['account_id'];  // can be add from both listing pages.. 
+                    $trans->target_id = $targetId;  // can be add from both listing pages.. 
                     $trans->type_id   = Sys_options::where('op_key','doc_acc_other')->first()->id;
                     $trans->note      = $data['note'] ?? '-';
                     $trans->amount    = $data['amount'];
