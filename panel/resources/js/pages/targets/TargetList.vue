@@ -382,7 +382,8 @@
 
                             if(rsp.success == true){
                                 this.plib.toast(this.Swal,'success','Transfer Hareketi Tamamlandı',() => {
-                                    window.location.reload();
+                                    //window.location.reload();
+                                    this.table.setFilter([]);
                                 });
                             }else{
                                 Swal.showValidationMessage('Hata Oluştu..');
