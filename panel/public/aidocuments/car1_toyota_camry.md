@@ -3,6 +3,7 @@
 **YEAR    : 2025
 **ID      : ABC-67890
 **DATE    : 2025-01-01
+**URL     : 'dosya-yolu-1'
 
 Ülke            : Türkiye (TR)
 Yıl             : 2025

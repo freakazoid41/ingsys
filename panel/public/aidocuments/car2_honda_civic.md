@@ -3,6 +3,8 @@
 **YEAR    : 2025
 **ID      : ABC-67891
 **DATE    : 2025-01-02
+**URL     : 'dosya-yolu-2'
+
 
 Ülke            : Almanya (DE)
 Yıl             : 2025

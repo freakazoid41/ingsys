@@ -261,16 +261,21 @@ class Justice extends \App\Classes\Utils
             curl_close($ch);
 
             if ($response === false || $http_code !== 200) {
-                fwrite(STDERR, "Ollama embed API failed for text; using local fallback.\n");
-                return $this->embed_texts_local($texts);
+                
+                return [
+                    'answer' => 'Api is not available right now..',
+                    'answerHtml' => 'Api is not available right now..'
+                ];
             }
 
             $result = json_decode($response, true);
             if (isset($result['embedding']) && is_array($result['embedding'])) {
                 $embeddings[] = $result['embedding'];
             } else {
-                fwrite(STDERR, "Failed to parse embedding from Ollama API; using local fallback.\n");
-                return $this->embed_texts_local($texts);
+                return [
+                    'answer' => 'Api is not available right now..',
+                    'answerHtml' => 'Api is not available right now..'
+                ];
             }
         }
         return $embeddings;
@@ -279,8 +284,7 @@ class Justice extends \App\Classes\Utils
     private function get_embeddings_with_fallback(array $texts): array {
         $embeddings = $this->embed_texts_ollama($texts);
         if (count($embeddings) !== count($texts)) {
-            fwrite(STDOUT, "Ollama embedding failed; using local fallback.\n");
-            $embeddings = $this->embed_texts_local($texts);
+            return [ ];
         }
         return $embeddings;
     }
@@ -366,7 +370,10 @@ class Justice extends \App\Classes\Utils
 
         $system = "You are an expert research assistant. Maintain conversation context and answer based on the conversation history and the provided document context. If asked question is not relevant with the document context just say 'question is not relevant'.\n\n" .          $language_instruction . "\n\n" .
             "NEVER mix languages in a single response: respond solely in the detected language for the user query.\n\n" .
-            "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that info pass to new line, provide the answer and include references to sources (file names, metadata, dates, IDs) when relevant. Keep answers concise, user-friendly, and directly responsive to the question. Do not output JSON or any diagnostic commentary. If the user input is only a greeting, respond politely in the detected language without the header.";
+            "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that info pass to new line, provide the answer.
+            IMPORTANT : Always give relevant file location as reference in new line if the answer is found in the context (check url key on metadata) and in new line include references to sources (file names, metadata, dates, IDs) when relevant.
+            IMPORTANT : At the very end of your answer, always include **ID: [id_value]** where [id_value] is the exact ID from the context metadata.
+            Keep answers concise, user-friendly, and directly responsive to the question. Do not output JSON or any diagnostic commentary. If the user input is only a greeting, respond politely in the detected language without the header.";
             
         $enhanced_question = $question;
         if ($session_id) {
@@ -397,8 +404,11 @@ class Justice extends \App\Classes\Utils
 
         $question_embedding_arr = $this->get_embeddings_with_fallback([$question]);
         if (empty($question_embedding_arr)) {
-            fwrite(STDERR, "Failed to produce embedding for the question even with local fallback.\n");
-            return;
+            return [
+                'answer' => 'Api is not available right now..',
+                'answerHtml' => 'Api is not available right now..',
+                'meta' => []
+            ];
         }
         $question_embedding = $question_embedding_arr[0];
 
@@ -416,22 +426,32 @@ class Justice extends \App\Classes\Utils
         // Get all chunks from these sources to ensure connected context
         $full_retrieved = $this->get_all_chunks_from_sources($sources);
 
+        $meta = [];
+        foreach ($full_retrieved as $row) {
+            $row_meta = json_decode($row['metadata'], true);
+            $id = $row_meta['id'] ?? null;
+            if ($id && !isset($meta[$id])) {
+                $meta[$id] = $row_meta;
+            }
+        }
+        $meta = array_values($meta); // Convert back to indexed array
+
         $context_parts = [];
         foreach ($full_retrieved as $row) {
-            $meta = json_decode($row['metadata'], true);
-            $src = isset($meta['source']) ? $meta['source'] : 'unknown';
-            $chunk_idx = isset($meta['chunk_index']) ? ' (chunk ' . $meta['chunk_index'] . ')' : '';
+            $meta_data = json_decode($row['metadata'], true);
+            $src = isset($meta_data['source']) ? $meta_data['source'] : 'unknown';
+            $chunk_idx = isset($meta_data['chunk_index']) ? ' (chunk ' . $meta_data['chunk_index'] . ')' : '';
             $extra = '';
 
-            foreach ($meta as $key => $value) {
+            foreach ($meta_data as $key => $value) {
                 $prefix = in_array($key, ['source', 'chunk_index', 'file_id', 'make', 'model']) ? '' : '**';
                 $extra .= ' ' . $prefix . ucfirst($key) . ':' . $value;
             }
 
 
-            if (isset($meta['id'])) $extra .= ' ContentID:' . $meta['id'];
-            if (isset($meta['person_id'])) $extra .= ' PersonID:' . $meta['person_id'];
-            if (isset($meta['file_id'])) $extra .= ' FileID:' . $meta['file_id'];
+            if (isset($meta_data['id'])) $extra .= ' ContentID:' . $meta_data['id'];
+            if (isset($meta_data['person_id'])) $extra .= ' PersonID:' . $meta_data['person_id'];
+            if (isset($meta_data['file_id'])) $extra .= ' FileID:' . $meta_data['file_id'];
             $context_parts[] = "[source=" . $src . $chunk_idx . $extra . "]\n" . $row['content'];
         }
 
@@ -441,11 +461,24 @@ class Justice extends \App\Classes\Utils
 
         $response = json_decode($result, true);
         if ($response && isset($response['answer'])) {
+            // Filter meta to only include the ID referenced in the answer
+            $referenced_id = null;
+            if (preg_match('/\*\*ID:\s*([^\*]+)\*\*/u', $response['answer'], $match)) {
+                $referenced_id = trim($match[1]);
+            }
+            $filtered_meta = [];
+            foreach ($meta as $m) {
+                if (($m['id'] ?? '') === $referenced_id) {
+                    $filtered_meta[] = $m;
+                }
+            }
+            $response['meta'] = $filtered_meta;
             return $response;
         } else {
             return [
                 'answer' => 'Error: Invalid response format',
-                'answerHtml' => 'Error: Invalid response format'
+                'answerHtml' => 'Error: Invalid response format',
+                'meta' => []
             ];
         }
     }

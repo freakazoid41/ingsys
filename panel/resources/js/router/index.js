@@ -34,7 +34,7 @@ import InventoryList from '@/pages/inventory/InventoryList.vue'
 import InventoryForm from '@/pages/inventory/InventoryForm.vue'
 
 import DocumentList from '@/pages/documentFiles/DocumentList.vue'
-import AiFront from '@/pages//aifront/AiFront.vue'
+import AiFront from '@/pages/aifront/AiFront.vue'
 
 const router = createRouter({
   history: createWebHistory(),

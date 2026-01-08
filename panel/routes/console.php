@@ -22,7 +22,7 @@ Artisan::command('ai:test {--chat : Enable conversation mode} {--session= : Sess
         bana toyota hakkında bilgi ver
         Q;
     }
-    $lib->insert_documents();
+    //$lib->insert_documents();
     if ($reset && $sessionId) {
         $lib->reset_conversation($sessionId);
         $this->info("Conversation reset for session: $sessionId");
