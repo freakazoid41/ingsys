@@ -2,6 +2,8 @@
 
 namespace App\Classes\Justice;
 
+use Illuminate\Support\Facades\Log;
+
 class Justice extends \App\Classes\Utils
 {
     private $pdo;
@@ -42,65 +44,91 @@ class Justice extends \App\Classes\Utils
     }
 
     public function ask_ollama(string $system, string $context, string $question, string $model = 'llama3.1'): string {
-        // Validate inputs to prevent injection
-        if (empty($system) || empty($question)) {
-            return json_encode(['answer' => 'Invalid input', 'answerHtml' => 'Invalid input']);
+        $start_time = microtime(true);
+        try {
+            // Validate inputs to prevent injection
+            if (empty($system) || empty($question)) {
+                Log::warning('Justice::ask_ollama: Invalid input provided', ['system' => $system, 'question' => $question]);
+                return json_encode(['answer' => 'Invalid input', 'answerHtml' => 'Invalid input']);
+            }
+
+            $prompt = $system . "\n\nContext:\n" . $context . "\n\nQuestion:\n" . $question;
+
+            // Use HTTP API instead of shell_exec for security
+            $ollama_url = env('OLLAMA_URL', 'http://localhost:11434');
+            $timeout = intval(env('OLLAMA_TIMEOUT', 60));
+            $data = [
+                'model' => $model,
+                'prompt' => $prompt,
+                'stream' => false
+            ];
+
+            $ch = curl_init($ollama_url . '/api/generate');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout); // Timeout to prevent hanging
+
+            $response = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curl_error = curl_error($ch);
+            curl_close($ch);
+
+            if ($response === false || $http_code !== 200) {
+                Log::error('Justice::ask_ollama: Ollama API call failed', [
+                    'http_code' => $http_code,
+                    'curl_error' => $curl_error,
+                    'response' => $response,
+                    'model' => $model
+                ]);
+                return json_encode(['answer' => '', 'answerHtml' => '']);
+            }
+
+            $result = json_decode($response, true);
+            if (!isset($result['response'])) {
+                Log::error('Justice::ask_ollama: Invalid response from Ollama', ['response' => $response]);
+                return json_encode(['answer' => '', 'answerHtml' => '']);
+            }
+
+            $answer = trim($result['response']);
+
+            // Remove ANSI escape codes from the answer
+            $answer = preg_replace('/\x1B\[[0-9;?]*[A-Za-z]/u', '', $answer);
+            $answer = preg_replace('/\x1B\][0-9]*;.*?(\x07|\x1B\\\\)/u', '', $answer); // OSC sequences
+            $answer = preg_replace('/[\x00-\x1F\x7F]/u', '', $answer); // Control characters
+            // Remove Braille patterns (U+2800-U+28FF range)
+            $answer = preg_replace('/[\x{2800}-\x{28FF}]/u', '', $answer);
+
+            // Create HTML version before normalizing whitespace
+            $answerHtml = $this->format_answer_html($answer);
+
+            // Now normalize whitespace for plain text answer
+            $answer = preg_replace('/\s+/', ' ', $answer); // Normalize whitespace
+            $answer = trim($answer);
+
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::info('Justice::ask_ollama: Successful call', ['duration' => $duration, 'model' => $model]);
+
+            return json_encode([
+                'answer' => $answer,
+                'answerHtml' => $answerHtml
+            ]);
+        } catch (\Exception $e) {
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::error('Justice::ask_ollama: Exception occurred', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'duration' => $duration
+            ]);
+            return json_encode(['answer' => 'An error occurred while processing your request.', 'answerHtml' => 'An error occurred while processing your request.']);
         }
-
-        $prompt = $system . "\n\nContext:\n" . $context . "\n\nQuestion:\n" . $question;
-
-        // Use HTTP API instead of shell_exec for security
-        $ollama_url = env('OLLAMA_URL', 'http://localhost:11434');
-        $timeout = intval(env('OLLAMA_TIMEOUT', 60));
-        $data = [
-            'model' => $model,
-            'prompt' => $prompt,
-            'stream' => false
-        ];
-
-        $ch = curl_init($ollama_url . '/api/generate');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout); // Timeout to prevent hanging
-
-        $response = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($response === false || $http_code !== 200) {
-            return json_encode(['answer' => '', 'answerHtml' => '']);
-        }
-
-        $result = json_decode($response, true);
-        if (!isset($result['response'])) {
-            return json_encode(['answer' => '', 'answerHtml' => '']);
-        }
-
-        $answer = trim($result['response']);
-
-        // Remove ANSI escape codes from the answer
-        $answer = preg_replace('/\x1B\[[0-9;?]*[A-Za-z]/u', '', $answer);
-        $answer = preg_replace('/\x1B\][0-9]*;.*?(\x07|\x1B\\\\)/u', '', $answer); // OSC sequences
-        $answer = preg_replace('/[\x00-\x1F\x7F]/u', '', $answer); // Control characters
-        // Remove Braille patterns (U+2800-U+28FF range)
-        $answer = preg_replace('/[\x{2800}-\x{28FF}]/u', '', $answer);
-
-        // Create HTML version before normalizing whitespace
-        $answerHtml = $this->format_answer_html($answer);
-
-        // Now normalize whitespace for plain text answer
-        $answer = preg_replace('/\s+/', ' ', $answer); // Normalize whitespace
-        $answer = trim($answer);
-
-        return json_encode([
-            'answer' => $answer,
-            'answerHtml' => $answerHtml
-        ]);
     }
 
     public function pg_upsert(array $embeddings, array $documents, array $metadatas): bool {
+        $start_time = microtime(true);
         try {
             $this->pdo->exec("CREATE EXTENSION IF NOT EXISTS vector");
             $this->pdo->exec("CREATE TABLE IF NOT EXISTS vector_documents (id SERIAL PRIMARY KEY, content TEXT,origin TEXT,year_code TEXT, embedding VECTOR(" . intval($this->local_embed_dim) . "), metadata JSONB)");
@@ -143,12 +171,24 @@ class Justice extends \App\Classes\Utils
             }
 
             $this->pdo->commit();
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::info('Justice::pg_upsert: Successful upsert', [
+                'total_documents' => count($documents),
+                'duration' => $duration
+            ]);
             return true;
         } catch (\Exception $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            fwrite(STDERR, "PG upsert failed: " . $e->getMessage() . "\n");
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::error('Justice::pg_upsert: Failed to upsert', [
+                'message' => $e->getMessage(),
+                'total_documents' => count($documents),
+                'duration' => $duration
+            ]);
             return false;
         }
     }
@@ -162,6 +202,7 @@ class Justice extends \App\Classes\Utils
     }
 
     public function vector_query(array $query_embedding, int $top_k = 5): array {
+        $start_time = microtime(true);
         try {
             $vec_str = '[' . implode(',', $query_embedding) . ']';
             if ($top_k > 0) {
@@ -171,9 +212,23 @@ class Justice extends \App\Classes\Utils
                 $stmt = $this->pdo->prepare("SELECT content, metadata FROM vector_documents ORDER BY embedding <=> ?::vector");
                 $stmt->execute([$vec_str]);
             }
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::info('Justice::vector_query: Successful query', [
+                'top_k' => $top_k,
+                'results_count' => count($results),
+                'duration' => $duration
+            ]);
+            return $results;
         } catch (\Exception $e) {
-            fwrite(STDERR, "PG query failed: " . $e->getMessage() . "\n");
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::error('Justice::vector_query: Query failed', [
+                'message' => $e->getMessage(),
+                'top_k' => $top_k,
+                'duration' => $duration
+            ]);
             return [];
         }
     }
@@ -221,48 +276,96 @@ class Justice extends \App\Classes\Utils
     }
 
     public function embed_texts_ollama(array $texts): array {
-        if (empty($texts)) return [];
+        $start_time = microtime(true);
+        try {
+            if (empty($texts)) return [];
 
-        // Use HTTP API for security
-        $ollama_url = env('OLLAMA_URL', 'http://localhost:11434');
-        $timeout = intval(env('OLLAMA_TIMEOUT', 60));
-        $embeddings = [];
-        foreach ($texts as $text) {
-            $data = [
-                'model' => $this->ollama_embed_model,
-                'prompt' => $text
-            ];
+            // Use HTTP API with multi-curl for batching
+            $ollama_url = env('OLLAMA_URL', 'http://localhost:11434');
+            $timeout = intval(env('OLLAMA_TIMEOUT', 60));
+            $embeddings = [];
+            $mh = curl_multi_init();
+            $handles = [];
 
-            $ch = curl_init($ollama_url . '/api/embeddings');
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-
-            $response = curl_exec($ch);
-            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            if ($response === false || $http_code !== 200) {
-                
-                return [
-                    'answer' => 'Api is not available right now..',
-                    'answerHtml' => 'Api is not available right now..'
+            foreach ($texts as $i => $text) {
+                $data = [
+                    'model' => $this->ollama_embed_model,
+                    'prompt' => $text
                 ];
+
+                $ch = curl_init($ollama_url . '/api/embeddings');
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+
+                curl_multi_add_handle($mh, $ch);
+                $handles[$i] = $ch;
             }
 
-            $result = json_decode($response, true);
-            if (isset($result['embedding']) && is_array($result['embedding'])) {
-                $embeddings[] = $result['embedding'];
-            } else {
-                return [
-                    'answer' => 'Api is not available right now..',
-                    'answerHtml' => 'Api is not available right now..'
-                ];
+            $running = null;
+            do {
+                curl_multi_exec($mh, $running);
+                curl_multi_select($mh);
+            } while ($running > 0);
+
+            $errors = 0;
+            foreach ($handles as $i => $ch) {
+                $response = curl_multi_getcontent($ch);
+                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curl_error = curl_error($ch);
+                curl_multi_remove_handle($mh, $ch);
+                curl_close($ch);
+
+                if ($response === false || $http_code !== 200) {
+                    Log::error('Justice::embed_texts_ollama: Embedding call failed', [
+                        'index' => $i,
+                        'http_code' => $http_code,
+                        'curl_error' => $curl_error,
+                        'response' => $response
+                    ]);
+                    $errors++;
+                    $embeddings[$i] = null;
+                    continue;
+                }
+
+                $result = json_decode($response, true);
+                if (isset($result['embedding']) && is_array($result['embedding'])) {
+                    $embeddings[$i] = $result['embedding'];
+                } else {
+                    Log::error('Justice::embed_texts_ollama: Invalid embedding response', [
+                        'index' => $i,
+                        'response' => $response
+                    ]);
+                    $errors++;
+                    $embeddings[$i] = null;
+                }
             }
+
+            curl_multi_close($mh);
+            ksort($embeddings); // Ensure order matches input
+            $result = array_values($embeddings);
+
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::info('Justice::embed_texts_ollama: Completed', [
+                'total_texts' => count($texts),
+                'errors' => $errors,
+                'duration' => $duration
+            ]);
+
+            return $result;
+        } catch (\Exception $e) {
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::error('Justice::embed_texts_ollama: Exception occurred', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'duration' => $duration
+            ]);
+            return [];
         }
-        return $embeddings;
     }
 
     private function get_embeddings_with_fallback(array $texts): array {
@@ -274,67 +377,123 @@ class Justice extends \App\Classes\Utils
     }
 
     public function insert_documents(): void {
-        $mdDir = public_path('aidocuments');
-       
-        $files = array_values(array_filter(scandir($mdDir), function($f) use ($mdDir) {
-            if (in_array($f, ['.', '..'])) return false;
-            $path = $mdDir . DIRECTORY_SEPARATOR . $f;
-            return is_file($path) && preg_match('/\.md$/i', $f);
-        }));
+        $start_time = microtime(true);
+        try {
+            $mdDir = public_path('aidocuments');
+           
+            $files = array_values(array_filter(scandir($mdDir), function($f) use ($mdDir) {
+                if (in_array($f, ['.', '..'])) return false;
+                $path = $mdDir . DIRECTORY_SEPARATOR . $f;
+                return is_file($path) && preg_match('/\.md$/i', $f);
+            }));
 
-        foreach ($files as $file) {
-            $path = $mdDir . DIRECTORY_SEPARATOR . $file;
-            fwrite(STDOUT, "Processing MD: $path\n");
+            $total_files = count($files);
+            $processed_files = 0;
+            $skipped_files = 0;
+            $failed_files = 0;
 
-            // Performance: Skip files larger than 10MB to prevent memory issues
-            $maxFileSize = 10 * 1024 * 1024; // 10MB
-            if (filesize($path) > $maxFileSize) {
-                fwrite(STDERR, "Skipping file $file: too large (>10MB)\n");
-                continue;
+            foreach ($files as $file) {
+                $path = $mdDir . DIRECTORY_SEPARATOR . $file;
+                fwrite(STDOUT, "Processing MD: $path\n");
+
+                // Performance: Skip files larger than 10MB to prevent memory issues
+                $maxFileSize = 10 * 1024 * 1024; // 10MB
+                if (filesize($path) > $maxFileSize) {
+                    fwrite(STDERR, "Skipping file $file: too large (>10MB)\n");
+                    Log::warning('Justice::insert_documents: File too large', ['file' => $file, 'size' => filesize($path)]);
+                    $skipped_files++;
+                    continue;
+                }
+
+                $text = file_get_contents($path);
+                if ($text === false || trim($text) === '') {
+                    fwrite(STDERR, "Failed to read or empty MD file: $path\n");
+                    Log::error('Justice::insert_documents: Failed to read file', ['file' => $file]);
+                    $failed_files++;
+                    continue;
+                }
+
+                $chunks = $this->chunk_text($text, $this->chunk_size, $this->chunk_overlap);
+                if (count($chunks) === 0) {
+                    Log::warning('Justice::insert_documents: No chunks generated', ['file' => $file]);
+                    $skipped_files++;
+                    continue;
+                }
+                // Use cached, batched embeddings helper to avoid redundant calls
+                $embeddings = $this->get_or_compute_embeddings($chunks);
+                // If any embedding is missing, skip this file (helper already falls back to local embedding when possible)
+                if (count(array_filter($embeddings)) !== count($chunks)) {
+                    fwrite(STDERR, "Some embeddings missing for $file; skipping.\n");
+                    Log::error('Justice::insert_documents: Missing embeddings', ['file' => $file, 'chunks' => count($chunks), 'embeddings' => count(array_filter($embeddings))]);
+                    $failed_files++;
+                    continue;
+                }
+
+                $base_meta = $this->extract_metadata_from_file($path);
+
+                $docs = [];
+                $metas = [];
+                foreach ($chunks as $i => $chunk) {
+                    $docs[] = $chunk;
+                    $metas[] = array_merge($base_meta, ['chunk_index' => $i]);
+                }
+
+                $ok = $this->pg_upsert($embeddings, $docs, $metas);
+                if (!$ok) {
+                    fwrite(STDERR, "Failed to upsert chunks for $file into PG\n");
+                    Log::error('Justice::insert_documents: Upsert failed', ['file' => $file, 'chunks' => count($docs)]);
+                    $failed_files++;
+                } else {
+                    fwrite(STDOUT, "Upserted " . count($docs) . " chunks from $file into PG\n");
+                    $processed_files++;
+                }
             }
-
-            $text = file_get_contents($path);
-            if ($text === false || trim($text) === '') {
-                fwrite(STDERR, "Failed to read or empty MD file: $path\n");
-                continue;
-            }
-
-            $chunks = $this->chunk_text($text, $this->chunk_size, $this->chunk_overlap);
-            if (count($chunks) === 0) continue;
-            // Use cached, batched embeddings helper to avoid redundant calls
-            $embeddings = $this->get_or_compute_embeddings($chunks);
-            // If any embedding is missing, skip this file (helper already falls back to local embedding when possible)
-            if (count(array_filter($embeddings)) !== count($chunks)) {
-                fwrite(STDERR, "Some embeddings missing for $file; skipping.\n");
-                continue;
-            }
-
-            $base_meta = $this->extract_metadata_from_file($path);
-
-            $docs = [];
-            $metas = [];
-            foreach ($chunks as $i => $chunk) {
-                $docs[] = $chunk;
-                $metas[] = array_merge($base_meta, ['chunk_index' => $i]);
-            }
-
-            $ok = $this->pg_upsert($embeddings, $docs, $metas);
-            if (!$ok) {
-                fwrite(STDERR, "Failed to upsert chunks for $file into PG\n");
-            } else {
-                fwrite(STDOUT, "Upserted " . count($docs) . " chunks from $file into PG\n");
-            }
+           
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::info('Justice::insert_documents: Completed processing', [
+                'total_files' => $total_files,
+                'processed_files' => $processed_files,
+                'skipped_files' => $skipped_files,
+                'failed_files' => $failed_files,
+                'duration' => $duration
+            ]);
+        } catch (\Exception $e) {
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::error('Justice::insert_documents: Exception occurred', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'duration' => $duration
+            ]);
+            throw $e; // Re-throw to allow caller to handle
         }
-       
     }
 
     public function get_conversation_history(string $session_id, int $limit = 10): array {
+        $start_time = microtime(true);
         try {
             $stmt = $this->pdo->prepare("SELECT role, content FROM conversations WHERE session_id = ? ORDER BY created_at ASC LIMIT ?");
             $stmt->execute([$session_id, $limit]);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::info('Justice::get_conversation_history: Successful retrieval', [
+                'session_id' => $session_id,
+                'limit' => $limit,
+                'results_count' => count($results),
+                'duration' => $duration
+            ]);
+            return $results;
         } catch (\Exception $e) {
-            fwrite(STDERR, "Failed to load conversation history: " . $e->getMessage() . "\n");
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::error('Justice::get_conversation_history: Failed to load history', [
+                'message' => $e->getMessage(),
+                'session_id' => $session_id,
+                'limit' => $limit,
+                'duration' => $duration
+            ]);
             return [];
         }
     }
@@ -421,34 +580,64 @@ class Justice extends \App\Classes\Utils
     }
 
     public function answer_question(string $question, string $session_id = null) {
-        $system = $this->build_system_prompt();
-        $enhanced_question = $this->enhance_question_with_history($question, $session_id);
+        $start_time = microtime(true);
+        try {
+            $system = $this->build_system_prompt();
+            $enhanced_question = $this->enhance_question_with_history($question, $session_id);
 
-        $question_embedding_arr = $this->get_embeddings_with_fallback([$enhanced_question]);
-        if (empty($question_embedding_arr)) {
+            $question_embedding_arr = $this->get_embeddings_with_fallback([$enhanced_question]);
+            if (empty($question_embedding_arr)) {
+                Log::warning('Justice::answer_question: Failed to get question embedding', ['question' => $question, 'session_id' => $session_id]);
+                return [
+                    'answer' => 'Api is not available right now..',
+                    'answerHtml' => 'Api is not available right now..',
+                    'meta' => []
+                ];
+            }
+            $question_embedding = $question_embedding_arr[0];
+
+            $retrieved = $this->vector_query($question_embedding, $this->top_k);
+            $context_and_meta = $this->prepare_context_and_meta($retrieved);
+            $context = $context_and_meta['context'];
+            $meta = $context_and_meta['meta'];
+
+            $result = $this->ask_ollama($system, $context, $enhanced_question, $this->model);
+
+            $response = json_decode($result, true);
+            if ($response && isset($response['answer'])) {
+                $response['meta'] = $this->filter_meta_by_id($meta, $response['answer']);
+                $end_time = microtime(true);
+                $duration = $end_time - $start_time;
+                Log::info('Justice::answer_question: Successful response', [
+                    'question_length' => strlen($question),
+                    'session_id' => $session_id,
+                    'retrieved_count' => count($retrieved),
+                    'meta_count' => count($meta),
+                    'filtered_meta_count' => count($response['meta']),
+                    'duration' => $duration
+                ]);
+                return $response;
+            } else {
+                Log::error('Justice::answer_question: Invalid response from ask_ollama', ['result' => $result]);
+                return [
+                    'answer' => 'Error: Invalid response format',
+                    'answerHtml' => 'Error: Invalid response format',
+                    'meta' => []
+                ];
+            }
+        } catch (\Exception $e) {
+            $end_time = microtime(true);
+            $duration = $end_time - $start_time;
+            Log::error('Justice::answer_question: Exception occurred', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'question' => $question,
+                'session_id' => $session_id,
+                'duration' => $duration
+            ]);
             return [
-                'answer' => 'Api is not available right now..',
-                'answerHtml' => 'Api is not available right now..',
-                'meta' => []
-            ];
-        }
-        $question_embedding = $question_embedding_arr[0];
-
-        $retrieved = $this->vector_query($question_embedding, $this->top_k);
-        $context_and_meta = $this->prepare_context_and_meta($retrieved);
-        $context = $context_and_meta['context'];
-        $meta = $context_and_meta['meta'];
-
-        $result = $this->ask_ollama($system, $context, $enhanced_question, $this->model);
-
-        $response = json_decode($result, true);
-        if ($response && isset($response['answer'])) {
-            $response['meta'] = $this->filter_meta_by_id($meta, $response['answer']);
-            return $response;
-        } else {
-            return [
-                'answer' => 'Error: Invalid response format',
-                'answerHtml' => 'Error: Invalid response format',
+                'answer' => 'An error occurred while processing your request.',
+                'answerHtml' => 'An error occurred while processing your request.',
                 'meta' => []
             ];
         }
