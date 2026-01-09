@@ -595,6 +595,15 @@ class Justice extends \App\Classes\Utils
             $response = json_decode($result, true);
             if ($response && isset($response['answer'])) {
                 $response['meta'] = $this->filter_meta_by_id($meta, $response['answer']);
+                
+                // Remove ID references from the answer text after extracting metadata
+                $response['answer'] = preg_replace('/\*\*ID:\s*[^\*]+\*\*/u', '', $response['answer']);
+                $response['answer'] = trim($response['answer']);
+                
+                // Also remove from HTML version
+                $response['answerHtml'] = preg_replace('/<strong>ID:[^<]*<\/strong>/u', '', $response['answerHtml']);
+                $response['answerHtml'] = trim($response['answerHtml']);
+                
                 $end_time = microtime(true);
                 $duration = $end_time - $start_time;
                 Log::info('Justice::answer_question: Successful response', [
@@ -691,7 +700,16 @@ class Justice extends \App\Classes\Utils
 
     private function filter_meta_by_id(array $meta, string $answer): array {
         $referenced_ids = [];
+        // Try the standard format first: **ID: VALUE**
         if (preg_match_all('/\*\*ID:\s*([^\*]+)\*\*/u', $answer, $matches)) {
+            $referenced_ids = array_map('trim', $matches[1]);
+        }
+        // If no matches, try the format without closing **: **ID:** VALUE
+        if (empty($referenced_ids) && preg_match_all('/\*\*ID:\*\*\s*([^\s\*]+)/u', $answer, $matches)) {
+            $referenced_ids = array_map('trim', $matches[1]);
+        }
+        // Also try the format with space separation: **ID:** VALUE **ID:** VALUE
+        if (empty($referenced_ids) && preg_match_all('/\*\*ID:\*\*\s*([^<\s\*]+)/u', $answer, $matches)) {
             $referenced_ids = array_map('trim', $matches[1]);
         }
         $filtered_meta = [];
