@@ -499,7 +499,7 @@ class Justice extends \App\Classes\Utils
     }
 
     private function build_system_prompt(): string {
-        $language_instruction = "IMPORTANT: Detect the language of the question and respond in the same language. If the question is Turkish, reply exclusively in natural, idiomatic Turkish. Do NOT include fragments, phrases, or characters from other languages (for example Chinese, English insertions, or emojis). If you cannot express something clearly in Turkish, ask a clarifying question in Turkish.";
+        $language_instruction = "IMPORTANT: Detect the language of the question and respond in the same language. If the question is Turkish, reply exclusively in natural, idiomatic Turkish. Do NOT include fragments, phrases, or characters from other languages (for example Chinese, English insertions, or emojis)."; /*If you cannot express something clearly in Turkish, ask a clarifying question in Turkish.";*/
 
         return "You are an expert research assistant. ONLY use information from the provided document context below. Do NOT use any external knowledge, general knowledge, or information not present in the context. Maintain conversation context and answer based on the conversation history and the provided document context. If the question cannot be answered at all using ONLY the document context, just say 'question is not relevant'.\n\n" . $language_instruction . "\n\n" .
             "NEVER mix languages in a single response: respond solely in the detected language for the user query.\n\n" .
