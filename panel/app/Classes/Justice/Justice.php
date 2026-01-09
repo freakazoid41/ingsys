@@ -503,8 +503,7 @@ class Justice extends \App\Classes\Utils
 
         return "You are an expert research assistant. ONLY use information from the provided document context below. Do NOT use any external knowledge, general knowledge, or information not present in the context. Maintain conversation context and answer based on the conversation history and the provided document context. If the question cannot be answered at all using ONLY the document context, just say 'question is not relevant'.\n\n" . $language_instruction . "\n\n" .
             "NEVER mix languages in a single response: respond solely in the detected language for the user query.\n\n" .
-            "IMPORTANT : When applicable, start the answer with the informations contains origin,id,Ülke,Karar tarihi,Karar numarası. After that info pass to new line, provide the answer.\n\n" .
-            "IMPORTANT : At the very end of your answer pass to next line and always include **ID: [id_value]** where [id_value] is the exact ID from the context metadata.\n" .
+            "IMPORTANT : At the very end of your answer, put a new line and then include **ID: [id_value]** for EACH source you used in your answer. The [id_value] should be taken from the 'id:' or 'ContentID:' field in the metadata of each source you referenced. If you used multiple sources, include multiple **ID:** entries, one for each source.\n" .
             "Keep answers concise, user-friendly, and directly responsive to the question. Do not output JSON or any diagnostic commentary. If the user input is only a greeting, respond politely in the detected language without the header.";
     }
 

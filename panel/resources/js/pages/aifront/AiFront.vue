@@ -156,8 +156,11 @@
                             <div class="chat-text text-left" v-if="msg.sender === 'bot' && msg?.meta?.length > 0" >
                                 {{ msg.meta.length > 0 ? 'Referanslar:' : '' }}
                                 <ul>
-                                    <li v-for="meta in msg.meta">
-                                        ID : {{ meta?.id }} / Referans : {{ meta?.url }}
+                                    <li class="mt-5" v-for="meta in msg.meta">
+                                        Karar Numarası : {{ meta?.id }} <br>
+                                        Ülke : {{ meta?.origin }} <br> 
+                                        Tarih : {{ meta?.date }}  <br> 
+                                        Referans : <a :href="meta?.url" target="_blank" rel="noopener noreferrer">{{ meta?.url }}</a>
                                     </li>
                                 </ul>
                             </div>
