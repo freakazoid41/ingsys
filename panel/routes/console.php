@@ -19,7 +19,7 @@ Artisan::command('ai:test {--chat : Enable conversation mode} {--session= : Sess
     
     if (!$question) {
         $question = <<<'Q'
-        bana golf hakkında bilgi ver
+        bana Volkswagen golf ve mustang  hakkında bilgi ver
         Q;
     }
     #$lib->insert_documents();

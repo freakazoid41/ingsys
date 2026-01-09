@@ -595,7 +595,7 @@ class Justice extends \App\Classes\Utils
 
             $response = json_decode($result, true);
             if ($response && isset($response['answer'])) {
-                $response['meta'] = $meta; // Return all retrieved metadata instead of filtering by ID
+                $response['meta'] = $this->filter_meta_by_id($meta, $response['answer']);
                 $end_time = microtime(true);
                 $duration = $end_time - $start_time;
                 Log::info('Justice::answer_question: Successful response', [
@@ -691,13 +691,13 @@ class Justice extends \App\Classes\Utils
     }
 
     private function filter_meta_by_id(array $meta, string $answer): array {
-        $referenced_id = null;
-        if (preg_match('/\*\*ID:\s*([^\*]+)\*\*/u', $answer, $match)) {
-            $referenced_id = trim($match[1]);
+        $referenced_ids = [];
+        if (preg_match_all('/\*\*ID:\s*([^\*]+)\*\*/u', $answer, $matches)) {
+            $referenced_ids = array_map('trim', $matches[1]);
         }
         $filtered_meta = [];
         foreach ($meta as $m) {
-            if (($m['id'] ?? '') === $referenced_id) {
+            if (in_array(($m['id'] ?? ''), $referenced_ids)) {
                 $filtered_meta[] = $m;
             }
         }
