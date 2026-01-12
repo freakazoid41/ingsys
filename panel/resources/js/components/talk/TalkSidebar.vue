@@ -43,13 +43,8 @@ export default {
                 </router-link>
             </li>
             <li>
-                <router-link v-if="menubar != 'op-pert-reseller'" :to="{ name: 'IList' }" :class="$route.name == 'IList' || $route.name == 'IForm' ? 'active' : ''" alt=""><span class="kontent-icon" name="Menu5Icon">
-                    </span>{{ $t('menu.inventory') }}
-                </router-link>
-            </li>
-            <li>
-                <router-link :to="{ name: 'VList' }" :class="$route.name == 'VList'  || $route.name == 'VForm' ? 'active' : ''" alt="">
-                    <span class="kontent-icon" name="Menu3Icon"></span>{{ $t('menu.visit') }}
+                <router-link  :to="{ name: 'LList' }" :class="$route.name == 'LList'  ? 'active' : ''" alt="">
+                    <span class="kontent-icon" name="Menu4Icon"></span>{{ $t('menu.logs') }}
                 </router-link>
             </li>
             <li>

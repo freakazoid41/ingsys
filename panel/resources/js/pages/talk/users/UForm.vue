@@ -86,11 +86,11 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/secpanel',
+                    url   : '/kontent',
                 },
                 {
                     title : this.wTrans('menu.users'),
-                    url   : '/secpanel/users',
+                    url   : '/kontent/users',
                 }
             ] ,this.wTrans('form.users'));
         },  

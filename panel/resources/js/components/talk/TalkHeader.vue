@@ -22,11 +22,11 @@ export default {
     mounted() {
         this.authDataStore.getData();
         //clear old notification interval
-        if(this.navigationStore.notificationInterval) clearInterval(this.navigationStore.notificationInterval);
+        /*if(this.navigationStore.notificationInterval) clearInterval(this.navigationStore.notificationInterval);
         //set new notification interval
         this.navigationStore.notificationInterval = setInterval(() => {
             this.getNotifications();
-        }, 1000);
+        }, 1000);*/
         
 
         /*notification({
@@ -107,7 +107,7 @@ export default {
                                     elm.style.textAlign = 'center';
 
 
-                                    let link = '/secpanel/visit/form/'+columnData
+                                    let link = '/kontent/visit/form/'+columnData
                                     
 
                                     const tab          = document.createElement('a');
@@ -153,11 +153,11 @@ export default {
                     this.getNotifications();
 
                     ielm.remove();
-                    this.$router.push({ name: 'VList' });
+                    //this.$router.push({ name: 'VList' });
                     this.navigationStore.active = false;
                 }
             }else{
-                this.$router.push({ name: 'VList' });
+                //this.$router.push({ name: 'VList' });
             }
             
         }
@@ -169,7 +169,7 @@ export default {
     <div class="right-bar-header">
         <div class="right-bar-header-head">
             <h1
-                v-html="navigationStore?.currentTitle == '' ? 'Seç Sistemine <b>Hoş geldiniz.</b>' : navigationStore?.currentTitle">
+                v-html="navigationStore?.currentTitle == '' ? 'Kontent Kontrol Sistemine <b>Hoş geldiniz.</b>' : navigationStore?.currentTitle">
             </h1>
             <ul class="breadcrumb">
                 <li v-for="item in navigationStore.breadcrumps">

@@ -31,11 +31,11 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/secpanel',
+                    url   : '/kontent',
                 },
                 {
                     title : this.wTrans('menu.facility'),
-                    url   : '/secpanel/facility',
+                    url   : '/kontent/facility',
                 }
             ] ,this.wTrans('form.facility.list'));
 
@@ -67,40 +67,11 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
-                        title : 'QR Kod',
-                        key   : 'qr_code',
+                        title : 'Kök Url',
+                        key   : 'root_url',
                         order : true,
                         type  : 'string', // if column is string then make type string
-                        columnClick     : async (elm,rowData,columnData) => {
-                            const data = await QRCode.toDataURL(columnData,{
-                                quality : 1,
-                                width   : 1080
-                            });
-                            Swal.fire({
-                                confirmButtonText : 'İndir',
-                                showCloseButton   : true,
-                                imageUrl: data,
-                                imageHeight: 400,
-                                preConfirm : () => {
-                                    const a = document.createElement('a');
-                                    a.href = data;
-                                    a.download = "output.png";
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                    return false;
-                                }
-                            });
-                        },
-                        columnFormatter : (elm,rowData,columnData) => {
-                            return '<div class="d-flex align-items-center"><i class="fa fa-qrcode fs-5 me-5"></i>'+' '+columnData+'</div>';
-                        }
-                    },{
-                        title : 'Adres',
-                        key   : 'address',
-                        order : true,
-                        colAlign : 'right',
-                        type  : 'string', // if column is string then make type string
+                        
                     },{
                         title : '',
                         key   : 'id',
@@ -110,17 +81,38 @@
                             const div = document.createElement('div');
                             div.classList.add('row','justify-content-center');
 
-                            const edit       = document.createElement('a');
-                            edit.href        = '/secpanel/flist/form/'+columnData;
-                            edit.style.width = 'auto';
-                            edit.innerHTML   = '<i class="fs-5 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
-                            div.appendChild(edit);
+                            let btn        = document.createElement('a');
+                            btn.href        = 'javascript:;';
+                            btn.style.width = 'auto';
+                            btn.innerHTML   = '<i class="fs-5 fa fa-recycle selectable-icon" style="color:#95818C"  role="img"></i>';
+                            btn.onclick     = async () => {
+                                this.navigationStore.toggle(true);
+                                const rsp = await this.plib.request({
+                                    url      : '/api/v1/setprocess/'+columnData,
+                                    method   : 'GET',
+                                },null);
+                                
+                                if(rsp.success) this.plib.toast(this.Swal,'success','Kontrol Süreci Başlatıldı');
+                                else this.plib.toast(this.Swal,'error','Hata Oluştu');
 
-                            const del       = document.createElement('a');
-                            del.href        = 'javascript:;';
-                            del.style.width = 'auto';
-                            del.innerHTML   = '<i class="fs-5 fa fa-trash selectable-icon" style="color:#95818C"  role="img"></i>';
-                            del.onclick     = async () => {
+                                setTimeout(() => {
+                                    this.navigationStore.toggle(false);
+                                }, 300);
+                                
+                            };
+                            div.appendChild(btn);
+
+                            btn              = document.createElement('a');
+                            btn.href        = '/kontent/flist/form/'+columnData;
+                            btn.style.width = 'auto';
+                            btn.innerHTML   = '<i class="fs-5 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
+                            div.appendChild(btn);
+
+                            btn             = document.createElement('a');
+                            btn.href        = 'javascript:;';
+                            btn.style.width = 'auto';
+                            btn.innerHTML   = '<i class="fs-5 fa fa-trash selectable-icon" style="color:#95818C"  role="img"></i>';
+                            btn.onclick     = async () => {
                                 this.navigationStore.toggle(true);
                                 await this.plib.request({
                                     url      : '/api/v1/content/'+columnData,
@@ -133,7 +125,7 @@
                                 }, 300);
                                 
                             };
-                            div.appendChild(del);
+                            div.appendChild(btn);
 
                             return div;
                         }

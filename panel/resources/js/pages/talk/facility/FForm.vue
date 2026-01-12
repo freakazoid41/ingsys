@@ -59,13 +59,13 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/secpanel',
+                    url   : '/kontent',
                 },{
                     title : this.wTrans('menu.facility'),
-                    url   : '/secpanel/facility',
+                    url   : '/kontent/facility',
                 },{
                     title : this.wTrans('form.facility.list'),
-                    url   : '/secpanel/facility/form',
+                    url   : '/kontent/facility/form',
                 }
             ] ,this.wTrans('form.facility'));
         },  

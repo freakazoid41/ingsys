@@ -18,7 +18,7 @@ class DocumentServiceProvider extends ServiceProvider
        
     }
 
-    public function registerContent($id = 0,$requestData,$files){
+    public function registerContent($id = 0,$requestData,$files = []){
         $typeKey      = $requestData['typeKey'] ?? 'op-doc-period';
         $dynamicF     = $requestData['dynamicF'] ?? [];
         $dynamicFiles = [];

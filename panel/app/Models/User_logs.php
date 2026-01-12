@@ -93,14 +93,14 @@ class User_logs extends Model
             //$obj['filter'] = json_decode($obj['filters'],true);
             foreach($obj['filter'] as $f){
                 if(isset($f['field'])) $f['key'] = $f['field'];
-                if(isset($f['value'])) $f['value'] = noInject(strip_tags(mb_strtoupper($f['value'])));
+                if(isset($f['value'])) $f['value'] = noInject(strip_tags($f['value']));
 
                 switch($f['key']){
                     case 'period':
-                        $where.=" and i.created_at::text ilike '%".$f['value']."%'";
+                        $where.=" and i.created_at like '%".$f['value']."%'";
                         break;
                     case 'model':
-                        $where.=" and description::text ilike '%".$f['value']."%' ";
+                        $where.=" and description like '%".$f['value']."%' ";
                         break;
                     case 'free':
                     case 'all':
@@ -110,18 +110,18 @@ class User_logs extends Model
                         foreach($columns as $k=>$v){
                             if($i!=0) $where.=' or ';
                             $column = explode('as  ',$columns[$k])[0];
-                            $where.=' '.$column.'::text ilike'."'%" . $f['value'] . "%' ";
+                            $where.=' '.$column.' like'."'%" . $f['value'] . "%' ";
                             $i++;
                         }
                         $where .= ' ) ';
                     break;
                     default:
-                        $column = explode('as  ',$columns[$f['key']])[0];
+                        $column = explode(' as  ',$columns[$f['key']])[0];
                         if(trim($f['value']) != ''){
                             if($f['type'] != 'like'){
-                                $where.=" and ".$column."::text ='".$f['value']."' ";
+                                $where.=" and ".$column." = '".$f['value']."' ";
                             }else{
-                                $where.=" and ".$column."::text ilike '%".$f['value']."%' ";
+                                $where.=" and ".$column." like '%".$f['value']."%' ";
                             }
                         }
                         break;
@@ -133,7 +133,6 @@ class User_logs extends Model
         //create query    
         $sql = 'select '.implode(",", array_values($columns)).'
                     from user_logs as i '.$join.' ' . $where.$order.$limit ;
-
 
         $result = DB::select($sql);
        

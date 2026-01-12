@@ -6,11 +6,7 @@ import TIndex from '@/pages/talk/TIndex.vue'
 import FList from '@/pages/talk/facility/FList.vue'
 import FForm from '@/pages/talk/facility/FForm.vue'
 
-import IList from '@/pages/talk/inventory/IList.vue'
-import IForm from '@/pages/talk/inventory/IForm.vue'
-
-import VList from '@/pages/talk/visit/VList.vue'
-import VForm from '@/pages/talk/visit/VForm.vue'
+import LList from '@/pages/talk/logs/LList.vue'
 
 import UList from '@/pages/talk/users/UList.vue'
 import UForm from '@/pages/talk/users/UForm.vue'
@@ -19,19 +15,18 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/secpanel',
+      path: '/kontent',
       component: Talk,
       //meta: { requiresAuth: true },
       children: [
-        { path: "/secpanel", name: 'Index', component: TIndex },
-        { path: "/secpanel/flist", name: 'FList', component: FList },
-        { path: "/secpanel/flist/form/:id?", name: 'FForm', component: FForm },
-        { path: "/secpanel/inventory", name: 'IList', component: IList },
-        { path: "/secpanel/inventory/form/:id?", name: 'IForm', component: IForm },
-        { path: "/secpanel/visit", name: 'VList', component: VList },
-        { path: "/secpanel/visit/form/:id?", name: 'VForm', component: VForm },
-        { path: "/secpanel/users", name: 'UList', component: UList },
-        { path: "/secpanel/users/form/:id?", name: 'UForm', component: UForm },    
+        { path: "/kontent", name: 'Index', component: TIndex },
+        { path: "/kontent/flist", name: 'FList', component: FList },
+        { path: "/kontent/flist/form/:id?", name: 'FForm', component: FForm },
+
+        { path: "/kontent/logs", name: 'LList', component: LList },
+        
+        { path: "/kontent/users", name: 'UList', component: UList },
+        { path: "/kontent/users/form/:id?", name: 'UForm', component: UForm },    
       ]
     },
     /*{

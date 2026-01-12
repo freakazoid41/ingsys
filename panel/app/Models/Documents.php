@@ -51,7 +51,7 @@ class Documents extends Model
             'id'             => 'i.qnid  as  id',
             'type'           => 'sp.op_key  as  type',
             'entity_conn_id' => 'se.conn_id  as  entity_conn_id', 
-            'main_attr'      => '',
+            'main_attr'      => "'[]' as  main_attr",
             'created_at'     => 'i.created_at',
         );
 
@@ -116,19 +116,7 @@ class Documents extends Model
             }
 
             if(isset($obj['filterKeys']['form-type'])){
-                if(env('DB_CONNECTION') == 'sqlsrv'){
-                    $columns['main_attr'] = "(SELECT    CONCAT(
-                                                                '[',STRING_AGG(
-                                                            CONCAT(
-                                                                '{\"Key\":\"', se.entity_tag, '\",\"Value\":\"', se.entity_value, '\"}'
-                                                            ), ','
-                                                        ) , ']')
-                                                        FROM sys_con_entities as se
-                                                            inner join sys_con_ops as so on so.id = se.conn_id 
-                                                            inner join sys_options as sp on sp.id = so.type_id
-                                                        where so.conn_id = 0 and sp.op_key = '".$obj['filterKeys']['form-type']."'  and so.main_id = i.id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  main_attr";
-                }else{
-                    $columns['main_attr'] = "(SELECT    ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
+                $columns['main_attr'] = "(SELECT    ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
                                                                 ".(env('DB_CONNECTION') == 'pgsql' ? 'json_build_object' : 'json_object')."(
                                                                     'Key',se.entity_tag,
                                                                     'Value' , se.entity_value
@@ -138,17 +126,16 @@ class Documents extends Model
                                                             inner join sys_con_ops as so on so.id = se.conn_id 
                                                             inner join sys_options as sp on sp.id = so.type_id
                                                         where so.conn_id = 0 and sp.op_key = '".$obj['filterKeys']['form-type']."'  and so.main_id = i.id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  main_attr";
-                }
 
 
 
                 
 
 
-                if(session('type_key') == 'op-pert-reseller'){
+                /**if(session('type_key') == 'op-pert-reseller'){
                     if($obj['filterKeys']['form-type'] == 'op-doc-facility-form') $authWhere = " and i.qnid in ('".implode("','",explode(',',session('grp_code')))."') "; 
                     if($obj['filterKeys']['form-type'] == 'op-doc-visit-form') $authWhere = " and i.grp_code in ('".implode("','",explode(',',session('grp_code')))."') "; 
-                }
+                }**/
             }
 
             
@@ -181,19 +168,7 @@ class Documents extends Model
                     
                     case 'form-type':
                         $value = $f['value'];
-                        if(env('DB_CONNECTION') == 'sqlsrv'){
-                            $columns['main_attr'] = "(SELECT    CONCAT(
-                                                            '[',STRING_AGG(
-                                                        CONCAT(
-                                                            '{\"Key\":\"', se.entity_tag, '\",\"Value\":\"', se.entity_value, '\"}'
-                                                        ), ','
-                                                    ) , ']')
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = '".$value."'  and so.main_id = i.id)  as  main_attr";
-                        }else{
-                            $columns['main_attr'] = "(SELECT    ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
+                        $columns['main_attr'] = "(SELECT    ".( env('DB_CONNECTION') == 'pgsql' ? 'json_agg' : 'json_group_array' )."(
                                                                 ".(env('DB_CONNECTION') == 'pgsql' ? 'json_build_object' : 'json_object')."(
                                                                     'Key',se.entity_tag,
                                                                     'Value' , se.entity_value
@@ -203,7 +178,6 @@ class Documents extends Model
                                                             inner join sys_con_ops as so on so.id = se.conn_id 
                                                             inner join sys_options as sp on sp.id = so.type_id
                                                         where so.conn_id = 0 and sp.op_key = '".$value."'  and so.main_id = i.id)".(env('DB_CONNECTION') == 'pgsql' ? '::text' : '')."  as  main_attr";
-                        }
                         
                         
                         break;

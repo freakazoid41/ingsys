@@ -132,11 +132,11 @@ class SysSeeder extends Seeder
                 'op_key'    => 'log-visiter-enter',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Ziyaretçi Çıkış Yaptı',
+                'title'     => 'Url Hatası',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
-                'op_key'    => 'log-visiter-exit',
+                'op_key'    => 'log-url-error',
             ],[
                 'parent_id' => 0,
                 'title'     => 'Dosya Girişi',
@@ -287,14 +287,7 @@ class SysSeeder extends Seeder
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Ekipman',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-inventory-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Ziyaret',
+                'title'     => 'Hata',
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-visit-form',
@@ -361,14 +354,7 @@ class SysSeeder extends Seeder
                 'group_key' => 'op-doc',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Ekipman',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-inventory',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Ziyaret',
+                'title'     => 'Hata',
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-visit',

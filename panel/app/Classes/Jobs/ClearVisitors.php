@@ -70,7 +70,7 @@ class ClearVisitors extends \App\Classes\Utils
                                 Mail::html('<div>'.date("d.m.Y", strtotime("-1 day")).' Tarihli çıkış yapmayan ziyaretçi listesi ektedir.</div>', function ($message) use ($excelPath,$email){
                                     $message->from(env('MAIL_FROM_ADDRESS'),'Seç Ziyaretçi Sistemi');
                                     $message->to($email);
-                                    $message->subject('SEÇ Sisteminden çıkış yapmayan ziyaretçiler');
+                                    $message->subject('Kontent Kontrol Sisteminden çıkış yapmayan ziyaretçiler');
                                     $message->attach($excelPath);
                                 });
                             }

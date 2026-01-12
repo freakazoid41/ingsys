@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReportServiceProvider extends ServiceProvider
 {
+    private $period;
     public function __construct() {
        
     }
@@ -21,6 +22,8 @@ class ReportServiceProvider extends ServiceProvider
         $data = [
             'success' => true
         ];
+
+        $this->period = $period;
 
         switch ($type) {
             default:
@@ -75,19 +78,20 @@ class ReportServiceProvider extends ServiceProvider
                                                             ]}',true));
     }
 
-    public function getInventories(){
+    public function getDailyLogs(){
        
-        return Documents::tableList(json_decode('{"filter":[
-                                                                {"key":"form-type","type":"=","value":"op-doc-inventory-form"},
-                                                                {"key":"type","type":"=","value":"op-doc-inventory"}
+        return User_logs::tableList(json_decode('{"filter":[
+                                                                {"key":"period","type":"=","value":"'.date('Y-m-d').'"},
+                                                                {"key":"type_key","type":"=","value":"log-url-error"}
                                                             ]}',true));
     }
 
-    public function dailyVisit(){
-        return Documents::tableList(json_decode('{"filter":[
-                                                                {"key":"form-type","type":"=","value":"op-doc-visit-form"},
-                                                                {"key":"type","type":"=","value":"op-doc-visit"},
-                                                                {"key":"day-period","type":"=","value":"'.(date('Y-m-d')).'"}
-                                                            ]}',true));
+    public function webSites(){
+        $query = '{"filter":[
+                    {"key":"form-type","type":"=","value":"op-doc-facility-form"},
+                    {"key":"type","type":"=","value":"op-doc-facility"}'.($this->period ? ',{"key":"id","type":"=","value":"'.$this->period.'"}' : '').'
+                ]}';
+
+        return Documents::tableList(json_decode($query,true));
     }
 }

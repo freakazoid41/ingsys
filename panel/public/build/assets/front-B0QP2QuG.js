@@ -1,2 +1,0 @@
-import{c as n,a as o,A as s,i as t,b as l,f as g,l as r,_ as u,d as c,e as _}from"./App-vQWDj_DA.js";const i=n(),e=o(s).use(i).use(t,{resolve:a=>Object.assign({"../../lang/en.json":_,"../../lang/php_en.json":c,"../../lang/tr.json":u})[`../../lang/${a}.json`].default}).use(l()).use(g),p=document&&document.querySelector("html").lang?document.querySelector("html").lang:(navigator.language||navigator.userLanguage||"en").split("-")[0];r(p).then(()=>{e.mount("#app")}).catch(a=>{console.error("Failed to load language",a),e.mount("#app")});
-//# sourceMappingURL=front-B0QP2QuG.js.map

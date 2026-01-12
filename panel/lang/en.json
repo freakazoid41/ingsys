@@ -3,13 +3,12 @@
     "menu.home"             : "Home",
 
 
-    "menu.facility"         : "Facilities",
-    "form.facility"         : "Facility Add / Edit",
-    "form.facility.list"    : "Facility List",
+    "menu.facility"         : "Web Sites",
+    "form.facility"         : "Website Add / Edit",
+    "form.facility.list"    : "Website List",
 
-    "menu.inventory"        : "inventory",
-    "form.inventory"        : "Inventory Add / Edit",
-    "form.inventory.list"   : "Inventory List",
+    "menu.logs"        : "Logs",
+    "form.logs.list"   : "Logs List",
 
     "menu.visit"            : "Visit",
     "form.visit"            : "Visit Add / Edit",

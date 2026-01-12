@@ -168,28 +168,17 @@ class DocumentController extends Controller
         }
     }
 
-    public function getAparments(){
-        return (new ReportServiceProvider())->getAparments();
-    }
-
-    public function setAparments(Request $request){
-        $validateUser = Validator::make($request->all(),[
-            'title'     => 'required',
-        ]);
-
-        if(session('type_key') != 'op-pert-admin' ) return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],403);
-
-        if($validateUser->fails()){
+    public function setProcess(Request $request,$qnid = null){
+        if($qnid == null){
             return response()->json([
                 'success' => false,
                 'message' => 'Missing Parameters',
                 'error'   => $validateUser->errors()
             ],401);
         }else{
-            return (new DocumentServiceProvider())->setAparments($request->all());
+            //here start schedule for url checking process
+            \Artisan::queue('checklinks:cron '.$qnid);
+            return response()->json(['success' => true]);
         }
 
         

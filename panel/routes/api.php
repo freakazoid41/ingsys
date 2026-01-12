@@ -30,8 +30,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
     Route::any('/v1/setnotificationstatus',            [SystemController::class, 'setNotificationStatus']);
-
-    Route::any('/v1/yeniziyaret/{id?}',                [DocumentController::class, 'newVisit']);
+    Route::any('/v1/setprocess/{qnid}',                [DocumentController::class, 'setProcess'])->middleware('throttle:5,1');
 });   
 
 

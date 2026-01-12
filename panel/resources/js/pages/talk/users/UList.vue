@@ -34,11 +34,11 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/secpanel',
+                    url   : '/kontent',
                 },
                 {
                     title : this.wTrans('menu.users'),
-                    url   : '/secpanel/users',
+                    url   : '/kontent/users',
                 }
             ] ,this.wTrans('menu.users.list'));
 
@@ -88,7 +88,7 @@
                             div.classList.add('row','justify-content-center');
 
                             const edit       = document.createElement('a');
-                            edit.href        = '/secpanel/users/form/'+columnData;
+                            edit.href        = '/kontent/users/form/'+columnData;
                             edit.style.width = 'auto';
                             edit.innerHTML   = '<i class="fs-5 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
                             div.appendChild(edit);

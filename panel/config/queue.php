@@ -40,6 +40,7 @@ return [
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
             'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            'timeout' => (int) env('DB_QUEUE_TIMEOUT', 0), // Set to 0 for no timeout
             'after_commit' => false,
         ],
 

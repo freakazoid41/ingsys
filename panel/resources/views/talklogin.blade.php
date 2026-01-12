@@ -18,7 +18,7 @@
                 </video>
                 
                 <div class="login-futured-main">
-                    <h1>SEÇ Ziyaretçi Paneline <b>Hoş Geldiniz.</b></h1>
+                    <h1>Kontent Kontrol Paneline <b>Hoş Geldiniz.</b></h1>
                     <p>Anasayfaya dönmek için <a href="/seclogin" alt="">lütfen tıklayın <svg xmlns="http://www.w3.org/2000/svg" width="10.945" height="11.774" viewBox="0 0 10.945 11.774"><g transform="translate(17.445 17.86) rotate(180)"><path d="M16.445,18H7.5" transform="translate(0 -6.027)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path d="M11.973,16.445,7.5,11.973,11.973,7.5" transform="translate(0 0)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg></a></p>
                 </div>
             </div>
@@ -91,7 +91,7 @@
                     if(login != null){
                         localStorage.setItem('token',login.value.trim());
                         setTimeout(() => {
-                            window.location.href = '/secpanel';
+                            window.location.href = '/kontent';
                         }, 400);
                     }else{
                         this.pageEvents();

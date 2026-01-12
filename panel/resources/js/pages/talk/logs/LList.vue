@@ -5,10 +5,13 @@
     import 'pickletable/assets/style.css';
     import Plib from '@/lib/pickle';
     import { wTrans } from 'laravel-vue-i18n';
+    import { Datepicker } from 'vanillajs-datepicker';
+    import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
     import Swal from 'sweetalert2';
 
     export default {
         setup() {
+            Object.assign(Datepicker.locales, tr);
             // expose to template and other options API hooks
             return {
                 useNavigationStore,
@@ -16,6 +19,7 @@
                 Plib,
                 wTrans,
                 Swal,
+                Datepicker
             }
         },
         mounted(){
@@ -25,13 +29,13 @@
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
-                    url   : '/secpanel',
+                    url   : '/kontent',
                 },
                 {
-                    title : this.wTrans('menu.inventory'),
-                    url   : '/secpanel/inventory',
+                    title : this.wTrans('menu.logs'),
+                    url   : '/kontent/logs',
                 }
-            ] ,this.wTrans('form.inventory.list'));
+            ] ,this.wTrans('form.logs.list'));
 
             setTimeout(() => {
                 this.navigationStore.toggle(false);
@@ -49,47 +53,23 @@
                 document.getElementById('div_table').innerHTML = '';
                 //set headers
                 const headers = [
-                   /*{
-                        title : 'ID',
-                        key   : 'id',
+                    {
+                        title : 'Web Sitesi İsmi',
+                        key   : 'root_url',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                    },{
+                        title : 'Durum Kodu',
+                        key   : 'status_code',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                    },{
+                        title : 'Url',
+                        key   : 'url',
                         order : true,
                         type  : 'string', // if column is string then make type string
                         
-                    },*/{
-                        title : 'Ekipman İsmi',
-                        key   : 'title',
-                        order : true,
-                        type  : 'string', // if column is string then make type string
-                    },{
-                        title : 'Ekipman Kod',
-                        key   : 'code',
-                        order : true,
-                        type  : 'string', // if column is string then make type string
-                        /*columnClick     : async (elm,rowData,columnData) => {
-                            const data = await QRCode.toDataURL(columnData,{
-                                quality : 1,
-                                width   : 1080
-                            });
-                            Swal.fire({
-                                confirmButtonText : 'İndir',
-                                showCloseButton   : true,
-                                imageUrl: data,
-                                imageHeight: 400,
-                                preConfirm : () => {
-                                    const a = document.createElement('a');
-                                    a.href = data;
-                                    a.download = "output.png";
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                    return false;
-                                }
-                            });
-                        },
-                        columnFormatter : (elm,rowData,columnData) => {
-                            return '<div class="d-flex align-items-center"><i class="fa fa-qrcode fs-5 me-5"></i>'+' '+columnData+'</div>';
-                        }*/
-                    },{
+                    }/*,{
                         title : '',
                         key   : 'id',
                         order : false,
@@ -98,17 +78,38 @@
                             const div = document.createElement('div');
                             div.classList.add('row','justify-content-center');
 
-                            const edit       = document.createElement('a');
-                            edit.href        = '/secpanel/inventory/form/'+columnData;
-                            edit.style.width = 'auto';
-                            edit.innerHTML   = '<i class="fs-5 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
-                            div.appendChild(edit);
+                            let btn        = document.createElement('a');
+                            btn.href        = 'javascript:;';
+                            btn.style.width = 'auto';
+                            btn.innerHTML   = '<i class="fs-5 fa fa-recycle selectable-icon" style="color:#95818C"  role="img"></i>';
+                            btn.onclick     = async () => {
+                                this.navigationStore.toggle(true);
+                                const rsp = await this.plib.request({
+                                    url      : '/api/v1/setprocess/'+columnData,
+                                    method   : 'GET',
+                                },null);
+                                
+                                if(rsp.success) this.plib.toast(this.Swal,'success','Kontrol Süreci Başlatıldı');
+                                else this.plib.toast(this.Swal,'error','Hata Oluştu');
 
-                            const del       = document.createElement('a');
-                            del.href        = 'javascript:;';
-                            del.style.width = 'auto';
-                            del.innerHTML   = '<i class="fs-5 fa fa-trash selectable-icon" style="color:#95818C"  role="img"></i>';
-                            del.onclick     = async () => {
+                                setTimeout(() => {
+                                    this.navigationStore.toggle(false);
+                                }, 300);
+                                
+                            };
+                            div.appendChild(btn);
+
+                            btn              = document.createElement('a');
+                            btn.href        = '/kontent/flist/form/'+columnData;
+                            btn.style.width = 'auto';
+                            btn.innerHTML   = '<i class="fs-5 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
+                            div.appendChild(btn);
+
+                            btn             = document.createElement('a');
+                            btn.href        = 'javascript:;';
+                            btn.style.width = 'auto';
+                            btn.innerHTML   = '<i class="fs-5 fa fa-trash selectable-icon" style="color:#95818C"  role="img"></i>';
+                            btn.onclick     = async () => {
                                 this.navigationStore.toggle(true);
                                 await this.plib.request({
                                     url      : '/api/v1/content/'+columnData,
@@ -121,11 +122,11 @@
                                 }, 300);
                                 
                             };
-                            div.appendChild(del);
+                            div.appendChild(btn);
 
                             return div;
                         }
-                    }
+                    }*/
                 ];
                 
                 //initiate table
@@ -138,7 +139,7 @@
                     //columnSearch : true, // true - false for opening and closig
                     paginationType : 'number',// scroll - number (number for default)
                     ajax:{
-                        url:'/api/v1/table/documents',
+                        url:'/api/v1/table/user_logs',
                         data:{
                             //order:{},
                         }
@@ -165,33 +166,19 @@
                     },
                     initialFilter : [
                         {
-                            key   : 'form-type',
+                            key   : 'type_key',
                             type  : '=',
-                            value : 'op-doc-inventory-form'
-                        },{
-                            key   : 'type',
-                            type  : '=',
-                            value : 'op-doc-inventory'
+                            value : 'log-url-error'
                         }
                     ],
                     nextPageIcon : '<i class="fa fa-solid fa-chevron-right"></i>',
                     prevPageIcon : '<i class="fa fa-solid fa-chevron-left"></i>',
                     rowFormatter:(elm,data)=>{
-                        //console.log(elm,data);
-                        //modify row element
-                        //elm.style.backgroundColor = 'yellow';
-                        //modify data
-                        if(data.main_attr.includes('"{')){
-                            //mssql variation 
-                            data.main_attr = data.main_attr.replace('"{','{').replace('}"','}');
+                        const desc = JSON.parse(data.description);
+
+                        for(let key in desc){
+                            data[key] = desc[key];
                         }
-                        JSON.parse(data.main_attr).forEach(element => {
-                            data[element['Key']] = element['Value'];
-                            if(data['cont_name'] == undefined) data['cont_name'] = []
-                            if(element['Key'].includes('cont_name')) data['cont_name'].push(element['Value']);
-                        });
-                        data['cont_name'] = (data['cont_name'] ?? []).join(' , ');
-                        //data.status = JSON.parse(data.status).OpTitle;
                         return data;
                     },
                 });
@@ -217,8 +204,8 @@
     </div>-->
     <div class="table-tab">
         <div class="table-tab-head">
-            <button href="javascript:;" class="table-toggle active" body="1">{{ $t('form.inventory.list') }}</button>
-            <router-link :to="{ name: 'IForm' }"><button class="table-toggle" body="2">{{ $t('form.inventory') }}</button></router-link>
+            <button href="javascript:;" class="table-toggle active" body="1">{{ $t('form.logs.list') }}</button>
+            
         </div>
         <div class="table-tab-body">
             <div class="table-custom-filter mb-5">
@@ -228,7 +215,7 @@
                     <button type="button" @click="searchTable">Sorgula <span class="kontent-icon" name="Search"></span></button>
                 </div>
                 <div class="table-custom-filter-button-group">
-                    <button class="export-excel"  @click="plib.openTab('GET','/export/documents/inventory',null, '_blank')"id="exportExcel">Excel’e Aktar</button>
+                    <button class="export-excel"  @click="plib.openTab('GET','/export/documents/user_logs',null, '_blank')" id="exportExcel">Excel’e Aktar</button>
                 </div>
                 <!--<div class="table-custom-filter-date">
                     <p>Tarih Aralığı</p>
@@ -244,7 +231,7 @@
                     </div>
                 </div>-->
             </div>
-            <div class="body-1 table-main"  >
+            <div class="body-1 table-main">
                 <div id="div_table"></div>
             </div>
         </div>

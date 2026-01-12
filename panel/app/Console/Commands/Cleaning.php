@@ -19,7 +19,7 @@ class Cleaning extends Command
      *
      * @var string
      */
-    protected $description = 'This cron will clear not exited visitors';
+    protected $description = 'This cron will clear old logs';
 
 
     /**

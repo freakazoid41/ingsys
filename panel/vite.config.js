@@ -17,7 +17,6 @@ export default defineConfig({
     laravel({
       input: [
         'resources/js/talk.js',
-        'resources/js/front.js',
         'public/talk/js/bootstrap5.js',
         'public/talk/css/main.css',
         'public/talk/css/bootstrap5.css',

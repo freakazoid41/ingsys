@@ -6,8 +6,6 @@ use App\Http\Controllers\ExportController;
 
 Route::get('/',                                             [AuthController::class, 'login'])->name('index');
 Route::get('/seclogin',                                     [AuthController::class, 'login'])->name('login');
-Route::get('/ziyaretci/{facility}/{facilityid}',            [AuthController::class, 'frontLogin'])->name('frontLogin');
-Route::post('/ziyaretcikontrol',                            [AuthController::class, 'loginFrontUser']);
 
 Route::get('/logout',                   [AuthController::class, 'logout'])->name('logout');
 
@@ -25,8 +23,8 @@ Route::middleware(['auth:sanctum'])
         Route::get('/facility',fn()       => view('frontapp'))->name('frontapp');
         Route::get('/facility/{any}',fn() => view('frontapp'))->where('any', '^((?!api).)*');
 
-        Route::get('/secpanel',       [AuthController::class,   'handlePanelRoute'])->name('talkapp');
-        Route::get('/secpanel/{any}', [AuthController::class,   'handlePanelRoute'])->where('any', '^((?!api).)*');
+        Route::get('/kontent',       [AuthController::class,   'handlePanelRoute'])->name('talkapp');
+        Route::get('/kontent/{any}', [AuthController::class,   'handlePanelRoute'])->where('any', '^((?!api).)*');
 
 
         Route::get('/export/{model}/{type?}',   [ExportController::class, 'index'])->name('.export-table');

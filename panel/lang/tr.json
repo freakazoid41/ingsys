@@ -3,13 +3,12 @@
     "menu.home"             : "Anasayfa",
     "menu.transactions"     : "Hareketler",
 
-    "menu.facility"         : "Tesisler",
-    "form.facility"         : "Tesis Ekle / Güncelle",
-    "form.facility.list"    : "Tesis Listesi",
+    "menu.facility"         : "Web Siteleri",
+    "form.facility"         : "Web Sitesi Ekle / Güncelle",
+    "form.facility.list"    : "Web Sitesi Listesi",
 
-    "menu.inventory"        : "Ekipmanlar",
-    "form.inventory"        : "Ekipman Ekle / Düzenle",
-    "form.inventory.list"   : "Ekipman Listesi",
+    "menu.logs"             : "Kayıtlar",
+    "form.logs.list"        : "Kayıt Listesi",
 
     "menu.visit"            : "Ziyaret",
     "form.visit"            : "Ziyaret Ekle / Düzenle",

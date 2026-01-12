@@ -94,38 +94,11 @@
         },
         mounted() {
             this.plib.request({
-                url      : '/api/v1/dashboard/dailyVisit',
+                url      : '/api/v1/dashboard/webSites',
                 method   : 'GET',
             },null).then(rsp => {
-                rsp.data.forEach(r => {
-                    //mssql variation 
-                    r.main_attr = r.main_attr.replace('"{','{').replace('}"','}');
-
-                    const mainInfo = JSON.parse(r.main_attr);
-                    
-                    JSON.parse(r.main_attr).forEach(element => {
-                        mainInfo[element['Key']] = element['Value'];
-                        if(element['Key'].includes('per_name')) mainInfo['per_name'].push(element['Value']);
-                    });
-                    
-                    this.dailyVisit.data.push(mainInfo);
-
-                    if(mainInfo.exited_at == undefined) this.dailyVisit.notExited ++;
-                    this.dailyVisit.total ++;
-                    if(this.dailyVisit.facilities[mainInfo.facility] === undefined) this.dailyVisit.facilities[mainInfo.facility] = 0;
-                    this.dailyVisit.facilities[mainInfo.facility]++;
-
-                    
-
-                    //this.chartOptions.xaxis.categories = Object.keys(this.dailyVisit.facilities)
-                });
-                this.chartOptions.series = [];
-                Object.keys(this.dailyVisit.facilities).forEach(fac => {
-                    this.chartOptions.series.push({
-                        name : fac,
-                        data :[this.dailyVisit.facilities[fac]]
-                    })
-                })
+                console.log(rsp);
+                this.dailyVisit.total = rsp.totalCount;
             });
         },
         methods: {
@@ -140,12 +113,12 @@
     <div class="min-card row m-0">
         <div class="card col-md-6 col-lg-3">
             <span class="icon"><span class="kontent-icon" name="Attach"></span></span>
-            <router-link :to="{ name: 'VList' }">
-                <a href="#" alt="" class="stretched-link">Günlük Ziyaretçi</a>
+            <router-link :to="{ name: 'FList' }">
+                <a href="#" alt="" class="stretched-link">Web Siteleri</a>
             </router-link>
             <p>
                 <span>{{ dailyVisit.total }}</span>
-                Tüm Ziyaretçiler
+                Tüm Web Siteleri
             </p>
             <span class="arrow"><span class="kontent-icon" name="DownRight"></span></span>
         </div>
@@ -163,7 +136,7 @@
                         <div class="pie-main">
                             <div class="pie animate" :style="'--p:'+(((dailyVisit.total) / dailyVisit.total) * 100)">
                                 <div class="detail">
-                                    <p>Giriş Yapan Kullanıcı <span>{{ dailyVisit.total}}</span></p>
+                                    <p>Günlük 500 Hataları <span>{{ dailyVisit.total}}</span></p>
                                 </div>
                             </div>
                         </div>
@@ -175,7 +148,7 @@
                         <div class="pie-main">
                             <div class="pie animate" :style="'--p:'+((dailyVisit.notExited / dailyVisit.total) * 100)">
                                 <div class="detail">
-                                    <p>Çıkış Beklenen Kullanıcı <span>{{ dailyVisit.notExited }}</span></p>
+                                    <p>Günlük 404 Hataları<span>{{ dailyVisit.notExited }}</span></p>
                                 </div>
                             </div>
                         </div>
@@ -186,7 +159,7 @@
     </div>
     <div class="big-card mt-4">
         <div class="big-card-head">
-            <h3 style="max-width: unset !important;">Günlük Giriş Kayıtları</h3>
+            <h3 style="max-width: unset !important;">Günlük Log Kayıtları</h3>
         </div>
         <!--<div class="chart-main">
            
