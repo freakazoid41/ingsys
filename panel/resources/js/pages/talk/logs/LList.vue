@@ -8,6 +8,7 @@
     import { Datepicker } from 'vanillajs-datepicker';
     import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
     import Swal from 'sweetalert2';
+    import dayjs from 'dayjs';
 
     export default {
         setup() {
@@ -19,7 +20,8 @@
                 Plib,
                 wTrans,
                 Swal,
-                Datepicker
+                Datepicker,
+                dayjs
             }
         },
         mounted(){
@@ -64,10 +66,24 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
+                        title : 'Kontrol Saati',
+                        key   : 'created_at',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData,columnData) => {
+                            return dayjs(columnData).format('DD.MM.YYYY HH:mm'); 
+                        }
+                    },{
                         title : 'Url',
                         key   : 'url',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        columnClick: (elm,rowData,columnData) => {
+                            window.open(columnData, '_blank');
+                        },
+                        columnFormatter : (elm,rowData,columnData) => {
+                            return '<div class="d-flex align-items-center"><i class="fa fa-arrow-right fs-5 me-5"></i>'+' '+columnData+'</div>';
+                        }
                         
                     }/*,{
                         title : '',

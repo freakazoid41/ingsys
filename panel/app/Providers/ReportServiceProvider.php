@@ -5,7 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use App\Models\Sys_options;
 use App\Models\Documents;
-
+use App\Models\User_logs;
 use App\Models\Sys_con_entities;
 use App\Models\Sys_con_ops;
 use App\Models\Transactions;

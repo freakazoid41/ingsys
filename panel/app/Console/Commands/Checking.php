@@ -31,19 +31,24 @@ class Checking extends Command
        
         $id       = $this->argument('id') ?? '0';
 
-        $linkList = $lib->getList($id);
-        foreach($linkList['data'] as $link){
+        if($id !== '0'){
+            $link = $lib->getList($id)['data'][0];
             $data = json_decode($link->main_attr);
             $keyValue = [];
             foreach ($data as $item) {
                 $keyValue[$item->Key] = $item->Value;
             }
-            //put to queue
+
+            $lib->checkLink($keyValue['root_url'],$link->realId);
+        }
+
+
+        $linkList = $lib->getList();
+        foreach($linkList['data'] as $link){
+            //put to queue all websites
             if (!\DB::table('jobs')->where('payload', 'like', '%checklinks:cron ' . $link->id . '%')->exists()) {
                 \Artisan::queue('checklinks:cron ' . $link->id);
             }
-
-            //$lib->checkLink($keyValue['root_url'],$link->realId);
         }
 
 

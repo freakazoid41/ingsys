@@ -5,6 +5,7 @@
     import 'simplebar-vue/dist/simplebar.min.css';
     import { wTrans } from 'laravel-vue-i18n';
     import VueApexCharts from "vue3-apexcharts";
+import dayjs from 'dayjs';
 
 
     export default {
@@ -97,12 +98,43 @@
                 url      : '/api/v1/dashboard/webSites',
                 method   : 'GET',
             },null).then(rsp => {
-                console.log(rsp);
                 this.dailyVisit.total = rsp.totalCount;
+            });
+
+            this.plib.request({
+                url      : '/api/v1/dashboard/getDailyLogs',
+                method   : 'GET',
+            },null).then(rsp => {
+                
+                this.dailyVisit.error500   = 0;
+                this.dailyVisit.error404   = 0;
+                this.dailyVisit.errorTotal = rsp.totalCount;
+                //this.dailyVisit.data       = rsp.data;
+                for(let i = 0;i<rsp.totalCount; i++){
+                    const row = JSON.parse(rsp.data[i].description);
+                    if(row.status_code == 500){
+                        this.dailyVisit.error500 += 1;
+                    }
+                    if(row.status_code == 404){
+                        this.dailyVisit.error404 += 1;
+                    }
+                    if(i < 20){
+                        row.createdAt = dayjs(rsp.data[i].created_at).format('DD.MM.YYYY HH:mm');
+                        this.dailyVisit.data.push(row);
+                    }
+                }
             });
         },
         methods: {
-
+            handleVisit(visit) {
+                if (visit.url) {
+                    try {
+                        window.open(visit.url, '_blank');
+                    } catch (e) {
+                        console.error('Error opening URL:', e);
+                    }
+                }
+            }
         }
     }
 
@@ -134,9 +166,9 @@
                     <div class="carousel-caption card w-100">
                         <span class="icon"><span class="kontent-icon" name="User"></span></span>
                         <div class="pie-main">
-                            <div class="pie animate" :style="'--p:'+(((dailyVisit.total) / dailyVisit.total) * 100)">
+                            <div class="pie animate" :style="'--p:'+(((dailyVisit.error500) / dailyVisit.errorTotal) * 100)">
                                 <div class="detail">
-                                    <p>Günlük 500 Hataları <span>{{ dailyVisit.total}}</span></p>
+                                    <p>Günlük 500 Hataları <span>{{ dailyVisit.error500}}</span></p>
                                 </div>
                             </div>
                         </div>
@@ -146,9 +178,9 @@
                     <div class="carousel-caption card">
                         <span class="icon"><span class="kontent-icon" name="User"></span></span>
                         <div class="pie-main">
-                            <div class="pie animate" :style="'--p:'+((dailyVisit.notExited / dailyVisit.total) * 100)">
+                            <div class="pie animate" :style="'--p:'+((dailyVisit.error404 / dailyVisit.errorTotal) * 100)">
                                 <div class="detail">
-                                    <p>Günlük 404 Hataları<span>{{ dailyVisit.notExited }}</span></p>
+                                    <p>Günlük 404 Hataları<span>{{ dailyVisit.error404 }}</span></p>
                                 </div>
                             </div>
                         </div>
@@ -167,32 +199,23 @@
         </div>-->
         <div class="chart-main-list mt-3"  style="height: 400px !important;overflow-y: auto;">
             
-            <div class="list-card" v-for="visit in dailyVisit.data">
+            <div class="list-card justify-content-between selectable-icon" v-for="visit in dailyVisit.data" @click="handleVisit(visit)">
                 
-                <div class="list-card-head">
-                    <h4>{{ visit.name }}</h4>
-                    <span>{{ visit.phone }}</span>
+                 
+                <div class="list-card-head" style="max-width: unset !important;" >
+                    <h4 >{{ visit.url }}</h4>
                 </div>
-                <p class="list-card-status me-5" :class="{'text-danger':visit.exited_at == undefined}" style="width: 200px !important;">
-                   <i :class="{'fa fa-check' : visit.exited_at != undefined,'fa fa-clock' :visit.exited_at == undefined}"></i>
-                    {{ visit.exited_at == undefined ? 'İçeride' : 'Çıkış Yaptı'}}
+                <p class="list-card-status me-5" :class="{'text-danger':visit.status_code == 500}" style="width: 200px !important;">
+                    <i :class="{'fa fa-exclamation' : visit.status_code == 500,'fa fa-eye' :visit.status_code != 500}"></i>
+                    {{ visit.status_code }}
                 </p>
-                <p class="list-card-status"><i class="fa fa-building"></i> {{ visit.facility }}</p>
+                <span>
+                    {{ visit.createdAt }}
+                </span>
               
-                <p class="date-time">
-                    {{ visit.entered_at.split(' ')[0].split('-').reverse().join('/') }} 
-                    <span>
-                        <i class="fa fa-clock me-2"></i>{{ visit.entered_at.split(' ')[1] }} 
-                    </span>
-                </p>
+                
 
-                <p class="date-time text-info" v-if="visit.exited_at !== undefined">
-                    {{ visit.exited_at.split(' ')[0].split('-').reverse().join('/') }} 
-                    <span>
-                        <i class="fa fa-clock me-2"></i>
-                        {{ visit.exited_at.split(' ')[1] }} 
-                    </span>
-                </p>
+               
                 
             </div>
             
