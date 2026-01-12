@@ -6,7 +6,6 @@ import Plib from '@/lib/pickle';
 import Swal from 'sweetalert2';
 import PickleTable from 'pickletable';
 import 'pickletable/assets/style.css';
-import notification from 'duct-notification'
 
 export default {
     components: {},

@@ -1,22 +1,22 @@
 {
-  "_App-BUfNgB77.css": {
-    "file": "assets/App-BUfNgB77.css",
-    "src": "_App-BUfNgB77.css"
+  "_App-VMqEpsm-.css": {
+    "file": "assets/App-VMqEpsm-.css",
+    "src": "_App-VMqEpsm-.css"
   },
-  "_App-Dnslj54T.js": {
-    "file": "assets/App-Dnslj54T.js",
+  "_App-vQWDj_DA.js": {
+    "file": "assets/App-vQWDj_DA.js",
     "name": "App",
     "css": [
-      "assets/App-BUfNgB77.css"
+      "assets/App-VMqEpsm-.css"
     ]
   },
   "public/front/assets/css/main.css": {
-    "file": "assets/main-BS0lLYIW.css",
+    "file": "assets/main-DeVCrrfd.css",
     "src": "public/front/assets/css/main.css",
     "isEntry": true
   },
   "public/talk/css/bootstrap5.css": {
-    "file": "assets/bootstrap5-du1hfCly.css",
+    "file": "assets/bootstrap5-ZnfN172t.css",
     "src": "public/talk/css/bootstrap5.css",
     "isEntry": true
   },
@@ -26,7 +26,7 @@
     "isEntry": true
   },
   "public/talk/css/main.css": {
-    "file": "assets/main-CYLKgwQX.css",
+    "file": "assets/main-HwHwxdLk.css",
     "src": "public/talk/css/main.css",
     "isEntry": true
   },
@@ -35,7 +35,7 @@
     "src": "public/talk/img/dashboard-card.png"
   },
   "public/talk/js/bootstrap5.js": {
-    "file": "assets/bootstrap5-C9czbV9R.js",
+    "file": "assets/bootstrap5-DdGFwrLa.js",
     "name": "bootstrap5",
     "src": "public/talk/js/bootstrap5.js",
     "isEntry": true
@@ -121,27 +121,27 @@
     "src": "public/talk/vendor/Font/Gilroy/Gilroy-UltraLightItalic.ttf"
   },
   "resources/js/front.js": {
-    "file": "assets/front-BRV6LApA.js",
+    "file": "assets/front-B0QP2QuG.js",
     "name": "front",
     "src": "resources/js/front.js",
     "isEntry": true,
     "imports": [
-      "_App-Dnslj54T.js"
+      "_App-vQWDj_DA.js"
     ],
     "css": [
       "assets/front-DTk4hVzw.css"
     ]
   },
   "resources/js/talk.js": {
-    "file": "assets/talk-BlJkRayf.js",
+    "file": "assets/talk-CNHt3k_z.js",
     "name": "talk",
     "src": "resources/js/talk.js",
     "isEntry": true,
     "imports": [
-      "_App-Dnslj54T.js"
+      "_App-vQWDj_DA.js"
     ],
     "css": [
-      "assets/talk-CcZ7fxym.css"
+      "assets/talk-DgsiCnt7.css"
     ]
   }
 }

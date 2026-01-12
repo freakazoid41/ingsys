@@ -13,7 +13,7 @@ class DataSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->seedFacilities();
+        //$this->seedFacilities();
         //this->seedPersons();
     }
 
@@ -566,12 +566,6 @@ class DataSeeder extends Seeder
 
             $i++;
         }
-
-
-
-       
-                    
-                   
     }
     
 }

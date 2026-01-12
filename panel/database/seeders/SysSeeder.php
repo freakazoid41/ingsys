@@ -246,62 +246,6 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'type_id',
                 'group_key' => 'op-trans',
                 'op_key'    => 'doc_file_accepted',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Aidat',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_aidat',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Demirbaş',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_sometinguntransable',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Kira',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_rent',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Yakıt',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_fuel',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Diğer',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_other',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Borç Giriş',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_dept',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Borç Ödeme',  //bu giriş bir yere gitmek zorunda ayrıca denk gelen borç hareketinide 
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_dept_payment',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Para Transferi',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_transfer',
             ]
         ];
 
@@ -403,20 +347,6 @@ class SysSeeder extends Seeder
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-pert-buyer',
-                'group_key' => 'op-pert',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Tesis Görevlisi',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-pert-reseller',
-                'group_key' => 'op-pert',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Satıcı',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-pert-seller',
                 'group_key' => 'op-pert',
             ]
         ]; 
