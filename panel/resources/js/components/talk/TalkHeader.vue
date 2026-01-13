@@ -179,7 +179,7 @@ export default {
         </div>
         <div class="right-bar-header-menu">
             <div class="dropdown">
-                <button class="h-button" type="button" data-bs-toggle="dropdown"
+                <button hidden class="h-button" type="button" data-bs-toggle="dropdown"
                     aria-expanded="false">
                     <span class="kontent-icon" name="Notification"></span>
                     <span class="ntf" v-if="showBlink"></span>

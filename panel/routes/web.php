@@ -31,7 +31,30 @@ Route::middleware(['auth:sanctum'])
         Route::get('/setfacility/{facility}',   [AuthController::class,   'setfacility']);
         Route::get('/closefacility',            [AuthController::class,   'closefacility']);
 
-        Route::get('/stream/video/default.mp4', [ExportController::class,   'stream']);
+
+        Route::get('/live-logs/fetch', function () {
+            $file = storage_path('logs/cron-'.date('Y-m-d').'.log');
+            $lastPos = request('pos', 0);
+            
+            $lines = [];
+            if (file_exists($file)) {
+                clearstatcache();
+                $size = filesize($file);
+                
+                if ($size > $lastPos) {
+                    $handle = fopen($file, 'rb');
+                    fseek($handle, $lastPos);
+                    while (!feof($handle)) {
+                        $line = fgets($handle);
+                        if ($line) $lines[] = htmlspecialchars($line);
+                    }
+                    $lastPos = ftell($handle);
+                    fclose($handle);
+                }
+            }
+
+            return response()->json(['lines' => $lines, 'pos' => $lastPos]);
+        });
 });
 
 Route::get('/order-file/{doc}', function ($doc){

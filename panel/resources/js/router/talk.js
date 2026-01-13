@@ -7,7 +7,7 @@ import FList from '@/pages/talk/facility/FList.vue'
 import FForm from '@/pages/talk/facility/FForm.vue'
 
 import LList from '@/pages/talk/logs/LList.vue'
-
+import WList from '@/pages/talk/watch/WList.vue'
 import UList from '@/pages/talk/users/UList.vue'
 import UForm from '@/pages/talk/users/UForm.vue'
 
@@ -24,7 +24,7 @@ const router = createRouter({
         { path: "/kontent/flist/form/:id?", name: 'FForm', component: FForm },
 
         { path: "/kontent/logs", name: 'LList', component: LList },
-        
+        { path: "/kontent/watch", name: 'WList', component: WList },
         { path: "/kontent/users", name: 'UList', component: UList },
         { path: "/kontent/users/form/:id?", name: 'UForm', component: UForm },    
       ]

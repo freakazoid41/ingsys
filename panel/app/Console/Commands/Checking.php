@@ -45,6 +45,11 @@ class Checking extends Command
 
         $linkList = $lib->getList();
         foreach($linkList['data'] as $link){
+            /*foreach (json_decode($link->main_attr) as $item) {
+                $link->{$item->Key} = $item->Value;
+            }
+            
+            $lib->checkLink($link->root_url,$link->realId);*/
             //put to queue all websites
             if (!\DB::table('jobs')->where('payload', 'like', '%checklinks:cron ' . $link->id . '%')->exists()) {
                 \Artisan::queue('checklinks:cron ' . $link->id);

@@ -26,7 +26,7 @@ export default {
 
 <template>
     <div class="left-bar-logo">
-        <img src="/front/assets/img/logo.png" alt="" title="" width="200" />
+        <img hidden src="/front/assets/img/logo.png" alt="" title="" width="200" />
         <span>Yönetim Paneli</span>
     </div>
     <div class="left-bar-menu">
@@ -45,6 +45,11 @@ export default {
             <li>
                 <router-link  :to="{ name: 'LList' }" :class="$route.name == 'LList'  ? 'active' : ''" alt="">
                     <span class="kontent-icon" name="Menu4Icon"></span>{{ $t('menu.logs') }}
+                </router-link>
+            </li>
+            <li>
+                <router-link  :to="{ name: 'WList' }" :class="$route.name == 'WList'  ? 'active' : ''" alt="">
+                    <span class="kontent-icon" name="Menu5Icon"></span>Canlı Takip
                 </router-link>
             </li>
             <li>
