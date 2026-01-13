@@ -58,19 +58,25 @@
         methods: {
             fetchLogs() {
                 fetch(`/live-logs/fetch?pos=${this.pos}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.lines.length) {
-                            this.list.unshift(data.lines.join(''));
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.lines.length > 0) {
+                                data.lines.forEach(element => {
+                                    this.list.unshift(element);
+                                });
 
-                            if (this.list.length > 10) {
-                                this.list.splice(10, this.list.length - 10);
+                                if (this.list.length > 10) {
+                                    this.list.splice(10, this.list.length - 10);
+                                }
                             }
-                        }
-                        this.pos = data.pos;
-                        setTimeout(this.fetchLogs, 800);
-                    });
-            }
+                            
+                            this.pos = data.pos;
+                            this.timeoutId = setTimeout(this.fetchLogs, 800);
+                        });
+                }
+        },
+        unmounted() {
+            return clearTimeout(this.timeoutId);
         }
     }
 
