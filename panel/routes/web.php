@@ -41,12 +41,39 @@ Route::middleware(['auth:sanctum'])
                 clearstatcache();
                 $size = filesize($file);
                 
-                if ($size > $lastPos) {
+                if ($lastPos == 0) {
+                    // Initial load: get last 50 lines
+                    $content = file_get_contents($file);
+                    $allLines = explode("\n", trim($content));
+                    $lastLines = array_slice($allLines, -50);
+                    foreach ($lastLines as $line) {
+                        $line = rtrim($line);
+                        if (empty($line)) continue;
+                        if (preg_match('/^(\[.*?\] .*?: )(.*)$/', $line, $matches)) {
+                            $lines[] = htmlspecialchars($matches[1]) . "\n" . htmlspecialchars($matches[2]) . "\n";
+                        } else {
+                            $lines[] = htmlspecialchars($line) . "\n";
+                        }
+                    }
+                    $lastPos = $size;
+                } elseif ($size > $lastPos) {
                     $handle = fopen($file, 'rb');
                     fseek($handle, $lastPos);
                     while (!feof($handle)) {
                         $line = fgets($handle);
-                        if ($line) $lines[] = htmlspecialchars($line);
+                        if ($line === false) break;
+
+                        // If line doesn't end with newline → it's probably incomplete
+                        if (!str_ends_with($line, "\n") && !str_ends_with($line, "\r\n")) {
+                            continue;
+                        }
+
+                        $line = rtrim($line);
+                        if (preg_match('/^(\[.*?\] .*?: )(.*)$/', $line, $matches)) {
+                            $lines[] = htmlspecialchars($matches[1]) . "\n" . htmlspecialchars($matches[2]) . "\n";
+                        } else {
+                            $lines[] = htmlspecialchars($line) . "\n";
+                        }
                     }
                     $lastPos = ftell($handle);
                     fclose($handle);
