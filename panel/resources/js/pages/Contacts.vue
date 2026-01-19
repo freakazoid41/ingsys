@@ -259,7 +259,7 @@
                             
                     <div class="text-center">
                         <button class="btn btn-secondary btn-sm mb-1 w-40">{{ c.cont_phone }}</button>
-                        <div class="text-body-secondary fs-8">{{ c.title ?? '' }}</div>
+                        <div class="text-body-secondary fs-8" v-if="c.group != 'meet'">{{ c.title ?? '' }}</div>
                     </div>
                 </div>
             </div>
