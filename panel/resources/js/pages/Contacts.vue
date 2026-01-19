@@ -209,7 +209,7 @@
         <div class="card mb-3"> 
             <div class="p-1.5"> 
                 <div class="s-container mb-1.5" >
-                    <img class="h-64  object-fit-cover rounded-bottom-1 rounded-top w-100" src="https://super-admin.avidtemplates.com/cover.d7fbd183.jpeg" alt="">
+                    <img class="h-64  object-fit-cover rounded-bottom-1 rounded-top w-100" src="/css/5.63892ef0.jpg" alt="">
                     <div class="s-overlay" @click="changeImage">
                         <a href="#" class="s-icon" title="User Profile">
                             <i class="ph ph-repeat"></i>
