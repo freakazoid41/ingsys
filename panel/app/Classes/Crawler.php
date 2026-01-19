@@ -182,7 +182,7 @@ class Crawler extends \App\Classes\Utils
             $nodes = $dom->getElementsByTagName($tag);
             foreach ($nodes as $node) {
                 $href = $node->getAttribute($attr);
-                if (!empty($href) && strpos($href, 'javascript:void') === false && strpos($href, 'tel:') !== 0 && strpos($href, '+') === false) {
+                if (!empty($href) && strpos($href, 'javascript:void') === false && strpos($href, 'tel:') !== 0 && strpos($href, '+') === false && $href !== '#') {
                     // For <link>, check if it's a stylesheet or similar (not external)
                     if ($tag === 'link') {
                         $rel = $node->getAttribute('rel');
@@ -200,6 +200,8 @@ class Crawler extends \App\Classes\Utils
                     } else {
                         $absoluteUrl = $this->resolveUrl($href, $baseUrl);
                     }
+                    // Strip URL fragments (#anchor) as they don't represent separate pages
+                    $absoluteUrl = preg_replace('/#.*/', '', $absoluteUrl);
                     if ($absoluteUrl && $this->isInternalUrl($absoluteUrl) && filter_var($absoluteUrl, FILTER_VALIDATE_URL)) {
                         $links[] = $absoluteUrl;
                     }
