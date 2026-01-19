@@ -14,29 +14,34 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   void _login() {
-    // Simple check, in real app use authentication
-    if (_usernameController.text == 'admin' && _passwordController.text == 'password') {
-      Navigator.push(
-        context,
-        CupertinoPageRoute(builder: (context) => ApartmentsScreen()),
-      );
-    } else {
-      showCupertinoDialog(
-        context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: Text('Hata'),
-          content: Text('Geçersiz bilgiler'),
-          actions: [
-            CupertinoDialogAction(
-              child: Text('Tamam'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      );
-    }
+    setState(() => _isLoading = true);
+    // Simulate authentication delay
+    Future.delayed(Duration(seconds: 1), () {
+      if (_usernameController.text == 'admin' && _passwordController.text == 'password') {
+        Navigator.push(
+          context,
+          CupertinoPageRoute(builder: (context) => ApartmentsScreen()),
+        );
+      } else {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: Text('Hata'),
+            content: Text('Geçersiz bilgiler'),
+            actions: [
+              CupertinoDialogAction(
+                child: Text('Tamam'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      }
+      setState(() => _isLoading = false);
+    });
   }
 
   Widget _buildTextField({required IconData icon, required String placeholder, required TextEditingController controller, bool obscure = false}) {
@@ -107,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(height: 18),
                         // Translucent button
                         GestureDetector(
-                          onTap: _login,
+                          onTap: _isLoading ? null : _login,
                           child: Container(
                             height: 44,
                             decoration: BoxDecoration(
@@ -116,7 +121,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               border: Border.all(color: Colors.white.withOpacity(0.12)),
                             ),
                             alignment: Alignment.center,
-                            child: Text('Giriş Yap', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                            child: _isLoading
+                                ? CupertinoActivityIndicator(color: Colors.white70)
+                                : Text('Giriş Yap', style: TextStyle(color: Colors.white70, fontSize: 16)),
                           ),
                         ),
                       ],

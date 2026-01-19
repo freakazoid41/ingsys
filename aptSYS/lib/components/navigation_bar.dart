@@ -8,10 +8,21 @@ CupertinoNavigationBar appNavigationBar(String title, BuildContext context) {
     trailing: CupertinoButton(
       padding: EdgeInsets.zero,
       child: Icon(CupertinoIcons.power),
-      onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-        CupertinoPageRoute(builder: (context) => LoginScreen()),
-        (route) => false,
-      ),
+      onPressed: () {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            content: CupertinoActivityIndicator(),
+          ),
+        );
+        Future.delayed(Duration(milliseconds: 500), () {
+          Navigator.of(context).pop(); // dismiss dialog
+          Navigator.of(context).pushAndRemoveUntil(
+            CupertinoPageRoute(builder: (context) => LoginScreen()),
+            (route) => false,
+          );
+        });
+      },
     ),
   );
 }
