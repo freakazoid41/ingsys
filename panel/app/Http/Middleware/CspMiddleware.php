@@ -17,7 +17,7 @@ class CspMiddleware
         $csp = [
             "frame-src 'self' www.youtube.com www.google.com",
             "script-src 'self' www.youtube.com unpkg.com 'nonce-$nonce'",
-            "font-src 'self' fonts.gstatic.com cloudflare.com cdnjs.cloudflare.com cdn.fontawesome.com fontawesome.com www.googleapis.com",
+            "font-src data: 'self' fonts.gstatic.com cloudflare.com cdnjs.cloudflare.com cdn.fontawesome.com fontawesome.com www.googleapis.com",
             "style-src 'self' 'unsafe-inline' www.youtube.com fonts.googleapis.com cdn.fontawesome.com fontawesome.com cloudflare.com cdnjs.cloudflare.com",
             "default-src 'self' www.google.com google.com unpkg.com jquery.com cdn.jquery.com cloudflare.com cdnjs.cloudflare.com",
             "img-src 'self' data:"
