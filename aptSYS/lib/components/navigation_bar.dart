@@ -1,28 +1,49 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../login_screen.dart';
+import 'menu_sheet.dart';
 
-CupertinoNavigationBar appNavigationBar(String title, BuildContext context) {
-  return CupertinoNavigationBar(
-    middle: Text(title),
-    trailing: CupertinoButton(
-      padding: EdgeInsets.zero,
-      child: Icon(CupertinoIcons.power),
+AppBar appAppBar(String title, BuildContext context) {
+  return AppBar(
+    title: Text(title),
+    leading: title == 'Dashboard' ? IconButton(
+      icon: Icon(Icons.more_vert),
       onPressed: () {
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            content: CupertinoActivityIndicator(),
-          ),
-        );
-        Future.delayed(Duration(milliseconds: 500), () {
-          Navigator.of(context).pop(); // dismiss dialog
-          Navigator.of(context).pushAndRemoveUntil(
-            CupertinoPageRoute(builder: (context) => LoginScreen()),
-            (route) => false,
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          showModalBottomSheet(
+            context: context,
+            isDismissible: false,
+            useRootNavigator: true,
+            builder: (BuildContext context) => buildMenuSheet(context),
           );
         });
       },
-    ),
+    ) : null,
+    actions: [
+      if (title == 'Dashboard')
+        IconButton(
+          icon: Icon(Icons.business),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      IconButton(
+        icon: Icon(Icons.power_settings_new),
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              content: CircularProgressIndicator(),
+            ),
+          );
+          Future.delayed(Duration(milliseconds: 500), () {
+            Navigator.of(context).pop(); // dismiss dialog
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => LoginScreen()),
+              (route) => false,
+            );
+          });
+        },
+      ),
+    ],
   );
 }

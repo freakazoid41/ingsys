@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'background_widget.dart';
@@ -16,9 +15,9 @@ class _ApartmentsScreenState extends State<ApartmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      navigationBar: appNavigationBar('Apartments', context),
-      child: Stack(
+    return Scaffold(
+      appBar: appAppBar('Apartments', context),
+      body: Stack(
         fit: StackFit.expand,
         children: [
           BackgroundWidget(),
@@ -56,7 +55,7 @@ class _ApartmentsScreenState extends State<ApartmentsScreen> {
                                       });
                                       Navigator.push(
                                         context,
-                                        CupertinoPageRoute(builder: (_) => DashboardScreen(apartmentName: apartments[row * crossAxis + col])),
+                                        MaterialPageRoute(builder: (_) => DashboardScreen(apartmentName: apartments[row * crossAxis + col])),
                                       ).then((_) {
                                         setState(() {
                                           selectedIndex = null;

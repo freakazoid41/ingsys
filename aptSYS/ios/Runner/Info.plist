@@ -45,5 +45,15 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to your photo library to select files.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>This app needs access to your documents to select files.</string>
+	<key>NSFileProviderDomainUsageDescription</key>
+	<string>This app needs access to file providers to select files.</string>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 </dict>
 </plist>

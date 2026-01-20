@@ -32,6 +32,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "cross_file",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/cross_file-0.3.5+1",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
       "name": "cupertino_icons",
       "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/cupertino_icons-1.0.8",
       "packageUri": "lib/",
@@ -44,16 +50,58 @@
       "languageVersion": "3.3"
     },
     {
+      "name": "ffi",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/ffi-2.1.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.7"
+    },
+    {
+      "name": "file_picker",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/file_picker-8.3.7",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "flutter",
       "rootUri": "file:///Users/freakazoid41/Documents/flutter/packages/flutter",
       "packageUri": "lib/",
       "languageVersion": "3.8"
     },
     {
+      "name": "flutter_localizations",
+      "rootUri": "file:///Users/freakazoid41/Documents/flutter/packages/flutter_localizations",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
+      "name": "flutter_plugin_android_lifecycle",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.33",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
+    },
+    {
+      "name": "flutter_snake_navigationbar",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/git/SnakeBottomNavigationBar-87d89d9be34857159b5afd446914a487dcb163f2/",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "flutter_test",
       "rootUri": "file:///Users/freakazoid41/Documents/flutter/packages/flutter_test",
       "packageUri": "lib/",
       "languageVersion": "3.8"
+    },
+    {
+      "name": "flutter_web_plugins",
+      "rootUri": "file:///Users/freakazoid41/Documents/flutter/packages/flutter_web_plugins",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
+      "name": "intl",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/intl-0.20.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
     },
     {
       "name": "leak_tracker",
@@ -96,6 +144,12 @@
       "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/path-1.9.1",
       "packageUri": "lib/",
       "languageVersion": "3.4"
+    },
+    {
+      "name": "plugin_platform_interface",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/plugin_platform_interface-2.1.8",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "sky_engine",
@@ -150,6 +204,18 @@
       "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/vm_service-15.0.2",
       "packageUri": "lib/",
       "languageVersion": "3.5"
+    },
+    {
+      "name": "web",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/web-1.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "win32",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/win32-5.15.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
     },
     {
       "name": "apt_sys",

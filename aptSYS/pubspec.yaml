@@ -8,7 +8,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   cupertino_icons: ^1.0.2
+  flutter_snake_navigationbar:
+    git:
+      url: https://github.com/herodotdigital/SnakeBottomNavigationBar.git
+  intl: ^0.20.2
+  file_picker: ^8.0.0+1
+  path: ^1.8.3
 
 dev_dependencies:
   flutter_test:

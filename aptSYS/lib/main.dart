@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 import 'apartments_screen.dart';
 
@@ -9,7 +9,7 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return CupertinoApp(
+    return MaterialApp(
       title: 'Flutter Login Demo',
       debugShowCheckedModeBanner: false,
       home: ApartmentsScreen(),
