@@ -17,6 +17,7 @@ dependencies:
   intl: ^0.20.2
   file_picker: ^8.0.0+1
   path: ^1.8.3
+  flutter_keyboard_visibility: ^6.0.0
 
 dev_dependencies:
   flutter_test:

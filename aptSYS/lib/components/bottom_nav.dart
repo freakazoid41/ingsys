@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 
 typedef OnNavTap = void Function(int index);
 
@@ -19,6 +20,8 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
   late final AnimationController _blinkController;
   Animation<double>? _blinkAnim;
   Animation<double>? _blinkScale;
+  bool _keyboardVisible = false;
+  late final KeyboardVisibilityController _keyboardController;
 
   @override
   void initState() {
@@ -27,6 +30,10 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
     _blinkAnim = Tween<double>(begin: 1.0, end: 0.1).animate(CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut));
     _blinkScale = Tween<double>(begin: 1.0, end: 1.5).animate(CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut));
     _blinkController.repeat(reverse: true);
+    _keyboardController = KeyboardVisibilityController();
+    _keyboardController.onChange.listen((bool visible) {
+      setState(() => _keyboardVisible = visible);
+    });
   }
 
   @override
@@ -39,7 +46,7 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
   Widget build(BuildContext context) {
     final pillColor = Colors.white;
     // final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
-    final keyboardVisible = true;
+    final keyboardVisible = _keyboardVisible;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
