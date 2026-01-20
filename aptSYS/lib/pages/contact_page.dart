@@ -79,6 +79,7 @@ class ContactPage extends StatelessWidget {
     }
 
     return GridView.builder(
+      padding: const EdgeInsets.only(bottom: 120),
       itemCount: items.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
@@ -205,17 +206,18 @@ class ContactCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     name,
                     style: TextStyle(color: Colors.white.withOpacity(0.95), fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 8),
+                  SizedBox(height: 4),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: Colors.white.withOpacity(0.25)),
@@ -223,7 +225,7 @@ class ContactCard extends StatelessWidget {
                       ),
                       child: Text(
                         phone,
-                        style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12),
+                        style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 10),
                       ),
                     ),
                   ),

@@ -121,8 +121,7 @@ class _AddPageState extends State<AddPage> {
               onPrimary: Theme.of(context).colorScheme.onPrimary,
               surface: Theme.of(context).colorScheme.surface.withOpacity(0.1),
               onSurface: Colors.black,
-            ),
-            dialogBackgroundColor: Theme.of(context).colorScheme.surface.withOpacity(0.1),
+            ), dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).colorScheme.surface.withOpacity(0.1)),
           ),
           child: child!,
         );
@@ -144,10 +143,13 @@ class _AddPageState extends State<AddPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 120),
           child: Form(
             key: _formKey,
             child: Column(
@@ -172,7 +174,7 @@ class _AddPageState extends State<AddPage> {
                           ),
                           value: _paymentByHand,
                           onChanged: (v) => setState(() => _paymentByHand = v),
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeThumbColor: Theme.of(context).colorScheme.primary,
                         ),
                       ],
                     ),
@@ -269,7 +271,9 @@ class _AddPageState extends State<AddPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: _currency,
+                                isDense: true,
+                                isExpanded: true,
+                                initialValue: _currency,
                                 style: const TextStyle(color: Colors.white),
                                 dropdownColor: Theme.of(context).colorScheme.surface.withOpacity(0.1),
                                 items: ['TRY', 'EUR', 'DOL']
@@ -464,7 +468,7 @@ class _AddPageState extends State<AddPage> {
           ),
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -617,5 +621,6 @@ class _SearchModalState extends State<_SearchModal> {
         ),
       ),
     );
+    
   }
 }

@@ -11,6 +11,7 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   DateTime _visibleMonth = DateTime.now();
   DateTime _selectedDate = DateTime.now();
+  bool _calendarExpanded = true;
 
   // Simple in-memory events map keyed by yyyy-MM-dd
   final Map<String, List<String>> _events = {
@@ -65,40 +66,49 @@ class _CalendarPageState extends State<CalendarPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(onPressed: _prevMonth, icon: const Icon(Icons.chevron_left)),
-              Text(
-                DateFormat.yMMMM(locale).format(_visibleMonth),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              IconButton(onPressed: _prevMonth, icon: const Icon(Icons.chevron_left, color: Colors.white)),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    DateFormat.yMMMM(locale).format(_visibleMonth),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
               ),
-              IconButton(onPressed: _nextMonth, icon: const Icon(Icons.chevron_right)),
+              IconButton(
+                onPressed: () => setState(() => _calendarExpanded = !_calendarExpanded),
+                icon: Icon(_calendarExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.white),
+              ),
+              IconButton(onPressed: _nextMonth, icon: const Icon(Icons.chevron_right, color: Colors.white)),
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Builder(builder: (ctx) {
-            // generate localized short weekday names starting from Sunday
-            DateTime sunday = DateTime.now();
-            while (sunday.weekday != DateTime.sunday) {
-              sunday = sunday.subtract(const Duration(days: 1));
-            }
-            final weekdayLabels = List.generate(7, (i) => DateFormat.E(locale).format(sunday.add(Duration(days: i))));
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: weekdayLabels
-                  .map((w) => Expanded(
-                        child: Center(child: Text(w, style: const TextStyle(fontWeight: FontWeight.w600))),
-                      ))
-                  .toList(),
-            );
-          }),
-        ),
-        const SizedBox(height: 8),
-        // Calendar grid
-        SizedBox(
-          height: 320,
-          child: GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
+        if (_calendarExpanded) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Builder(builder: (ctx) {
+              // generate localized short weekday names starting from Sunday
+              DateTime sunday = DateTime.now();
+              while (sunday.weekday != DateTime.sunday) {
+                sunday = sunday.subtract(const Duration(days: 1));
+              }
+              final weekdayLabels = List.generate(7, (i) => DateFormat.E(locale).format(sunday.add(Duration(days: i))));
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: weekdayLabels
+                    .map((w) => Expanded(
+                          child: Center(child: Text(w, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white))),
+                        ))
+                    .toList(),
+              );
+            }),
+          ),
+          const SizedBox(height: 8),
+          // Calendar grid
+          SizedBox(
+            height: 320,
+            child: GridView.builder(
+              physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7),
             itemCount: gridDays.length,
             itemBuilder: (context, idx) {
@@ -113,31 +123,40 @@ class _CalendarPageState extends State<CalendarPage> {
                 child: Container(
                   margin: const EdgeInsets.all(4.0),
                   decoration: isSelected
-                      ? BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.15), borderRadius: BorderRadius.circular(8))
+                      ? BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white, width: 2),
+                        )
                       : null,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('${day.day}', style: TextStyle(color: inMonth ? Colors.black : Colors.grey)),
-                      const SizedBox(height: 6),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                      Text('${day.day}', style: TextStyle(color: inMonth ? Colors.white : Colors.white54, fontSize: 16)),
+                      const SizedBox(height: 4),
                       if (dayEvents != null && dayEvents.isNotEmpty)
                         Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
                         ),
                       if (isToday)
                         Padding(
-                          padding: const EdgeInsets.only(top: 6.0),
-                          child: Text('Today', style: TextStyle(fontSize: 10, color: Colors.green[700])),
+                          padding: const EdgeInsets.only(top: 2.0),
+                          child: Text('Today', style: TextStyle(fontSize: 8, color: Colors.white)),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
             },
           ),
         ),
+        ],
         const Divider(),
         // Events list for selected date
         Padding(
@@ -145,8 +164,8 @@ class _CalendarPageState extends State<CalendarPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Events — ${DateFormat.yMMMd(locale).format(_selectedDate)}', style: const TextStyle(fontWeight: FontWeight.w600)),
-              TextButton(onPressed: _addSampleEventForSelectedDay, child: const Text('Add sample'))
+              Text('Events — ${DateFormat.yMMMd(locale).format(_selectedDate)}', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+              TextButton(onPressed: _addSampleEventForSelectedDay, child: const Text('Add sample', style: TextStyle(color: Colors.white))),
             ],
           ),
         ),
@@ -168,13 +187,13 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget _buildEventsForSelectedDay(String key) {
     final items = _events[key] ?? [];
     if (items.isEmpty) {
-      return const Center(child: Text('No events for this day'));
+      return const Center(child: Text('No events for this day', style: TextStyle(color: Colors.white)));
     }
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
       itemBuilder: (c, i) => Material(
         color: Colors.transparent,
-        child: ListTile(title: Text(items[i])),
+        child: ListTile(title: Text(items[i], style: const TextStyle(color: Colors.white))),
       ),
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemCount: items.length,

@@ -38,10 +38,16 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     final pillColor = Colors.white;
+    // final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    final keyboardVisible = true;
 
-    return SizedBox(
-      height: 120,
-      child: Stack(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: keyboardVisible ? 0 : 120,
+      child: AnimatedOpacity(
+        opacity: keyboardVisible ? 0.0 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
           // pill-shaped snake bar
@@ -112,7 +118,7 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
 
           // elevated center button
           Positioned(
-            bottom: 15,
+            bottom: 20,
             left: 0,
             right: 0,
             child: Center(
@@ -126,8 +132,8 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
                   duration: Duration(milliseconds: 220),
                   curve: Curves.easeOutBack,
                   child: Container(
-                    width: 92,
-                    height: 92,
+                    width: 80,
+                    height: 80,
                     decoration: BoxDecoration(
                       color: Colors.black,
                       shape: BoxShape.circle,
@@ -149,6 +155,8 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
           ),
         ],
       ),
-    );
+    ),
+  );
+
   }
 }
