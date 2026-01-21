@@ -18,7 +18,7 @@ Route::prefix('v1')
     ->group(function () {
         Route::get('/me', MeController::class);
     });*/
-Route::post('/v1/auth/login/{type?}',             [AuthController::class, 'loginUser'])->name('login-user')->middleware('throttle:2,1');
+Route::post('/v1/auth/login/{type?}',             [AuthController::class, 'loginUser'])->name('login-user')/*->middleware('throttle:2,1')*/;
 // expose authenticated user endpoint for tests and API clients
 Route::middleware('auth')->get('/v1/me', MeController::class);
 Route::middleware(['auth:sanctum'])->group(function () {

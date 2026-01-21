@@ -43,11 +43,11 @@ AppBar appAppBar(String title, BuildContext context) {
             ),
           );
           Future.delayed(Duration(milliseconds: 500), () {
-            /*Navigator.of(context).pop(); // dismiss dialog
+            Navigator.of(context).pop(); // dismiss dialog
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => LoginScreen()),
               (route) => false,
-            );*/
+            );
           });
         },
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../pages/settings_page.dart';
 
 Widget buildMenuSheet(BuildContext context) {
   return Column(
@@ -15,7 +16,9 @@ Widget buildMenuSheet(BuildContext context) {
         title: Text('Settings'),
         onTap: () {
           Navigator.of(context).pop();
-          // TODO: Navigate to settings screen
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => SettingsPage()),
+          );
         },
       ),
       ListTile(
