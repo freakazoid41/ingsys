@@ -44,7 +44,7 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    final pillColor = Colors.white;
+    final pillColor = Theme.of(context).colorScheme.surface;
     // final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     final keyboardVisible = _keyboardVisible;
 
@@ -68,10 +68,10 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
                   behaviour: SnakeBarBehaviour.floating,
                   snakeShape: SnakeShape.circle,
                   // color used for the snake-shaped selected background
-                  snakeViewColor: Colors.black,
+                  snakeViewColor: Theme.of(context).colorScheme.primary,
                   backgroundColor: pillColor,
-                  selectedItemColor: Colors.white,
-                  unselectedItemColor: Colors.black54,
+                  selectedItemColor: Theme.of(context).colorScheme.onPrimary,
+                  unselectedItemColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
                   padding: EdgeInsets.symmetric(horizontal: 22, vertical: 10),
                   elevation: 8,
@@ -101,10 +101,10 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
                                   width: 12,
                                   height: 12,
                                   decoration: BoxDecoration(
-                                    color: Colors.red,
+                                    color: Theme.of(context).colorScheme.secondary,
                                     shape: BoxShape.circle,
                                     boxShadow: [
-                                      BoxShadow(color: Colors.red.withOpacity(0.35), blurRadius: 6, spreadRadius: 1)
+                                      BoxShadow(color: Theme.of(context).colorScheme.secondary.withOpacity(0.35), blurRadius: 6, spreadRadius: 1)
                                     ],
                                   ),
                                 ),
@@ -142,18 +142,18 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.primary,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.26),
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.26),
                           blurRadius: 20,
                           offset: Offset(0, 12),
                         )
                       ],
                     ),
                       child: Center(
-                      child: Icon(CupertinoIcons.home, color: Colors.white, size: 40),
+                      child: Icon(CupertinoIcons.home, color: Theme.of(context).colorScheme.onPrimary, size: 40),
                     ),
                   ),
                 ),

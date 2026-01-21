@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import 'background_widget.dart';
 import 'providers/auth_provider.dart';
+import 'components/connectivity_status.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -125,6 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Dev-only connectivity status (temporary)
+                        ConnectivityStatus(),
+                        SizedBox(height: 12),
                         Text('Hoşgeldiniz!', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
                         SizedBox(height: 6),
                         Text('Sisteme giriş yapmak için bilgilerinizi giriniz..', style: TextStyle(color: Colors.white70, fontSize: 13)),

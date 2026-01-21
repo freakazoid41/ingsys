@@ -120,7 +120,7 @@ class _AddPageState extends State<AddPage> {
               primary: Theme.of(context).colorScheme.primary,
               onPrimary: Theme.of(context).colorScheme.onPrimary,
               surface: Theme.of(context).colorScheme.surface.withOpacity(0.1),
-              onSurface: Colors.black,
+              onSurface: Colors.white,
             ), dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).colorScheme.surface.withOpacity(0.1)),
           ),
           child: child!,

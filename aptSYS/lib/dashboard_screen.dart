@@ -1,5 +1,6 @@
 import 'package:apt_sys/pages/home_page.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'background_widget.dart';
 import 'components/navigation_bar.dart';
@@ -8,6 +9,7 @@ import 'pages/add_page.dart';
 import 'pages/calendar_page.dart';
 import 'pages/contact_page.dart';
 import 'pages/notifications_page.dart';
+import 'providers/global_loading_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String apartmentName;
@@ -20,6 +22,14 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 2; // center home active by default
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GlobalLoadingProvider>().hideLoading();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +73,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: FloatingSnakeNav(
                         currentIndex: _currentIndex,
                         onTap: (index) {
-                          setState(() { _currentIndex = index; });
+                          if (index != _currentIndex) {
+                            context.read<GlobalLoadingProvider>().showLoading();
+                            setState(() { _currentIndex = index; });
+                            Future.delayed(Duration(milliseconds: 300), () {
+                              if (mounted) context.read<GlobalLoadingProvider>().hideLoading();
+                            });
+                          }
                         },
                       ),
                     ),

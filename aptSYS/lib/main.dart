@@ -5,6 +5,9 @@ import 'apartments_screen.dart';
 import 'login_screen.dart';
 import 'providers/auth_provider.dart';
 import 'settings.dart';
+import 'providers/apartments_provider.dart';
+import 'providers/global_loading_provider.dart';
+import 'theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,11 +30,42 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<AuthProvider>(
           create: (context) => AuthProvider(settings.baseUrl),
         ),
+        ChangeNotifierProvider<ApartmentsProvider>(
+          create: (context) => ApartmentsProvider(settings.baseUrl),
+        ),
+        ChangeNotifierProvider<GlobalLoadingProvider>(
+          create: (context) => GlobalLoadingProvider(),
+        ),
       ],
-      child: MaterialApp(
-        title: 'Flutter Login Demo',
-        debugShowCheckedModeBanner: false,
-        home: AuthWrapper(),
+      child: Consumer<GlobalLoadingProvider>(
+        builder: (context, loadingProvider, child) {
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: Stack(
+              children: [
+                MaterialApp(
+                  title: 'aptSYS',
+                  debugShowCheckedModeBanner: false,
+                  theme: AppTheme.theme,
+                  darkTheme: AppTheme.theme,
+                  themeMode: ThemeMode.dark,
+                  home: AuthWrapper(),
+                ),
+                if (loadingProvider.isLoading)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.5),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentPrimary),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -41,6 +75,7 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    //return ApartmentsScreen();
     return authProvider.isLoggedIn ? ApartmentsScreen() : LoginScreen();
   }
 }
