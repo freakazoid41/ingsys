@@ -27,32 +27,37 @@ class ContactPage extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.02),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: _CustomTabSelector(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              double horizontalPadding = constraints.maxWidth >= 1000 ? 64.0 : (constraints.maxWidth > 800 ? 32.0 : 16.0);
+              return Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.02),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      child: _CustomTabSelector(),
+                    ),
+                    SizedBox(height: 12),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _buildGridFor(context, 'all'),
+                          _buildGridFor(context, 'management'),
+                          _buildGridFor(context, 'apartments'),
+                          _buildGridFor(context, 'workers'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 12),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _buildGridFor(context, 'all'),
-                      _buildGridFor(context, 'management'),
-                      _buildGridFor(context, 'apartments'),
-                      _buildGridFor(context, 'workers'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -61,12 +66,11 @@ class ContactPage extends StatelessWidget {
 
   Widget _buildGridFor(BuildContext context, String group) {
     final constraints = MediaQuery.of(context).size.width;
-    int crossAxisCount = 4;
-    if (constraints < 600) {
-      crossAxisCount = 1;
-    } else if (constraints < 900) {
+    int crossAxisCount = 1;
+    if (constraints >= 600) {
       crossAxisCount = 2;
-    } else if (constraints < 1200) {
+    }
+    if (constraints >= 1000) {
       crossAxisCount = 3;
     }
 
@@ -85,7 +89,7 @@ class ContactPage extends StatelessWidget {
         crossAxisCount: crossAxisCount,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 3.1,
+        childAspectRatio: 2.5,
       ),
       itemBuilder: (context, index) {
         final c = items[index];
@@ -185,7 +189,7 @@ class ContactCard extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
             Container(
@@ -205,28 +209,28 @@ class ContactCard extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     name,
                     style: TextStyle(color: Colors.white.withOpacity(0.95), fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
-                  SizedBox(height: 4),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.white.withOpacity(0.25)),
-                        color: Colors.transparent,
-                      ),
-                      child: Text(
-                        phone,
-                        style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 10),
-                      ),
+                  SizedBox(height: 2),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.white.withOpacity(0.25)),
+                      color: Colors.transparent,
+                    ),
+                    child: Text(
+                      phone,
+                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 10),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

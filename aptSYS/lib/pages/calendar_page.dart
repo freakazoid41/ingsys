@@ -59,7 +59,8 @@ class _CalendarPageState extends State<CalendarPage> {
 
     final selectedKey = _ymdKey(_selectedDate);
 
-    return Column(
+    return SingleChildScrollView(
+      child: Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
@@ -106,7 +107,7 @@ class _CalendarPageState extends State<CalendarPage> {
           const SizedBox(height: 8),
           // Calendar grid
           SizedBox(
-            height: 320,
+            height: MediaQuery.of(context).size.width > 600 ? 600 : 320,
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7),
@@ -122,6 +123,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 onTap: () => setState(() => _selectedDate = day),
                 child: Container(
                   margin: const EdgeInsets.all(4.0),
+                  padding: const EdgeInsets.all(2.0),
                   decoration: isSelected
                       ? BoxDecoration(
                           color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
@@ -169,10 +171,12 @@ class _CalendarPageState extends State<CalendarPage> {
             ],
           ),
         ),
-        Expanded(
+        SizedBox(
+          height: 150,
           child: _buildEventsForSelectedDay(selectedKey),
         ),
       ],
+    ),
     );
   }
 

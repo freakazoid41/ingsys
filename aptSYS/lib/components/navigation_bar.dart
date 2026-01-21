@@ -30,17 +30,24 @@ AppBar appAppBar(String title, BuildContext context) {
         icon: Icon(Icons.power_settings_new),
         onPressed: () {
           showDialog(
+            
             context: context,
-            builder: (context) => AlertDialog(
-              content: CircularProgressIndicator(),
+            builder: (context) => Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                height: 280,
+                
+                padding: EdgeInsets.all(120),
+                child: CircularProgressIndicator(),
+              ),
             ),
           );
           Future.delayed(Duration(milliseconds: 500), () {
-            Navigator.of(context).pop(); // dismiss dialog
+            /*Navigator.of(context).pop(); // dismiss dialog
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => LoginScreen()),
               (route) => false,
-            );
+            );*/
           });
         },
       ),

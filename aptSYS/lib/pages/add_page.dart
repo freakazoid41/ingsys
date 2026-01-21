@@ -22,6 +22,7 @@ class _AddPageState extends State<AddPage> {
   String _currency = 'TRY';
 
   DateTime _selectedDate = DateTime.now();
+  late final TextEditingController _dateController;
 
   String? _pickedFileName;
   final TextEditingController _descriptionController = TextEditingController();
@@ -33,10 +34,9 @@ class _AddPageState extends State<AddPage> {
   final NumberFormat _numberFormat = NumberFormat.decimalPattern();
 
   @override
-  void dispose() {
-    _amountController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _dateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(_selectedDate));
   }
 
   void _onAmountChanged(String raw) {
@@ -130,6 +130,7 @@ class _AddPageState extends State<AddPage> {
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
+        _dateController.text = DateFormat('dd/MM/yyyy').format(picked);
       });
     }
   }
@@ -318,12 +319,11 @@ class _AddPageState extends State<AddPage> {
                           onTap: () => _selectDate(context),
                           child: AbsorbPointer(
                             child: TextFormField(
+                              controller: _dateController,
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
                                 labelText: 'Tarih',
                                 labelStyle: const TextStyle(color: Colors.white70),
-                                hintText: DateFormat('dd/MM/yyyy').format(_selectedDate),
-                                hintStyle: const TextStyle(color: Colors.white60),
                                 errorStyle: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.w500),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
