@@ -319,7 +319,7 @@
               class="align-items-center badge bg-opacity-75 d-inline-flex fs-8 ms-auto mt-n1 rounded-pill" 
               :class="outcome.ratio < 0 ? 'bg-danger' : 'bg-success'">
               <i class="fs-6 me-1 ph"
-                :class="outcome.ratio < 0 ?  'ph-arrow-circle-down' : 'ph-arrow-circle-up'"></i> {{ outcome.ratio }}% </div>
+                :class="outcome.ratio < 0 ?  'ph-arrow-circle-down' : 'ph-arrow-circle-up'"></i> {{ outcome.ratio.toFixed(2) }}% </div>
           </div> {{$t('dashboard.monthly.outcome')}}
         </div>
       </div>
@@ -338,7 +338,7 @@
               class="align-items-center badge bg-opacity-75  d-inline-flex fs-8 ms-auto mt-n1 rounded-pill"
               :class="income.ratio < 0 ? 'bg-danger' : 'bg-success'">
               <i class="fs-6 me-1 ph "
-                :class="income.ratio < 0 ?  'ph-arrow-circle-down' : 'ph-arrow-circle-up'"></i> {{ income.ratio }}% </div>
+                :class="income.ratio < 0 ?  'ph-arrow-circle-down' : 'ph-arrow-circle-up'"></i> {{ income.ratio.toFixed(2) }}% </div>
           </div> {{$t('dashboard.monthly.income')}}
         </div>
       </div>
