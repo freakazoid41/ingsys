@@ -23,7 +23,6 @@ class AuthController extends Controller
 {
 
     public function login(){
-        
         //list all cards on here
         return view('login', [
             'scripts' => [
@@ -80,7 +79,7 @@ class AuthController extends Controller
     public function loginUser(Request $request){
         try {
 
-            $request->session()->flush();
+            session()->flush();
             //validate request sended parameters
             $validateUser = Validator::make($request->all(),[
                 'email'    => 'required',

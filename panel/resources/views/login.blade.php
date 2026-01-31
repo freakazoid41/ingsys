@@ -41,7 +41,6 @@
                     <i class="fs-3 left-0 m-2.5 ph ph-keyhole position-absolute text-body-secondary top-0"></i> 
                     <input type="password" value="{{env('IS_TEST') ? 'Pickle412.' : ''}}" name="password" class="form-control ps-10" placeholder="Password"> 
                 </div> 
-                
                 @if (\Session::has('login-success'))
                     <button type="button" class="bg-opacity-75 btn btn-secondary w-100">
                         Giriş Başarılı Ana Sayfaya Yönlendiriyor.. <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
