@@ -26,7 +26,7 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    _blinkController = AnimationController(vsync: this, duration: Duration(milliseconds: 700));
+    _blinkController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
     _blinkAnim = Tween<double>(begin: 1.0, end: 0.1).animate(CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut));
     _blinkScale = Tween<double>(begin: 1.0, end: 1.5).animate(CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut));
     _blinkController.repeat(reverse: true);
@@ -71,9 +71,9 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
                   snakeViewColor: Theme.of(context).colorScheme.primary,
                   backgroundColor: pillColor,
                   selectedItemColor: Theme.of(context).colorScheme.onPrimary,
-                  unselectedItemColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-                  padding: EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                  unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  shape: RoundedRectangleBorder(borderRadius: const BorderRadius.all(Radius.circular(40))),
+                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
                   elevation: 8,
                   currentIndex: widget.currentIndex,
                   onTap: widget.onTap,
@@ -104,7 +104,7 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
                                     color: Theme.of(context).colorScheme.secondary,
                                     shape: BoxShape.circle,
                                     boxShadow: [
-                                      BoxShadow(color: Theme.of(context).colorScheme.secondary.withOpacity(0.35), blurRadius: 6, spreadRadius: 1)
+                                      BoxShadow(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.35), blurRadius: 6, spreadRadius: 1)
                                     ],
                                   ),
                                 ),
@@ -146,7 +146,7 @@ class _FloatingSnakeNavState extends State<FloatingSnakeNav> with SingleTickerPr
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.26),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.26),
                           blurRadius: 20,
                           offset: Offset(0, 12),
                         )

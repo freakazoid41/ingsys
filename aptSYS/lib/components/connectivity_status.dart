@@ -1,13 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../settings.dart';
-
-// When running `flutter test`, the environment variable FLUTTER_TEST is set.
-// Use a compile-time constant to avoid starting network timers during widget tests.
-const bool _kInFlutterTest = bool.fromEnvironment('FLUTTER_TEST', defaultValue: false);
+import 'connectivity_socket_stub.dart'
+  if (dart.library.io) 'connectivity_socket_io.dart' as socket_impl;
+import 'package:http/http.dart' as http;
 
 class ConnectivityStatus extends StatefulWidget {
   const ConnectivityStatus({Key? key}) : super(key: key);
@@ -41,13 +38,31 @@ class _ConnectivityStatusState extends State<ConnectivityStatus> {
       final host = uri.host;
       final port = uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80);
 
-      final socket = await Socket.connect(host, port, timeout: Duration(seconds: 3));
-      socket.destroy();
-
-      setState(() {
-        _connected = true;
-        _lastChecked = DateTime.now();
-      });
+      _error = null;
+      final ok = await socket_impl.checkSocket(host, port, timeout: const Duration(seconds: 3));
+      if (ok) {
+        setState(() {
+          _connected = true;
+          _lastChecked = DateTime.now();
+        });
+      } else {
+        // Try HTTP GET as a fallback (works on web). May fail due to CORS.
+        try {
+          final resp = await http.get(Uri.parse(settings.baseUrl)).timeout(const Duration(seconds: 4));
+          final success = resp.statusCode >= 200 && resp.statusCode < 400;
+          setState(() {
+            _connected = success;
+            _lastChecked = DateTime.now();
+            if (!success) _error = 'HTTP ping failed: ${resp.statusCode}';
+          });
+        } catch (e) {
+          setState(() {
+            _connected = false;
+            _error = e.toString();
+            _lastChecked = DateTime.now();
+          });
+        }
+      }
     } catch (e) {
       setState(() {
         _connected = false;
@@ -82,7 +97,7 @@ class _ConnectivityStatusState extends State<ConnectivityStatus> {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -106,7 +121,7 @@ class _ConnectivityStatusState extends State<ConnectivityStatus> {
                 ),
                 if (_error != null) SizedBox(height: 4),
                 if (_error != null)
-                  Text(_error!, style: TextStyle(color: Colors.redAccent.withOpacity(0.9), fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(_error!, style: TextStyle(color: Colors.redAccent.withValues(alpha: 0.9), fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),

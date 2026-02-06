@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 class BackgroundWidget extends StatelessWidget {
+  const BackgroundWidget({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
         Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -23,7 +25,7 @@ class BackgroundWidget extends StatelessWidget {
             height: 300,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [Colors.purple.withOpacity(0.25), Colors.transparent]),
+              gradient: RadialGradient(colors: [Colors.purple.withValues(alpha: 0.25), Colors.transparent]),
             ),
           ),
         ),
@@ -35,7 +37,7 @@ class BackgroundWidget extends StatelessWidget {
             height: 360,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [Colors.teal.withOpacity(0.22), Colors.transparent]),
+              gradient: RadialGradient(colors: [Colors.teal.withValues(alpha: 0.22), Colors.transparent]),
             ),
           ),
         ),

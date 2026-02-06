@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:provider/provider.dart';
 
 import '../login_screen.dart';
 import 'menu_sheet.dart';
+import '../providers/global_loading_provider.dart';
 
 AppBar appAppBar(String title, BuildContext context) {
   return AppBar(
@@ -28,27 +30,18 @@ AppBar appAppBar(String title, BuildContext context) {
         ),
       IconButton(
         icon: Icon(Icons.power_settings_new),
-        onPressed: () {
-          showDialog(
-            
-            context: context,
-            builder: (context) => Dialog(
-              backgroundColor: Colors.transparent,
-              child: Container(
-                height: 280,
-                
-                padding: EdgeInsets.all(120),
-                child: CircularProgressIndicator(),
-              ),
-            ),
+        onPressed: () async {
+          try {
+            context.read<GlobalLoadingProvider>().showLoading();
+          } catch (_) {}
+          await Future.delayed(const Duration(milliseconds: 500));
+          try {
+            context.read<GlobalLoadingProvider>().hideLoading();
+          } catch (_) {}
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => LoginScreen()),
+            (route) => false,
           );
-          Future.delayed(Duration(milliseconds: 500), () {
-            Navigator.of(context).pop(); // dismiss dialog
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => LoginScreen()),
-              (route) => false,
-            );
-          });
         },
       ),
     ],

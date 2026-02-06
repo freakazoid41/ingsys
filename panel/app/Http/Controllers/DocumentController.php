@@ -17,15 +17,21 @@ class DocumentController extends Controller
     public function index(Request $request){
         $logModel = 'documents';
         
+        //set group key here if request is from api 
+        if($request->has('grp_code')){
+            session(['grp_code' => $request->input('grp_code')]);
+        }
+
+
         /*if(!checkPermRoute($logModel,$request->method())) return response()->json([
             'success' => false,
             'msg'     => 'not valid for system user...',
         ],401);*/
         
-        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
+        /*if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
             'success' => false,
             'msg'     => 'not valid for system user...',
-        ],403);
+        ],403);*/
         
         //$model = 'App\\Models\\Documents';
         switch(strtoupper($request->method())){

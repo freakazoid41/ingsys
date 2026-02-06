@@ -23,7 +23,6 @@ class AppTheme {
       colorScheme: base.colorScheme.copyWith(
         primary: accentPrimary,
         secondary: accentSecondary,
-        background: bg,
         surface: surface,
         onPrimary: Colors.white,
         onSurface: textPrimary,
@@ -36,25 +35,25 @@ class AppTheme {
       cardTheme: base.cardTheme.copyWith(
         color: surface,
         elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-        shadowColor: Colors.black.withOpacity(0.6),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12.0))),
+        shadowColor: Colors.black.withValues(alpha: 0.6),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: surface.withOpacity(0.8),
+        backgroundColor: surface.withValues(alpha: 0.8),
         elevation: 0,
-        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: textPrimary),
-        iconTheme: IconThemeData(color: muted),
+        titleTextStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: textPrimary),
+        iconTheme: const IconThemeData(color: muted),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: accentPrimary,
           foregroundColor: Colors.black,
           textStyle: TextStyle(fontWeight: FontWeight.w600),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
         ),
       ),
-      dividerColor: Colors.white.withOpacity(0.04),
-      iconTheme: IconThemeData(color: muted),
+      dividerColor: Colors.white.withValues(alpha: 0.04),
+      iconTheme: const IconThemeData(color: muted),
     );
   }
 }

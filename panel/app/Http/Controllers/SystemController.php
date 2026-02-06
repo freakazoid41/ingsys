@@ -27,6 +27,11 @@ class SystemController extends Controller
     public function table($model,Request $request){
         $req = $request->all();
 
+        //set group key here if request is from api 
+        if($request->has('grp_code')){
+            session(['grp_code' => $request->input('grp_code')]);
+        }
+
 
         if(isset($req['page']))     $req['scale']['page']  = $req['page'];
         if(isset($req['size']))     $req['scale']['limit'] = $req['size'];

@@ -54,16 +54,16 @@ class NotificationsPage extends StatelessWidget {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface.withOpacity(0.04),
+                        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.06)),
+                        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.06)),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
                       child: Row(
                         children: [
                           CircleAvatar(
                             radius: 20,
-                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                             child: Icon(Icons.notifications, size: 18, color: Theme.of(context).colorScheme.primary),
                           ),
                           const SizedBox(width: 12),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 
 import 'background_widget.dart';
 import 'dashboard_screen.dart';
@@ -7,9 +8,10 @@ import 'components/navigation_bar.dart';
 import 'providers/apartments_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/global_loading_provider.dart';
-import 'models/apartment.dart';
 
 class ApartmentsScreen extends StatefulWidget {
+  const ApartmentsScreen({super.key});
+
   @override
   _ApartmentsScreenState createState() => _ApartmentsScreenState();
 }
@@ -41,20 +43,20 @@ class _ApartmentsScreenState extends State<ApartmentsScreen> {
               child: LayoutBuilder(builder: (context, constraints) {
                   final width = constraints.maxWidth - 24;
                   // desired item width (including spacing)
-                  final desiredItemWidth = 120.0;
+                  const desiredItemWidth = 120.0;
                   int crossAxis = (width / desiredItemWidth).floor();
                   if (crossAxis < 2) crossAxis = 2;
                   if (crossAxis > 4) crossAxis = 4;
 
                   // Make items wider than tall to reduce row height
                   final itemWidth = (width - (crossAxis - 1) * 4) / crossAxis;
-                  final itemHeight = 210.0; // target item height
+                  const itemHeight = 210.0; // target item height
 
                   return Consumer<ApartmentsProvider>(builder: (context, provider, _) {
                     if (provider.isLoading) {
                       return Center(child: Container(
                         height: 280,
-                        padding: EdgeInsets.all(120),
+                        padding: const EdgeInsets.all(120),
                         child: CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
                         ),
@@ -64,12 +66,12 @@ class _ApartmentsScreenState extends State<ApartmentsScreen> {
                     if (provider.error != null) {
                       final token = context.read<AuthProvider>().token;
                       return Center(child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Column(
                           children: [
-                            Text('Hata: ${provider.error}', style: TextStyle(color: Colors.white70)),
-                            SizedBox(height: 8),
-                            ElevatedButton(onPressed: () => provider.fetchApartments(token), child: Text('Tekrar Dene'))
+                            Text('Hata: ${provider.error}', style: const TextStyle(color: Colors.white70)),
+                            const SizedBox(height: 8),
+                            ElevatedButton(onPressed: () => provider.fetchApartments(token), child: const Text('Tekrar Dene'))
                           ],
                         ),
                       ));
@@ -77,7 +79,7 @@ class _ApartmentsScreenState extends State<ApartmentsScreen> {
 
                     final apartments = provider.items;
                     if (apartments.isEmpty) {
-                      return Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Kayıtlı apartman yok.', style: TextStyle(color: Colors.white70))));
+                      return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Kayıtlı apartman yok.', style: TextStyle(color: Colors.white70))));
                     }
 
                     return ListView(
@@ -92,7 +94,7 @@ class _ApartmentsScreenState extends State<ApartmentsScreen> {
                                   Container(
                                     width: itemWidth,
                                     height: itemHeight,
-                                    margin: EdgeInsets.all(2),
+                                    margin: const EdgeInsets.all(2),
                                     child: Material(
                                       color: Colors.transparent,
                                       child: InkWell(
@@ -100,29 +102,37 @@ class _ApartmentsScreenState extends State<ApartmentsScreen> {
                                           setState(() {
                                             selectedIndex = row * crossAxis + col;
                                           });
-                                          final name = apartments[row * crossAxis + col].title;
+                                          final apartment = apartments[row * crossAxis + col];
+                                          // store selected apartment in provider so other pages can access grp_code
+                                          context.read<ApartmentsProvider>().setSelectedApartment(apartment);
+                                          if (kDebugMode) {
+                                            try {
+                                              print('ApartmentsScreen: tapped apartment id=${apartment.id} op_key=${apartment.opKey} code=${apartment.code}');
+                                            } catch (_) {}
+                                          }
+                                          final name = apartment.title;
                                           context.read<GlobalLoadingProvider>().showLoading();
-                                          Future.delayed(Duration(milliseconds: 300), () {
+                                          Future.delayed(const Duration(milliseconds: 300), () {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(builder: (_) => DashboardScreen(apartmentName: name)),
                                             ).then((_) {
-                                              context.read<GlobalLoadingProvider>().hideLoading();
+                                              if (context.mounted) context.read<GlobalLoadingProvider>().hideLoading();
                                             });
                                           });
                                         },
-                                        splashColor: Colors.white.withOpacity(0.1),
-                                        highlightColor: Colors.white.withOpacity(0.1),
-                                        customBorder: CircleBorder(),
+                                        splashColor: Colors.white.withValues(alpha: 0.1),
+                                        highlightColor: Colors.white.withValues(alpha: 0.1),
+                                        customBorder: const CircleBorder(),
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           crossAxisAlignment: CrossAxisAlignment.center,
                                           children: [
                                             Icon(Icons.apartment, size: 88, color: Colors.white70),
-                                            SizedBox(height: 8),
+                                            const SizedBox(height: 8),
                                             Text(
                                               apartments[row * crossAxis + col].title,
-                                              style: TextStyle(color: Colors.white70, fontSize: 14),
+                                              style: const TextStyle(color: Colors.white70, fontSize: 14),
                                               textAlign: TextAlign.center,
                                               overflow: TextOverflow.ellipsis,
                                             ),

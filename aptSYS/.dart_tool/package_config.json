@@ -200,6 +200,42 @@
       "languageVersion": "2.12"
     },
     {
+      "name": "flutter_libphonenumber",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/flutter_libphonenumber-2.7.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
+    },
+    {
+      "name": "flutter_libphonenumber_android",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/flutter_libphonenumber_android-2.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
+    },
+    {
+      "name": "flutter_libphonenumber_darwin",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/flutter_libphonenumber_darwin-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
+    },
+    {
+      "name": "flutter_libphonenumber_platform_interface",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/flutter_libphonenumber_platform_interface-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.19"
+    },
+    {
+      "name": "flutter_libphonenumber_web",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/flutter_libphonenumber_web-1.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "flutter_lints",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/flutter_lints-4.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
       "name": "flutter_localizations",
       "rootUri": "file:///Users/freakazoid41/Documents/flutter/packages/flutter_localizations",
       "packageUri": "lib/",
@@ -294,6 +330,12 @@
       "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/leak_tracker_testing-3.0.2",
       "packageUri": "lib/",
       "languageVersion": "3.2"
+    },
+    {
+      "name": "lints",
+      "rootUri": "file:///Users/freakazoid41/.pub-cache/hosted/pub.dev/lints-4.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
     },
     {
       "name": "logging",

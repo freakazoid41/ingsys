@@ -7,9 +7,11 @@
 
 import 'dart:io'; // flutter_ignore: dart_io_import.
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_libphonenumber_android/flutter_libphonenumber_android.dart';
 import 'package:path_provider_android/path_provider_android.dart';
 import 'package:shared_preferences_android/shared_preferences_android.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_libphonenumber_darwin/flutter_libphonenumber_darwin.dart';
 import 'package:path_provider_foundation/path_provider_foundation.dart';
 import 'package:shared_preferences_foundation/shared_preferences_foundation.dart';
 import 'package:file_picker/file_picker.dart';
@@ -18,6 +20,7 @@ import 'package:path_provider_linux/path_provider_linux.dart';
 import 'package:shared_preferences_linux/shared_preferences_linux.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_keyboard_visibility_macos/flutter_keyboard_visibility_macos.dart';
+import 'package:flutter_libphonenumber_darwin/flutter_libphonenumber_darwin.dart';
 import 'package:path_provider_foundation/path_provider_foundation.dart';
 import 'package:shared_preferences_foundation/shared_preferences_foundation.dart';
 import 'package:file_picker/file_picker.dart';
@@ -36,6 +39,15 @@ class _PluginRegistrant {
       } catch (err) {
         print(
           '`file_picker` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
+      try {
+        FlutterLibphonenumberAndroid.registerWith();
+      } catch (err) {
+        print(
+          '`flutter_libphonenumber_android` threw an error: $err. '
           'The app may not function as expected until you remove this plugin from pubspec.yaml'
         );
       }
@@ -64,6 +76,15 @@ class _PluginRegistrant {
       } catch (err) {
         print(
           '`file_picker` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
+      try {
+        FlutterLibphonenumberDarwin.registerWith();
+      } catch (err) {
+        print(
+          '`flutter_libphonenumber_darwin` threw an error: $err. '
           'The app may not function as expected until you remove this plugin from pubspec.yaml'
         );
       }
@@ -138,6 +159,15 @@ class _PluginRegistrant {
       } catch (err) {
         print(
           '`flutter_keyboard_visibility_macos` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
+      try {
+        FlutterLibphonenumberDarwin.registerWith();
+      } catch (err) {
+        print(
+          '`flutter_libphonenumber_darwin` threw an error: $err. '
           'The app may not function as expected until you remove this plugin from pubspec.yaml'
         );
       }

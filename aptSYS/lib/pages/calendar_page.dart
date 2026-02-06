@@ -48,7 +48,6 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget build(BuildContext context) {
     final firstOfMonth = DateTime(_visibleMonth.year, _visibleMonth.month, 1);
     final weekdayOfFirst = firstOfMonth.weekday; // 1 (Mon) - 7 (Sun)
-    final daysInMonth = _daysInMonth(_visibleMonth);
     final locale = Localizations.localeOf(context).toLanguageTag();
 
     // build a list of DateTime (including leading/trailing days) for a 6x7 grid
@@ -126,7 +125,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   padding: const EdgeInsets.all(2.0),
                   decoration: isSelected
                       ? BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.white, width: 2),
                         )

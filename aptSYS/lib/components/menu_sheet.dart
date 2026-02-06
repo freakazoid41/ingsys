@@ -1,15 +1,28 @@
 import 'package:flutter/material.dart';
 import '../pages/settings_page.dart';
+import '../pages/flat_list_page.dart';
+import '../pages/kasa_list_page.dart';
 
 Widget buildMenuSheet(BuildContext context) {
   return Column(
     mainAxisSize: MainAxisSize.min,
     children: [
       ListTile(
-        title: Text('Refresh Dashboard'),
+        title: Text('Daire Listesi'),
         onTap: () {
           Navigator.of(context).pop();
-          // TODO: Implement refresh logic
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => FlatListPage()),
+          );
+        },
+      ),
+      ListTile(
+        title: Text('Kasa Listesi'),
+        onTap: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => KasaListPage()),
+          );
         },
       ),
       ListTile(

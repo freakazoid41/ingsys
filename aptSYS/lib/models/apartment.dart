@@ -3,8 +3,10 @@ class Apartment {
   final String title;
   final String address;
   final double price;
+  final String? code; // optional grp_code or identifier from API
+  final String? opKey; // explicit op_key from API
 
-  Apartment({required this.id, required this.title, required this.address, required this.price});
+  Apartment({required this.id, required this.title, required this.address, required this.price, this.code, this.opKey});
 
   factory Apartment.fromJson(Map<String, dynamic> json) {
     return Apartment(
@@ -12,6 +14,8 @@ class Apartment {
       title: json['title'] as String? ?? '',
       address: json['address'] as String? ?? '',
       price: (json['price'] is num) ? (json['price'] as num).toDouble() : double.tryParse(json['price'].toString()) ?? 0.0,
+      code: (json['code'] as String?) ?? (json['grp_code'] as String?) ?? (json['op_key'] as String?) ?? (json['slug'] as String?),
+      opKey: (json['op_key'] as String?) ?? (json['opKey'] as String?) ?? (json['code'] as String?) ?? (json['grp_code'] as String?),
     );
   }
 }

@@ -119,9 +119,9 @@ class _AddPageState extends State<AddPage> {
             colorScheme: Theme.of(context).colorScheme.copyWith(
               primary: Theme.of(context).colorScheme.primary,
               onPrimary: Theme.of(context).colorScheme.onPrimary,
-              surface: Theme.of(context).colorScheme.surface.withOpacity(0.1),
+              surface: Theme.of(context).colorScheme.surface.withValues(alpha: 0.1),
               onSurface: Colors.white,
-            ), dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).colorScheme.surface.withOpacity(0.1)),
+            ), dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.1)),
           ),
           child: child!,
         );
@@ -157,11 +157,11 @@ class _AddPageState extends State<AddPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Card(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.04),
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.04),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.06)),
+                    side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.06)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -183,11 +183,11 @@ class _AddPageState extends State<AddPage> {
                 ),
                 const SizedBox(height: 16),
                 Card(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.04),
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.04),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.06)),
+                    side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.06)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -219,11 +219,11 @@ class _AddPageState extends State<AddPage> {
                 ),
                 const SizedBox(height: 16),
                 Card(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.04),
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.04),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.06)),
+                    side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.06)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -243,15 +243,15 @@ class _AddPageState extends State<AddPage> {
                                   errorStyle: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.w500),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
                                   ),
                                   errorBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -262,7 +262,7 @@ class _AddPageState extends State<AddPage> {
                                     borderSide: const BorderSide(color: Colors.orangeAccent, width: 2),
                                   ),
                                   filled: true,
-                                  fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.02),
+                                  fillColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.02),
                                 ),
                                 onChanged: _onAmountChanged,
                                 validator: (v) =>
@@ -276,7 +276,7 @@ class _AddPageState extends State<AddPage> {
                                 isExpanded: true,
                                 initialValue: _currency,
                                 style: const TextStyle(color: Colors.white),
-                                dropdownColor: Theme.of(context).colorScheme.surface.withOpacity(0.1),
+                                dropdownColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.1),
                                 items: ['TRY', 'EUR', 'DOL']
                                     .map((c) =>
                                         DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(color: Colors.white))))
@@ -289,15 +289,15 @@ class _AddPageState extends State<AddPage> {
                                   errorStyle: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.w500),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
                                   ),
                                   errorBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -308,7 +308,7 @@ class _AddPageState extends State<AddPage> {
                                     borderSide: const BorderSide(color: Colors.orangeAccent, width: 2),
                                   ),
                                   filled: true,
-                                  fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.02),
+                                  fillColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.02),
                                 ),
                               ),
                             ),
@@ -327,15 +327,15 @@ class _AddPageState extends State<AddPage> {
                                 errorStyle: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.w500),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                                  borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                                  borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
                                 ),
                                 errorBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
@@ -346,7 +346,7 @@ class _AddPageState extends State<AddPage> {
                                   borderSide: const BorderSide(color: Colors.orangeAccent, width: 2),
                                 ),
                                 filled: true,
-                                fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.02),
+                                fillColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.02),
                                 suffixIcon: const Icon(Icons.calendar_today, color: Colors.white70),
                               ),
                               validator: (v) => null, // Date is always valid
@@ -359,11 +359,11 @@ class _AddPageState extends State<AddPage> {
                 ),
                 const SizedBox(height: 16),
                 Card(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.04),
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.04),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.06)),
+                    side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.06)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -382,7 +382,7 @@ class _AddPageState extends State<AddPage> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                                  side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                                 ),
                               ),
                             ),
@@ -399,15 +399,15 @@ class _AddPageState extends State<AddPage> {
                             errorStyle: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.w500),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                              borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                              borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
                             ),
                             errorBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -418,7 +418,7 @@ class _AddPageState extends State<AddPage> {
                               borderSide: const BorderSide(color: Colors.orangeAccent, width: 2),
                             ),
                             filled: true,
-                            fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.02),
+                            fillColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.02),
                           ),
                         ),
                       ],
@@ -434,17 +434,6 @@ class _AddPageState extends State<AddPage> {
                         // Gather form data
                         final rawAmount = _amountController.text
                             .replaceAll(RegExp(r'[^0-9]'), '');
-                        final data = {
-                          'paymentByHand': _paymentByHand,
-                          'source': _sourceAccount,
-                          'type': _transactionType,
-                          'target': _targetAccount,
-                          'amount': rawAmount,
-                          'currency': _currency,
-                          'date': _selectedDate.toIso8601String(),
-                          'file': _pickedFileName,
-                          'description': _descriptionController.text,
-                        };
                         // TODO: submit data to backend
                         ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -507,15 +496,15 @@ class SearchableSelect extends StatelessWidget {
           errorStyle: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.w500),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+            borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+            borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -526,7 +515,7 @@ class SearchableSelect extends StatelessWidget {
             borderSide: const BorderSide(color: Colors.orangeAccent, width: 2),
           ),
           filled: true,
-          fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.02),
+          fillColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.02),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -560,9 +549,9 @@ class _SearchModalState extends State<_SearchModal> {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.1),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
       ),
       child: Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -579,18 +568,18 @@ class _SearchModalState extends State<_SearchModal> {
                   hintStyle: const TextStyle(color: Colors.white60),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
                   ),
                   filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.05),
+                  fillColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.05),
                 ),
                 onChanged: (v) => setState(() => _q = v),
               ),
@@ -603,7 +592,7 @@ class _SearchModalState extends State<_SearchModal> {
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        color: Theme.of(context).colorScheme.surface.withOpacity(0.02),
+                        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.02),
                       ),
                       child: ListTile(
                         title: Text(filtered[i], style: const TextStyle(color: Colors.white)),

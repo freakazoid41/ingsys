@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/apartment.dart';
-import '../settings.dart';
 
 class ApartmentsProvider with ChangeNotifier {
   final String baseUrl;
@@ -14,6 +13,19 @@ class ApartmentsProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   List<Apartment> _items = [];
+  Apartment? _selected;
+
+  Apartment? get selectedApartment => _selected;
+
+  void setSelectedApartment(Apartment? a) {
+    _selected = a;
+    if (a != null && kDebugMode) {
+      try {
+        print('ApartmentsProvider: selected apartment id=${a.id} op_key=${a.opKey} code=${a.code}');
+      } catch (_) {}
+    }
+    notifyListeners();
+  }
 
   bool get isLoading => _isLoading;
   String? get error => _error;

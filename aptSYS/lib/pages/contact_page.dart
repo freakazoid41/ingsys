@@ -37,7 +37,7 @@ class ContactPage extends StatelessWidget {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.02),
+                        color: Colors.white.withValues(alpha: 0.02),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -134,7 +134,7 @@ class _CustomTabSelector extends StatelessWidget {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: selected ? Colors.white.withOpacity(0.06) : Colors.transparent,
+                      color: selected ? Colors.white.withValues(alpha: 0.06) : Colors.transparent,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -175,15 +175,15 @@ class ContactCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.white.withOpacity(0.03), Colors.white.withOpacity(0.01)],
+            colors: [Colors.white.withValues(alpha: 0.03), Colors.white.withValues(alpha: 0.01)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.06)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.25),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 8,
               offset: Offset(0, 4),
             ),
@@ -196,7 +196,7 @@ class ContactCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.55),
+                color: Colors.black.withValues(alpha: 0.55),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
@@ -214,7 +214,7 @@ class ContactCard extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: TextStyle(color: Colors.white.withOpacity(0.95), fontWeight: FontWeight.w600),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.95), fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                   ),
@@ -223,12 +223,12 @@ class ContactCard extends StatelessWidget {
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.white.withOpacity(0.25)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
                       color: Colors.transparent,
                     ),
                     child: Text(
                       phone,
-                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 10),
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 10),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -239,7 +239,7 @@ class ContactCard extends StatelessWidget {
             SizedBox(width: 12),
             Text(
               apt,
-              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
             ),
           ],
         ),

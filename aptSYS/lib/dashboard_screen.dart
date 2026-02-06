@@ -14,7 +14,7 @@ import 'providers/global_loading_provider.dart';
 class DashboardScreen extends StatefulWidget {
   final String apartmentName;
 
-  DashboardScreen({required this.apartmentName});
+  const DashboardScreen({super.key, required this.apartmentName});
 
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -59,7 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       margin: EdgeInsets.all(24),
                       child: IndexedStack(
                         index: _currentIndex,
-                        children: pages.map((w) => Container(padding: EdgeInsets.all(20), child: w)).toList(),
+                        children: pages.map((w) => Container(padding: const EdgeInsets.all(20), child: w)).toList(),
                       ),
                     ),
                   ),
@@ -74,7 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         currentIndex: _currentIndex,
                         onTap: (index) {
                           if (index != _currentIndex) {
-                            context.read<GlobalLoadingProvider>().showLoading();
+                            if (mounted) context.read<GlobalLoadingProvider>().showLoading();
                             setState(() { _currentIndex = index; });
                             Future.delayed(Duration(milliseconds: 300), () {
                               if (mounted) context.read<GlobalLoadingProvider>().hideLoading();
