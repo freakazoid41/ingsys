@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/flat_provider.dart';
+import '../providers/document_provider.dart';
 import '../providers/apartments_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/global_loading_provider.dart';
@@ -45,7 +45,7 @@ class _KasaListPageState extends State<KasaListPage> {
 
   Future<void> _loadFlats() async {
     final apartmentsProv = Provider.of<ApartmentsProvider>(context, listen: false);
-    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     final selected = apartmentsProv.selectedApartment;
@@ -81,7 +81,7 @@ class _KasaListPageState extends State<KasaListPage> {
   Future<void> _loadMoreFlats() async {
     if (_loadingMore || _loading) return;
     final apartmentsProv = Provider.of<ApartmentsProvider>(context, listen: false);
-    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     final selected = apartmentsProv.selectedApartment;
@@ -133,7 +133,7 @@ class _KasaListPageState extends State<KasaListPage> {
 
   Future<void> _maybeFillViewport() async {
     if (!mounted) return;
-    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
     final apartmentsProv = Provider.of<ApartmentsProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final selected = apartmentsProv.selectedApartment;
@@ -180,7 +180,7 @@ class _KasaListPageState extends State<KasaListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Consumer<FlatProvider>(
+      body: Consumer<DocumentProvider>(
         builder: (context, fp, _) {
           final items = fp.items;
           return Stack(
@@ -230,7 +230,7 @@ class _KasaListPageState extends State<KasaListPage> {
                                     icon: const Icon(Icons.edit),
                                     onPressed: () {
                                       final auth = Provider.of<AuthProvider>(context, listen: false);
-                                      final flatProv = Provider.of<FlatProvider>(context, listen: false);
+                                      final flatProv = Provider.of<DocumentProvider>(context, listen: false);
 
                                       if (f.remoteId != null && f.remoteId!.isNotEmpty) {
                                         showDialog(
@@ -276,7 +276,7 @@ class _KasaListPageState extends State<KasaListPage> {
                                       );
                                       if (confirmed != true) return;
                                       final auth = Provider.of<AuthProvider>(context, listen: false);
-                                      final flatProv = Provider.of<FlatProvider>(context, listen: false);
+                                      final flatProv = Provider.of<DocumentProvider>(context, listen: false);
                                       if (f.remoteId != null && f.remoteId!.isNotEmpty) {
                                         final ok = await flatProv.deleteRemote(f.remoteId!, auth.token ?? '');
                                         if (ok) {

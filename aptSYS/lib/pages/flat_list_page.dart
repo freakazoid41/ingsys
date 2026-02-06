@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/flat.dart';
-import '../providers/flat_provider.dart';
+import '../providers/document_provider.dart';
 import '../providers/apartments_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/global_loading_provider.dart';
@@ -45,7 +45,7 @@ class _FlatListPageState extends State<FlatListPage> {
 
   Future<void> _loadFlats() async {
     final apartmentsProv = Provider.of<ApartmentsProvider>(context, listen: false);
-    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     final selected = apartmentsProv.selectedApartment;
@@ -74,7 +74,7 @@ class _FlatListPageState extends State<FlatListPage> {
   Future<void> _loadMoreFlats() async {
     if (_loadingMore || _loading) return;
     final apartmentsProv = Provider.of<ApartmentsProvider>(context, listen: false);
-    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     final selected = apartmentsProv.selectedApartment;
@@ -111,7 +111,7 @@ class _FlatListPageState extends State<FlatListPage> {
 
   Future<void> _maybeFillViewport() async {
     if (!mounted) return;
-    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
     final apartmentsProv = Provider.of<ApartmentsProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final selected = apartmentsProv.selectedApartment;
@@ -140,7 +140,7 @@ class _FlatListPageState extends State<FlatListPage> {
 
   void _editFlat(Flat f) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
 
     // If we have a remoteId, fetch up-to-date data first
     if (f.remoteId != null && f.remoteId!.isNotEmpty) {
@@ -167,7 +167,7 @@ class _FlatListPageState extends State<FlatListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Consumer<FlatProvider>(
+      body: Consumer<DocumentProvider>(
         builder: (context, fp, _) {
           final items = fp.items;
           return Stack(
@@ -221,7 +221,7 @@ class _FlatListPageState extends State<FlatListPage> {
                                     );
                                     if (confirmed != true) return;
                                     final auth = Provider.of<AuthProvider>(context, listen: false);
-                                    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+                                    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
                                     if (f.remoteId != null && f.remoteId!.isNotEmpty) {
                                       final ok = await flatProv.deleteRemote(f.remoteId!, auth.token ?? '');
                                       if (ok) {

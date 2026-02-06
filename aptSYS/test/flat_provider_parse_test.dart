@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:apt_sys/providers/flat_provider.dart';
+import 'package:apt_sys/providers/document_provider.dart';
 
 void main() {
   test('parseDocumentsBody parses sample response', () {
-    final provider = FlatProvider('http://localhost');
+    final provider = DocumentProvider('http://localhost');
 
     const sample = r'''{
     "data": [

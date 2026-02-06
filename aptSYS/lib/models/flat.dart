@@ -26,4 +26,4 @@ class Flat {
       };
 }
 
-// FlatStore removed — use `FlatProvider` instead for app state management.
+// DocumentStore removed — use `DocumentProvider` instead for app state management.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../pages/settings_page.dart';
 import '../pages/flat_list_page.dart';
 import '../pages/kasa_list_page.dart';
+import '../pages/meeting_list_page.dart';
 
 Widget buildMenuSheet(BuildContext context) {
   return Column(
@@ -22,6 +23,15 @@ Widget buildMenuSheet(BuildContext context) {
           Navigator.of(context).pop();
           Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => KasaListPage()),
+          );
+        },
+      ),
+      ListTile(
+        title: Text('Meeting List'),
+        onTap: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => MeetingListPage()),
           );
         },
       ),

@@ -5,10 +5,10 @@ import 'package:http/http.dart' as http;
 
 import '../models/flat.dart';
 
-class FlatProvider with ChangeNotifier {
+class DocumentProvider with ChangeNotifier {
   final String baseUrl;
 
-  FlatProvider(this.baseUrl);
+  DocumentProvider(this.baseUrl);
 
   final List<Flat> _items = [];
   String? _nextPageKey;

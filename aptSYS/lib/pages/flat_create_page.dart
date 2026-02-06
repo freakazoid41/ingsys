@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/flat.dart';
 import '../providers/auth_provider.dart';
 import '../providers/apartments_provider.dart';
-import '../providers/flat_provider.dart';
+import '../providers/document_provider.dart';
 
 class FlatCreatePage extends StatefulWidget {
   final Flat? initialFlat;
@@ -237,7 +237,7 @@ class _FlatCreatePageState extends State<FlatCreatePage> {
         ? selected.opKey!
         : ((selected.code != null && selected.code!.isNotEmpty) ? selected.code! : 'op-apt-${selected.id}');
 
-    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
     bool success = false;
     if (widget.initialFlat != null && widget.initialFlat!.formRowId != null && widget.initialFlat!.formRowId!.isNotEmpty) {
       // update existing
@@ -254,7 +254,7 @@ class _FlatCreatePageState extends State<FlatCreatePage> {
     }
   }
 
-  // API send logic moved to FlatProvider.createRemote
+  // API send logic moved to DocumentProvider.createRemote
 
   Widget _buildOwnerCard(int index) {
     final owner = _owners[index];

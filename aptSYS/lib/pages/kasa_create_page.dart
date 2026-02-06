@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/flat.dart';
 import '../providers/auth_provider.dart';
 import '../providers/apartments_provider.dart';
-import '../providers/flat_provider.dart';
+import '../providers/document_provider.dart';
 
 class KasaCreatePage extends StatefulWidget {
   final Flat? initialFlat;
@@ -107,7 +107,7 @@ class _KasaCreatePageState extends State<KasaCreatePage> {
         Future.microtask(() async {
           try {
             final auth = Provider.of<AuthProvider>(context, listen: false);
-            final flatProv = Provider.of<FlatProvider>(context, listen: false);
+            final flatProv = Provider.of<DocumentProvider>(context, listen: false);
             final remote = await flatProv.getDocument(widget.initialFlat!.remoteId!, bearerToken: auth.token ?? '');
             if (remote != null && remote.formEntities != null && remote.formEntities!.isNotEmpty) {
               _applyEntities(remote.formEntities!);
@@ -233,7 +233,7 @@ class _KasaCreatePageState extends State<KasaCreatePage> {
         ? selected.opKey!
         : ((selected.code != null && selected.code!.isNotEmpty) ? selected.code! : 'op-apt-${selected.id}');
 
-    final flatProv = Provider.of<FlatProvider>(context, listen: false);
+    final flatProv = Provider.of<DocumentProvider>(context, listen: false);
     bool success = false;
     if (widget.initialFlat != null && widget.initialFlat!.formRowId != null && widget.initialFlat!.formRowId!.isNotEmpty) {
       success = await flatProv.updateRemote(flat, grpCode, token, rowKey: widget.initialFlat!.formRowId, formTag: 'op-doc-target-form', typeKey: 'op-doc-target');

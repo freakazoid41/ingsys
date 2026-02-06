@@ -8,7 +8,7 @@ import 'providers/auth_provider.dart';
 import 'settings.dart';
 import 'providers/apartments_provider.dart';
 import 'providers/global_loading_provider.dart';
-import 'providers/flat_provider.dart';
+import 'providers/document_provider.dart';
 import 'theme.dart';
 
 void main() async {
@@ -42,8 +42,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<ApartmentsProvider>(
           create: (context) => ApartmentsProvider(settings.baseUrl),
         ),
-        ChangeNotifierProvider<FlatProvider>(
-          create: (context) => FlatProvider(settings.baseUrl),
+        ChangeNotifierProvider<DocumentProvider>(
+          create: (context) => DocumentProvider(settings.baseUrl),
         ),
         ChangeNotifierProvider<GlobalLoadingProvider>(
           create: (context) => GlobalLoadingProvider(),
