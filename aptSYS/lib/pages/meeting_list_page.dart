@@ -229,7 +229,7 @@ class _MeetingListPageState extends State<MeetingListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meeting List'),
+        title: const Text('Toplantı Listesi'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

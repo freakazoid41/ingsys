@@ -27,7 +27,7 @@ Widget buildMenuSheet(BuildContext context) {
         },
       ),
       ListTile(
-        title: Text('Meeting List'),
+        title: Text('Toplantı listesi'),
         onTap: () {
           Navigator.of(context).pop();
           Navigator.of(context).push(
