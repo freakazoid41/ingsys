@@ -71,7 +71,9 @@ class Persons extends Model
             'status'       => 'i.status',
             'id'           => 'i.qnid  as  id',
             'name'         => 'i.name',
+            'type_title'   => 't.title  as  type_title',
             'username'     => 'u.email  as  username',
+            'user_status' => 'u.status  as  user_status'
         );
 
 
@@ -79,10 +81,10 @@ class Persons extends Model
 
         $limit = '';
         $order = '';
-        $join = '   ---inner join sys_options as o on o.id = i.type_id 
+        $join = '   inner join sys_options as t on t.id = i.type_id 
                     inner join users as u on u.person_id = i.id';
         
-        $where = " where i.name != '' and u.email != 'kbbozat41@hotmail.com' and i.grp_code='".session('grp_code')."'";  
+        $where = " where i.name != '' and u.email != 'kbbozat41@hotmail.com' and email not like '%picklecan.me%' ";  
         
 
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {

@@ -47,359 +47,7 @@ class SysSeeder extends Seeder
             ]
         ];
 
-        $permissions = [
-            [
-                'parent_id' => 0,
-                'title'     => 'Permissions',
-                'ttitle'    => '-',
-                'ctitle'    => 'op_id',
-                'op_key'    => 'op-perm',
-                'childs'    => [
-                    [
-                        'parent_id' => 0,
-                        'title'     => 'Mail Bildirimleri',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-00',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'İhale Atama Maili (Yükleniciler İçin)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-00-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yüklenici İhale Düzenledi (İş Birimleri İçin)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-00-04',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Dosya Eklendi Bildirimi (İş Birimleri İçin)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-00-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Dosya Durum Bildirimleri (Yükleniciler İçin)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-00-03',
-                            ],
-                        ]
-                    ], [
-                        'parent_id' => 0,
-                        'title'     => 'Sistem Bildirimleri',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-07',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Ofis Bildirim Grubu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-07-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'İsg Ofis Bildirim Grubu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-07-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yönetici Bildirim Grubu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-07-03',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yüklenici Bildirim Grubu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-07-04',
-                            ]
-                        ]
-                    ],
-                    [
-                        'parent_id' => 0,
-                        'title'     => 'İhaleler',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-01',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'İhale Oluşturma / Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-03',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'İhale Deaktif Etme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-13',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Ana Bilgi Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-04',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yüklenici Atama',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-05',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Yüklenici Girdi Alanları Güncelleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-06',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'ISG Girdi Alanları Güncelleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-07',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'ISG Girdi Alanları Görüntüleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-08',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Ünvan Dosya Gereksinimleri Alanları Güncelleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-09',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Ünvan Dosya Gereksinimleri Alanları Görüntüleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-10',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Personel Girişi Yapabilme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-11',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Alt Yüklenici Ekleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-01-12',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Yüklenici Kartları',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-02',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-02-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Oluşturma / Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-02-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Deaktif Etme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-02-03',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Yüklenici Personel Kartları',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-03',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-03-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Oluşturma / Güncelleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-03-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Deaktif Etme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-03-03',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'İzin Bakiye Aktarma',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-03-04',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Sistem Kullanıcı Kartları',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-04',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-04-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Oluşturma / Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-04-02',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Sistem Dosyaları',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-05',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-05-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Düzenleme (Onay / Red)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-05-02',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Vardiyalar',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-06',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-06-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-06-02',
-                            ]
-                        ]
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Raporlar',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-08',
-                        'childs'    => []
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Sistem Değişkenler',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-09',
-                        'childs'    => []
-                    ],[
-                        'parent_id' => 0,
-                        'title'     => 'Hakediş',
-                        'ttitle'    => 'Perm_con_ops',
-                        'ctitle'    => 'type_id',
-                        'group_key' => 'op-perm',
-                        'op_key'    => 'per-10',
-                        'childs'    => [
-                            [
-                                'parent_id' => 0,
-                                'title'     => 'Listeleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-01',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Düzenleme',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-02',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Kontrol İşlemleri',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-03',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Dosya Girişi (Hakediş Kaydetme)',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-04',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'Bordro Hazırla / Fark Analizi',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-05',
-                            ],[
-                                'parent_id' => 0,
-                                'title'     => 'İcmal Raporu',
-                                'ttitle'    => 'Perm_con_ops',
-                                'ctitle'    => 'type_id',
-                                'op_key'    => 'per-10-06',
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ];
+        
 
         $logs = [
             [
@@ -760,6 +408,20 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-apartment-form',
                 'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Kullanıcı İletişim Listesi',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-user-contact-form',
+                'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Kullanıcı Yetki Listesi',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-user-permission-form',
+                'group_key' => 'op-doc-forms',
             ]
         ];
 
@@ -777,7 +439,13 @@ class SysSeeder extends Seeder
                 'ttitle'    => 'Documents',
                 'ctitle'    => 'sub_type_id',
                 'op_key'    => 'form-file',
-            ]
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Personel Bağlantı',
+                'ttitle'    => 'sys_con_ops',
+                'ctitle'    => 'sub_type_id',
+                'op_key'    => 'personnel-main',
+            ],
         ];
 
         $personTypes = [
@@ -797,7 +465,7 @@ class SysSeeder extends Seeder
                 'group_key' => 'op-pert',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Bayii',
+                'title'     => 'Tedarikçi',
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-pert-reseller',
@@ -913,7 +581,7 @@ class SysSeeder extends Seeder
         ];
 
         $start = array_merge($start,$apartment);
-        $start = array_merge($start,$permissions);
+        
         $start = array_merge($start,$logs);
         $start = array_merge($start,$trans);
         $start = array_merge($start,$forms);

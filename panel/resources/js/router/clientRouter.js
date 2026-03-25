@@ -66,6 +66,34 @@ const router = createRouter({
         { path: "/panel/documents/form/:id?", name: 'Documents', component: Documents },*/
 
       ]
+    },{
+      path: '/coalpanel',
+      component: Panel,
+      //meta: { requiresAuth: true },
+      children: [
+        { path: "/coalpanel", name: 'Index', component: PIndex },
+        { path: "/coalpanel/contacts", name: 'Contacts', component: Contacts },
+        //{ path: "/coalpanel/user", name: 'User', component: User },
+        //{ path: "/coalpanel/documents", name: 'DocumentList', component: DocumentList },
+        { path: "/coalpanel/calendar", name: 'Calendar', component: Calendar },
+        { path: "/coalpanel/calendar/form/:id?", name: 'CalendarForm', component: CalendarForm },
+        //{ path: "/coalpanel/users", name: 'UserList', component: UserList },
+        //{ path: "/coalpanel/users/form/:id?", name: 'UserForm', component: UserForm },
+        { path: "/coalpanel/transactions", name: 'Transactions', component: Transactions },
+        //{ path: "/coalpanel/flats", name: 'FlatList', component: FlatList },
+        //{ path: "/coalpanel/flats/form/:id?", name: 'FlatForm', component: FlatForm },
+        //{ path: "/coalpanel/targets", name: 'TargetList', component: TargetList },
+        //{ path: "/coalpanel/targets/form/:id?", name: 'TargetForm', component: TargetForm },
+        { path: "/coalpanel/meetings", name: 'MeetingList', component: MeetingList },
+        { path: "/coalpanel/meetings/form/:id?", name: 'MeetingForm', component: MeetingForm },
+        { path: "/coalpanel/projects", name: 'ProjectList', component: ProjectList },
+        { path: "/coalpanel/projects/form/:id?", name: 'ProjectForm', component: ProjectForm },
+        { path: "/coalpanel/inventory", name: 'InventoryList', component: InventoryList },
+        { path: "/coalpanel/inventory/form/:id?", name: 'InventoryForm', component: InventoryForm }
+        /*{ path: "/coalpanel/documents", name: 'DocumentList', component: DocumentList },
+        { path: "/coalpanel/documents/form/:id?", name: 'Documents', component: Documents },*/
+
+      ]
     },
     /*{
       path: '/panel/auth',

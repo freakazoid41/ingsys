@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Yeni Kayıt Bildirimi</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #333; }
+      .card { max-width: 600px; margin: 20px auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; }
+      h1 { color: #ff671d; font-size: 20px; margin-bottom: 8px; }
+      .meta { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+      .field { margin-bottom: 10px; }
+      .label { font-weight: 600; color: #374151; }
+      .value { color: #111827; }
+      .footer { margin-top: 18px; font-size: 12px; color: #6b7280; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Yeni Kullanıcı Kaydı</h1>
+      <div class="meta">Bu e-posta sistem tarafından otomatik olarak gönderilmiştir.</div>
+
+      <div class="field"><span class="label">Ad / Ünvan:</span> <span class="value">{{name}}</span></div>
+      <div class="field"><span class="label">Kayıt ID:</span> <span class="value">{{id}}</span></div>
+      <div class="field"><span class="label">E-Posta:</span> <span class="value">{{email}}</span></div>
+      <div class="field"><span class="label">Telefon:</span> <span class="value">{{phone}}</span></div>
+
+      <div class="footer">Tarih: {{date}}</div>
+    </div>
+  </body>
+</html>

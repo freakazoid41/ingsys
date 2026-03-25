@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Session;
 if(!function_exists('checkPerm')){
     function checkPerm($key){
         //return true;
-        return session('sper-'.$key) !== null || (intval(auth('sanctum')->user()->person_id) == 0) ? true : false;
+        return session('sper-'.$key) !== null || (auth('sanctum')->user()->email == 'kbbozat41@hotmail.com') ? true : false;
     }
 }
 

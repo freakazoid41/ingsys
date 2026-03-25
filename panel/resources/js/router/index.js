@@ -35,6 +35,15 @@ import InventoryForm from '@/pages/inventory/InventoryForm.vue'
 
 import DocumentList from '@/pages/documentFiles/DocumentList.vue'
 
+
+//coalRoutes
+import CoalPanel from '@/layouts/CoalPanel.vue';
+import CIndex from '@/pages/coalsystem/Dashboard.vue';
+import ExampleList from "@/pages/coalsystem/Example/FlatList.vue";
+import ExampleForm from "@/pages/coalsystem/Example/FlatForm.vue";
+import UList from "@/pages/coalsystem/Users/UList.vue";
+import UForm from "@/pages/coalsystem/Users/UForm.vue";
+import TreeExample from "@/pages/coalsystem/treeTest.vue";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -67,6 +76,21 @@ const router = createRouter({
         /*{ path: "/panel/documents", name: 'DocumentList', component: DocumentList },
         { path: "/panel/documents/form/:id?", name: 'Documents', component: Documents },*/
 
+      ]
+    },
+    {
+      path: '/coalpanel',
+      component: CoalPanel,
+      //meta: { requiresAuth: true },
+      children: [
+        
+        
+        { path: "/coalpanel", name: 'CIndex', component: CIndex },
+        { path: "/coalpanel/treeexample", name: 'TreeExample', component: TreeExample },
+        { path: "/coalpanel/example", name: 'ExampleList', component: ExampleList },
+        { path: "/coalpanel/example/form/:id?", name: 'ExampleForm', component: ExampleForm },
+        { path: "/coalpanel/users", name: 'UList', component: UList },
+        { path: "/coalpanel/users/form/:id?", name: 'UForm', component: UForm },
       ]
     },
     /*{

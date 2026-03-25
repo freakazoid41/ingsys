@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>TreeModal Demo</title>
+    <link rel="stylesheet" href="/coaltheme/css/treeModal.css" />
+  </head>
+  <body>
+    <h2 style="font-family:Arial,Helvetica,sans-serif;margin:20px;">TreeModal Demo</h2>
+    <div style="margin:20px;">
+      <button id="openTree">Open Tree Modal</button>
+    </div>
+
+    <script src="/coaltheme/js/treeModal.js"></script>
+    <script>
+      document.getElementById('openTree').addEventListener('click', async () => {
+        const items = [
+          { id: 1, parent_id: 0, name: 'Root A' },
+          { id: 2, parent_id: 1, name: 'Child A.1' },
+          { id: 3, parent_id: 1, name: 'Child A.2' },
+          { id: 4, parent_id: 2, name: 'Child A.1.a' },
+          { id: 5, parent_id: 0, name: 'Root B' },
+          { id: 6, parent_id: 5, name: 'Child B.1' }
+        ];
+
+        const checked = await TreeModal.show({ items, defaultChecked: [2], title: 'Select users' });
+        console.log('Selected:', checked);
+        alert('Selected: ' + JSON.stringify(checked));
+      });
+    </script>
+  </body>
+ </html>

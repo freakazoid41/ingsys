@@ -190,7 +190,7 @@ class DocumentServiceProvider extends ServiceProvider
                                                 'id',df.id
                                             )
                                     from document_files as df
-                                        where df.id = sce.entity_value)
+                                        where df.id = sce.entity_value::int)::text
 
                             else  sce.entity_value
                         end) as entity_value

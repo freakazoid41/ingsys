@@ -102,7 +102,9 @@ class Documents extends Model
                     inner join sys_con_ops as so on i.id = so.main_id 
                     inner join sys_con_entities as se on so.id = se.conn_id ';
         
-        $where = " where i.status = '1' and i.grp_code='".session('grp_code')."'";   
+        //$where = " where i.status = '1' and i.grp_code='".session('grp_code')."'";
+        //i.parent_type_id for free documents, if parent_type_id is 0, it means this document is not connected to any other table so it is a main document. if parent_type_id is not 0, it means this document is connected to another table like users or persons, so it is a sub document. we only want to list main documents in the table list, so we will add this condition to the where clause.
+        $where = " where i.status = '1' and i.parent_type_id = 0";   
         //$where .= " and i.sys_code::text like '%".($GLOBALS['SYS_CODE'] === 'ADM' ? '5000' : '4000')."%'";
 
 
@@ -280,7 +282,6 @@ class Documents extends Model
         $sql = 'select distinct '.implode(",", array_values($columns)).'
                     from documents as i '.$join.' ' . $where.$order.$limit ;
 
-            
         $result = DB::select($sql);
         //count query
         $sql = 'select count(distinct i.id) as row from documents as i '.$join.' '. $where;

@@ -57,7 +57,7 @@ class Transactions extends Model
                                 select amount from currencies where target_cur = cr.code) * 
                                 CAST(
                                     (CASE
-                                        when i.sign = 0 then '-' || i.amount
+                                        when i.sign = 0 then -i.amount
                                         else i.amount
                                     end) as float 
                                 )  as  sys_amount ",   

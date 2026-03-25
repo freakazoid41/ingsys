@@ -130,8 +130,7 @@
                                 ]
                             }
                         ]
-                    },
-                    'op-doc-calendar-form' : {
+                    },'op-doc-calendar-form' : {
                         showRemoveButton : false,
                         oncreated        : (id) => {},
                         fields           : [
@@ -1032,23 +1031,41 @@
                                         placeholder : 'İsim & Soyisim',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
-                                        class    : ['form-control','mb-2','mb-md-0','date-input','form-item'],
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
                                         type     : 'select',
                                         name     : 'type_key',
-                                        col      : 3,
+                                        disabled : useAuthStore().data.type_key === 'op-pert-reseller',
+                                        col      : 4,
                                         required : true,
-                                        label    : 'Tip',
+                                        label    : 'Kullanıcı Tipi',
                                         options  : [
                                             {
                                                 text  : 'Yönetici',
                                                 value : 'op-pert-admin'
-                                            },{
-                                                text  : 'Kat Maliki',
-                                                value : 'op-pert-buyer'
+                                            }, {
+                                                text  : 'Tedarikçi',
+                                                value : 'op-pert-reseller'
                                             }
                                         ],
                                         oninput  : (e) => this.submitDynamicChanges(e.target)
-                                    },{
+                                    },/*{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        col      : 4,
+                                        hasMultiple : true,
+                                        label    : 'Tesis Sınırlaması',
+                                        setOptions  : async () => {
+                                            await this.formDataStore.setFacilitiesData()
+                                            return this.formDataStore.facilities.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.id,
+                                                };
+                                            });
+                                        },
+                                        name  : 'user_grp_code',
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },*/{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'email',
                                         name  : 'user_username',
@@ -1066,6 +1083,7 @@
                                         label : 'Parola',
                                         placeholder : '*********',
                                         oninput : (e) => {
+
                                             const main  = document.querySelector('input[name="user_password"]');
                                             const check = document.querySelector('input[name="user_password_check"]');
 
@@ -1098,9 +1116,41 @@
                                         }
                                     },
                                 ],
-                            }
+                            },...[(useAuthStore().data.type_key !== 'op-pert-reseller' ? {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_31',
+                                label : 'İletişim',
+                                group_key : 'userfacilitygroup',
+                                subs  : [
+                                    {
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        col      : 6,
+                                        label    : 'Tesis Sınırlaması',
+                                        setOptions  : async () => {
+                                            await this.formDataStore.setFacilitiesData()
+                                            return this.formDataStore.facilities.map(inv => {
+                                                return {
+                                                    text  : inv.title,
+                                                    value : inv.id,
+                                                };
+                                            });
+                                        },
+                                        name  : 'user_grp_code',
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 6,
+                                        name  : 'userjob',
+                                        label : 'Görev',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            } : {})]
                         ]
-                    },
+                    }
                 },
                 formData        : {
                     dynamicF : {},

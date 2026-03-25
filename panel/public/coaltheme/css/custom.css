@@ -1,0 +1,112 @@
+.clickable-icon:hover{cursor: pointer;}
+.clickable-icon > * {pointer-events: none;}
+
+.container-hamburger {
+    display: inline-block;
+    cursor: pointer;
+  }
+  .main-menu * ,
+  .container-hamburger * {pointer-events: none;}
+  
+  .bar1, .bar2, .bar3 {
+    width: 20px;
+    height: 3px;
+    background-color: #D75010 !important;
+    margin: 3px 0;
+    transition: 0.4s;
+  }
+  
+  .container-hamburger.change .bar1 {
+    transform: translate(0, 6px) rotate(-45deg);
+  }
+  
+  .container-hamburger.change .bar2 {opacity: 0;}
+  
+  .container-hamburger.change .bar3 {
+    transform: translate(0, -6px) rotate(45deg);
+  }
+.hidden-menu{display: none;}
+.menu-content span {font-size: 13px !important;}
+
+  .preloader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100%;
+  background: rgb(23, 22, 22);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  opacity: 0.5;
+  transition: opacity 1s linear;
+}
+
+.pickletable table{
+  border: 0 !important;
+}
+
+.pickletable .divPagination button.current {
+    background-color: darkgrey !important;
+    color: white !important;
+}
+.pickletable .divPagination button {
+    background-color: white !important;
+    color: black !important ;
+    border: 1px solid darkgrey !important;
+    border-radius: 5px !important;
+}
+
+.pickletable .divPagination button:hover {
+    background-color: darkgrey !important;
+    color: white !important;
+}
+
+.pickletable .divPagination button {
+    transition-duration: 0.4s !important;
+}
+.pickletable .divPagination {
+    padding-top: 2px !important;
+    justify-content : end !important;
+}
+
+.pickletable tr,.pickletable th,.pickletable td{
+    border-bottom: 1px dashed lightgrey !important;
+    background-color: white !important;
+    vertical-align: middle !important;
+}
+
+
+.btn_page{
+    background-color: transparent !important;
+    border-color: white !important;
+}
+
+.btn_number{
+    background-color: rgb(215, 80, 15) !important;
+    width: 35px !important;
+    border-radius: 10px !important;
+}
+
+.btn_number:not(.current){background : white !important; color: rgb(215, 80, 15) !important; border: 1px solid rgb(215, 80, 15) !important;}
+
+.divTable th{
+    white-space:break-spaces;
+    vertical-align: middle;
+}
+
+.selectable > *,
+.rmv-btn-form > * {pointer-events: none;}
+
+.selectable:hover,
+.rmv-btn-form:hover{
+    background-color: #0000004d !important;
+    color:white !important;
+    cursor: pointer;
+}
+.selectable-icon:hover{
+    cursor: pointer;
+    color : tomato !important;
+    text-shadow: 0 0 10px tomato
+ }
