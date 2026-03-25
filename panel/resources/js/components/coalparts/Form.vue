@@ -268,10 +268,8 @@
                                 label : 'İzinler',
                                 list  : this.usePermissionDataStore().list,
                                 col   : 6,
-                                oncheck : (e) => {
-                                    console.log(e);
-                                    this.submitDynamicChanges(e,true,'permissions')
-                                }
+                                oncheck : (e) => this.submitDynamicChanges(e,true,'permissions')
+                                
                             }
                         ]
                     },
@@ -308,7 +306,7 @@
             submitDynamicChanges(el,isDatalist = false,datalistKey = null){
 
                 if(isDatalist){
-                    this.formData[datalistKey] = el;
+                    this.formData[datalistKey] = el.length == 0 ? ["empty"] : el;
                     return true;
                 }
 
@@ -900,7 +898,7 @@
                             const renderInstance = TreeModal.render({
                                 target: inputDiv,
                                 items: fitem?.list,
-                                defaultChecked: data.entities[fitem.name] ?? [],
+                                defaultChecked: data?.entities?.[fitem.name] ?? [],
                                 onChange: (checkedItems) => fitem?.oncheck(checkedItems),
                             });
 

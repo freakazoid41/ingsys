@@ -32,10 +32,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/v1/get-apartments',                   [DocumentController::class, 'getAparments']);
     Route::post('/v1/set-apartments',                  [DocumentController::class, 'setAparments']);
     Route::post('/v1/table/{model}',                   [SystemController::class, 'table']);
+
+    Route::any('/v1/users/{id?}',                      [PersonsController::class, 'uindex']);
     Route::any('/v1/persons/{id?}',                    [PersonsController::class, 'index']);
+
     Route::get('/v1/trans/prepare-payment',            [DocumentController::class, 'preparePayment']);
     Route::post('/v1/trans/set-payment',               [DocumentController::class, 'setPayment']);
     Route::post('/v1/trans/set-status',                [DocumentController::class, 'setStatus']);
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
+    Route::get('/v1/getpermissions',                   [AuthController::class, 'getPermissions']);
+
 });   

@@ -81,9 +81,14 @@ class PersonsServiceProvider extends ServiceProvider
                 $allData['alldata'] = json_decode($allData['alldata'],true);
                 if(isset($allData['alldata']['removedData']) && !empty($allData['alldata']['removedData'])) $removed = $allData['alldata']['removedData'];
                 if(isset($allData['alldata']['permissions']) && !empty($allData['alldata']['permissions'])){
-                    foreach ($allData['alldata']['permissions'] as $key => $item) {
-                        $permissions[$item['op_key']] = $item['op_key'];
+                    if($allData['alldata']['permissions'][0] !== "empty"){
+                        foreach ($allData['alldata']['permissions'] as $key => $item) {
+                            $permissions[$item['op_key']] = $item['op_key'];
+                        }
+                    }else{
+                        $permissions = 'empty';
                     }
+                    
                 }
             }
 
@@ -143,12 +148,13 @@ class PersonsServiceProvider extends ServiceProvider
                         'table_tag' => 'user_con_ops',
                         'conn_id' => $conn->id,
                         'entity_tag' => ($document->id.'**userpermissiongroup**'.$document->id),
-                        'entity_value' => json_encode(array_values($permissions))
+                        'entity_value' => $permissions !== 'empty' ? json_encode(array_values($permissions)) : '[]'
                     ]
                 );
 
             }
 
+            //user contacts
             if(!empty($facilities)){
                 foreach($facilities as $k => $f){
                     $conn = Sys_con_ops::updateOrCreate(
@@ -241,7 +247,8 @@ class PersonsServiceProvider extends ServiceProvider
                                             'Value' , se.entity_value
                                         )
                                     ) 
-                                FROM sys_con_entities as se                                    inner join sys_con_ops as so on so.id = se.conn_id 
+                                FROM sys_con_entities as se                                    
+                                    inner join sys_con_ops as so on so.id = se.conn_id 
                                     inner join sys_options as sp on sp.id = so.type_id
                                 where so.conn_id = 0 and sp.op_key = 'op-doc-user-permission-form'  and so.main_id = i.id)::text  as  permissions";
 
@@ -310,8 +317,17 @@ class PersonsServiceProvider extends ServiceProvider
         $document    = Persons::where('qnid',$id)->first();
         $connections = User::where('person_id',$document->id)->first();
         
-        $connections->delete();  
-        $document->delete();
+        /*$connections->delete();  
+        $document->delete();*/
+        if(!empty($connections)){
+            $connections->status = '0';
+            $connections->save();
+        }
+
+        if(!empty($document)){
+            $document->status = '0';
+            $document->save();
+        }
 
         return ['success' => true];
     }

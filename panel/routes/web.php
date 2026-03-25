@@ -4,11 +4,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
 
-Route::get('/',                   [AuthController::class, 'coallogin'])->name('login');
-Route::get('/register',           [AuthController::class, 'register'])->name('register');
+Route::get('/',                           [AuthController::class, 'coallogin'])->name('login');
+Route::get('/register',                   [AuthController::class, 'register'])->name('register');
 //Route::get('/',                   [AuthController::class, 'login'])->name('login');
-Route::get('/logout',                  [AuthController::class, 'logout'])->name('logout');
-Route::get('/smscallback',        [AuthController::class, 'loginSms'])->name('login-sms');
+Route::get('/logout',                     [AuthController::class, 'logout'])->name('logout');
+Route::get('/smscallback',                [AuthController::class, 'loginSms'])->name('login-sms');
 Route::get('/auth/passwordreset/{code}' , [AuthController::class, 'passwordReset']);
 Route::post('/auth/passchange' ,          [AuthController::class, 'passChange']);
 //test hook for permissions

@@ -37,6 +37,15 @@ class SystemController extends Controller
         if(!isset($req['tableReq'])) $req['tableReq']       = json_encode($req);
 
 
+        //here make little permission check for data listing request
+        switch($model){
+            case 'user':
+                if(!checkPerm('per-04-01') || !checkPerm('per-04') ) return json_encode(['message' => 'Unauthorized'], 403);
+            break;
+        }
+
+
+
         $model = 'App\\Models\\'.ucfirst($model);
 		
         $response = $model::tableList(json_decode($req['tableReq'],true));

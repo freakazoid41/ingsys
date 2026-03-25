@@ -265,7 +265,7 @@ class AuthController extends Controller
             if($code == $sendedCode){
                 //auth user here
                 $user   = User::where('person_id',explode('-',session('login_person'))[0])->first();
-                $person = Persons::where(['id' => $user->person_id ])->first();
+                //$person = Persons::where(['id' => $user->person_id ])->first();
 
                 $person = (new PersonsServiceProvider())->getPerson(null,null,true,$user->person_id)['person'][0] ?? [];
                 
@@ -501,5 +501,12 @@ class AuthController extends Controller
         $request->session()->flush();
 
         return redirect()->route('login','admin');
+    }
+
+    public function getPermissions(Request $request){
+        return response()->json([
+            'success' => true,
+            'permissions' => session('perms')
+        ],200);
     }
 }

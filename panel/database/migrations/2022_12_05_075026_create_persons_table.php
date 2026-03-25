@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('persons', function (Blueprint $table) {
             $table->id();
-            $table->boolean('status')->default(true);
+            $table->smallInteger('status')->default(true);
             
             $table->smallInteger('type_id')->default('0');
             $table->smallInteger('email_approved')->default('0');

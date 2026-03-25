@@ -5,8 +5,22 @@ use Illuminate\Support\Facades\Session;
 
 if(!function_exists('checkPerm')){
     function checkPerm($key){
-        //return true;
-        return session('sper-'.$key) !== null || (auth('sanctum')->user()->email == 'kbbozat41@hotmail.com') ? true : false;
+        // allow explicit session permission flags
+        if(session('sper-'.$key) !== null){
+            return true;
+        }
+
+        $user = auth('sanctum')->user();
+        if(!$user){
+            return false;
+        }
+
+        // super-user fallback
+        if($user->email === 'kbbozat41@hotmail.com'){
+            return true;
+        }
+
+        return false;
     }
 }
 

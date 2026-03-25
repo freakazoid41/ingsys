@@ -47,6 +47,21 @@ class PersonsController extends Controller
             case "POST":
                 $req = $request->all();
                 
+                //here check user keys
+                if(
+                    !checkPerm('per-04-02') && 
+                    (
+                        $request->has('user_password') || 
+                        $request->has('user_username') || 
+                        $request->has('permissions')
+                    )
+                ) return response()->json([
+                    'success' => false,
+                    'msg'     => 'not valid for system user...',
+                ],401);
+
+
+
                 $res = (new PersonsServiceProvider())->setPerson(0,json_decode($req['data'],true),$request->files->all(),'persons');
                 
                 $response = [
@@ -56,6 +71,19 @@ class PersonsController extends Controller
                 break;
             case "PUT":
                 $data = parsePut();
+                //here check user keys
+                if(
+                    !checkPerm('per-04-02') && 
+                    (
+                        isset($data['user_password']) || 
+                        isset($data['user_username']) || 
+                        isset($data['permissions'])
+                    )
+                ) return response()->json([
+                    'success' => false,
+                    'msg'     => 'not valid for system user...',
+                ],401);
+                
                 $res = (new PersonsServiceProvider())->setPerson($request->id,json_decode($data['data'] ?? '{}',true),$_FILES,'persons',$data);
 
                 $response = [
@@ -75,6 +103,15 @@ class PersonsController extends Controller
 
         return response()->json($response);
 	}
+
+    public function uindex(Request $request){
+        if(strtoupper($request->method()) != "GET" && !checkPerm('per-04-02')) return response()->json([
+            'success' => false,
+            'msg'     => 'not valid for system user...',
+        ],401);
+
+        return $this->index($request);
+    }
 
     public function changeBackground(Request $request){
         $res = (new PersonsServiceProvider())->setPerson(auth('sanctum')->user()->person_id,[],$request->files->all(),'persons');

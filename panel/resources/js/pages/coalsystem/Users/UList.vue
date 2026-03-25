@@ -1,6 +1,7 @@
 
 <script>
-    import { useNavigationStore } from '@/stores/navigation'
+    import { useNavigationStore } from '@/stores/navigation';
+    import { useAuthStore } from '@/stores/auth';
     import PickleTable from 'pickletable';
     import 'pickletable/assets/style.css';
     import Plib from '@/lib/pickle';
@@ -18,6 +19,7 @@
             // expose to template and other options API hooks
             return {
                 useNavigationStore,
+                useAuthStore,
                 PickleTable,
                 Plib,
                 wTrans,
@@ -25,10 +27,10 @@
                 Datepicker
             }
         },
-        mounted(){
+        async mounted(){
             this.navigationStore.toggle(true);
             this.buildTestTable();
-            
+            await useAuthStore().getPermissions();
             this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
@@ -47,12 +49,13 @@
         data() {
             return {
                 plib : new Plib(),
+                useAuthStore    : useAuthStore(),
                 navigationStore : useNavigationStore(),
             }
         },
         methods: {
-            buildTestTable(){
-                
+            async buildTestTable(){
+                await useAuthStore().getPermissions();
                 //set headers
                 const headers = [
                     {
@@ -106,7 +109,7 @@
                             div.classList.add('row','justify-content-center');
 
                             const edit       = document.createElement('a');
-                            edit.href        = '/coalpanel/users/form/'+columnData;
+                            edit.onclick   = () => this.$router.push({ name: 'UForm' , params: { id: columnData }});
                             edit.style.width = 'auto';
                             edit.innerHTML   = '<i class="fs-5 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
                             div.appendChild(edit);
@@ -130,7 +133,7 @@
                             };
                             div.appendChild(del);
 
-                            return div;
+                            return this.useAuthStore().permissions?.includes('per-04-02') ? div : '';
                         }
                     }
                 ];
@@ -145,7 +148,7 @@
                     //columnSearch : true, // true - false for opening and closig
                     paginationType : 'number',// scroll - number (number for default)
                     ajax:{
-                        url:'/api/v1/table/persons',
+                        url:'/api/v1/table/user',
                         data:{
                             //order:{},
                         }

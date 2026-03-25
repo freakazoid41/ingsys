@@ -154,7 +154,7 @@
                         envelope.append(key,this.formData.files[key]);
                     }
                     await this.plib.request({
-                        url      : '/api/v1/persons'+(this.id !== undefined ? '/'+this.id : ''),
+                        url      : '/api/v1/users'+(this.id !== undefined ? '/'+this.id : ''),
                         method   : this.id !== undefined ? 'PUT' : 'POST',
                     },null,envelope);
 
