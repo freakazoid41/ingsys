@@ -39,8 +39,7 @@ class UserSeeder extends Seeder
         // 4000 gdz elektrik
         $users = [
             ['op-pert-admin','Admin Kadir','kbbozat41@hotmail.com','Kadir412.' ,'9998826976'],
-            ['op-pert-admin','Admin Test' ,'admin@picklecan.me'   ,'Pickle412.','9998816976'],
-            ['op-pert-buyer','Kat Maliki' ,'malik@picklecan.me'   ,'Pickle412.','9994465454'],
+            ['op-pert-admin','Admin Test' ,'kadir@kontent.com.tr'   ,'Kadir412.','9998816976'],
         ];
 
         foreach($users as $u){
@@ -78,6 +77,7 @@ class UserSeeder extends Seeder
         $user = new User();
         $user->name      = $name;
         $user->email     = $email;
+        $user->role      = 'immutable-super-admin';
         $user->password  = Hash::make($password);
         $user->person_id = $docId->id;
         $user->save();

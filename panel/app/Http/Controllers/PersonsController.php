@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Providers\PersonsServiceProvider;
+use App\Models\UserLog;
+use App\Models\Sys_options;
 use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Hash;
@@ -120,6 +122,88 @@ class PersonsController extends Controller
             'success' => $res['id'] > 0,
             'data' => $res,
         ]);
+    }
+
+    public function rolesTemplate(Request $request, $id = null){
+        $personService = new PersonsServiceProvider();
+
+        if ($request->isMethod('get')) {
+            $data = $personService->getRoleTemplates();
+            return response()->json(['success' => true, 'data' => $data]);
+        }
+
+        if ($request->isMethod('post')) {
+            $roles = $request->input('roles');
+            if (is_string($roles)) {
+                $decoded = json_decode($roles, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $roles = $decoded;
+                }
+            }
+
+            if (!is_array($roles)) {
+                return response()->json(['success' => false, 'message' => 'Invalid payload, expected roles array'], 422);
+            }
+
+            foreach ($roles as $item) {
+                if (!is_array($item) || empty($item['name']) || !isset($item['permissions']) || !is_array($item['permissions'])) {
+                    return response()->json(['success' => false, 'message' => 'Invalid role structure'], 422);
+                }else{
+                    //here for role update appended permissions to users with that role
+                    $personService->updateUserPermissions($item['id'],$item['permissions']);
+                }
+            }
+
+            $saved = $personService->saveRoleTemplates($roles);
+            if (!$saved) {
+                return response()->json(['success' => false, 'message' => 'Unable to save roles'], 500);
+            }
+
+            $userId = auth('sanctum')->user()->id ?? auth()->id() ?? 0;
+            $sysCode = $GLOBALS['SYS_CODE'] ?? 'unknown';
+            $typeId = Sys_options::where('op_key', 'log-role-update')->first()->id ?? 0;
+            
+            UserLog::create([
+                'user_id' => $userId,
+                'sys_code' => $sysCode,
+                'relation' => 'users',
+                'relation_id' => $userId,
+                'type_id' => $typeId,
+                'description' => json_encode([ 'desc' => 'Rol şablonları güncellendi', 'payload' => $roles ], JSON_UNESCAPED_UNICODE),
+            ]);
+
+
+
+
+            return response()->json(['success' => true, 'data' => $roles]);
+        }
+
+        if ($request->isMethod('delete')) {
+            if ($id === null) {
+                return response()->json(['success' => false, 'message' => 'Role ID required'], 422);
+            }
+
+            $deleted = $personService->deleteRoleTemplate($id);
+            if ($deleted === null) {
+                return response()->json(['success' => false, 'message' => 'Rol bulunamadı veya silinemedi'], 404);
+            }
+
+            $userId = auth('sanctum')->user()->id ?? auth()->id() ?? 0;
+            $sysCode = $GLOBALS['SYS_CODE'] ?? 'unknown';
+            $typeId = Sys_options::where('op_key', 'log-role-update')->first()->id ?? 0;
+            UserLog::create([
+                'user_id' => $userId,
+                'sys_code' => $sysCode,
+                'relation' => 'users',
+                'relation_id' => $userId,
+                'type_id' => $typeId,
+                'description' => json_encode([ 'desc' => 'Rol şablonu silindi', 'deleted_role_id' => $id, 'deleted_role' => $deleted ], JSON_UNESCAPED_UNICODE),
+            ]);
+
+            return response()->json(['success' => true, 'data' => $deleted]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Method not allowed'], 405);
     }
 
 }

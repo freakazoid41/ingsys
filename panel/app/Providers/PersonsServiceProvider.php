@@ -108,11 +108,25 @@ class PersonsServiceProvider extends ServiceProvider
 
            
           
-
+            //user spesific transactions
             if(!empty($user) && isset($user['status'])){
                 $u = User::where('person_id',$document->id)->first();
                 if($u){
                     $u->status = $user['status'];
+                    $u->save();
+
+
+                    if($user['status'] == '1'){
+                        //send mail to admins for new registration
+                        SendApprovedMailJob::dispatch($u->email)->onQueue('emails');
+                    }
+                }
+            }
+
+            if(!empty($user) && isset($user['role'])){
+                $u = User::where('person_id',$document->id)->first();
+                if($u){
+                    $u->role = $user['role'];
                     $u->save();
                 }
             }
@@ -122,7 +136,8 @@ class PersonsServiceProvider extends ServiceProvider
                     'person_id' => $document->id,
                     'password'  => Hash::make($user['password']),
                     'name'      => 'Client User',
-                    'status'    => $user['status'] ?? '1'
+                    'status'    => $user['status'] ?? '1',
+                    'role'      => $user['role'] ?? 'default',
                 ];
 
                 if( isset($user['username'])) $sr['email'] = $user['username'];
@@ -153,6 +168,7 @@ class PersonsServiceProvider extends ServiceProvider
                 );
 
             }
+            //user spesific transactions
 
             //user contacts
             if(!empty($facilities)){
@@ -263,6 +279,7 @@ class PersonsServiceProvider extends ServiceProvider
                             i.type_id,
                             i.created_at,
                             u.email  as  email,
+                            u.role   as  user_role,
                             i.status,
                             o.title  as  type_title,
                             o.op_key  as  type_key,
@@ -340,4 +357,54 @@ class PersonsServiceProvider extends ServiceProvider
         }
         
     }
+
+    public function getRoleTemplates(){
+        $path = storage_path('app/coal_roles_templates.json');
+        if (!file_exists($path)) {
+            return [];
+        }
+
+        $content = file_get_contents($path);
+        $data = json_decode($content, true);
+
+        return is_array($data) ? $data : [];
+    }
+
+    public function saveRoleTemplates(array $roles){
+        $path = storage_path('app/coal_roles_templates.json');
+        $dir = dirname($path);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        return file_put_contents($path, json_encode(array_values($roles), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) !== false;
+    }
+
+    public function deleteRoleTemplate($id){
+        $roles = $this->getRoleTemplates();
+        $filtered = array_filter($roles, function($item) use ($id) {
+            return (string)($item['id'] ?? '') !== (string)$id;
+        });
+
+        if (count($filtered) === count($roles)) {
+            return null;
+        }
+
+        $this->saveRoleTemplates(array_values($filtered));
+
+        return array_values($filtered);
+    }
+
+    public function updateUserPermissions($role, array $permissions){
+        $users = User::where('role', $role)->get();
+        foreach($users as $user){
+            Sys_con_entities::updateOrCreate(
+                ['entity_tag' => ($user->person_id.'**userpermissiongroup**'.$user->person_id)], //ask from this values
+                [
+                    'entity_value' => empty($permissions) ? '[]' : json_encode($permissions)
+                ]
+            );
+        }
+    }
 }
+

@@ -33,7 +33,8 @@ class User extends Authenticatable
         'parent_id',
         'qnid',
         'status',
-        'grp_code'
+        'grp_code',
+        'role'
     ];
 
     /**

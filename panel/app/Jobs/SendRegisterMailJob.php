@@ -7,11 +7,10 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use App\Models\Persons;
 use Illuminate\Support\Facades\DB;
+use App\Models\Persons;
+use App\Services\MailService;
 
 class SendRegisterMailJob implements ShouldQueue
 {
@@ -78,13 +77,32 @@ class SendRegisterMailJob implements ShouldQueue
                 $html = "<p>Bilgiler Aşağıdaki Gibidir</p><p>E-Posta: " . ($this->email ?? '-') . "</p><p>Telefon: " . ($this->phone ?? '-') . "</p>";
             }
 
-            Log::debug('SendRegisterMailJob sending mail', ['subject' => $subject, 'recipient_count' => count($list)]);
+            Log::debug('SendRegisterMailJob sending mail via MailService', ['subject' => $subject, 'recipient_count' => count($list)]);
 
-            Mail::html($html, function ($message) use ($list, $subject) {
-                $message->to($list)->subject($subject);
-            });
+            $mailService = new MailService();
+            $sendErrors = [];
 
-            Log::info('SendRegisterMailJob completed mail send', ['subject' => $subject, 'recipient_count' => count($list)]);
+            foreach ($list as $recipient) {
+                $response = $mailService->sendMail([
+                    'to' => $recipient,
+                    'subject' => $subject,
+                    'html' => $html,
+                ]);
+
+                if (empty($response['success']) || $response['success'] === false) {
+                    $sendErrors[] = [
+                        'to' => $recipient,
+                        'response' => $response,
+                    ];
+                    Log::warning('SendRegisterMailJob failed sending to recipient', ['recipient' => $recipient, 'response' => $response]);
+                }
+            }
+
+            if (empty($sendErrors)) {
+                Log::info('SendRegisterMailJob completed mail send', ['subject' => $subject, 'recipient_count' => count($list)]);
+            } else {
+                Log::warning('SendRegisterMailJob completed with errors', ['subject' => $subject, 'recipient_count' => count($list), 'errors' => $sendErrors]);
+            }
         } catch (\Throwable $e) {
             Log::error('SendRegisterMailJob failed', [
                 'exception' => $e,

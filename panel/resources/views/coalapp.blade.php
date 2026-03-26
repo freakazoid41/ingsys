@@ -1,6 +1,6 @@
 
 @php
-    
+   
 @endphp
 
 <!DOCTYPE html>

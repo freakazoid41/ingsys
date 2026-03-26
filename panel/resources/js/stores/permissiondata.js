@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import Plib from '@/lib/pickle'
 
 export const usePermissionDataStore = defineStore('permissiondata', {
   state: () => ({
@@ -32,16 +33,34 @@ export const usePermissionDataStore = defineStore('permissiondata', {
           { parent_id: 0, title: 'Oluşturma / Düzenleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-04-02' }
         ]
       }
-    ]
+    ],
+    roleTemplates: []
   }),
   getters: {
     asJson: (state) => JSON.stringify(state.items, null, 2),
     list: (state) => state.items,
-    byOpKey: (state) => (opKey) => state.items.find((item) => item.op_key === opKey)
+    byOpKey: (state) => (opKey) => state.items.find((item) => item.op_key === opKey),
+    roleList: (state) => state.roleTemplates
   },
   actions: {
+    async fetchRoleTemplates() {
+      try {
+        const response = await new Plib().request({ url: '/api/v1/roles/templates', method: 'get' })
+        if (response && response.success && Array.isArray(response.data)) {
+          this.roleTemplates = response.data
+          return response.data
+        }
+      } catch (e) {
+        console.error('permissiondata fetchRoleTemplates failed', e)
+      }
+      this.roleTemplates = []
+      return []
+    },
     setList(list) {
       this.items = Array.isArray(list) ? list : []
+    },
+    setRoleList(list) {
+      this.roleTemplates = Array.isArray(list) ? list : []
     },
     addItem(item) {
       if (item && item.op_key) {

@@ -66,11 +66,11 @@ class SysSeeder extends Seeder
                 'op_key'    => 'log-logout',
             ],[
                 'parent_id' => 0,
-                'title'     => 'İhale Ekleme',
+                'title'     => 'Rol Düzenleme',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
-                'op_key'    => 'log-tender-add',
+                'op_key'    => 'log-role-update',
             ],[
                 'parent_id' => 0,
                 'title'     => 'İhale Düzenleme',

@@ -310,10 +310,9 @@ class AuthController extends Controller
                     $firstLogin = true;
                 }
 
-                $sysCode = 4000;
                 UserLog::create([
                     'user_id'     => $user->id,
-                    'sys_code'    => $sysCode,
+                    'sys_code'    => $GLOBALS['SYS_CODE'],
                     'relation'    => 'users',
                     'relation_id' => $user->id,
                     'type_id'     => Sys_options::select('id')->where('op_key', 'log-login')->first()->id,

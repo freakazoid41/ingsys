@@ -44,6 +44,7 @@ import ExampleForm from "@/pages/coalsystem/Example/FlatForm.vue";
 import UList from "@/pages/coalsystem/Users/UList.vue";
 import UForm from "@/pages/coalsystem/Users/UForm.vue";
 import TreeExample from "@/pages/coalsystem/treeTest.vue";
+import Roles from "@/pages/coalsystem/Roles/Roles.vue";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -91,6 +92,7 @@ const router = createRouter({
         { path: "/coalpanel/example/form/:id?", name: 'ExampleForm', component: ExampleForm },
         { path: "/coalpanel/users", name: 'UList', component: UList },
         { path: "/coalpanel/users/form/:id?", name: 'UForm', component: UForm },
+        { path: "/coalpanel/roles", name: 'Roles', component: Roles },
       ]
     },
     /*{

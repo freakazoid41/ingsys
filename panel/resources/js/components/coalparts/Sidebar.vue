@@ -1,6 +1,7 @@
 
 <script>
 import { useAuthStore } from '@/stores/auth';
+import { usePermissionDataStore } from '@/stores/permissiondata';
 import Simplebar from 'simplebar-vue';
 import 'simplebar-vue/dist/simplebar.min.css';
 
@@ -16,6 +17,7 @@ export default {
     },
     async mounted(){
         await useAuthStore().getPermissions();
+        //await usePermissionDataStore().fetchRoleTemplates();
         this.toggleSidebar();
     },  
     data() {

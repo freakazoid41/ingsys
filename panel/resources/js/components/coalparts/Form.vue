@@ -49,6 +49,7 @@
                 authStore       : useAuthStore(),
                 formDataStore   : useFormDataStore(),
                 plib            : new Plib(),
+                isLoadingRoles  : true,
                 ftypes          : this.formtypes.split(','),
                 forms           : {
                     'op-doc-flat-form' : {
@@ -160,6 +161,20 @@
                                                 value : '0'
                                             }
                                         ],
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        name     : 'user_role',
+                                        col      : 4,
+                                        required : true,
+                                        label    : 'Rol',
+                                        options  : [],
+                                        setOptions: async () => {
+                                            const store = this.usePermissionDataStore()
+                                            if (!store.roleList.length) await store.fetchRoleTemplates()
+                                            return store.roleList.map(role => ({ text: role.name, value: role.id }))
+                                        },
                                         oninput  : (e) => this.submitDynamicChanges(e.target)
                                     },/*{
                                         class    : ['form-control','mb-2','mb-md-0','form-item'],
@@ -281,8 +296,14 @@
                 }
             }
         },
-        mounted() {
-            
+        async mounted() {
+            this.isLoadingRoles = true
+            await this.usePermissionDataStore().fetchRoleTemplates()
+            this.isLoadingRoles = false
+
+            // Ensure template is re-rendered so .area-target nodes are present before we attach rows
+            await this.$nextTick()
+
             this.ftypes.forEach(async key => {
                 const formData = this.formDataStore.formData?.[key] ?? undefined;
                 /**get facilities and inventories if visit form */
@@ -294,10 +315,6 @@
             });
 
             this.formDataStore.setData({});
-
-            
-            
-            
         },
         methods: {
             formCallback() {
@@ -357,6 +374,11 @@
                 }else{
                     row.classList.add('row');
                     target = document.querySelector(selector);
+                }
+
+                if (!target) {
+                    console.error('buildDynamicFForm: target not found for', tag, 'selector', selector)
+                    return;
                 }
                 
                 for (let index = 0; index < form.fields.length; index++) {
@@ -1046,9 +1068,14 @@
     }
 </script>
 <template>
-    <div class="area-target" v-for="(item, index) in ftypes" :data-tag="item">
-       
+    <div v-if="isLoadingRoles" class="text-center p-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Yükleniyor...</span>
+        </div>
+        <div>Roller yükleniyor, lütfen bekleyin...</div>
     </div>
-    <AppFab v-if="authStore.data.type=='admin'" btntype="saveBtn" :callback="formCallback"/>
-    
+    <div v-else>
+        <div class="area-target" v-for="(item, index) in ftypes" :data-tag="item"></div>
+        <AppFab v-if="authStore.data.type=='admin'" btntype="saveBtn" :callback="formCallback"/>
+    </div>
 </template>

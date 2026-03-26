@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('user_logs', function (Blueprint $table) {
             $table->id();
-            $table->integer('sys_code')->default('0');
+            $table->text('sys_code')->default('-');
             $table->integer('user_id');
             $table->integer('type_id');
             $table->integer('relation_id')->default('0');
