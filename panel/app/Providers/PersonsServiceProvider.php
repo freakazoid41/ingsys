@@ -251,7 +251,7 @@ class PersonsServiceProvider extends ServiceProvider
         $search  = str_replace(',','',strip_tags($search));
 
 
-        $facilities = "(SELECT    json_agg(
+        $contacts = "(SELECT    json_agg(
                                         json_build_object(
                                             'Key',se.entity_tag,
                                             'Value' , se.entity_value
@@ -273,7 +273,7 @@ class PersonsServiceProvider extends ServiceProvider
                                 where so.conn_id = 0 and sp.op_key = 'op-doc-user-permission-form'  and so.main_id = i.id)::text  as  permissions";
 
         if(!$getContacts){
-            $facilities = "'1'  as  contacts";
+            $contacts = "'1'  as  contacts";
             $permissions = "'1'  as  permissions";
         }
 
@@ -291,7 +291,7 @@ class PersonsServiceProvider extends ServiceProvider
                             u.status as  user_status,
                             u.grp_code as  user_grp_code,
                             $permissions,
-                            $facilities
+                            $contacts
                         from persons as i
                             left join users as u on u.person_id = i.id
                             left join sys_options as o on o.id = i.type_id ";

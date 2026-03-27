@@ -105,7 +105,7 @@ class Documents extends Model
         //$where = " where i.status = '1' and i.grp_code='".session('grp_code')."'";
         //i.parent_type_id for free documents, if parent_type_id is 0, it means this document is not connected to any other table so it is a main document. if parent_type_id is not 0, it means this document is connected to another table like users or persons, so it is a sub document. we only want to list main documents in the table list, so we will add this condition to the where clause.
         $where = " where i.status = '1' and i.parent_type_id = 0";   
-        //$where .= " and i.sys_code::text like '%".($GLOBALS['SYS_CODE'] === 'ADM' ? '5000' : '4000')."%'";
+        $where .= " and i.sys_code::text like '%".$GLOBALS['SYS_CODE']."%'";
 
 
         //check if is client and this is his document

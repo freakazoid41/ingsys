@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Rules\Recaptcha;
 use App\Services\MailService;
 use App\Providers\PersonsServiceProvider;
+use Illuminate\Support\Facades\File;
 
 use Exception;
 use Illuminate\Http\Request;
@@ -175,8 +176,10 @@ class AuthController extends Controller
                 $remaining = Carbon::parse($lockedUntil)->diffInMinutes(Carbon::now());
                 return redirect()->route('login','admin')->with('login-error', 'Hesabınız geçici olarak kilitlendi. Lütfen '.($remaining > 0 ? $remaining : 1).' dakika sonra tekrar deneyiniz.');
             }
+
+            $person = (new PersonsServiceProvider())->getPerson(null,null,true,$user->person_id)['person'][0] ?? [];
             
-            $person = Persons::where(['id' => $user->person_id ?? 0,/* 'sys_code' => ($GLOBALS['SYS_CODE'] == 'GDZ' ? '4000' : '5000')*/])->first();
+            //$person = Persons::where(['id' => $user->person_id ?? 0,/* 'sys_code' => ($GLOBALS['SYS_CODE'] == 'GDZ' ? '4000' : '5000')*/])->first();
 
            
 
@@ -249,23 +252,37 @@ class AuthController extends Controller
             session(['login_person' => $user->person_id.'-login']);
             session(['token' => $request->all()['_token']]);
             session(['login_type' => 'normal']);
-            //for ADM Company
-            /*$call = $GLOBALS['SYS_CODE'] == 'GDZ' ? (new PosGuv()) : (new MobDev());
 
-            //now send sms requests
-            $response = (array) $call->sendSms([
-                'to'   => $person->phone ?? '0',
-                'desc' => $code,
-            ]);*/
-            //for debug
-            /*$call = new MailService();
+            
 
-            $response = (array) $call->sendSms([
-                'to'   => $request->email ?? '-',
-                'desc' => $code,
-            ]);*/
-            $response = ['success' => true];
-            if(!$response['success']) return redirect()->route('login')->with('login-error', 'Mail Gönderiminde Hata Oluştu...');
+            $mailService = new MailService();
+
+            $response = (array) $mailService->sendSms([
+                'email' => $user->email,
+                'desc' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+            ]);
+            //here send mail and sms all contacts
+            $contacts = json_decode($person->contacts);
+            foreach($contacts as $c){
+                if(strpos($c->Key, 'email') !== false){
+                    $response = (array) $mailService->sendSms([
+                        'email' => $c->Value,
+                        'desc' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                    ]);
+                }
+
+                if(strpos($c->Key, 'phone') !== false){
+                    $response = (array) $mailService->sendSms([
+                        'phone' => $c->Value,
+                        'desc' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                    ]);
+                }
+
+            }
+
+            if (empty($response['success'])) {
+                return redirect()->route('login')->with('login-error', 'SMS gönderiminde hata oluştu: ' . ($response['message'] ?? '')); 
+            }
 
             return redirect()->route('login-sms')->with('login-code', ($_SERVER['HTTP_HOST'] === 'localhost:8000' ? $code : ''));
             
@@ -301,6 +318,17 @@ class AuthController extends Controller
 
         $exists = \Illuminate\Support\Facades\Storage::disk('local')->exists($fileKey.'.txt');
         if($exists){
+            $lastModified = File::lastModified( \Illuminate\Support\Facades\Storage::disk('local')->exists($fileKey.'.txt') ? \Illuminate\Support\Facades\Storage::disk('local')->path($fileKey.'.txt') : '');
+           
+            // 62 saniyeden eski kodları reddet
+            if($lastModified !== null){
+                $elapsedSeconds = Carbon::now()->diffInSeconds(Carbon::createFromTimestamp($lastModified));
+                if((intval($elapsedSeconds)*-1) > 62){
+                    \Illuminate\Support\Facades\Storage::disk('local')->delete($fileKey.'.txt');
+                    return redirect()->route($loginRoute)->with('sms-fail','SMS kodu süresi doldu. Lütfen tekrar isteyin.');
+                }
+            }
+
             $code = \Illuminate\Support\Facades\Storage::get($fileKey.'.txt');
             \Illuminate\Support\Facades\Storage::disk('local')->delete($fileKey.'.txt');
 
@@ -405,8 +433,9 @@ class AuthController extends Controller
             
             //now fill template
             
-            //find order
-            $person = Persons::where('id',$user->person_id)->first();
+            //find person
+            $person = (new PersonsServiceProvider())->getPerson(null,null,true,$user->person_id)['person'][0] ?? [];
+            //$person = Persons::where('id',$user->person_id)->first();
 
            
 
@@ -488,13 +517,16 @@ class AuthController extends Controller
                 //create password forgot flag file for sms check transaction
                 \Illuminate\Support\Facades\Storage::disk('local')->put($code.'-refreshmailsms'.'.txt', $user->email);
                 //for sms Company
-                $call = new MailService();
-                $response = (array) $call->sendSms([
-                    'to'   => $user->email ?? '-',
-                    'desc' => $smsCode,
-                ]);
                 
-                if(!$response['success']) return redirect()->route('login')->with('login-error', 'Sms Gönderiminde Hata Oluştu...');
+
+                $mailService = new MailService();
+                $response = (array) $mailService->sendSms([
+                    'email' => $user->email,
+                    'desc' => 'Kömür Tedarik Sistemi şifre sıfırlama kodu: ' . $smsCode,
+                ]);
+
+                if (empty($response['success'])) {
+                    return redirect()->route('login')->with('login-error', 'Sms gönderiminde hata oluştu: ' . ($response['message'] ?? '')); }
 
                 return redirect()->route('login-sms')->with('login-code', ($_SERVER['HTTP_HOST'] === 'localhost:8000' ? $smsCode : ''));
             }

@@ -46,7 +46,7 @@ class Persons extends Model
         parent::boot();
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            $post->grp_code = session('grp_code') ?? 'op-apt-1';
+            $post->grp_code = $GLOBALS['SYS_CODE'];
             // add other column as well
         });
         /*static::deleting(function ($person) {

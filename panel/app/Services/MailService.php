@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\SmsService;
 use Exception;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -69,20 +70,76 @@ class MailService
      */
     public function sendSms(array $data): array
     {
-        $to = $data['to'] ?? null;
-        $text = $data['desc'] ?? $data['body'] ?? '';
+        $email = trim($data['email'] ?? '');
+        $text = trim($data['desc'] ?? $data['body'] ?? '');
 
-        if (empty($to) || empty($text)) {
+        $smsTarget = trim($data['sms_to'] ?? $data['sms'] ?? $data['phone'] ?? $data['phone_number'] ?? '');
+        
+
+        if (empty($email) && empty($smsTarget)) {
             return [
                 'success' => false,
                 'message' => 'Gönderilecek hedef veya içerik eksik.',
             ];
         }
 
-        return $this->sendMail([
-            'to' => $to,
-            'subject' => $data['subject'] ?? 'Doğrulama Kodu',
-            'body' => strval($text),
-        ]);
+        if (empty($text)) {
+            return [
+                'success' => false,
+                'message' => 'Mesaj içeriği eksik.',
+            ];
+        }
+
+        $overallSuccess = true;
+        $response = ['success' => true, 'data' => []];
+
+        // Email send
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $emailResult = $this->sendMail([
+                'to' => $email,
+                'subject' => $data['subject'] ?? 'Doğrulama Kodu',
+                'body' => strval($text),
+            ]);
+
+            if (empty($emailResult['success'])) {
+                $overallSuccess = false;
+                $response['email_error'] = $emailResult['message'] ?? ($emailResult['errors'] ?? 'E-posta gönderim hatası');
+            } else {
+                $response['email'] = 'sent';
+            }
+        }
+
+        // SMS send
+        if (!empty($smsTarget)) {
+            try {
+                $smsService = new SmsService();
+                $smsResult = $smsService->sendSms(
+                    $smsTarget,
+                    $text,
+                    $data['originatorId'] ?? null,
+                    intval($data['validityPeriod'] ?? 1440),
+                    $data['clientId'] ?? null
+                );
+
+                if (empty($smsResult['success'])) {
+                    $overallSuccess = false;
+                    $response['sms_error'] = $smsResult['message'] ?? 'SMS gönderimi başarısız.';
+                } else {
+                    $response['sms'] = 'sent';
+                    $response['sms_data'] = $smsResult['data'] ?? [];
+                }
+            } catch (Exception $e) {
+                $overallSuccess = false;
+                $response['sms_error'] = $e->getMessage();
+            }
+        }
+
+        if ($overallSuccess) {
+            $response['success'] = true;
+            return $response;
+        }
+
+        $response['success'] = false;
+        return $response;
     }
 }

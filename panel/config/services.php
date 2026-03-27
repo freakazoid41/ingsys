@@ -36,4 +36,16 @@ return [
         'verify_url' => env('RECAPTCHA_VERIFY_URL', 'https://www.google.com/recaptcha/api/siteverify'),
         'min_score' => env('RECAPTCHA_MIN_SCORE', 0.5),
     ],
+
+    'iletisimmakinesi' => [
+        'base_url' => env('ILETISIM_BASE_URL', 'https://live.iletisimmakinesi.com/api/UserGatewayWS/functions'),
+        'username' => env('ILETISIM_USERNAME'),
+        'password' => env('ILETISIM_PASSWORD'),
+        'api_key' => env('ILETISIM_API_KEY'),
+        'vendor_id' => env('ILETISIM_VENDOR_ID'),
+        'customer_code' => env('ILETISIM_CUSTOMER_CODE'),
+        'service_id' => env('ILETISIM_SERVICE_ID', '7'),
+        'originator_id' => env('ILETISIM_ORIGINATOR_ID'),
+        'client_id' => env('ILETISIM_CLIENT_ID'),
+    ],
 ];
