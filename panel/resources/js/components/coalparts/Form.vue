@@ -9,6 +9,8 @@
     import { useFormDataStore } from '@/stores/formdata';
     import { usePermissionDataStore } from '@/stores/permissiondata';
     import { useAuthStore } from '@/stores/auth';
+    import Swal from 'sweetalert2';
+
 
 
     export default {
@@ -22,6 +24,7 @@
         },
         components: {
             AppFab,
+            
         },
         setup() {
             Object.assign(Datepicker.locales, tr);
@@ -35,7 +38,8 @@
                 Plib,
                 VMasker,
                 wTrans,
-                useAuthStore
+                useAuthStore,
+                Swal
             }
         },
         data() {
@@ -108,6 +112,20 @@
                         oncreated        : (id) => {},
                         fields           : [
                             {
+                                class : ['btn','btn-danger','btn-outline','w-100'],
+                                type  : 'button',
+                                name  : 'createpss',
+                                col : 4,
+                                value : 'Şifre Üret',
+                                label : ' ',
+                                oninput : (e) => {
+                                    const password = Math.random().toString(36).slice(-8);
+                                    document.querySelector('input[name="user_password"]').value = password;
+                                    document.querySelector('input[name="user_password_check"]').value = password;
+                                    this.plib.toast(this.Swal,'success','Yeni Şifre: '+password);
+                                }
+                            },
+                            {
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'sub',
                                 name  : 'sub_1',
@@ -173,9 +191,15 @@
                                         setOptions: async () => {
                                             const store = this.usePermissionDataStore()
                                             if (!store.roleList.length) await store.fetchRoleTemplates()
-                                            return store.roleList.map(role => ({ text: role.name, value: role.id }))
+                                            return store.roleList.map(role => ({ text: role.name, value: role.id,data:role }))
                                         },
-                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                        oninput  : (e) => {
+                                            this.submitDynamicChanges(e.target);
+                                            const selectedOption = e.target.options[e.target.selectedIndex];
+                                            const permissionList = JSON.parse(selectedOption.dataset.info).permissions;
+                                            this.permissionTree.setChecked(permissionList);
+                                       
+                                        }
                                     },/*{
                                         class    : ['form-control','mb-2','mb-md-0','form-item'],
                                         type     : 'select',
@@ -586,7 +610,7 @@
                             if(attr.options[index].limit !== undefined) op.dataset.limit = attr.options[index].limit;
 
                             if(data?.entities?.[attr.name] !== undefined && data?.entities?.[attr.name] == op.value) op.selected = true;
-
+                            if(attr.options[index].data !== undefined) op.dataset.info = JSON.stringify(attr.options[index].data);
                             input.appendChild(op);
                         }
 
@@ -600,6 +624,7 @@
                     
                     let inputDiv = document.createElement('div');
                     inputDiv.classList.add('col-lg-12');
+                    
                     switch (fitem.type) {   
                         case 'sub':
                         case 'multiple':
@@ -905,7 +930,9 @@
 
                             break;
                         case 'button':
+                            console.log('sdas');
                             input           = document.createElement('button');
+                            input.onclick   = (e) => fitem.oninput(e);
                             input.innerHTML = fitem.value;
                             input.type      = 'button';
                             input.classList.add(...fitem.class);
@@ -917,15 +944,15 @@
                             inputDiv.classList.add('col-lg-'+fitem?.col,'d-flex','align-items-center');
                             itemRow.appendChild(inputDiv);
                            
-                            const renderInstance = TreeModal.render({
+                            this.permissionTree = TreeModal.render({
                                 target: inputDiv,
                                 items: fitem?.list,
                                 defaultChecked: data?.entities?.[fitem.name] ?? [],
                                 onChange: (checkedItems) => fitem?.oncheck(checkedItems),
                             });
 
-                            if (renderInstance) {
-                                this._treeModalInstance = renderInstance;
+                            if (this.permissionTree) {
+                                this._treeModalInstance = this.permissionTree;
                             }
 
 

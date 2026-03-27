@@ -298,28 +298,47 @@ function ensureArray(a) { return Array.isArray(a) ? a : []; }
     target.appendChild(root);
 
     attachHandlers(target, options.onChange);
+    const changeHandler = typeof options.onChange === 'function' ? options.onChange : null;
+
+    const emitChange = () => {
+      if (changeHandler) {
+        try {
+          changeHandler(getCheckedValues(target, true));
+        } catch (e) {
+          console.error('TreeModal onChange handler error', e);
+        }
+      }
+    };
+
+    const setChecked = (ids = []) => {
+      const normalized = (Array.isArray(ids) ? ids : [ids]).flatMap(v => {
+        if (v == null) return [];
+        if (typeof v === 'object') {
+          const mapped = [];
+          if (v[idKey] !== undefined && v[idKey] !== null) mapped.push(v[idKey]);
+          if (v.op_key !== undefined && v.op_key !== null) mapped.push(v.op_key);
+          return mapped;
+        }
+        return [v];
+      });
+      const valueSet = new Set(normalized.map(String));
+      target.querySelectorAll('input[type=checkbox]').forEach(i => {
+        const idValue = String(i.dataset.tmid || '');
+        const opKeyValue = String(i.dataset.opKey || '');
+        i.checked = valueSet.has(idValue) || valueSet.has(opKeyValue);
+        i.indeterminate = false;
+      });
+
+      // refresh ancestor states after changes
+      target.querySelectorAll('input[type=checkbox]').forEach(i => updateAncestorState(i));
+
+      emitChange();
+    };
 
     return {
       getChecked: () => getCheckedValues(target, true),
-      setChecked: (ids = []) => {
-        const normalized = (Array.isArray(ids) ? ids : [ids]).flatMap(v => {
-          if (v == null) return [];
-          if (typeof v === 'object') {
-            const mapped = [];
-            if (v[idKey] !== undefined && v[idKey] !== null) mapped.push(v[idKey]);
-            if (v.op_key !== undefined && v.op_key !== null) mapped.push(v.op_key);
-            return mapped;
-          }
-          return [v];
-        });
-        const valueSet = new Set(normalized.map(String));
-        target.querySelectorAll('input[type=checkbox]').forEach(i => {
-          const idValue = String(i.dataset.tmid || '');
-          const opKeyValue = String(i.dataset.opKey || '');
-          i.checked = valueSet.has(idValue) || valueSet.has(opKeyValue);
-          i.indeterminate = false;
-        });
-      },
+      setChecked,
+      setSelected: (ids = []) => setChecked(ids),
       destroy: () => { target.innerHTML = ''; }
     };
   }

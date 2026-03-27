@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
@@ -160,20 +162,62 @@ class AuthController extends Controller
 
             $user   = User::where(['email' => $request->email,'status' => '1'])->first();
             if(!$user) return redirect()->route('login','admin')->with('login-error', 'Bilgiler Hatalıdır...');
+
+            // Lockout configuration
+            $maxAttempts = 5;
+            $lockMinutes = 15; // minutes
+            $attemptsKey = 'login:attempts:'.strtolower($request->email);
+            $lockKey = 'login:locked:'.strtolower($request->email);
+
+            // If account is locked, block even correct password
+            if(Cache::has($lockKey)){
+                $lockedUntil = Cache::get($lockKey);
+                $remaining = Carbon::parse($lockedUntil)->diffInMinutes(Carbon::now());
+                return redirect()->route('login','admin')->with('login-error', 'Hesabınız geçici olarak kilitlendi. Lütfen '.($remaining > 0 ? $remaining : 1).' dakika sonra tekrar deneyiniz.');
+            }
             
             $person = Persons::where(['id' => $user->person_id ?? 0,/* 'sys_code' => ($GLOBALS['SYS_CODE'] == 'GDZ' ? '4000' : '5000')*/])->first();
 
            
 
             if(!Auth::attempt(['email' => $request->email,'password' => $request->password]) || empty($person)){
-                return redirect()->route('login','admin')->with('login-error', 'Bilgiler Hatalıdır...');
+                // increment attempts
+                $attempts = Cache::get($attemptsKey, 0) + 1;
+                Cache::put($attemptsKey, $attempts, now()->addMinutes($lockMinutes));
+
+                if($attempts >= $maxAttempts){
+                    $lockedUntil = Carbon::now()->addMinutes($lockMinutes)->toDateTimeString();
+                    Cache::put($lockKey, $lockedUntil, $lockMinutes * 60);
+
+                    // log lock event
+                    try{
+                        UserLog::create([
+                            'user_id'     => $user->id ?? 0,
+                            'sys_code'    => $GLOBALS['SYS_CODE'] ?? 0,
+                            'relation'    => 'users',
+                            'relation_id' => $user->id ?? 0,
+                            'type_id'     => Sys_options::where('op_key', 'log-lock')->value('id') ?? 0,
+                            'description' => json_encode(['desc' => 'Hesap kilitlendi (çoklu başarısız giriş).', 'email' => $request->email], JSON_UNESCAPED_UNICODE),
+                        ]);
+                    }catch(\Throwable $e){
+                        // swallow logging errors to not break login flow
+                    }
+
+                    return redirect()->route('login','admin')->with('login-error', 'Çok sayıda başarısız giriş nedeniyle hesabınız '. $lockMinutes .' dakika kilitlendi.');
+                }
+
+                return redirect()->route('login','admin')->with('login-error', 'Bilgiler Hatalıdır... Kalan deneme hakkı: '.max(0, $maxAttempts - $attempts));
+            }
                 /*return response()->json([
                     'success' => false,
                     'message' => empty($user) ? 'Kullanıcı Bulunamadı..' : 'Şifrenizi Kontrol Edip Tekrar Giriş Yapınız..',
                     'error'   => $validateUser->errors()
                 ],401);*/
-            }
             
+
+            //successful login: clear attempts/lock
+            Cache::forget($attemptsKey);
+            Cache::forget($lockKey);
 
             //set person type to session
             if(!empty($person)){
@@ -294,7 +338,7 @@ class AuthController extends Controller
                     /*$kvkkLog = UserLog::where([
                         'user_id'  => $user->id,
                         'relation' => 'users',
-                        'type_id'  => Sys_options::select('id')->where('op_key', 'log-kvkk-'.strtolower($GLOBALS['SYS_CODE']))->first()->id,
+                        'type_id'  => Sys_options::where('op_key', 'log-kvkk-'.strtolower($GLOBALS['SYS_CODE']))->value('id') ?? 0,
                     ])->first();
 
                     if(!empty($kvkkLog) || $type == 'ldap'){
@@ -303,6 +347,11 @@ class AuthController extends Controller
                 }
 
                 $firstLogin = isset(auth('sanctum')->user()->id) ? (count(UserLog::where('user_id',auth('sanctum')->user()->id)->get()) == 0) : false;
+
+                //sometimes user needs to refresh its password this why we will also check this flag 
+                if(intval($user->needs_refresh) == 1){
+                    $firstLogin = true;
+                }
 
                 //redirect to renewing transactions for password mail request
                 if(\Illuminate\Support\Facades\Storage::disk('local')->exists($token.'-refreshmailsms.txt')){
@@ -315,7 +364,7 @@ class AuthController extends Controller
                     'sys_code'    => $GLOBALS['SYS_CODE'],
                     'relation'    => 'users',
                     'relation_id' => $user->id,
-                    'type_id'     => Sys_options::select('id')->where('op_key', 'log-login')->first()->id,
+                    'type_id'     => Sys_options::where('op_key', 'log-login')->value('id') ?? 0,
                     'description' => json_encode(array(
                         'desc' => ($person->name ?? '-').' Kullanıcısı sisteme giriş yaptı',
                     ),JSON_UNESCAPED_UNICODE)
@@ -461,6 +510,7 @@ class AuthController extends Controller
 
             $user = User::where('email', session('auth-forgot'))->first();
             $user->password = Hash::make($request->all()['password']);
+            $user->needs_refresh = 0;
             $user->save();
             Session::flush();
             Session::put('auth-forgot', 'Yeni Şifrenizle Giriş Yapabilirsiniz.');
@@ -505,7 +555,15 @@ class AuthController extends Controller
     public function getPermissions(Request $request){
         return response()->json([
             'success' => true,
-            'permissions' => session('perms')
+            'permissions' => checkPerm('all') ? [
+                //this area is bassically backdoor for hidden kontent admin.
+                'per-00',
+                'per-00-01',
+                'per-04',
+                'per-04-01',
+                'per-04-02',
+                'per-04-03',
+            ] : session('perms') 
         ],200);
     }
 }

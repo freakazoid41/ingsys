@@ -125,6 +125,13 @@ class PersonsController extends Controller
     }
 
     public function rolesTemplate(Request $request, $id = null){
+
+        if(!\checkPerm('per-04-03')) return response()->json([
+            'success' => false,
+            'msg'     => 'not valid for system user...',
+        ],401);
+
+
         $personService = new PersonsServiceProvider();
 
         if ($request->isMethod('get')) {
@@ -204,6 +211,34 @@ class PersonsController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'Method not allowed'], 405);
+    }
+
+    /**
+     * this function is for resetting user credentials password , this will be used by admin in case of user forgot his/her credentials or for security reasons
+     */
+    public function resetUserCradentals(Request $request, $id){
+        if(strtoupper($request->method()) != "GET" && !checkPerm('per-04-02')) return response()->json([
+            'success' => false,
+            'msg'     => 'not valid for system user...',
+        ],401);
+
+        $data = [
+            'user_password' => bin2hex(random_bytes(6)),
+            'user_needs_refresh' => '1'
+        ];
+
+        $res = (new PersonsServiceProvider())->setPerson($id,$data,[],'persons',$data);
+        
+        $response = [
+            'success' => $res['id'] > 0,
+            'data' => $res,
+        ];
+        
+        if($response['success'] && $res['user']->email){
+            (new PersonsServiceProvider())->sendresetMail($res['user']['email'], $data['user_password']);
+        }
+
+        return response()->json($response);
     }
 
 }

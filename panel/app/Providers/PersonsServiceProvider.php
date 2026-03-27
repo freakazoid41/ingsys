@@ -12,6 +12,7 @@ use App\Models\Contacts;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Jobs\SendRegisterMailJob;
+use App\Jobs\SendResetMailJob;
 use Illuminate\Support\Facades\Hash;
 
 
@@ -25,7 +26,7 @@ class PersonsServiceProvider extends ServiceProvider
         return Sys_options::where(['group_key' => 'op-pert'])->get();
     }
 
-    public function setPerson($id = 0,$data,$files = [],$fileGroup = 'persons',$allData = []){
+    public function setPerson($id = 0, $data = [], $files = [], $fileGroup = 'persons', $allData = []){
         $formData     = $data ?? [];
         DB::beginTransaction();
         //try{
@@ -135,10 +136,12 @@ class PersonsServiceProvider extends ServiceProvider
                 $sr = [
                     'person_id' => $document->id,
                     'password'  => Hash::make($user['password']),
-                    'name'      => 'Client User',
-                    'status'    => $user['status'] ?? '1',
-                    'role'      => $user['role'] ?? 'default',
+                    'name'      => 'System User',
                 ];
+
+                if(isset($user['status'])) $sr['status'] = $user['status'];
+                if(isset($user['role'])) $sr['role'] = $user['role'];
+                if(isset($user['needs_refresh'])) $sr['needs_refresh'] = $user['needs_refresh'];
 
                 if( isset($user['username'])) $sr['email'] = $user['username'];
                 User::updateOrInsert(
@@ -229,7 +232,8 @@ class PersonsServiceProvider extends ServiceProvider
             return [
                 'success' => $rsp,
                 'id'      => $document->id,
-                'data'    => $document
+                'data'    => $document,
+                'user'    => User::where('person_id', $document->id)->first() ?? [],
             ];
         /*}catch(\Throwable $e){
             DB::rollBack();
@@ -358,6 +362,16 @@ class PersonsServiceProvider extends ServiceProvider
         
     }
 
+    public function sendresetMail($email, $password){
+        try{
+            //php artisan queue:work --queue=emails
+            SendResetMailJob::dispatch($email, $password)->onQueue('emails');
+        }catch(\Throwable $e){
+            Log::error('sendresetMail dispatch failed', ['exception' => $e, 'email' => $email, 'password' => $password]);
+        }
+        
+    }
+
     public function getRoleTemplates(){
         $path = storage_path('app/coal_roles_templates.json');
         if (!file_exists($path)) {
@@ -395,12 +409,29 @@ class PersonsServiceProvider extends ServiceProvider
         return array_values($filtered);
     }
 
+    /**
+     * this function updates permissions for all users with the given role, it is called when role templates are updated to reflect changes in permissions to users with that role
+     */
     public function updateUserPermissions($role, array $permissions){
         $users = User::where('role', $role)->get();
+        $permTypeId   = (Sys_options::where(['op_key' => 'op-doc-user-permission-form'])->first())->id;
+        $stypeIdMain  = (Sys_options::where(['op_key' => 'personnel-main'])->first())->id;       
         foreach($users as $user){
-            Sys_con_entities::updateOrCreate(
-                ['entity_tag' => ($user->person_id.'**userpermissiongroup**'.$user->person_id)], //ask from this values
+            $conn = Sys_con_ops::updateOrCreate(
+                ['main_id' => $user->person_id,'type_id' => $permTypeId,'sub_type_id' => $stypeIdMain], //ask from this values
                 [
+                    'main_id' => $user->person_id,
+                    'type_id' => $permTypeId,
+                    'sub_type_id' => $stypeIdMain,
+                    'conn_id'  => 0
+                ] 
+            );
+            Sys_con_entities::updateOrCreate(
+                ['conn_id' => $conn->id,'entity_tag' => ($user->person_id.'**userpermissiongroup**'.$user->person_id)], //ask from this values
+                [
+                    'table_tag' => 'user_con_ops',
+                    'conn_id' => $conn->id,
+                    'entity_tag' => ($user->person_id.'**userpermissiongroup**'.$user->person_id),
                     'entity_value' => empty($permissions) ? '[]' : json_encode($permissions)
                 ]
             );

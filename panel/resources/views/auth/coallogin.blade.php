@@ -60,7 +60,7 @@
                                 <span class="w-125px text-gray-500 fw-semibold fs-7">Kullanıcı Bilgileriniz</span>
                             </div>
                             <div class="fv-row mb-8">
-                                <input required type="text" id="email" placeholder="Kullancı Adı" value="{{env('IS_TEST') ? 'kbbozat41@hotmail.com' : ''}}" name="email" autocomplete="off"
+                                <input required type="text" id="email" placeholder="Kullancı Adı" value="{{env('IS_TEST') ? 'kadir@kontent.com.tr' : ''}}" name="email" autocomplete="off"
                                     class="form-control bg-transparent login-item" />
                             </div>
 

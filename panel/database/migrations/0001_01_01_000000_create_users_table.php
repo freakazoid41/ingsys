@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->smallInteger('status')->nullable()->default(1);
+            $table->smallInteger('needs_refresh')->nullable()->default(false);
             $table->integer('person_id')->nullable()->default(0);
             $table->string('grp_code',100)->nullable()->default('-');
             $table->string('name');

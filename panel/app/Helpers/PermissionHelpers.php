@@ -16,7 +16,7 @@ if(!function_exists('checkPerm')){
         }
 
         // super-user fallback
-        if($user->email === 'kbbozat41@hotmail.com'){
+        if(in_array($user->email, ['kbbozat41@hotmail.com', 'kadir@kontent.com.tr'])){
             return true;
         }
 

@@ -34,7 +34,8 @@ class User extends Authenticatable
         'qnid',
         'status',
         'grp_code',
-        'role'
+        'role',
+        'needs_refresh',
     ];
 
     /**
@@ -54,9 +55,7 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
-    protected $appends = [
-        'profile_photo_url',
-    ];
+    protected $appends = [];
 
     protected static function boot() {
         parent::boot();
@@ -84,12 +83,13 @@ class User extends Authenticatable
     static function tableList($obj){
        
         $columns = array(
-            'status'       => 'i.status',
-            'id'           => 'i.qnid  as  id',
-            'name'         => 'i.name',
-            'type_title'   => 't.title  as  type_title',
-            'username'     => 'u.email  as  username',
-            'user_status' => 'u.status  as  user_status'
+            'status'        => 'i.status',
+            'id'            => 'i.qnid  as  id',
+            'name'          => 'i.name',
+            'type_title'    => 't.title  as  type_title',
+            'username'      => 'u.email  as  username',
+            'user_status'   => 'u.status  as  user_status',
+            'needs_refresh' => 'u.needs_refresh  as  needs_refresh'
         );
 
 

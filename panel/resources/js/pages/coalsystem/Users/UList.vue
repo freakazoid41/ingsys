@@ -64,6 +64,7 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
+                            console.log('triggered')
                             const span = document.createElement('span');
                             switch (String(columnData)) {
                                 case '1':
@@ -81,6 +82,9 @@
                                 default:
                                     span.innerText = 'Bilinmiyor';
                                     break;
+                            }
+                            if(rowData.needs_refresh == 1){
+                                span.innerText += ' (Şifre Yenileme Bekliyor)';
                             }
                             return span;
                         }
@@ -107,6 +111,44 @@
                         columnFormatter : (elm,rowData,columnData) => {
                             const div = document.createElement('div');
                             div.classList.add('row','justify-content-center');
+                            const reset       = document.createElement('a');
+                            reset.onclick   = () => {
+                                Swal.fire({
+                                    title: 'Kullanıcı Şifresini Sıfırla',
+                                    text: "Bu işlem kullanıcının şifresini varsayılan şifre yapacaktır. Devam etmek istediğinize emin misiniz?",
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#3085d6',
+                                    cancelButtonColor: '#d33',
+                                    confirmButtonText: 'Evet, sıfırla!',
+                                    cancelButtonText : 'Hayır, iptal et!'
+                                }).then(async (result) => {
+                                    if (result.isConfirmed) {
+                                        this.navigationStore.toggle(true);
+                                        await this.plib.request({
+                                            url      : '/api/v1/auth/resetusercradentals/'+columnData,
+                                            method   : 'POST',
+                                        },null);
+
+                                        Swal.fire(
+                                            'Sıfırlandı!',
+                                            'Kullanıcının şifresi başarıyla sıfırlandı.',
+                                            'success'
+                                        );
+
+                                        this.table.updateRow(rowData.id,{
+                                            needs_refresh:1,
+                                            user_status : rowData.user_status
+                                        });
+                                        setTimeout(() => {
+                                            this.navigationStore.toggle(false);
+                                        }, 300);
+                                    }
+                                });
+                            };
+                            reset.style.width = 'auto';
+                            reset.innerHTML   = '<i class="fs-5 fa fa-refresh selectable-icon" style="color:#95818C"  role="img"></i>';
+                            div.appendChild(reset);
 
                             const edit       = document.createElement('a');
                             edit.onclick   = () => this.$router.push({ name: 'UForm' , params: { id: columnData }});
@@ -126,6 +168,7 @@
                                 },null);
 
                                 this.table.deleteRow(columnData);
+                              
                                 setTimeout(() => {
                                     this.navigationStore.toggle(false);
                                 }, 300);

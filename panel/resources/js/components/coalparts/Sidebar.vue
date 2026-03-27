@@ -91,7 +91,7 @@ export default {
                                 </svg>
                             </span>
                             <div class="menu-content d-flex justify-content-between align-items-center w-100">
-                                <span class="menu-section fs-5 fw-bolder ps-2 py-1 text-dark">İhale</span>
+                                <span class="menu-section fs-5 fw-bolder ps-2 py-1 text-dark">Kontrol Paneli</span>
                                 <div class="container-hamburger">
                                     <div class="bar1"></div>
                                     <div class="bar2"></div>
@@ -101,71 +101,29 @@ export default {
                             
                         </span>
                         <div class=" px-2 w-250px mh-75 overflow-auto sub-menu hidden-menu">
-                                                            <div data-kt-menu-trigger="click" class="menu-item  menu-accordion">
+                            <div data-kt-menu-trigger="click" class="menu-item  menu-accordion" v-if="this.useAuthStore().permissions?.includes('per-04-03')">
                                 <div class="menu-item ps-5 pe-15 d-flex align-items-center justify-content-between">
-                                    <a class="menu-link " href="https://yts.gdzelektrik.com.tr/ihale/olustur">
+                                    <router-link :to="{ name: 'Roles' }" :class="['menu-link px-3']" >
                                         <span class="menu-bullet">
                                             <span class="bullet bullet-dot"></span>
                                         </span>
-                                        <span class="menu-title">İhale Oluştur</span>
-                                        </a><a href="/system/front/media/ihale-olustur.mp4" class="pop-video video-popup mfp-iframe" data-lity="">
-                                            <svg version="1.1" class="ms-1" id="svg519" fill="#989898" xml:space="preserve" width="20px" height="20px" viewBox="0 0 682.66669 682.66669" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
-                                                <defs id="defs523">
-                                                    <clipPath clipPathUnits="userSpaceOnUse" id="clipPath533">
-                                                        <path d="M 0,512 H 512 V 0 H 0 Z" id="path531"></path>
-                                                    </clipPath>
-                                                </defs>
-                                                <g id="g525" transform="matrix(1.3333333,0,0,-1.3333333,0,682.66667)">
-                                                    <g id="g527">
-                                                        <g id="g529" clip-path="url(#clipPath533)">
-                                                            <g id="g535" transform="translate(336.333,368.4668)">
-                                                                <path d="m 0,0 c 0,17.746 -14.38,32.133 -32.133,32.133 h -257.066 c -17.754,0 -32.134,-14.387 -32.134,-32.133 v -224.934 c 0,-17.745 14.38,-32.133 32.134,-32.133 h 257.066 c 17.753,0 32.133,14.388 32.133,32.133 z" style="fill: none; stroke: #989898; stroke-width: 30; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 10; stroke-dasharray: none; stroke-opacity: 1;" id="path537"></path>
-                                                            </g>
-                                                            <g id="g539" transform="translate(497,368.4668)">
-                                                                <path d="m 0,0 -160.667,-64.267 v -96.4 L 0,-224.934 Z" style="fill: none; stroke: #989898; stroke-width: 30; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 10; stroke-dasharray: none; stroke-opacity: 1;" id="path541"></path>
-                                                            </g>
-                                                        </g>
-                                                    </g>
-                                                </g>
-                                            </svg>
-
-                                        </a>
+                                        <span class="menu-title">Rol ve Yetki Yönetimi</span>
+                                    </router-link>
                                     
                                 </div>
                             </div>
-                                                                                            <div data-kt-menu-trigger="click" class="menu-item menu-accordion">
-                                <div class="menu-item ps-5 pe-15 d-flex align-items-center">
-                                    <a class="menu-link" href="https://yts.gdzelektrik.com.tr/ihale">
+                            <div data-kt-menu-trigger="click" class="menu-item  menu-accordion" v-if="this.useAuthStore().permissions?.includes('per-04')">
+                                <div class="menu-item ps-5 pe-15 d-flex align-items-center justify-content-between">
+                                    <router-link :to="{ name: 'UList' }" :class="['menu-link px-3']" >
                                         <span class="menu-bullet">
                                             <span class="bullet bullet-dot"></span>
                                         </span>
-                                        <span class="menu-title">İhale Listesi</span>
-                                        </a><a href="/system/front/media/ihale-yuklenici-atama.mp4" class="pop-video video-popup mfp-iframe" data-lity="">
-                                            <svg version="1.1" class="ms-1" id="svg519" fill="#989898" xml:space="preserve" width="20px" height="20px" viewBox="0 0 682.66669 682.66669" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
-                                                <defs id="defs523">
-                                                    <clipPath clipPathUnits="userSpaceOnUse" id="clipPath533">
-                                                        <path d="M 0,512 H 512 V 0 H 0 Z" id="path531"></path>
-                                                    </clipPath>
-                                                </defs>
-                                                <g id="g525" transform="matrix(1.3333333,0,0,-1.3333333,0,682.66667)">
-                                                    <g id="g527">
-                                                        <g id="g529" clip-path="url(#clipPath533)">
-                                                            <g id="g535" transform="translate(336.333,368.4668)">
-                                                                <path d="m 0,0 c 0,17.746 -14.38,32.133 -32.133,32.133 h -257.066 c -17.754,0 -32.134,-14.387 -32.134,-32.133 v -224.934 c 0,-17.745 14.38,-32.133 32.134,-32.133 h 257.066 c 17.753,0 32.133,14.388 32.133,32.133 z" style="fill: none; stroke: #989898; stroke-width: 30; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 10; stroke-dasharray: none; stroke-opacity: 1;" id="path537"></path>
-                                                            </g>
-                                                            <g id="g539" transform="translate(497,368.4668)">
-                                                                <path d="m 0,0 -160.667,-64.267 v -96.4 L 0,-224.934 Z" style="fill: none; stroke: #989898; stroke-width: 30; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 10; stroke-dasharray: none; stroke-opacity: 1;" id="path541"></path>
-                                                            </g>
-                                                        </g>
-                                                    </g>
-                                                </g>
-                                            </svg>
-
-                                        </a>
+                                        <span class="menu-title">Kullanıcı Yönetimi</span>
+                                    </router-link>
                                     
                                 </div>
                             </div>
-                                                        </div>
+                        </div>
                     </div>
                                                                     <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="right-start" class="menu-item py-2 menu-row-main">
                         <span class="menu-link main-menu  px-3">

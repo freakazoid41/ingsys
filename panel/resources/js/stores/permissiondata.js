@@ -23,14 +23,15 @@ export const usePermissionDataStore = defineStore('permissiondata', {
       },
       {
         parent_id: 0,
-        title: 'Sistem Kullanıcı Kartları',
+        title: 'Kontrol Paneli',
         ttitle: 'Perm_con_ops',
         ctitle: 'type_id',
         group_key: 'op-perm',
         op_key: 'per-04',
         childs: [
-          { parent_id: 0, title: 'Listeleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-04-01' },
-          { parent_id: 0, title: 'Oluşturma / Düzenleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-04-02' }
+          { parent_id: 0, title: 'Kullanıcı Listeleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-04-01' },
+          { parent_id: 0, title: 'Kullanıcı Oluşturma / Düzenleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-04-02' },
+          { parent_id: 0, title: 'Rol ve Yetki Yönetimi', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-04-03' }
         ]
       }
     ],

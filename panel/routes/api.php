@@ -22,8 +22,9 @@ Route::post('auth/checkcode',        [AuthController::class,'checkCode']);
 Route::middleware(['throttle:4,1'])->group(function () {
     Route::post('auth/sendmail' ,        [AuthController::class, 'sendMail']);
 });
-Route::post('/v1/auth/login/{type?}',        [AuthController::class, 'loginUser'])->name('login-user')/*->middleware('throttle:2,1')*/;
-Route::post('/v1/auth/register',             [AuthController::class, 'registerUser'])->name('register-user')/*->middleware('throttle:2,1')*/;
+Route::post('/v1/auth/login/{type?}',             [AuthController::class, 'loginUser'])->name('login-user')/*->middleware('throttle:2,1')*/;
+Route::post('/v1/auth/register',                  [AuthController::class, 'registerUser'])->name('register-user')/*->middleware('throttle:2,1')*/;
+Route::post('/v1/auth/resetusercradentals/{id}',  [PersonsController::class, 'resetUserCradentals'])->name('restart-user');
 // expose authenticated user endpoint for tests and API clients
 Route::middleware('auth')->get('/v1/me', MeController::class);
 Route::middleware(['auth:sanctum'])->group(function () {
