@@ -62,7 +62,7 @@ class User extends Authenticatable
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            $post->grp_code = session('grp_code') ?? 'op-apt-1';
+            $post->grp_code = $GLOBALS['SYS_CODE'] ?? 'CATES';
             // add other column as well
         });
 

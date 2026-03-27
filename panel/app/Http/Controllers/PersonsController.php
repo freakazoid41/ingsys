@@ -167,7 +167,7 @@ class PersonsController extends Controller
             }
 
             $userId = auth('sanctum')->user()->id ?? auth()->id() ?? 0;
-            $sysCode = $GLOBALS['SYS_CODE'] ?? 'unknown';
+            $sysCode = $GLOBALS['SYS_CODE'] ?? 'CATES';
             $typeId = Sys_options::where('op_key', 'log-role-update')->first()->id ?? 0;
             
             UserLog::create([
@@ -196,7 +196,7 @@ class PersonsController extends Controller
             }
 
             $userId = auth('sanctum')->user()->id ?? auth()->id() ?? 0;
-            $sysCode = $GLOBALS['SYS_CODE'] ?? 'unknown';
+            $sysCode = $GLOBALS['SYS_CODE'] ?? 'CATES';
             $typeId = Sys_options::where('op_key', 'log-role-update')->first()->id ?? 0;
             UserLog::create([
                 'user_id' => $userId,

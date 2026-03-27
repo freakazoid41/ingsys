@@ -8,7 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class UserLog extends Model
 {
     use HasFactory;
+    protected static function boot() {
+        parent::boot();
 
+        static::creating(function ($post) {
+            $post->sys_code = $GLOBALS['SYS_CODE'] ?? 'CATES';
+            // add other column as well
+        });
+
+    }
     protected $table = 'user_logs';
 
     protected $fillable = [
