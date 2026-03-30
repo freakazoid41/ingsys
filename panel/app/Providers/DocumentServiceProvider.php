@@ -106,6 +106,7 @@ class DocumentServiceProvider extends ServiceProvider
                 $conn->save();
 
                 //now check if any entity sended
+                $field['entities']['qnid'] = $document->qnid;
                 foreach($field['entities'] as $ekey => $value){
                     $entity  = new Sys_con_entities();
 
@@ -169,7 +170,7 @@ class DocumentServiceProvider extends ServiceProvider
             return [
                 'success'          => false,
                 'id'               => 0,
-                'message'          => $e->getMessage()
+                'message'          => $e->getMessage().' => '.$e->getLine().' => '.$e->getFile(),
             ];
         }
 
@@ -179,7 +180,7 @@ class DocumentServiceProvider extends ServiceProvider
         $dynamicF = [];
         //////////////////////////////// Dynamic Fields ********************************
         //get dynamic fields info
-        //$df = "'op-doc-main','op-doc-main-test','op-doc-flat-form','op-doc-period-form','op-doc-target-form','op-doc-meeting-form','op-doc-project-form'";
+       
         $sql = "select  dco.id,
                         so.op_key,
                         sce.entity_tag,
@@ -233,8 +234,12 @@ class DocumentServiceProvider extends ServiceProvider
 
         //////////////////////////////// Dynamic Fields ********************************
 
-
+        $document = "select sp.op_key,d.* from documents d 
+                        inner join sys_options as sp on sp.id = d.type_id
+                        where d.qnid = '".$id."'";
+        $document  = DB::select($document)[0] ?? [];
         return [
+            'document'   => $document,
             'formFormat' => $dynamicF
         ];
     }
@@ -594,7 +599,7 @@ class DocumentServiceProvider extends ServiceProvider
         try{
             $type = Sys_options::where('op_key',$statusKey)->first();
             $trans = new Transactions();
-            $trans->target_id  = $id;  // can be add from both listing pages.. 
+            $trans->target_id  = Documents::where('qnid',$id)->first()->id;  // can be add from both listing pages.. 
             $trans->type_id    = $type->id;
             $trans->note       = $note ?? '-';
             $trans->amount     = 0;

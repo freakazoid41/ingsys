@@ -262,7 +262,7 @@ class AuthController extends Controller
                 'desc' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
             ]);
             //here send mail and sms all contacts
-            $contacts = json_decode($person->contacts);
+            $contacts = json_decode($person->contacts ?? '[]');
             foreach($contacts as $c){
                 if(strpos($c->Key, 'email') !== false){
                     $response = (array) $mailService->sendSms([
@@ -588,13 +588,19 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'permissions' => checkPerm('all') ? [
-                //this area is bassically backdoor for hidden kontent admin.
+                //this area is bassically backdoor for hidden kontent admins.
                 'per-00',
                 'per-00-01',
                 'per-04',
                 'per-04-01',
                 'per-04-02',
                 'per-04-03',
+                'per-05',
+                'per-05-01',
+                'per-05-02',
+                'per-06',
+                'per-06-01',
+                'per-06-02',
             ] : session('perms') 
         ],200);
     }

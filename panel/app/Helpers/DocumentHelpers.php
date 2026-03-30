@@ -544,17 +544,18 @@ if(!function_exists('uploadFile')){
 
            
             //add transaction to file
-            /*$log              = new \App\Models\User_logs();
-            $log->sys_code    = $GLOBALS['SYS_CODE'] == 'GDZ' ? '4000' : '5000';
-            $log->relation    = $reletion;
-            $log->relation_id = $reletion_id;
-            $log->user_id     = auth('sanctum')->user()->id;
-            $log->type_id      = \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id;
-            $log->description = json_encode(array(
-                'file_id' => $file->id,
+            $log              = \App\Models\UserLog::create([
+                'user_id'     => auth('sanctum')->user()->id,
+                'sys_code'    => $GLOBALS['SYS_CODE'],
+                'relation'    => $reletion,
+                'relation_id' => $reletion_id,
+                'type_id'     => \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id,
+                'description' => json_encode(array(
+                    'file_id' => $file->id,
                 'desc'    => $logMessage == '' ? $fileType->title.' Dosyası Sisteme Eklendi' : $logMessage,
-            ),JSON_UNESCAPED_UNICODE);
-            $log->save();*/
+                ),JSON_UNESCAPED_UNICODE)
+            ]);
+            
 
             \App\Models\Transactions::create([
                 'op_id'     => 1,

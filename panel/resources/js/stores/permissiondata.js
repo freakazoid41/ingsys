@@ -33,6 +33,28 @@ export const usePermissionDataStore = defineStore('permissiondata', {
           { parent_id: 0, title: 'Kullanıcı Oluşturma / Düzenleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-04-02' },
           { parent_id: 0, title: 'Rol ve Yetki Yönetimi', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-04-03' }
         ]
+      },{
+        parent_id: 0,
+        title: 'Talep Yönetimi',
+        ttitle: 'Perm_con_ops',
+        ctitle: 'type_id',
+        group_key: 'op-perm',
+        op_key: 'per-05',
+        childs: [
+          { parent_id: 0, title: 'Talep Listeleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-05-01' },
+          { parent_id: 0, title: 'Talep Oluşturma / Düzenleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-05-02' },
+        ]
+      },{
+        parent_id: 0,
+        title: 'Firma Yönetimi',
+        ttitle: 'Perm_con_ops',
+        ctitle: 'type_id',
+        group_key: 'op-perm',
+        op_key: 'per-06',
+        childs: [
+          { parent_id: 0, title: 'Firma Listeleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-06-01' },
+          { parent_id: 0, title: 'Firma Oluşturma / Düzenleme', ttitle: 'Perm_con_ops', ctitle: 'type_id', op_key: 'per-06-02' },
+        ]
       }
     ],
     roleTemplates: []

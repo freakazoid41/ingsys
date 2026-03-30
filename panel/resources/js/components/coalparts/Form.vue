@@ -1,10 +1,11 @@
 <script>
     import Plib from '@/lib/pickle';
     import AppFab from '@/components/coalparts/AppFab.vue';
-    import { Datepicker } from 'vanillajs-datepicker';
+    import flatpickr from 'flatpickr';
+    import monthSelectPlugin from 'flatpickr/dist/plugins/monthSelect/index.js';
+    import { Turkish } from 'flatpickr/dist/l10n/tr.js';
     import TreeModal from '@/lib/treeModal.js';
     import VMasker  from 'vanilla-masker';
-    import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
     import { wTrans } from 'laravel-vue-i18n';
     import { useFormDataStore } from '@/stores/formdata';
     import { usePermissionDataStore } from '@/stores/permissiondata';
@@ -27,13 +28,14 @@
             
         },
         setup() {
-            Object.assign(Datepicker.locales, tr);
-            
+            // localize flatpickr to Turkish
+            flatpickr.localize(Turkish);
+
             // expose to template and other options API hooks
             return {
                 usePermissionDataStore,
                 useFormDataStore,
-                Datepicker,
+                flatpickr,
                 AppFab,
                 Plib,
                 VMasker,
@@ -311,13 +313,508 @@
                                 
                             }
                         ]
-                    },
+                    },'op-doc-request-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_4',
+                                label : 'Talep Formu',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'qnid',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Belge Kodu (Boş Bırakılırsa Otomatik Verilir)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'date',
+                                        isDate : true,
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Belge Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'rev_date',
+                                        isDate : true,
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Belge Rev. Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'title',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Belge Başlığı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'buyer',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Alıcı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'seller',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Satıcı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'order_radius',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Sipariş Kapsamı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'contract_start_date',
+                                        col      : 4,
+                                        isDate : true,
+                                        required : true,
+                                        label : 'Sözleşme Başlangıç Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'contract_end_date',
+                                        col      : 4,
+                                        isDate : true,
+                                        required : true,
+                                        label : 'Sözleşme Bitiş Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'load_area',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Yükleme Yeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'unload_area',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Ürün Boşaltma Yeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_5',
+                                label : 'Kömürün Özellikleri / Red Şartları',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'coal_type',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Cinsi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'calory',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Kalori',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'humidity',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Nem',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'ash_content',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Kül Oranı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'sulfur',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Kükürt',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_8',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'unit_price',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Birim Fiyat',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'shipping_included',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Nakliye Dahil / Hariç',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'fuel_price_impact',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Birim Fiyatın Akaryakıt (Artış/Azalış) Etkilenme Oranı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'tiufe_price_impact',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Birim Fiyatın  ((Tİ-ÜFE +TÜFE)/2 ) Etkilenme Oranı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_6',
+                                label : 'Prim / Penalite Hesabı',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'prime_condition_is',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Kcal Değeri ... (Dahil) - .... (Dahil) Aralığında ise ',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'prime_condition_is_bellow',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Kcal Değeri ... (Dahil) ve altında ise',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_7',
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'amount',
+                                        col      : 2,
+                                        required : false,
+                                        label : 'Miktar',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'payment_periods',
+                                        col      : 6,
+                                        required : false,
+                                        label : "Hakediş Dönemleri (Her Ay'ın 1-7,8-14,15-21,22-28,29-30/31 günlerini ifade eder.)",
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'payment_due',
+                                        col      : 4,
+                                        required : false,
+                                        label : "Ödeme Vadesi",
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'start_date',
+                                        isDate : true,
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Sevkiyata Başlama Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'desc',
+                                col      : 12,
+                                required : false,
+                                label : 'Ek Açıklama',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            }
+                        ]
+                    },'op-doc-client-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_4',
+                                label : 'Firma Bilgileri',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'clicode',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Firma Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'title',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Firma Ünvanı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'cli_vat_id',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Firma Vergi Numarası',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'cli_vat_title',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Firma Vergi Dairesi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'cli_fax',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Firma Faks Numarası',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'cli_website',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Firma Web Sitesi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'cli_desc',
+                                col      : 12,
+                                required : false,
+                                label : 'Firma Ek Açıklama',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1_2',
+                                label : 'Yetkililer',
+                                type  : 'multiple',
+                                requiredIfFirst : true,
+                                group_key : 'clientcontgroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'cont_name',
+                                        required : true,
+                                        label : 'Adı Soyadı',
+                                        col      : 4,
+                                        placeholder : 'Adı Soyadı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'cont_phone',
+                                        isMasked : true,
+                                        required : true,
+                                        mask : 'phone',
+                                        label : 'Telefon',
+                                        col      : 4,
+                                        placeholder : 'Telefon',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'email',
+                                        name  : 'cont_email',
+                                        isMasked : true,
+                                        required : true,
+                                        mask : 'email',
+                                        label : 'E-Posta',
+                                        col      : 4,
+                                        placeholder : 'E-Posta',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1_1',
+                                label : 'İmza Sirküleri',
+                                type  : 'multiple',
+                                removable : false,
+                                requiredIfFirst : true,
+                                group_key : 'clientimzasirku',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        name  : 'cont_imza_file',
+                                        required : true,
+                                        label : ' ',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : 'Vergi Levhaları',
+                                type  : 'multiple',
+                                removable : false,
+                                requiredIfFirst : true,
+                                group_key : 'clientvergilevha',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        name  : 'cont_vergi_file',
+                                        required : true,
+                                        label : ' ',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_2',
+                                label : 'Oda / Ticaret Sicil Belgeleri',
+                                type  : 'multiple',
+                                removable : false,
+                                requiredIfFirst : true,
+                                group_key : 'clientodasicil',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        name  : 'cont_odasicil_file',
+                                        required : true,
+                                        label : ' ',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_3',
+                                label : 'Kaşeli-İmzali IBAN Bilgi Formları',
+                                type  : 'multiple',
+                                removable : false,
+                                requiredIfFirst : true,
+                                group_key : 'clientibanbilgi',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        name  : 'cont_iban_file',
+                                        required : true,
+                                        label : ' ',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_4',
+                                label : 'Diğer Belgeler',
+                                type  : 'multiple',
+                                removable : false,
+                                //requiredIfFirst : false,
+                                group_key : 'clientotherdocs',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'cont_otherdocs_file_text',
+                                        required : false,
+                                        label : 'Belge İsmi',
+                                        col      : 6,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        name  : 'cont_otherdocs_file',
+                                        required : false,
+                                        label : 'Belge Dosyası',
+                                        col      : 6,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
+                    }
                 },
                 formData        : {
                     dynamicF : {},
                     files : {},
                     removedData : []
-                }
+                },
+                flatpickrInstances : []
             }
         },
         async mounted() {
@@ -472,7 +969,7 @@
 
                                 const showB     = document.createElement('span');
                                 showB.classList.add('input-group-text','rmv-btn-form');
-                                showB.innerHTML = '<i class="ph ph-file-arrow-up fs-4 text-body-emphasis"></i>';
+                                showB.innerHTML = '<i class="ki-outline ki-magnifier fs-4 text-body-emphasis"></i>';
                                 showB.onclick   = (e) => {
                                     window.open('/order-file/'+fileData?.description);
                                 };
@@ -541,32 +1038,51 @@
                                 }else{
                                     input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
                                 }
-                                
                             }
-                            
 
-                            const datepicker = new Datepicker(input, {
-                                format     : 'dd/mm/yyyy',
-                                language   : 'tr',
-                            });
-                            
+                            // initialize flatpickr
+                            const fpOptions = {
+                                dateFormat : attr?.hasTime ? 'd/m/Y H:i' : 'd/m/Y',
+                                enableTime : !!attr?.hasTime,
+                                time_24hr  : true,
+                                locale     : 'tr',
+                                defaultDate: data?.entities?.[attr.name] ?? null,
+                                onChange   : (selectedDates, dateStr, instance) => {
+                                    if(selectedDates.length){
+                                        const formatted = instance.formatDate(selectedDates[0], attr?.hasTime ? 'd/m/Y H:i' : 'd/m/Y');
+                                        input.value = formatted;
+                                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                                    }
+                                }
+                            };
+
+                            const fp = flatpickr(input, fpOptions);
+                            this.flatpickrInstances.push(fp);
                             input.readOnly = true;
-                            //just for this date component
-                            input.addEventListener('changeDate',e => e.target.dispatchEvent(new Event('input')));
-
                         }
 
                         if(attr?.isMonth == true){
                             input.readOnly    = true;
                             input.placeholder = 'Tarih Seçiniz';
                             input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
-                            const datepicker = new Datepicker(input, {
-                                language   : 'tr',
-                                pickLevel  : 1, // for month select
-                                format     : 'mm/yyyy',
-                            });
-                            //just for this date component
-                            input.addEventListener('changeDate',e => e.target.dispatchEvent(new Event('input')));
+
+                            // initialize flatpickr with month select plugin
+                            const fpOptions = {
+                                dateFormat : 'm/Y',
+                                locale     : 'tr',
+                                defaultDate: data?.entities?.[attr.name] ?? null,
+                                onChange   : (selectedDates, dateStr, instance) => {
+                                    if(selectedDates.length){
+                                        const formatted = instance.formatDate(selectedDates[0], 'm/Y');
+                                        input.value = formatted;
+                                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                                    }
+                                },
+                                plugins    : [ new monthSelectPlugin({ shorthand: true, dateFormat: 'm/Y', altFormat: 'F Y' }) ]
+                            };
+
+                            const fp = flatpickr(input, fpOptions);
+                            this.flatpickrInstances.push(fp);
 
                         }
 
@@ -670,6 +1186,8 @@
                                         createInput(el,inpGroup);
                                     }
 
+                                    
+
                                     //if sub element has subs :D
                                     if(el?.multiple){
                                         lbl.classList.add('d-flex','justify-content-between','align-items-center');
@@ -761,7 +1279,8 @@
                                             });
                                             row.remove();
                                         };
-                                        inpGroup.appendChild(rmvInp);
+                                        
+                                        if(fitem?.removable != false ) inpGroup.appendChild(rmvInp);
                                         
                                     }
 
@@ -785,11 +1304,14 @@
                                 icon.id = tag+'-'+(fitem.group_key ?? 'unalign-group-key')+'-subadd-'+rowId;
                                 iconDiv.appendChild(icon);
 
-                                icon.onclick   = async () => await addElements(null,true);
+                                icon.onclick   = async () =>{
+                                    await addElements(null,true);
+                                }; 
                                 
                                 inLabel.appendChild(iconDiv);
                                 //append one empty row
-                                await addElements(null,true);
+                                icon.click();
+                                //await addElements(null,true);
                                 //here create elements if data is exist on given data with object nametag
                                 if(data?.entities){
                                     for(let key in data?.entities) {
@@ -819,6 +1341,19 @@
                             if(fitem.type == 'sub') addElements();
                             itemRow.appendChild(inputDiv);
                             
+                            if(fitem?.requiredIfFirst){
+                                       
+                                //here check row count
+                                const rowCount = itemRow.querySelectorAll('.multiple-item-row').length;
+                                console.log(rowCount)
+                                if(rowCount > 1){
+                                    //remove required attr from first row elements
+                                    itemRow.querySelectorAll('.multiple-item-row .form-item').forEach(el => {
+                                        el.required = false;
+                                    });
+                                }
+                            }
+
                             break;
                         case 'section':
                             labelDiv.remove();
@@ -930,7 +1465,6 @@
 
                             break;
                         case 'button':
-                            console.log('sdas');
                             input           = document.createElement('button');
                             input.onclick   = (e) => fitem.oninput(e);
                             input.innerHTML = fitem.value;
@@ -1091,7 +1625,21 @@
 
                 form.oncreated(rowId,row);
             },
-        }
+        },
+        beforeUnmount() {
+            if (Array.isArray(this.flatpickrInstances)) {
+                this.flatpickrInstances.forEach(inst => {
+                    try {
+                        if (inst && typeof inst.destroy === 'function') inst.destroy();
+                    } catch (e) {}
+                });
+                this.flatpickrInstances = [];
+            }
+
+            if (this._treeModalInstance && typeof this._treeModalInstance.destroy === 'function') {
+                try { this._treeModalInstance.destroy(); } catch (e) {}
+            }
+        },
     }
 </script>
 <template>

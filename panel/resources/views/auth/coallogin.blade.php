@@ -43,7 +43,7 @@
                     <a href="" class="mb-7">
                         <img alt="Logo" src="/system/front/media/logos/adm-logo.svg" width="300px" />
                     </a>
-                    <h2 class="m-0">Yüklenici Takip Sistemi</h2>
+                    <h2 class="m-0">Kömür Tedarik Sistemi</h2>
                 </div>
             </div>
             <div

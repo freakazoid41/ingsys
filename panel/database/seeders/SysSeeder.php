@@ -210,6 +210,27 @@ class SysSeeder extends Seeder
                 'op_key'    => 'doc_trans_created',
             ],[
                 'parent_id' => 0,                   //main document status
+                'title'     => 'Talep Başladı',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans',
+                'op_key'    => 'doc_trans_request_start',
+            ],[
+                'parent_id' => 0,                   //main document status
+                'title'     => 'Talep Tamamlandı',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans',
+                'op_key'    => 'doc_trans_request_end',
+            ],[
+                'parent_id' => 0,                   //main document status
+                'title'     => 'Talep İptal Edildi',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans',
+                'op_key'    => 'doc_trans_request_cancelled',
+            ],[
+                'parent_id' => 0,                   //main document status
                 'title'     => 'Proje Başladı',
                 'ttitle'    => 'Transactions',
                 'ctitle'    => 'type_id',
@@ -337,6 +358,20 @@ class SysSeeder extends Seeder
                 'ttitle'    => 'Documents',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-main-test',
+                'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Talep Formu',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-request-form',
+                'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Cari Formu',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-client-form',
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
@@ -494,6 +529,20 @@ class SysSeeder extends Seeder
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-period',
+                'group_key' => 'op-doc',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Talep',
+                'ttitle'    => '-',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-request',
+                'group_key' => 'op-doc',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Cari',
+                'ttitle'    => '-',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-client',
                 'group_key' => 'op-doc',
             ],[
                 'parent_id' => 0,

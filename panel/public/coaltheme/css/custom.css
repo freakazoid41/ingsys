@@ -151,3 +151,20 @@
   border-color: #0ea5e9;
   transform: translateY(-1px);
 }
+.menu-icon i{
+ color:#D75010 !important; 
+}
+
+.swal2-popup{
+    color: #ced4da !important;
+}
+.swal2-html-container{
+  max-height: unset !important;
+}
+.form-switch .form-check-label:after{
+    top:unset !important;
+}
+
+.swal2-success-fix,
+.swal2-success-circular-line-left,
+.swal2-success-circular-line-right{background-color: unset !important;}

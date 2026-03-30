@@ -16,19 +16,37 @@ class DocumentController extends Controller
 {
     public function index(Request $request){
         $logModel = 'documents';
-        
+        $method   = strtoupper($request->method());
         /*if(!checkPermRoute($logModel,$request->method())) return response()->json([
             'success' => false,
             'msg'     => 'not valid for system user...',
         ],401);*/
         
-        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
+        /*if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
             'success' => false,
             'msg'     => 'not valid for system user...',
-        ],403);
+        ],403);*/
+        //here get document type for permissions
+        $key = null;
+        if($method == 'POST'){
+            $req = $request->all();
+            $req = json_decode($req['data'],true);
+            $key = $req['typeKey'] ?? null;
+        }else{
+            $key = (new DocumentServiceProvider())->getFormData($request->id);
+            $key = $key['document']->op_key;
+        }
+
+        if(!docPermCheck($key,'edit')){
+            return response()->json([
+                'success' => false,
+                'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
+            ],403);
+        }
+
         
         //$model = 'App\\Models\\Documents';
-        switch(strtoupper($request->method())){
+        switch($method){
             case "GET":
                 //$req = $request->all();
                 $res = (new DocumentServiceProvider())->getFormData($request->id);
@@ -39,7 +57,10 @@ class DocumentController extends Controller
                 break;
             case "POST":
                 $req = $request->all();
-                $res = (new DocumentServiceProvider())->registerContent(0,json_decode($req['data'],true),$request->files->all());
+                $req = json_decode($req['data'],true);
+                
+                
+                $res = (new DocumentServiceProvider())->registerContent(0,$req,$request->files->all());
                 
                 $response = [
                     'success' => $res['id'] > 0,

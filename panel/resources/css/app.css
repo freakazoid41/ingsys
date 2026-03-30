@@ -1,14 +1,1 @@
 
-.swal2-popup{
-    /*background: #00000040 !important;*/
-    background-color:#000000b1 !important;
-    color: #ced4da !important;
-}
-
-.form-switch .form-check-label:after{
-    top:unset !important;
-}
-
-.swal2-success-fix,
-.swal2-success-circular-line-left,
-.swal2-success-circular-line-right{background-color: unset !important;}

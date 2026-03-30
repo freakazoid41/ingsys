@@ -41,10 +41,15 @@ import CoalPanel from '@/layouts/CoalPanel.vue';
 import CIndex from '@/pages/coalsystem/Dashboard.vue';
 import ExampleList from "@/pages/coalsystem/Example/FlatList.vue";
 import ExampleForm from "@/pages/coalsystem/Example/FlatForm.vue";
+import RList from "@/pages/coalsystem/Request/RList.vue";
+import RForm from "@/pages/coalsystem/Request/RForm.vue";
+import CList from "@/pages/coalsystem/Client/CList.vue";
+import CForm from "@/pages/coalsystem/Client/CForm.vue";
 import UList from "@/pages/coalsystem/Users/UList.vue";
 import UForm from "@/pages/coalsystem/Users/UForm.vue";
 import TreeExample from "@/pages/coalsystem/treeTest.vue";
 import Roles from "@/pages/coalsystem/Roles/Roles.vue";
+import DList from "@/pages/coalsystem/Documents/DList.vue";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -90,9 +95,14 @@ const router = createRouter({
         { path: "/coalpanel/treeexample", name: 'TreeExample', component: TreeExample },
         { path: "/coalpanel/example", name: 'ExampleList', component: ExampleList },
         { path: "/coalpanel/example/form/:id?", name: 'ExampleForm', component: ExampleForm },
+        { path: "/coalpanel/request", name: 'RequestList', component: RList },
+        { path: "/coalpanel/request/form/:id?", name: 'RequestForm', component: RForm },
+        { path: "/coalpanel/client", name: 'CList', component: CList },
+        { path: "/coalpanel/client/form/:id?", name: 'CForm', component: CForm },
         { path: "/coalpanel/users", name: 'UList', component: UList },
         { path: "/coalpanel/users/form/:id?", name: 'UForm', component: UForm },
         { path: "/coalpanel/roles", name: 'Roles', component: Roles },
+        { path: "/coalpanel/documents", name: 'DList', component: DList },
       ]
     },
     /*{

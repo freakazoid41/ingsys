@@ -22,6 +22,18 @@ if(!function_exists('checkPerm')){
 
         return false;
     }
+
+    function docPermCheck($type,$job){
+        $map = [
+            'op-doc-request' => [
+                'edit' => 'per-05-023',
+                'read' => 'per-05-01',
+            ]
+        ];
+
+        
+        return checkPerm($map[$type][$job] ?? null) ?? false;
+    }
 }
 
 
