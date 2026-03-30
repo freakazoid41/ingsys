@@ -42,6 +42,9 @@ class SystemController extends Controller
             case 'user':
                 if(!checkPerm('per-04-01') || !checkPerm('per-04') ) return json_encode(['message' => 'Unauthorized'], 403);
             break;
+            case 'document_files':
+                if(!checkPerm('per-07-01') || !checkPerm('per-07') ) return json_encode(['message' => 'Unauthorized'], 403);
+            break;
         }
 
 
@@ -51,6 +54,4 @@ class SystemController extends Controller
         $response = $model::tableList(json_decode($req['tableReq'],true));
         return json_encode($response, true);
     }
-
-
 }

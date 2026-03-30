@@ -560,7 +560,7 @@ if(!function_exists('uploadFile')){
             \App\Models\Transactions::create([
                 'op_id'     => 1,
                 'type_id'   => (\App\Models\Sys_options::where('op_key' , 'doc_file_waiting')->first())->id,
-                'log_id'    => 0,//$log->id,
+                'log_id'    => $log->id,
                 'target_id' => $file->id,
                 'description' => 'Person Added New File'
             ]);

@@ -30,7 +30,7 @@
             this.navigationStore.toggle(true);
             this.buildTestTable();
             
-            this.navigationStore.setBread([
+            /*this.navigationStore.setBread([
                 {
                     title : this.wTrans('menu.home'),
                     url   : '/coalpanel',
@@ -49,7 +49,7 @@
                 icon : 'ph ph-plus-circle',
                 onclick   : () => this.$router.push({ name: 'RequestForm' }),
               }
-            ]);
+            ]);*/
 
 
             setTimeout(() => {

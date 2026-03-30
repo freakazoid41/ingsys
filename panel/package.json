@@ -21,6 +21,7 @@
     "dependencies": {
         "@unhead/vue": "^1.11.18",
         "chart.js": "^4.4.9",
+        "dayjs": "^1.11.20",
         "flatpickr": "^4.6.13",
         "fullcalendar": "^6.1.17",
         "laravel-vue-i18n": "^2.8.0",

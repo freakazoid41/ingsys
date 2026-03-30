@@ -205,6 +205,35 @@ export default {
                             </div>
                         </div>
                     </div>
+                    <div v-if="this.useAuthStore().permissions?.includes('per-07')" data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="right-start" class="menu-item py-2 menu-row-main">
+                        <span class="menu-link main-menu px-3">
+                            <span class="menu-icon me-0">
+                                <i class="ki-solid ki-document fs-1"></i>
+                            </span>
+                            <div class="menu-content d-flex justify-content-between align-items-center w-100">
+                                <span class="menu-section fs-5 fw-bolder ps-2 py-1 text-dark">Dökümanlar</span>
+                                <div class="container-hamburger">
+                                    <div class="bar1"></div>
+                                    <div class="bar2"></div>
+                                    <div class="bar3"></div>
+                                </div>
+                            </div>
+                            
+                        </span>
+                        <div class=" px-2 w-250px mh-75 overflow-auto sub-menu hidden-menu">
+                            <div data-kt-menu-trigger="click" class="menu-item  menu-accordion" v-if="this.useAuthStore().permissions?.includes('per-07-01')">
+                                <div class="menu-item ps-5 pe-15 d-flex align-items-center justify-content-between">
+                                    <router-link :to="{ name: 'DList' }" :class="['menu-link px-3']" >
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">Döküman Listesi</span>
+                                    </router-link>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

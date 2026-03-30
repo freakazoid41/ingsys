@@ -279,224 +279,6 @@ class DocumentServiceProvider extends ServiceProvider
         return ['success' => true];
     }
 
-    public function paymentInfo(){
-        return [
-            'success' => true,
-            'periods'  => DB::select("SELECT d.id,(SELECT      json_agg(
-                                                            json_build_object(
-                                                                'Key',se.entity_tag,
-                                                                'Value' , se.entity_value
-                                                            )
-                                                        ) 
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-period-form'  and so.main_id = d.id)  as  main_attr from documents as d
-                                                        inner join sys_options as sp on sp.id = d.type_id
-                                                            where sp.op_key = 'op-doc-period'"),
-            'accounts' => DB::select("SELECT d.qnid as id,(SELECT      json_agg(
-                                                            json_build_object(
-                                                                'Key',se.entity_tag,
-                                                                'Value' , se.entity_value
-                                                            )
-                                                        ) 
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-target-form'  and so.main_id = d.id)  as  main_attr 
-                                            from documents as d
-                                                inner join sys_options as sp on sp.id = d.type_id
-                                            where sp.op_key = 'op-doc-target' and d.grp_code='".session('grp_code')."'"),
-            'flats'  => DB::select("SELECT d.qnid as id,(SELECT      json_agg(
-                                                            json_build_object(
-                                                                'Key',se.entity_tag,
-                                                                'Value' , se.entity_value
-                                                            )
-                                                        ) 
-                                                    FROM sys_con_entities as se
-                                                        inner join sys_con_ops as so on so.id = se.conn_id 
-                                                        inner join sys_options as sp on sp.id = so.type_id
-                                                    where so.conn_id = 0 and sp.op_key = 'op-doc-flat-form'  and so.main_id = d.id)  as  main_attr 
-                                        from documents as d
-                                            inner join sys_options as sp on sp.id = d.type_id
-                                        where sp.op_key = 'op-doc-flat' and d.grp_code='".session('grp_code')."'"),
-            'currencies' => Sys_options::where('group_key','op-cur-types')->get(),
-        ];
-    }
-
-    /**
-     * this method will set payment transactions for documents
-     */
-    public function setPayment($data,$files){
-        try{
-            DB::beginTransaction(); // <= Starting the transaction
-
-            $data['target_id']  = isset($data['target_id']) ? Documents::where('qnid',$data['target_id'])->first()->id : 0;
-            $data['account_id'] = isset($data['account_id']) ? Documents::where('qnid',$data['account_id'])->first()->id : 0;
-            $data['flat_id']    = isset($data['flat_id']) ? Documents::where('qnid',$data['flat_id'])->first()->id : 0;
-            $cur = Sys_options::where(['code' => $data['currency'] , 'group_key' => 'op-cur-types'])->first()->id;
-
-            $fileRelIds = [];
-            switch($data['op']){
-                case 'paydept':
-                    break;
-                case 'transfer':
-                    $typeId = Sys_options::where('op_key','doc_acc_transfer')->first()->id;
-                    //now make flat payment to us
-                    $etrans = new Transactions();
-                    $etrans->target_id = $data['account_id'];
-                    $etrans->type_id   = $typeId;
-                    $etrans->note      = $data['note'];
-                    $etrans->amount    = $data['amount'];
-                    $etrans->cur_id    = $cur;
-                    $etrans->rel_id    = $data['target_id']; 
-                    $etrans->sign      = 0;
-                    $etrans->period    = $data['period'];
-
-                    $etrans->save();
-
-                    $fileRelIds[] = $etrans->id;
-
-                    //now enter money to us
-                    $trans = new Transactions();
-                    $trans->target_id = $data['target_id'];
-                    $trans->type_id   = $typeId;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = $data['account_id'];
-                    $trans->sign      = 1;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    // enter reverse trans connection
-                    $trans->trans_id = $etrans->id;
-                    $trans->save();
-                    
-                    $etrans->trans_id = $trans->id;
-                    $etrans->save();
-                    // enter reverse trans connection
-
-                    $fileRelIds[] = $trans->id;
-                    break;
-                case 'income':
-                    $typeId = Sys_options::where('op_key',$data['type'])->first()->id;
-                   
-
-                    if(intval($data['from_safe']) == 1){
-                        //first add flat transactions 
-                        $trans = new Transactions();
-                        $trans->target_id = $data['flat_id'];
-                        $trans->type_id   = $typeId;
-                        $trans->note      = $data['note'];
-                        $trans->amount    = $data['amount'];
-                        $trans->cur_id    = $cur;
-                        $trans->rel_id    = 0; 
-                        $trans->sign      = 1;
-                        $trans->period    = $data['period'];
-        
-                        $trans->save();
-                    }
-
-                    //now make flat payment to us
-                    $etrans = new Transactions();
-                    $etrans->target_id = $data['flat_id'];
-                    $etrans->type_id   = $typeId;
-                    $etrans->note      = $data['note'];
-                    $etrans->amount    = $data['amount'];
-                    $etrans->cur_id    = $cur;
-                    $etrans->rel_id    = $data['account_id']; 
-                    $etrans->sign      = 0;
-                    $etrans->period    = $data['period'];
-
-                    $etrans->save();
-                    $fileRelIds[] = $etrans->id;
-
-                    //now enter money to us
-                    $trans = new Transactions();
-                    $trans->target_id = $data['account_id'];
-                    $trans->type_id   = $typeId;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = $data['flat_id'];
-                    $trans->sign      = 1;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    // enter reverse trans connection
-                    $trans->trans_id = $etrans->id;
-                    $trans->save();
-                    
-                    $etrans->trans_id = $trans->id;
-                    $etrans->save();
-                    // enter reverse trans connection
-
-                    $fileRelIds[] = $trans->id;
-                    break;
-                case 'outcome':
-                    //make aprartment to pay someone
-                    $trans = new Transactions();
-                    $trans->target_id = $data['account_id']; 
-                    $trans->type_id   = Sys_options::where('op_key','doc_acc_other')->first()->id;
-                    $trans->note      = $data['note'];
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = 0;
-                    $trans->sign      = 0;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    $fileRelIds[] = $trans->id;
-                    
-                    break;
-                case 'addbalance':
-                    $targetId = $data['flat_id'] && intval($data['flat_id']) != 0 ? $data['flat_id'] : $data['account_id'];
-                    //make aprartment to pay someone
-                    $trans = new Transactions();
-                    $trans->target_id = $targetId;
-                    $trans->type_id   = Sys_options::where('op_key','doc_acc_other')->first()->id;
-                    $trans->note      = $data['note'] ?? '-';
-                    $trans->amount    = $data['amount'];
-                    $trans->cur_id    = $cur;
-                    $trans->rel_id    = 0;
-                    $trans->sign      = 1;
-                    $trans->period    = $data['period'];
-
-                    $trans->save();
-
-                    $fileRelIds[] = $trans->id;
-                    break;
-            }
-
-            //enter file relations if file sended..
-            if(!empty($files) && !empty($fileRelIds)){
-                foreach($fileRelIds as $id){
-                    foreach($files as $file){
-                        $fileResponse = addFileToDb($file,'op-doc-trans-file',0,'transactions',$id);
-
-                        if($fileResponse['success'] == false) throw new \Exception('File Cannot Added To Server');
-                    }
-                }
-            }
-            DB::commit(); // <= Commit the changes
-            return [
-                'success' => true,
-            ];
-        }catch(\Exception $e){
-            DB::rollBack(); // <= Rollback in case of an exception
-
-            return [
-                'success' => false,
-                'msg'     => $e->getMessage(),
-            ];
-        }
-        
-    }
-
     /**
      * this method will prepare export data for documents
      */
@@ -682,30 +464,62 @@ class DocumentServiceProvider extends ServiceProvider
     }
 
 
-    /**
-     * this method will create new apartment for system
-     */
-    public function setAparments($data){
-        try{
-            $opKey = generateSeoURL(noInject($data['title']));
-            $data = Sys_options::updateOrCreate(
-                ['title' => $data['title'], 'op_key' => $opKey, 'group_key' => 'op-apt-types'],
-                [
-                    'title'     => $data['title'], 
-                    'op_key'    => $opKey, 
-                    'group_key' => 'op-apt-types',
-                    'ttitle'    => 'Sys_options',
-                    'ctitle'    => 'type_id'
-                ],
-            );
+    public function documentFileStatus($id,$statusKey,$note){
+    
+        if(isset($statusKey)){
+            try{
+                DB::beginTransaction();
+
+                //get file 
+                $file = Document_files::where('qnid',$id)->first();
+                $type = Sys_options::where('op_key',$statusKey)->first();
+
+                //add transaction to file
+                $log              = \App\Models\UserLog::create([
+                    'user_id'     => auth('sanctum')->user()->id,
+                    'sys_code'    => $GLOBALS['SYS_CODE'],
+                    'relation'    => 'documents',
+                    'relation_id' => $file->id,
+                    'type_id'     => $type->id,
+                    'description' => json_encode(array(
+                        'file_id' => $file->id,
+                        'desc'    => 'Dosya Durumu Değiştirildi => '.$type->title,
+                        'note'    => $note,
+                    ),JSON_UNESCAPED_UNICODE)
+                ]);
+
+                \App\Models\Transactions::create([
+                    'op_id'     => 1,
+                    'type_id'   => $type->id,
+                    'log_id'    => $log->id,
+                    'target_id' => $file->id,
+                    'description' => json_encode(array(
+                        'file_id' => $file->id,
+                        'desc'    => 'Dosya Durumu Değiştirildi => '.$type->title,
+                        'note'    => $note,
+                    ),JSON_UNESCAPED_UNICODE)
+                ]);
+
+                DB::commit();
+
+                return [
+                    'success'          => true,
+                    'id'               => $log->id,
+                    'data'             => $type->title
+                ];
+            }catch(\Exception $e){
+                DB::rollBack();
+                return [
+                    'success' => false,
+                    'id'      => 0,
+                    'message' => $e->getMessage().' => '.$e->getLine().' => '.$e->getFile(),
+                ];
+            }
+
+        }else{
             return [
-                'data'    => $data->op_key,
-                'success' => true,
-            ];
-        }catch(Exception $e){
-            return [
-                'success' => false,
-                'msg'     => $e->getMessage(),
+                'success'          => false,
+                'id'               => 0,
             ];
         }
     }

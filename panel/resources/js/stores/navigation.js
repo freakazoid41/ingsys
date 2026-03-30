@@ -9,7 +9,13 @@ export const useNavigationStore = defineStore('navigation', {
       currentTitle : '',
       breadcrumps  : [],
       breadbuttons : [],
-      apartments   : {}
+      apartments   : {},
+      fileEntities : {
+        'clientodasicil': 'Müşteri Odası Sicil Belgesi',
+        'clientibanbilgi' : 'Müşteri IBAN Bilgisi',
+        'clientvergilevha' : 'Müşteri Vergi Levhası',
+        'clientimzasirku' : 'Müşteri İmza Sirküleri',
+      }
     }
   },
   // could also be defined as
@@ -18,15 +24,6 @@ export const useNavigationStore = defineStore('navigation', {
     toggle(status = false){this.active = status},
     setBread(list = [],title = ''){this.breadcrumps = list ; this.currentTitle = title},
     setButtons(list = []){this.breadbuttons = list; },
-    async setApartments(){
-      const rsp = await (new Plib).request({
-          url      : '/api/v1/get-apartments',
-          method   : 'GET',
-      },null);
-
-      rsp.forEach(element => {
-        this.apartments[element.op_key] = element;
-      });
-    }
+    
   },
 })

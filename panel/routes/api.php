@@ -43,6 +43,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/v1/trans/prepare-payment',            [DocumentController::class, 'preparePayment']);
     Route::post('/v1/trans/set-payment',               [DocumentController::class, 'setPayment']);
     Route::post('/v1/trans/set-status',                [DocumentController::class, 'setStatus']);
+    Route::post('/v1/trans/set-file-status',           [DocumentController::class, 'setFileStatus']);
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
     Route::get('/v1/getpermissions',                   [AuthController::class, 'getPermissions']);

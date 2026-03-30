@@ -601,6 +601,9 @@ class AuthController extends Controller
                 'per-06',
                 'per-06-01',
                 'per-06-02',
+                'per-07',
+                'per-07-01',
+                'per-07-02',
             ] : session('perms') 
         ],200);
     }

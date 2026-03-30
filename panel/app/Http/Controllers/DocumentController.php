@@ -139,46 +139,16 @@ class DocumentController extends Controller
         return response()->json($response);
 	}
 
-    public function preparePayment(Request $request){
-        return [
-            'success' => true,
-            'data' => (new DocumentServiceProvider())->paymentInfo(),
-        ];
-    }
-
-    public function setPayment(Request $request){
-        $validateUser = Validator::make($request->all(),[
-            'amount'     => 'required',
-            'currency'   => 'required',
-            'note'       => 'required',
-            'period'     => 'required',
-        ]);
-
-        if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],403);
-
-        if($validateUser->fails()){
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing Parameters',
-                'error'   => $validateUser->errors()
-            ],401);
-        }else{
-            return (new DocumentServiceProvider())->setPayment($request->all(),$request->trans_file);
-        }
-
-        
-    }
-
     public function setStatus(Request $request){
         $validateUser = Validator::make($request->all(),[
             'id'       => 'required',
             'op_key'   => 'required',
         ]);
+      
+        $key = (new DocumentServiceProvider())->getFormData($request->id);
+        $key = $key['document']->op_key;
 
-        if($validateUser->fails()){
+        if($validateUser->fails() || !docPermCheck($key,'edit')){
             return response()->json([
                 'success' => false,
                 'message' => 'Missing Parameters',
@@ -189,31 +159,24 @@ class DocumentController extends Controller
         }
     }
 
-    public function getAparments(){
-        return (new ReportServiceProvider())->getAparments();
-    }
-
-    public function setAparments(Request $request){
+    public function setFileStatus(Request $request){
         $validateUser = Validator::make($request->all(),[
-            'title'     => 'required',
+            'id'       => 'required',
+            'op_key'   => 'required',
         ]);
 
-        if(session('type_key') != 'op-pert-admin' ) return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],403);
-
-        if($validateUser->fails()){
+        if($validateUser->fails() || !checkPerm('per-07-02')){
             return response()->json([
                 'success' => false,
                 'message' => 'Missing Parameters',
                 'error'   => $validateUser->errors()
             ],401);
         }else{
-            return (new DocumentServiceProvider())->setAparments($request->all());
+            return (new DocumentServiceProvider())->documentFileStatus($request->id,$request->op_key,$request->note);
         }
-
-        
     }
+    
+    
+    
 
 }
