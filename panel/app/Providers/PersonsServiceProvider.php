@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use App\Jobs\SendRegisterMailJob;
 use App\Jobs\SendResetMailJob;
 use Illuminate\Support\Facades\Hash;
+use App\Providers\DocumentServiceProvider;
 
 
 class PersonsServiceProvider extends ServiceProvider
@@ -26,15 +27,37 @@ class PersonsServiceProvider extends ServiceProvider
         return Sys_options::where(['group_key' => 'op-pert'])->get();
     }
 
+    private function upsertConnectionEntity(int $mainId, int $typeId, int $subTypeId, string $entityTag, $entityValue)
+    {
+        $conn = Sys_con_ops::updateOrCreate(
+            ['main_id' => $mainId, 'type_id' => $typeId, 'sub_type_id' => $subTypeId],
+            ['main_id' => $mainId, 'type_id' => $typeId, 'sub_type_id' => $subTypeId, 'conn_id' => 0]
+        );
+
+        Sys_con_entities::updateOrCreate(
+            ['conn_id' => $conn->id, 'entity_tag' => $entityTag],
+            [
+                'table_tag' => 'user_con_ops',
+                'conn_id' => $conn->id,
+                'entity_tag' => $entityTag,
+                'entity_value' => $entityValue,
+            ]
+        );
+
+        return $conn;
+    }
+
     public function setPerson($id = 0, $data = [], $files = [], $fileGroup = 'persons', $allData = []){
         $formData     = $data ?? [];
         DB::beginTransaction();
-        //try{
+        try{
             $contacts     = [];
             $facilities   = [];
             $user         = [];
+            $clients      = [];
             $permissions  = $formData['permissions'] ?? [];
             $removed      = json_decode($data['removed'] ?? "[]",true);
+            $clientTypeId = (Sys_options::where(['op_key' => 'op-doc-user-client-form'])->first())->id;
             $permTypeId   = (Sys_options::where(['op_key' => 'op-doc-user-permission-form'])->first())->id;
             $typeId       = (Sys_options::where(['op_key' => 'op-doc-user-contact-form'])->first())->id;
             $stypeIdMain  = (Sys_options::where(['op_key' => 'personnel-main'])->first())->id;       
@@ -63,6 +86,11 @@ class PersonsServiceProvider extends ServiceProvider
                     $facilities[explode('**',$key)[2]][explode('**',$key)[0]] = $value;
                 }
 
+                if(strpos($key,'userclientgroup') !== false){
+                    if(!isset($clients[explode('**',$key)[2]]))$clients[explode('**',$key)[2]] = [];
+                    $clients[explode('**',$key)[2]][explode('**',$key)[0]] = $value;
+                }
+
                 if(strpos($key,'user_') !== false){
                     $user[explode('user_',$key)[1]] = $value;
                 }
@@ -89,21 +117,24 @@ class PersonsServiceProvider extends ServiceProvider
                     }else{
                         $permissions = 'empty';
                     }
-                    
                 }
             }
 
-
-
-            
             //delete removed perm connections from here
-            $conn = Sys_con_ops::where(
-                ['main_id' => $document->id,'type_id' => $typeId,'sub_type_id' => $stypeIdMain], //ask from this values
-            )->first();
+            
             foreach ($removed as $row) {
+                $stypeId = 0;
+                if(strpos($row['key'], 'userpermissiongroup') !== false) $stypeId = $permTypeId;
+                if(strpos($row['key'], 'userfacilitygroup') !== false) $stypeId = $typeId;
+                if(strpos($row['key'], 'userclientgroup') !== false) $stypeId = $clientTypeId;
                 
-                $check = Sys_con_entities::where(['conn_id' => $conn->id,'entity_tag' => $row['key']])->first();
-                if(!empty($check))$check->delete();
+                $conn = Sys_con_ops::where(
+                    ['main_id' => $document->id,'type_id' => $stypeId,'sub_type_id' => $stypeIdMain], //ask from this values
+                )->first();
+                
+                $check = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $row['key']])->first();
+               
+                if(!empty($check)) $check->delete();
             }
 
 
@@ -115,12 +146,6 @@ class PersonsServiceProvider extends ServiceProvider
                 if($u){
                     $u->status = $user['status'];
                     $u->save();
-
-
-                    if($user['status'] == '1'){
-                        //send mail to admins for new registration
-                        SendApprovedMailJob::dispatch($u->email)->onQueue('emails');
-                    }
                 }
             }
 
@@ -151,53 +176,43 @@ class PersonsServiceProvider extends ServiceProvider
             }
 
             if(!empty($permissions)){
-                $conn = Sys_con_ops::updateOrCreate(
-                    ['main_id' => $document->id,'type_id' => $permTypeId,'sub_type_id' => $stypeIdMain], //ask from this values
-                    [
-                        'main_id' => $document->id,
-                        'type_id' => $permTypeId,
-                        'sub_type_id' => $stypeIdMain,
-                        'conn_id'  => 0
-                    ] 
+                $this->upsertConnectionEntity(
+                    $document->id,
+                    $permTypeId,
+                    $stypeIdMain,
+                    $document->id.'**userpermissiongroup**'.$document->id,
+                    $permissions !== 'empty' ? json_encode(array_values($permissions)) : '[]'
                 );
-                Sys_con_entities::updateOrCreate(
-                    ['conn_id' => $conn->id,'entity_tag' => ($document->id.'**userpermissiongroup**'.$document->id)], //ask from this values
-                    [
-                        'table_tag' => 'user_con_ops',
-                        'conn_id' => $conn->id,
-                        'entity_tag' => ($document->id.'**userpermissiongroup**'.$document->id),
-                        'entity_value' => $permissions !== 'empty' ? json_encode(array_values($permissions)) : '[]'
-                    ]
-                );
-
             }
             //user spesific transactions
 
             //user contacts
             if(!empty($facilities)){
                 foreach($facilities as $k => $f){
-                    $conn = Sys_con_ops::updateOrCreate(
-                        ['main_id' => $document->id,'type_id' => $typeId,'sub_type_id' => $stypeIdMain], //ask from this values
-                        [
-                            'main_id' => $document->id,
-                            'type_id' => $typeId,
-                            'sub_type_id' => $stypeIdMain,
-                            'conn_id'  => 0
-                        ] 
-                    );
-
-                    //now check if any entity sended
                     foreach($f as $ekey => $value){
-                        Sys_con_entities::updateOrCreate(
-                            ['conn_id' => $conn->id,'entity_tag' => ($ekey.'**userfacilitygroup**'.$k)], //ask from this values
-                            [
-                                'table_tag' => 'user_con_ops',
-                                'conn_id' => $conn->id,
-                                'entity_tag' => ($ekey.'**userfacilitygroup**'.$k),
-                                'entity_value' => $value
-                            ]
+                        $this->upsertConnectionEntity(
+                            $document->id,
+                            $typeId,
+                            $stypeIdMain,
+                            $ekey.'**userfacilitygroup**'.$k,
+                            $value
                         );
-                    };
+                    }
+                }
+            }
+
+            //user client connections
+            if(!empty($clients)){
+                foreach($clients as $k => $f){
+                    foreach($f as $ekey => $value){
+                        $this->upsertConnectionEntity(
+                            $document->id,
+                            $clientTypeId,
+                            $stypeIdMain,
+                            $ekey.'**userclientgroup**'.$k,
+                            $value
+                        );
+                    }
                 }
             }
 
@@ -212,37 +227,23 @@ class PersonsServiceProvider extends ServiceProvider
 
             DB::commit();
 
-            // dispatch notification to configured recipients (queued)
-            /*try{
-                $userEmail = $user['username'] ?? null;
-                $phone = null;
-                if (!empty($contacts) && isset($contacts[0])) {
-                    if (is_array($contacts[0])) {
-                        $phone = $contacts[0]['phone'] ?? null;
-                    } elseif (is_object($contacts[0])) {
-                        $phone = $contacts[0]->phone ?? null;
-                    }
-                }
-
-                SendRegisterMailJob::dispatch($userEmail, $phone, $document->id)->onQueue('emails');
-            }catch(\Throwable $je){
-                Log::error('Failed to dispatch SendRegisterMailJob', ['exception' => $je]);
-            }*/
+            
 
             return [
                 'success' => $rsp,
                 'id'      => $document->id,
                 'data'    => $document,
+                'type'    => $formData['type_key'] ?? null,
                 'user'    => User::where('person_id', $document->id)->first() ?? [],
             ];
-        /*}catch(\Throwable $e){
+        }catch(\Throwable $e){
             DB::rollBack();
             Log::error('PersonsServiceProvider::setPerson error', ['exception' => $e]);
             return [
                 'success' => false,
                 'error'   => $e->getMessage()
             ];
-        }*/
+        }
         
     }
 
@@ -261,6 +262,16 @@ class PersonsServiceProvider extends ServiceProvider
                                     inner join sys_con_ops as so on so.id = se.conn_id 
                                     inner join sys_options as sp on sp.id = so.type_id
                                 where so.conn_id = 0 and sp.op_key = 'op-doc-user-contact-form'  and so.main_id = i.id)::text  as  contacts";
+        $clients  = "(SELECT    json_agg(
+                                        json_build_object(
+                                            'Key',se.entity_tag,
+                                            'Value' , se.entity_value
+                                        )
+                                    ) 
+                                FROM sys_con_entities as se
+                                    inner join sys_con_ops as so on so.id = se.conn_id 
+                                    inner join sys_options as sp on sp.id = so.type_id
+                                where so.conn_id = 0 and sp.op_key = 'op-doc-user-client-form'  and so.main_id = i.id)::text  as  clients";
         $permissions = "(SELECT    json_agg(
                                         json_build_object(
                                             'Key',se.entity_tag,
@@ -291,7 +302,8 @@ class PersonsServiceProvider extends ServiceProvider
                             u.status as  user_status,
                             u.grp_code as  user_grp_code,
                             $permissions,
-                            $contacts
+                            $contacts,
+                            $clients
                         from persons as i
                             left join users as u on u.person_id = i.id
                             left join sys_options as o on o.id = i.type_id ";
@@ -362,6 +374,15 @@ class PersonsServiceProvider extends ServiceProvider
         
     }
 
+    public function sendapproveMails($email){
+        try{
+            SendApproveMailJob::dispatch($email)->onQueue('emails');
+        }catch(\Throwable $e){
+            Log::error('SendApproveMailJob dispatch failed', ['exception' => $e, 'email' => $email]);
+        }
+        
+    }
+
     public function sendresetMail($email, $password){
         try{
             //php artisan queue:work --queue=emails
@@ -417,24 +438,61 @@ class PersonsServiceProvider extends ServiceProvider
         $permTypeId   = (Sys_options::where(['op_key' => 'op-doc-user-permission-form'])->first())->id;
         $stypeIdMain  = (Sys_options::where(['op_key' => 'personnel-main'])->first())->id;       
         foreach($users as $user){
-            $conn = Sys_con_ops::updateOrCreate(
-                ['main_id' => $user->person_id,'type_id' => $permTypeId,'sub_type_id' => $stypeIdMain], //ask from this values
-                [
-                    'main_id' => $user->person_id,
-                    'type_id' => $permTypeId,
-                    'sub_type_id' => $stypeIdMain,
-                    'conn_id'  => 0
-                ] 
+            $this->upsertConnectionEntity(
+                $user->person_id,
+                $permTypeId,
+                $stypeIdMain,
+                $user->person_id.'**userpermissiongroup**'.$user->person_id,
+                empty($permissions) ? '[]' : json_encode($permissions)
             );
-            Sys_con_entities::updateOrCreate(
-                ['conn_id' => $conn->id,'entity_tag' => ($user->person_id.'**userpermissiongroup**'.$user->person_id)], //ask from this values
-                [
-                    'table_tag' => 'user_con_ops',
-                    'conn_id' => $conn->id,
-                    'entity_tag' => ($user->person_id.'**userpermissiongroup**'.$user->person_id),
-                    'entity_value' => empty($permissions) ? '[]' : json_encode($permissions)
-                ]
-            );
+        }
+    }
+
+    // this method will set glue between client and main user of it
+    public function setClientToPerson($personData,$userData){
+        try {
+            $connId = Sys_options::where('op_key','personnel-main')->first()->id;
+            $typeId = Sys_options::where('op_key','op-doc-client-main')->first()->id;
+            
+            //first chech if connection already exists
+            $conn   = Sys_con_ops::where(
+                ['main_id' => $personData['id'],'type_id' => $typeId,'sub_type_id' => $connId], //ask from this values
+            )->first();
+
+            if(empty($conn)){
+                $res = (new DocumentServiceProvider())->registerContent(0,[
+                    'dynamicF' => [
+                        'op-doc-client-form**new-'.date('YmdHis') => [
+                            'entities' => [
+                                'clicode' => $personData->qnid,
+                                'title'   => $userData->email,
+                            ],
+                            "tag" => "op-doc-client-form"
+                        ],
+                    ],
+                    "typeKey" => "op-doc-client"
+                ],[]);
+
+                if($res['success'] == true){
+                    Sys_con_ops::updateOrCreate(
+                        ['main_id' => $personData['id'],'type_id' => $typeId,'sub_type_id' => $connId], //ask from this values
+                        ['main_id' => $personData['id'],'type_id' => $typeId,'sub_type_id' => $connId, 'conn_id' => $res['id']]
+                    );
+
+                    //send mail
+                }
+            }
+            
+            return true;
+        } catch (\Throwable $e) {
+            print_r($e->getMessage()."\n".$e->getFile()."\n".$e->getLine());
+            Log::error('PersonsServiceProvider::setClientToPerson error', [
+                'exception' => $e,
+                'personData' => $personData,
+                'clientData' => $clientData,
+            ]);
+
+            return false;
         }
     }
 }

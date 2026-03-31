@@ -110,7 +110,7 @@ class MailService
         }
 
         // SMS send
-        if (!empty($smsTarget)) {
+        /*if (!empty($smsTarget)) {
             try {
                 $smsService = new SmsService();
                 $smsResult = $smsService->sendSms(
@@ -132,7 +132,7 @@ class MailService
                 $overallSuccess = false;
                 $response['sms_error'] = $e->getMessage();
             }
-        }
+        }*/
 
         if ($overallSuccess) {
             $response['success'] = true;

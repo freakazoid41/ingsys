@@ -33,18 +33,6 @@ class PersonsController extends Controller
                     'success' => !empty($res),
                     'data' => $res['person'][0] ?? [],
                 ];
-                /*$res = [];
-                if($id != 0){
-                    $res = $model::where('id',$id)->first();
-                }else{
-                    $res = $model::all();
-                }
-				$res = $res->toarray();
-                //get request for data getting
-                $response = [
-                    'success' => !empty($res),
-                    'data' => $res,
-                ];*/
                 break;
             case "POST":
                 $req = $request->all();
@@ -85,8 +73,18 @@ class PersonsController extends Controller
                     'success' => false,
                     'msg'     => 'not valid for system user...',
                 ],401);
+                $decodedData = json_decode($data['data'] ?? '{}',true);
+                $res = (new PersonsServiceProvider())->setPerson($request->id,$decodedData,$_FILES,'persons',$data);
                 
-                $res = (new PersonsServiceProvider())->setPerson($request->id,json_decode($data['data'] ?? '{}',true),$_FILES,'persons',$data);
+                //here check if person is activating and type of that person is client add client info for it and send activated mails
+                if($res['success'] && $res['type'] == 'op-pert-reseller' && $decodedData['user_status'] == '1'){
+                    $user   = $res['user'];
+                    $person = $res['data']; 
+                    //here add client information and update our user client informations also send approved mail
+                    (new PersonsServiceProvider())->setClientToPerson($person,$user);
+                   
+                }
+
 
                 $response = [
                     'success' => $res['id'] > 0,
@@ -211,6 +209,23 @@ class PersonsController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'Method not allowed'], 405);
+    }
+
+     public function rolesItems(Request $request, $id = null){
+        if(!\checkPerm('per-04-03')) return response()->json([
+            'success' => false,
+            'msg'     => 'not valid for system user...',
+        ],401);
+
+        $path = storage_path('app/role_details.json');
+        if (!file_exists($path)) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $content = file_get_contents($path);
+        $data = json_decode($content, true);
+
+        return response()->json(['success' => true, 'data' => (is_array($data) ? $data : [])]);
     }
 
     /**

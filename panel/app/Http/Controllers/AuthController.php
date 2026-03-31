@@ -95,6 +95,8 @@ class AuthController extends Controller
                 'g-recaptcha-response.required' => 'reCAPTCHA zorunludur.',
             ]);
 
+            
+
             if($validateUser->fails()) return redirect()->route('register')->with('register-error', 'Gerekli Bilgileri Doldurunuz...');
 
             //here  email must be unique in users table 
@@ -102,19 +104,21 @@ class AuthController extends Controller
                 return redirect()->route('register')->with('register-error', 'Bu E-Posta kullanılmaktadır. Lütfen farklı Bir E-Posta ile kayıt olunuz...');
             }
 
-
+            
 
             $res = (new PersonsServiceProvider())->setPerson(0,[
                 'main_name'      => $req['email'] ?? '-',
                 'user_status'    => '-1',
                 'user_username'  => $req['email'] ?? '-',
                 'user_password'  => $req['password'],
+                'user_role'      => 'immutable-tedarikçi',
                 'type_key'       => 'op-pert-reseller',
                 'contphone**userfacilitygroup**main-0' => $req['phone'] ?? 0,
 
             ],$request->files->all(),'persons');
-
-
+            //if is approve later we will add company info to it
+           
+            
             if($res['success']){
 
                 //send mail to admins for new registration
@@ -562,21 +566,7 @@ class AuthController extends Controller
         ],200);
     }
 
-    //this method will set current apartment
-    public function setapartment(Request $request,$apartment){
-        $apt = Sys_options::where('op_key',$apartment)->first();
-        session(['grp_code'   => $apartment]);
-        session(['grp_title'  => $apt->title ?? 'Apartmant Mevcut Değil']);
-        return redirect()->route('app');
-    }
-
-    //this method will close apartment
-    public function closeapartment(Request $request){
-        $apt = Sys_options::where('op_key',session('grp_code'))->first();
-        $apt->status = 0;
-        $apt->save();
-        return redirect('/panel/apartments');
-    }
+    
 
     public function logout(Request $request){
         $request->session()->flush();

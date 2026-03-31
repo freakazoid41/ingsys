@@ -60,6 +60,101 @@
             }
         },
         methods: {
+            parseRowStatus(lastStatus){
+                try {
+                    return JSON.parse(lastStatus || '{}');
+                } catch (e) {
+                    return {};
+                }
+            },
+            createDetailModalContent(rowData){
+                const makeLine = (labelText, valueNodeOrText) => {
+                    const line = document.createElement('div');
+                    line.classList.add('d-flex','justify-content-between','w-100','mb-2');
+                    const key = document.createElement('span');
+                    key.classList.add('text-dark','fw-semibold');
+                    key.textContent = labelText;
+                    const value = document.createElement('span');
+                    value.classList.add('text-end','text-muted');
+                    if (valueNodeOrText instanceof Node) {
+                        value.appendChild(valueNodeOrText);
+                    } else {
+                        value.textContent = valueNodeOrText;
+                    }
+                    line.appendChild(key);
+                    line.appendChild(value);
+                    return line;
+                };
+
+                const container = document.createElement('div');
+                container.classList.add('bg-white','border','border-1','rounded','p-3','shadow-sm');
+
+                container.appendChild(makeLine('İlişki:', rowData.title ?? '—'));
+                container.appendChild(makeLine('Eklenme Tarihi:', dayjs(rowData.created_at).format('DD/MM/YYYY HH:mm') || '—'));
+                
+                const statusData = this.parseRowStatus(rowData.last_status);
+                const statusTitle = statusData?.title ?? 'Bekleniyor..';
+                const statusBadge = document.createElement('span');
+                statusBadge.classList.add('badge','text-dark');
+                statusBadge.textContent = statusTitle;
+                container.appendChild(makeLine('Güncel Durum:', statusBadge));
+                container.appendChild(makeLine('Kontrol Eden:', statusData?.name ?? '—'));
+
+                let noteText = '';
+                try { noteText = JSON.parse(statusData?.note ?? '{}')?.note ?? ''; } catch (e) { noteText = ''; }
+                const noteEl = document.createElement('span');
+                noteEl.classList.add('text-muted','small');
+                noteEl.textContent = noteText || 'Yok';
+                container.appendChild(makeLine('Durum Notu:', noteEl));
+
+                const versionsWrap = document.createElement('div');
+                versionsWrap.classList.add('w-100','mt-3');
+                const label = document.createElement('h6');
+                label.classList.add('mb-2','pt-2','border-top','text-secondary','small','fw-semibold');
+                label.textContent = 'Geçmiş Versiyonlar';
+                versionsWrap.appendChild(label);
+
+                const ul = document.createElement('ul');
+                ul.classList.add('list-group','w-100','mt-2');
+                let oldVersions = [];
+                try { oldVersions = JSON.parse(rowData?.old_versions ?? '[]') || []; } catch(e){ oldVersions = []; }
+                if(oldVersions.length){
+                    oldVersions.forEach((version, i) => {
+                        const li = document.createElement('li');
+                        li.classList.add('list-group-item','p-1');
+                        const a = document.createElement('a');
+                        a.classList.add('text-decoration-none','d-flex','align-items-center','justify-content-center');
+                        a.href = '/order-file/'+version.description;
+                        a.target = '_blank';
+                        a.innerHTML = (i == 0 ? '<i class="ki-outline fs-2 ki-arrow-right" style="color:tomato"></i>' : '') + dayjs(version.created_at).format('DD/MM/YYYY HH:mm');
+                        li.appendChild(a);
+                        ul.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    li.classList.add('list-group-item','p-1','text-muted');
+                    li.textContent = 'Yok';
+                    ul.appendChild(li);
+                }
+                versionsWrap.appendChild(ul);
+                container.appendChild(versionsWrap);
+
+                return container;
+            },
+            showDetailModal(rowData){
+                const container = this.createDetailModalContent(rowData);
+                Swal.fire({
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    didOpen: () => {
+                        const htmlContainer = Swal.getHtmlContainer();
+                        if(htmlContainer){
+                            htmlContainer.innerHTML = '';
+                            htmlContainer.appendChild(container);
+                        }
+                    }
+                });
+            },
             buildTestTable(){
                 
                 //set headers
@@ -94,13 +189,13 @@
                         columnFormatter : (elm,rowData,columnData) => {
                             const  btn    = document.createElement('button');
                             btn.classList.add('btn','d-flex','align-items-center');
-                            console.log(columnData);
-                            const key = columnData?.split('**');
+                            const statusData = JSON.parse(columnData);
+                            const key = statusData?.op_key;
                             let icon  = '<i class="ph ph-timer fs-2 me-3 text-body-emphasis"></i>';
-                            switch(key?.[0]){
+                            switch(key){
                                 case 'doc_file_waiting':
                                 default:
-                                    if(key?.[1]) key[1] = 'Kontrol Bekleniyor';
+                                    if(statusData?.title) statusData.title = 'Kontrol Bekleniyor';
                                     icon  = '<i class="ki-outline ki-directbox-default fs-2 me-3 text-body-emphasis"></i>';
                                     btn.classList.add('btn-default');
                                     break;
@@ -117,7 +212,7 @@
                                     btn.classList.add('btn-danger');
                                     break;
                             }
-                            btn.innerHTML = icon+' '+(key?.[1] ?? 'Bekleniyor..') ;
+                            btn.innerHTML = icon+' '+(statusData?.title ?? 'Bekleniyor..') ;
                             btn.type      = 'button';
                             btn.onclick   = this.useAuthStore().permissions?.includes('per-07-02') ? (e) => {
                                 Swal.fire({
@@ -130,7 +225,7 @@
                                                 <button class="btn btn-danger mb-5 doc-status"  data-key="doc_file_rejected"  type="button">Reddet</button>
                                             </div>`,
                                     willOpen : async () => {
-                                        Swal.showValidationMessage(key?.[2]);
+                                        Swal.showValidationMessage(JSON.parse(statusData?.note)?.note ?? '');
                                         document.querySelectorAll('.doc-status').forEach(btn => {
                                             btn.addEventListener('click', e => {
                                                 Swal.fire({
@@ -192,8 +287,9 @@
                             btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
                             btn.innerHTML = '<i class="ki-duotone ki-pencil text-gray-900 fs-2 text-body-emphasis" role="img"><span class="path1"></span><span class="path2"></span></i>';
                             btn.onclick   = () => {
-                                //here open detail modal
-                            }
+                                this.showDetailModal(rowData);
+                            };
+
                             span.appendChild(btn);
 
                             btn = document.createElement('button');

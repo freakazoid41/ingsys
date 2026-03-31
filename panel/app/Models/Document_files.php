@@ -76,9 +76,22 @@ class Document_files extends Model
                                         )
                                     FROM sys_con_entities as se1
                                     where se1.conn_id = se.conn_id)  as  relation_detail",
-            'last_status'       => "(select     
             
-                                            concat(sot.op_key,'**',sot.title,'**',p.name,' ',p.surname) 
+            'old_versions'      => "(select     json_agg(
+                                                    json_build_object(
+                                                        'description',df2.description,
+                                                        'created_at' , df2.created_at
+                                                    )
+                                                )
+                                    from sys_con_entities se2
+                                        inner join document_files as df2 on df2.id = se2.entity_value::int
+                                    where se2.entity_tag = se.entity_tag)  as  old_versions",
+            'last_status'       => "(select     json_build_object(
+                                                    'op_key',sot.op_key,
+                                                    'title' , sot.title,
+                                                    'name'  , p.name,
+                                                    'note' , t.description
+                                                ) 
                                                     from transactions t 
                                             
                                                 inner join sys_options sot on sot.id = t.type_id

@@ -36,9 +36,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::any('/v1/users/{id?}',                      [PersonsController::class, 'uindex']);
     Route::any('/v1/persons/{id?}',                    [PersonsController::class, 'index']);
+    Route::get('/v1/roles/items',                      [PersonsController::class, 'rolesItems']);
     Route::get('/v1/roles/templates',                  [PersonsController::class, 'rolesTemplate']);
     Route::post('/v1/roles/templates',                 [PersonsController::class, 'rolesTemplate']);
     Route::delete('/v1/roles/templates/{id}',          [PersonsController::class, 'rolesTemplate']);
+    Route::get('/v1/roles/items',                      [PersonsController::class, 'rolesItems']);
 
     Route::get('/v1/trans/prepare-payment',            [DocumentController::class, 'preparePayment']);
     Route::post('/v1/trans/set-payment',               [DocumentController::class, 'setPayment']);

@@ -18,7 +18,7 @@ class DocumentServiceProvider extends ServiceProvider
        
     }
 
-    public function registerContent($id = 0,$requestData,$files){
+    public function registerContent($id = 0,$requestData,$files = []){
         $typeKey      = $requestData['typeKey'] ?? 'op-doc-period';
         $dynamicF     = $requestData['dynamicF'] ?? [];
         $dynamicFiles = [];
@@ -92,6 +92,7 @@ class DocumentServiceProvider extends ServiceProvider
                 $id      = explode('**',$key)[1];
                 $tag     = $field['tag'];
                 $typeId  = (Sys_options::where(['ctitle' => 'type_id','op_key' => $tag])->first())->id;
+                
 
                 //set new field
                 $conn  = new Sys_con_ops();
@@ -188,7 +189,20 @@ class DocumentServiceProvider extends ServiceProvider
                             when sce.table_tag = 'document_files'
                             then (  select  json_build_object(
                                                 'description',description,
-                                                'id',df.id
+                                                'id',df.id,
+                                                'last_status',(select   json_build_object(
+                                                                            'op_key',sot.op_key,
+                                                                            'title' , sot.title,
+                                                                            'name'  , p.name,
+                                                                            'note' , t.description
+                                                                        ) 
+                                                                        from transactions t 
+                                                                
+                                                                    inner join sys_options sot on sot.id = t.type_id
+                                                                    inner join user_logs ul on ul.id = t.log_id
+                                                                    inner join users u on u.id = ul.user_id
+                                                                    inner join persons p on p.id = u.person_id
+                                                                where t.target_id = df.id and op_id = 1 order by t.id desc limit 1)
                                             )
                                     from document_files as df
                                         where df.id = sce.entity_value::int)::text

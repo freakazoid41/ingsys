@@ -58,8 +58,6 @@ class DocumentController extends Controller
             case "POST":
                 $req = $request->all();
                 $req = json_decode($req['data'],true);
-                
-                
                 $res = (new DocumentServiceProvider())->registerContent(0,$req,$request->files->all());
                 
                 $response = [

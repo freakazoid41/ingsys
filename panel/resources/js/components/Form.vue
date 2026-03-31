@@ -1288,10 +1288,10 @@
                         if(attr.type === 'file'){
                             input.setAttribute('accept',attr?.accept);
                             input.dataset.fileId = 0;
-                                
+                            
                             const fileData = JSON.parse(data?.entities?.[attr.name] ?? '{}');
                             if(fileData?.description){
-                               
+                                console.log(fileData);
                                 input.dataset.fileId = fileData.id;
                                 input.dataset.file = 'Dosya Mevcut';
 

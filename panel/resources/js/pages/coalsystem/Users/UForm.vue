@@ -53,6 +53,7 @@
                     response.data.main_name     = response?.data.name;
                     response.data.user_status   = response?.data.user_status;
                 }   
+                console.log(response.data)
                 //here set permissions options
                 let permissions = JSON.parse(response?.data?.permissions ?? '[]');
 
@@ -85,7 +86,21 @@
                     });
                 }
 
+                let clients = JSON.parse(response?.data?.clients ?? '[]');
+                
+                if(clients.length > 0){
+                    clients.forEach(obj => response.data[obj.Key] = obj.Value);
+                    this.formDataStore.setData({
+                        'op-doc-user-form' : {
+                            [this.id] : {
+                                'entities' : response?.data
+                            }
+                        }
+                    });
+                }
+
                 this.loadForm = true;
+                
                 setTimeout(() => {
                     this.navigationStore.toggle(false);
                 }, 500);
@@ -115,6 +130,7 @@
             };
         },
         methods: {
+            
             async submitForm(formData){
                 this.formData = formData;
                 //console.log(formData);

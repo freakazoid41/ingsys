@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue'
 import { useAuthStore } from '@/stores/auth';
+import { usePermissionDataStore } from '@/stores/permissiondata';
 import router from '@/router/index';
 import App from '@/layouts/App.vue';
 import '../css/app.css';
@@ -17,6 +18,8 @@ window.axios.defaults.withCredentials = true;
 window.axios.defaults.withXSRFToken = true;*/
 
 const pinia = createPinia();
+const authStore = useAuthStore(pinia);
+const permissionDataStore = usePermissionDataStore(pinia);
 
 const app = createApp(App)
   .use(pinia)
@@ -27,11 +30,26 @@ const app = createApp(App)
       },
     })
   .use(createHead())
-  .use(router)
-  .mount('#app');
+  .use(router);
 
-useAuthStore().setData({
-  'type'  : 'admin',
+const initApp = async () => {
+  try {
+    await authStore.getPermissions();
+    await Promise.all([
+      permissionDataStore.fetchRoleTemplates(),
+      permissionDataStore.fetchRoleItems(),
+    ]);
+  } catch (e) {
+    console.error('app init failed:', e);
+  }
+
+  app.mount('#app');
+};
+
+initApp();
+
+authStore.setData({
+  type: 'admin',
 });
 /*const userStore = useAuthStore()
 userStore.attempt_user()

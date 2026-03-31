@@ -457,6 +457,13 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-user-permission-form',
                 'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Kullanıcı Cari Listesi',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-user-client-form',
+                'group_key' => 'op-doc-forms',
             ]
         ];
 
@@ -480,7 +487,7 @@ class SysSeeder extends Seeder
                 'ttitle'    => 'sys_con_ops',
                 'ctitle'    => 'sub_type_id',
                 'op_key'    => 'personnel-main',
-            ],
+            ]
         ];
 
         $personTypes = [
@@ -536,6 +543,13 @@ class SysSeeder extends Seeder
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-request',
+                'group_key' => 'op-doc',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Cari Ana Kart',
+                'ttitle'    => '-',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-client-main',
                 'group_key' => 'op-doc',
             ],[
                 'parent_id' => 0,

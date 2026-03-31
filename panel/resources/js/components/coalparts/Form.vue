@@ -2,6 +2,8 @@
     import Plib from '@/lib/pickle';
     import AppFab from '@/components/coalparts/AppFab.vue';
     import flatpickr from 'flatpickr';
+    import PickleTable from 'pickletable';
+    import 'pickletable/assets/style.css';
     import monthSelectPlugin from 'flatpickr/dist/plugins/monthSelect/index.js';
     import { Turkish } from 'flatpickr/dist/l10n/tr.js';
     import TreeModal from '@/lib/treeModal.js';
@@ -30,7 +32,7 @@
         setup() {
             // localize flatpickr to Turkish
             flatpickr.localize(Turkish);
-
+            
             // expose to template and other options API hooks
             return {
                 usePermissionDataStore,
@@ -41,10 +43,53 @@
                 VMasker,
                 wTrans,
                 useAuthStore,
-                Swal
+                Swal,
+                PickleTable
             }
         },
         data() {
+            const usersClientClick = (e,element) => {
+                Swal.fire({
+                    title: 'Cari Seçiniz',
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                    html: ` <style>
+                                /* make the full row red when any cell is hovered */
+                                .pickletable tr:hover td {
+                                    background-color: #D75010 !important;
+                                    color : white !important;
+                                }
+                                .pickletable tr:hover {
+                                    border-radius: 10px !important;
+                                }
+
+                                .pickletable tr:hover td:first-child {
+                                    border-top-left-radius: 10px !important;
+                                    border-bottom-left-radius: 10px !important;
+                                }
+
+                                .pickletable tr:hover td:last-child {
+                                    border-top-right-radius: 10px !important;
+                                    border-bottom-right-radius: 10px !important;
+                                }
+                            </style>
+                            <div id="client-tree" class="text-start"></div>`,
+                    willOpen : () => {
+                        this.buildClientTable('#client-tree',(data) => {
+                            element.value = data.clicode;
+                            const codeElm = element.parentNode.parentNode.parentNode.querySelector('input[name^="clititle"]');
+                            const idElm   = element.parentNode.parentNode.parentNode.querySelector('input[name^="cliid"]');
+                            codeElm.value = data.title;
+                            idElm.value = data.id;
+                            codeElm.dispatchEvent(new Event('input'));
+                            idElm.dispatchEvent(new Event('input'));
+                            element.dispatchEvent(new Event('input'));
+                            Swal.close();
+                        });
+                        
+                    }
+                });
+            };
             const moneyIcons = {
                 'TRY' : '&#8378;',
                 'USD' : '&#36;',
@@ -299,6 +344,43 @@
                                         col   : 4,
                                         name  : 'contmail',
                                         label : 'E-posta',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_312',
+                                label : 'Bağlı Cariler',
+                                col   : 6,
+                                group_key : 'userclientgroup',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 4,
+                                        readOnly : true,
+                                        name  : 'cliid',
+                                        hidden : true,
+                                        label : '',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        col   : 4,
+                                        readOnly : true,
+                                        name  : 'clicode',
+                                        label : 'Cari Kodu',
+                                        onclick : usersClientClick,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        readOnly : true,
+                                        col   : 4,
+                                        name  : 'clititle',
+                                        label : 'Cari Başlık',
+                                        onclick : usersClientClick,
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
                                 ]
@@ -949,11 +1031,15 @@
                         if(attr?.readOnly)                input.readOnly = attr.readOnly;
                         if(attr.class !== undefined)      input.classList.add(...attr?.class);
                         if(attr?.required !== undefined)  input.required = attr.required;
-                        if(attr?.hidden)                  input.hidden = attr.hidden;
+                        if(attr?.hidden){
+                            input.hidden = attr.hidden;
+                            iDiv.parentNode.style.display = 'none';
+                        }                  
 
                         input.classList.add('form-item');
                         
-                        input.oninput = (e) => attr.oninput(e);
+                        input.onclick = (e) => attr?.onclick?.(e,input) ?? (() => {})();
+                        input.oninput = (e) => attr?.oninput?.(e) ?? (() => {})();
                         iDiv.appendChild(input);
                         
                         if(attr.type === 'file'){
@@ -962,10 +1048,17 @@
                                 
                             const fileData = JSON.parse(data?.entities?.[attr.name] ?? '{}');
                             if(fileData?.description){
-                               
+                                
                                 input.dataset.fileId = fileData.id;
                                 input.dataset.file = 'Dosya Mevcut';
-
+                                if(fileData?.last_status?.op_key == 'doc_file_rejected'){
+                                    input.classList.add('is-invalid');
+                                    const invalidFeedback = document.createElement('div');
+                                    invalidFeedback.classList.add('invalid-feedback');
+                                    invalidFeedback.innerHTML = 'Dosya reddedilmiş durumda. Lütfen yeni bir dosya yükleyiniz.';
+                                    invalidFeedback.style.display = 'block';
+                                    iDiv.parentNode.appendChild(invalidFeedback);
+                                }
 
                                 const showB     = document.createElement('span');
                                 showB.classList.add('input-group-text','rmv-btn-form');
@@ -1117,22 +1210,25 @@
                         if(attr?.setOptions !== undefined){
                             attr.options = await  attr.setOptions();
                         }
-
+                        input.oninput = (e) => attr.oninput(e);
                         for (let index = 0; index < attr?.options?.length; index++) {
                             op = document.createElement('option');
                             op.text  = attr.options[index].text;
                             op.value = attr.options[index].value;
                             if(attr.options[index].key !== undefined) op.dataset.key = attr.options[index].key;
                             if(attr.options[index].limit !== undefined) op.dataset.limit = attr.options[index].limit;
-
-                            if(data?.entities?.[attr.name] !== undefined && data?.entities?.[attr.name] == op.value) op.selected = true;
                             if(attr.options[index].data !== undefined) op.dataset.info = JSON.stringify(attr.options[index].data);
+                            if(data?.entities?.[attr.name] !== undefined && data?.entities?.[attr.name] == op.value) op.selected = true;
+                        
+                            
                             input.appendChild(op);
                         }
-
-                        input.oninput = (e) => attr.oninput(e);
-
                         iDiv.appendChild(input);
+                        if(data?.entities?.[attr.name] !== undefined){
+                            input.dispatchEvent(new Event('input'));
+                        } 
+
+                        
                         //NiceSelect.bind(input, attr?.isSearchable ? {searchable : true} : {});
 
                         return iDiv;
@@ -1345,7 +1441,6 @@
                                        
                                 //here check row count
                                 const rowCount = itemRow.querySelectorAll('.multiple-item-row').length;
-                                console.log(rowCount)
                                 if(rowCount > 1){
                                     //remove required attr from first row elements
                                     itemRow.querySelectorAll('.multiple-item-row .form-item').forEach(el => {
@@ -1353,7 +1448,6 @@
                                     });
                                 }
                             }
-
                             break;
                         case 'section':
                             labelDiv.remove();
@@ -1625,6 +1719,68 @@
 
                 form.oncreated(rowId,row);
             },
+            buildClientTable(target,clickEvent){
+                    
+                //set headers
+                const headers = [
+                    {
+                        title : 'Firma Ünvan',
+                        key   : 'title',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                    },{
+                        title : 'Firma Kodu',
+                        key   : 'clicode',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                    }
+                ];
+                
+                //initiate table
+                this.table = new PickleTable({
+                    container : target, //table target div
+                    headers   : headers,
+                    pageLimit : 10, // -1 for closing pagination
+                    height    : '30vh',
+                    type      : 'ajax',
+                    columnSearch : true, // true - false for opening and closig
+                    paginationType : 'number',// scroll - number (number for default)
+                    ajax:{
+                        url:'/api/v1/table/documents',
+                        data:{
+                            //order:{},
+                        }
+                    },
+                    initialFilter : [
+                        {
+                            key   : 'form-type',
+                            type  : '=',
+                            value : 'op-doc-client-form'
+                        },{
+                            key   : 'type',
+                            type  : '=',
+                            value : 'op-doc-client'
+                        }
+                    ],
+                    nextPageIcon : '<i class="ki-outline ki-arrow-right  text-body-emphasis"></i>',
+                    prevPageIcon : '<i class="ki-outline ki-arrow-left text-body-emphasis"></i>',
+                    rowClick     : (elm,data)=> clickEvent(data),
+                    rowFormatter : (elm,data)=>{
+                        //console.log(elm,data);
+                        //modify row element
+                        //elm.style.backgroundColor = 'yellow';
+                        //modify data
+                        JSON.parse(data.main_attr).forEach(element => {
+                            data[element['Key']] = element['Value'];
+                            //if(data['cont_name'] == undefined) data['cont_name'] = []
+                            //if(element['Key'].includes('cont_name')) data['cont_name'].push(element['Value']);
+                        });
+                        //data['cont_name'] = (data['cont_name'] ?? []).join(' , ');
+                        //data.status = JSON.parse(data.status).OpTitle;
+                        return data;
+                    },
+                });
+            },
         },
         beforeUnmount() {
             if (Array.isArray(this.flatpickrInstances)) {
@@ -1640,6 +1796,7 @@
                 try { this._treeModalInstance.destroy(); } catch (e) {}
             }
         },
+        
     }
 </script>
 <template>
