@@ -9,11 +9,13 @@
     import TreeModal from '@/lib/treeModal.js';
     import VMasker  from 'vanilla-masker';
     import { wTrans } from 'laravel-vue-i18n';
+     import { useRoute } from 'vue-router';
     import { useFormDataStore } from '@/stores/formdata';
     import { usePermissionDataStore } from '@/stores/permissiondata';
+    import { useNavigationStore } from '@/stores/navigation';
     import { useAuthStore } from '@/stores/auth';
     import Swal from 'sweetalert2';
-
+    import dayjs from 'dayjs';
 
 
     export default {
@@ -21,7 +23,19 @@
             formtypes : {
                 type: String
             },
+            fabtype : {
+                type: String
+            },
             savecallback: {
+                type: Function
+            },
+            savebtntitle:{
+                type: String
+            },
+            rejectcallback: {
+                type: Function
+            },
+            acceptcallback: {
                 type: Function
             }
         },
@@ -32,9 +46,9 @@
         setup() {
             // localize flatpickr to Turkish
             flatpickr.localize(Turkish);
-            
             // expose to template and other options API hooks
             return {
+                
                 usePermissionDataStore,
                 useFormDataStore,
                 flatpickr,
@@ -44,7 +58,8 @@
                 wTrans,
                 useAuthStore,
                 Swal,
-                PickleTable
+                PickleTable,
+                dayjs
             }
         },
         data() {
@@ -56,7 +71,7 @@
                     html: ` <style>
                                 /* make the full row red when any cell is hovered */
                                 .pickletable tr:hover td {
-                                    background-color: #D75010 !important;
+                                    background-color: #154b91 !important;
                                     color : white !important;
                                 }
                                 .pickletable tr:hover {
@@ -76,29 +91,44 @@
                             <div id="client-tree" class="text-start"></div>`,
                     willOpen : () => {
                         this.buildClientTable('#client-tree',(data) => {
-                            element.value = data.clicode;
-                            const codeElm = element.parentNode.parentNode.parentNode.querySelector('input[name^="clititle"]');
+                            //check if same client is already added
+                            const existingClients = document.querySelectorAll('input[name^="cliid"]');
+                            let isDuplicate = false;
+                            
+                            existingClients.forEach((input) => {
+                                if(input.value === data.id.toString() && input.value !== '') {
+                                    isDuplicate = true;
+                                }
+                            });
+                            
+                            if(isDuplicate) {
+                                this.plib.toast(this.Swal, 'warning', 'Bu cari zaten eklenmiştir!');
+                                return false;
+                            }
+
+                            //element.value = data.clicode;
+                            const codeElm = element.parentNode.parentNode.parentNode.querySelector('input[name^="clicode"]');
+                            const titleElm = element.parentNode.parentNode.parentNode.querySelector('input[name^="clititle"]');
                             const idElm   = element.parentNode.parentNode.parentNode.querySelector('input[name^="cliid"]');
-                            codeElm.value = data.title;
-                            idElm.value = data.id;
+                            titleElm.value = data.title;
+                            idElm.value    = data.id;
+                            codeElm.value  = data.clicode; 
+                           
                             codeElm.dispatchEvent(new Event('input'));
                             idElm.dispatchEvent(new Event('input'));
-                            element.dispatchEvent(new Event('input'));
+                            titleElm.dispatchEvent(new Event('input'));
                             Swal.close();
                         });
                         
                     }
                 });
             };
-            const moneyIcons = {
-                'TRY' : '&#8378;',
-                'USD' : '&#36;',
-                'EUR' : '&#8364;'
-            };
+          
             return {
                 permList        : this.usePermissionDataStore().list,
                 authStore       : useAuthStore(),
                 formDataStore   : useFormDataStore(),
+                route           : useRoute(),
                 plib            : new Plib(),
                 isLoadingRoles  : true,
                 ftypes          : this.formtypes.split(','),
@@ -159,14 +189,38 @@
                         oncreated        : (id) => {},
                         fields           : [
                             {
-                                class : ['btn','btn-danger','btn-outline','w-100'],
+                                class : ['btn','btn-outline','custom-button'],
                                 type  : 'button',
                                 name  : 'createpss',
                                 col : 4,
                                 value : 'Şifre Üret',
                                 label : ' ',
                                 oninput : (e) => {
-                                    const password = Math.random().toString(36).slice(-8);
+                                    e.preventDefault();
+                                    
+                                    const generatePassword = (len = 8) => {
+                                        const lowers = 'abcdefghijklmnopqrstuvwxyzçğıöşü';
+                                        const uppers = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÇĞİÖŞÜ';
+                                        const digits = '0123456789';
+                                        const specials = '=!-@._*';
+                                        const all = lowers + uppers + digits + specials;
+
+                                        const rand = (s) => s.charAt(Math.floor(Math.random() * s.length));
+
+                                        const required = [
+                                            rand(lowers),
+                                            rand(uppers),
+                                            rand(digits),
+                                            rand(specials),
+                                        ];
+
+                                        const rest = Array.from({ length: Math.max(0, len - required.length) }, () => rand(all));
+                                        const password = [...required, ...rest].sort(() => Math.random() - 0.5).join('');
+
+                                        return password;
+                                    };
+
+                                    const password = generatePassword(8);
                                     document.querySelector('input[name="user_password"]').value = password;
                                     document.querySelector('input[name="user_password_check"]').value = password;
                                     this.plib.toast(this.Swal,'success','Yeni Şifre: '+password);
@@ -192,9 +246,9 @@
                                         class    : ['form-control','mb-2','mb-md-0','form-item'],
                                         type     : 'select',
                                         name     : 'type_key',
-                                        disabled : useAuthStore().data.type_key === 'op-pert-reseller',
+                                        disabled : !useAuthStore().permissions?.includes('per-04-02'),
                                         col      : 4,
-                                        required : true,
+                                        required : useAuthStore().permissions?.includes('per-04-02'),
                                         label    : 'Kullanıcı Tipi',
                                         options  : [
                                             {
@@ -210,8 +264,9 @@
                                         class    : ['form-control','mb-2','mb-md-0','form-item'],
                                         type     : 'select',
                                         name     : 'user_status',
+                                        disabled : !useAuthStore().permissions?.includes('per-04-02'),
                                         col      : 4,
-                                        required : true,
+                                        required : useAuthStore().permissions?.includes('per-04-02'),
                                         label    : 'Durum',
                                         options  : [
                                             {
@@ -232,13 +287,14 @@
                                         type     : 'select',
                                         name     : 'user_role',
                                         col      : 4,
-                                        required : true,
+                                        required : useAuthStore().permissions?.includes('per-04-02'),
+                                        disabled : !useAuthStore().permissions?.includes('per-04-02'),
                                         label    : 'Rol',
                                         options  : [],
                                         setOptions: async () => {
                                             const store = this.usePermissionDataStore()
                                             if (!store.roleList.length) await store.fetchRoleTemplates()
-                                            return store.roleList.map(role => ({ text: role.name, value: role.id,data:role }))
+                                            return store.roleList.map(role => ({ text: role.name, value: role.op_key,data:role }))
                                         },
                                         oninput  : (e) => {
                                             this.submitDynamicChanges(e.target);
@@ -320,6 +376,7 @@
                                 type  : 'multiple',
                                 name  : 'sub_31',
                                 label : 'İletişim',
+                                hideAdd : true,
                                 group_key : 'userfacilitygroup',
                                 subs  : [
                                     {
@@ -351,6 +408,7 @@
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'multiple',
                                 name  : 'sub_312',
+                                disabled : !useAuthStore().permissions?.includes('per-04-02'),
                                 label : 'Bağlı Cariler',
                                 col   : 6,
                                 group_key : 'userclientgroup',
@@ -389,6 +447,7 @@
                                 type  : 'tree',
                                 name  : 'permissions',
                                 label : 'İzinler',
+                                disabled : !useAuthStore().permissions?.includes('per-04-02'),
                                 list  : this.usePermissionDataStore().list,
                                 col   : 6,
                                 oncheck : (e) => this.submitDynamicChanges(e,true,'permissions')
@@ -397,7 +456,13 @@
                         ]
                     },'op-doc-request-form' : {
                         showRemoveButton : false,
-                        oncreated       : (id) => {},
+                        oncreated       : (id) => {
+                            document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
+
+
+                            document.querySelector("[data-tag*='calory_settings']").parentNode.parentNode.hidden = false;
+                            document.querySelector("[data-tag*='coal_specs']").parentNode.parentNode.hidden = false;
+                        },
                         fields          : [
                             {
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -411,15 +476,19 @@
                                         name  : 'qnid',
                                         col      : 4,
                                         required : false,
-                                        label : 'Belge Kodu (Boş Bırakılırsa Otomatik Verilir)',
+                                        hidden : true,
+                                        //showOnValue : true,
+                                        label : 'Belge Kodu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'date',
                                         isDate : true,
+                                        readOnly : true,
                                         col      : 4,
-                                        required : false,
+                                        required : true,
+                                        defaultValue : dayjs().format('DD/MM/YYYY'),
                                         label : 'Belge Tarihi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
@@ -428,7 +497,8 @@
                                         name  : 'rev_date',
                                         isDate : true,
                                         col      : 4,
-                                        required : false,
+                                        hidden : true,
+                                        showOnValue : true,
                                         label : 'Belge Rev. Tarihi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
@@ -437,32 +507,101 @@
                                         name  : 'title',
                                         col      : 4,
                                         required : true,
-                                        label : 'Belge Başlığı',
+                                        label : 'İhale Konusu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        name  : 'buyer',
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        name     : 'target_type',
                                         col      : 4,
                                         required : true,
-                                        label : 'Alıcı',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                        label    : 'Alıcı',
+                                        options  : [
+                                            {
+                                                text  : 'Yatağan',
+                                                value : 'Yatağan'
+                                            },
+                                            {
+                                                text  : 'ÇATES',
+                                                value : 'ÇATES'
+                                            }, {
+                                                text  : 'Her İkisi',
+                                                value : 'Her İkisi'
+                                            }
+                                        ],
+                                        oninput  : (e) =>{
+                                            const rtype = document.querySelector('input[name="request_type"]');
+                                            if(rtype !== null){
+                                                switch (e.target.value) {
+                                                    case 'ÇATES':
+                                                        rtype.parentNode.parentNode.style.display = '';
+                                                        break;
+                                                
+                                                    default:
+                                                        rtype.parentNode.parentNode.style.display = 'none';
+                                                        break;
+                                                }
+                                            }
+                                            
+                                            this.submitDynamicChanges(e.target)
+                                        } 
                                     },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        name  : 'seller',
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        name     : 'order_radius',
                                         col      : 4,
                                         required : true,
-                                        label : 'Satıcı',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        name  : 'order_radius',
-                                        col      : 4,
-                                        required : true,
-                                        label : 'Sipariş Kapsamı',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                        label    : 'Sipariş Kapsamı',
+                                        options  : [
+                                            {
+                                                text  : 'Nakliye Dahil',
+                                                value : 'Nakliye Dahil'
+                                            },
+                                            {
+                                                text  : 'Nakliye Hariç',
+                                                value : 'Nakliye Hariç'
+                                            }, {
+                                                text  : 'Sadece Nakliye',
+                                                value : 'Sadece Nakliye'
+                                            }
+                                        ],
+                                        oninput  : (e) =>{
+                                            const elements = {
+                                                'priceRow' : document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode,
+                                                'calory_settings': document.querySelector("[data-tag*='calory_settings']")?.parentNode?.parentNode,
+                                                'coal_specs': document.querySelector("[data-tag*='coal_specs']")?.parentNode?.parentNode
+                                            }
+
+                                            switch (e.target.value) {
+                                                case 'Nakliye Dahil':
+                                                    if(elements['priceRow'])elements['priceRow'].style.display = '';
+
+                                                    if(elements['calory_settings'])elements['calory_settings'].hidden = false;
+                                                    if(elements['coal_specs'])elements['coal_specs'].hidden = false;
+                                                    break;
+                                                case 'Sadece Nakliye':
+                                                    console.log('sdas');
+                                                    if(elements['priceRow'])elements['priceRow'].style.display = '';
+
+
+                                                    if(elements['calory_settings'])elements['calory_settings'].hidden = true;
+                                                    if(elements['coal_specs'])elements['coal_specs'].hidden = true;
+                                                    break;
+                                            
+                                                default:
+                                                    if(elements['priceRow'])elements['priceRow'].style.display = 'none';
+
+                                                    if(elements['calory_settings'])elements['calory_settings'].hidden = false;
+                                                    if(elements['coal_specs'])elements['coal_specs'].hidden = false;
+                                                    
+                                                    break;
+                                            }
+                                            
+                                            
+
+
+                                            this.submitDynamicChanges(e.target);
+                                        } 
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
@@ -470,7 +609,7 @@
                                         col      : 4,
                                         isDate : true,
                                         required : true,
-                                        label : 'Sözleşme Başlangıç Tarihi',
+                                        label : 'İhale Başlangıç Tarihi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -479,15 +618,7 @@
                                         col      : 4,
                                         isDate : true,
                                         required : true,
-                                        label : 'Sözleşme Bitiş Tarihi',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        name  : 'load_area',
-                                        col      : 4,
-                                        required : true,
-                                        label : 'Yükleme Yeri',
+                                        label : 'İhale Bitiş Tarihi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -503,101 +634,81 @@
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'sub',
                                 name  : 'sub_5',
+                                group_key : 'coal_specs',
                                 label : 'Kömürün Özellikleri / Red Şartları',
                                 subs  : [
                                     {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'coal_size',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Ebat Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'coal_hgi',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'HGİ Değeri ',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'coal_ucucu',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Uçucu Madde Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'coal_type',
                                         col      : 4,
                                         required : false,
-                                        label : 'Cinsi',
+                                        label : 'Cinsi Değeri',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
+                                        type  : 'number',
                                         name  : 'calory',
                                         col      : 4,
-                                        required : true,
-                                        label : 'Kalori',
+                                        required : false,
+                                        label : 'Kalori Değeri',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
+                                        type  : 'number',
                                         name  : 'humidity',
                                         col      : 4,
-                                        required : true,
-                                        label : 'Nem',
+                                        required : false,
+                                        label : 'Nem Değeri',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
+                                        type  : 'number',
                                         name  : 'ash_content',
                                         col      : 4,
-                                        required : true,
-                                        label : 'Kül Oranı',
+                                        required : false,
+                                        label : 'Kül Değeri',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
+                                        type  : 'number',
                                         name  : 'sulfur',
                                         col      : 4,
-                                        required : true,
-                                        label : 'Kükürt',
+                                        required : false,
+                                        label : 'Kükürt Değeri',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
                                 ]
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
-                                type  : 'sub',
-                                name  : 'sub_8',
-                                label : ' ',
-                                subs  : [
-                                    {
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        isMasked : true,
-                                        mask  : 'money',
-                                        name  : 'unit_price',
-                                        col      : 4,
-                                        required : false,
-                                        label : 'Birim Fiyat',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        name  : 'shipping_included',
-                                        col      : 4,
-                                        required : true,
-                                        label : 'Nakliye Dahil / Hariç',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        isMasked : true,
-                                        mask  : 'money',
-                                        name  : 'fuel_price_impact',
-                                        col      : 4,
-                                        required : true,
-                                        label : 'Birim Fiyatın Akaryakıt (Artış/Azalış) Etkilenme Oranı',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },{
-                                        class : ['form-control','mb-2','mb-md-0','form-item'],
-                                        type  : 'text',
-                                        isMasked : true,
-                                        mask  : 'money',
-                                        name  : 'tiufe_price_impact',
-                                        col      : 4,
-                                        required : true,
-                                        label : 'Birim Fiyatın  ((Tİ-ÜFE +TÜFE)/2 ) Etkilenme Oranı',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },
-                                ]
-                            },{
-                                class : ['form-control','mb-2','mb-md-0','form-item'],
-                                type  : 'sub',
+                                type  : 'multiple',
                                 name  : 'sub_6',
-                                label : 'Prim / Penalite Hesabı',
+                                group_key : 'calory_settings',
+                                label : 'Kömür kalori aralığına göre birim fiyatı',
                                 subs  : [
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -605,7 +716,7 @@
                                         name  : 'prime_condition_is',
                                         col      : 4,
                                         required : false,
-                                        label : 'Kcal Değeri ... (Dahil) - .... (Dahil) Aralığında ise ',
+                                        label : 'Kalori Aralığı Başlangıç( Kcal)',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -613,9 +724,19 @@
                                         name  : 'prime_condition_is_bellow',
                                         col      : 4,
                                         required : false,
-                                        label : 'Kcal Değeri ... (Dahil) ve altında ise',
+                                        label : 'Kalori Aralığı Bitiş (Kcal)',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
-                                    },
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'prime_unit_price',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Birim Fiyat',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
                                 ]
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -628,18 +749,93 @@
                                         type  : 'text',
                                         name  : 'amount',
                                         col      : 2,
+                                        isMasked : true,
+                                        mask : 'money',
                                         required : false,
+                                        hasIcon : true,
+                                        icon : 'Ton',
                                         label : 'Miktar',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        name     : 'payment_periods',
+                                        col      : 4,
+                                        label    : 'Hakediş Dönemleri',
+                                        options  : [
+                                            {
+                                                text  : 'Günlük',
+                                                value : 'Günlük'
+                                            },
+                                            {
+                                                text  : 'Haftalık',
+                                                value : 'Haftalık'
+                                            }, {
+                                                text  : 'Aylık',
+                                                value : 'Aylık'
+                                            }
+                                        ],
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'payment_desc',
+                                        col      : 6,
+                                        label : "Hakediş Açıklama",
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_8',
+                                label : 'Nakliye Birim Fiyat Değişim Oranları',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'tiufe_price_impact',
+                                        col      : 4,
+                                        required : false,
+                                        hasIcon : true,
+                                        icon : '%',
+                                        label : 'Birim Fiyatın  ((Tİ-ÜFE +TÜFE)/2 ) Etkilenme Oranı',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'payment_periods',
-                                        col      : 6,
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'fuel_price_impact',
+                                        col      : 4,
                                         required : false,
-                                        label : "Hakediş Dönemleri (Her Ay'ın 1-7,8-14,15-21,22-28,29-30/31 günlerini ifade eder.)",
+                                        hasIcon : true,
+                                        icon : '%',
+                                        label : 'Birim Fiyatın Akaryakıt (Artış/Azalış) Etkilenme Oranı',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'fuel_price_impact_2',
+                                        col      : 4,
+                                        required : false,
+                                        hasIcon : true,
+                                        icon : '%',
+                                        label : 'Birim Fiyatın Akaryakıttan Etkilenmeyecek Oranı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_7',
+                                label : ' ',
+                                subs  : [
+                                    {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'payment_due',
@@ -650,14 +846,32 @@
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
-                                        name  : 'start_date',
+                                        name  : 'transfer_start_date',
                                         isDate : true,
                                         col      : 4,
                                         required : false,
-                                        label : 'Sevkiyata Başlama Tarihi',
+                                        label : 'Sevkiyata Başlangıç Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'transfer_end_date',
+                                        isDate : true,
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Sevkiyata Bitiş Tarihi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
                                 ]
+                            },{
+                                class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                type     : 'switch',
+                                name     : 'request_type',
+                                col      : 12,
+                                required : true,
+                                label    : 'Talep Türü',
+                                desc     : 'Rodevans talep',
+                                oninput  : (e) => this.submitDynamicChanges(e.target)
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'textarea',
@@ -673,10 +887,138 @@
                         oncreated       : (id) => {},
                         fields          : [
                             {
+                                class : ['btn','btn-danger','custom-button'],
+                                type  : 'button',
+                                hidden : !useAuthStore().currentStatus.canProceed || !(useAuthStore().typeKey == 'op-pert-reseller'),
+                                name  : 'userrequest',
+                                col : 4,
+                                value : 'Kullanıcı Talebinde Bulun',
+                                label : ' ',
+                                oninput : (e) => {
+                                    e.preventDefault();
+                                    if(this.route?.params?.id === undefined || this.route?.params?.id == ''){
+                                        this.plib.toast(this.Swal,'error','Lütfen önce cari oluşturunuz.');
+                                        return false;
+                                    }
+
+
+                                    const generatePassword = (len = 8) => {
+                                        const lowers = 'abcdefghijklmnopqrstuvwxyzçğıöşü';
+                                        const uppers = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÇĞİÖŞÜ';
+                                        const digits = '0123456789';
+                                        const specials = '=!-@._*';
+                                        const all = lowers + uppers + digits + specials;
+
+                                        const rand = (s) => s.charAt(Math.floor(Math.random() * s.length));
+
+                                        const required = [
+                                            rand(lowers),
+                                            rand(uppers),
+                                            rand(digits),
+                                            rand(specials),
+                                        ];
+
+                                        const rest = Array.from({ length: Math.max(0, len - required.length) }, () => rand(all));
+                                        const password = [...required, ...rest].sort(() => Math.random() - 0.5).join('');
+
+                                        return password;
+                                    };
+
+                                    const password = generatePassword(8);
+
+                                    Swal.fire({
+                                        title: 'Kullanıcı Talep Formu',
+                                        html: `
+                                            <div class="text-start">
+                                                <div class="mb-3">
+                                                    <label class="form-label">E-posta</label>
+                                                    <input type="email" id="userEmail" class="form-control" placeholder="ornek@email.com">
+                                                    <small id="emailError" class="text-danger"></small>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Telefon</label>
+                                                    <input type="text" id="userPhone" class="form-control" placeholder="(5XX) XXX-XX-XX">
+                                                    <small id="phoneError" class="text-danger"></small>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Parola</label>
+                                                    <input type="text" id="userPassword" class="form-control" value="${password}" readonly>
+                                                    <small class="text-muted">Otomatik oluşturulan parola</small>
+                                                </div>
+                                            </div>
+                                        `,
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Gönder',
+                                        cancelButtonText: 'İptal',
+                                        willOpen : () => {
+                                            const input = document.getElementById('userPhone');
+                                            new VMasker(input).maskPattern("(999) 999-99-99");
+                                        },
+                                        preConfirm: async () => {
+                                            const email = document.getElementById('userEmail').value.trim();
+                                            const phone = document.getElementById('userPhone').value.trim();
+                                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                            const phoneRegex = /^\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/;
+                                            
+                                            let isValid = true;
+                                            
+                                            if (!email || !emailRegex.test(email)) {
+                                                document.getElementById('emailError').textContent = 'Geçerli bir e-posta adresi giriniz';
+                                                isValid = false;
+                                            } else {
+                                                document.getElementById('emailError').textContent = '';
+                                            }
+                                            
+                                            if (!phone || !phoneRegex.test(phone)) {
+                                                document.getElementById('phoneError').textContent = 'Telefon formatı (5XX) XXX-XX-XX olmalıdır';
+                                                isValid = false;
+                                            } else {
+                                                document.getElementById('phoneError').textContent = '';
+                                            }
+                                            
+                                            if (!isValid) return false;
+                                            Swal.showLoading();
+
+                                            const data = { 
+                                                email, 
+                                                phone, 
+                                                password, 
+                                                'cli_id': this.route?.params?.id,
+                                                'cli_code': document.querySelectorAll('input[name="clicode"]')[0]?.value ?? '',
+                                                'cli_title': document.querySelectorAll('input[name="title"]')[0]?.value ?? ''
+                                            };
+
+                                            
+                                            const envelope = new FormData();
+                                            for(let key in data) envelope.append(key,data[key]);
+                                            
+                                           
+                                            const rsp = await this.plib.request({
+                                                url      : '/api/v1/auth/register',
+                                                method   : 'POST',
+                                            },null,envelope);
+
+                                            if(rsp.success){
+                                                this.plib.toast(this.Swal, 'success', 'Talep gönderildi');
+                                            }else{
+                                                Swal.showValidationMessage(rsp.msg);
+                                            }
+                                            Swal.hideLoading();
+
+                                            return false;
+                                        },
+                                        showLoaderOnConfirm : true,
+                                        allowOutsideClick : false,
+                                        showCloseButton : true,
+                                        
+                                    });
+                                }
+                            },
+                            {
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'sub',
                                 name  : 'sub_4',
-                                label : 'Firma Bilgileri',
+                                label : '<h4>Firma Bilgileri</h4>',
                                 subs  : [
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -701,7 +1043,16 @@
                                         col      : 4,
                                         required : true,
                                         label : 'Firma Vergi Numarası',
-                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                        oninput : (e) =>{
+                                            if(this.vergiKimlikDogrula(e.target.value)){
+                                                e.target.classList.remove('is-invalid');
+                                                e.target.classList.add('is-valid');
+                                            }else{
+                                                e.target.classList.remove('is-valid');
+                                                e.target.classList.add('is-invalid');
+                                            }
+                                            this.submitDynamicChanges(e.target);
+                                        }
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
@@ -740,7 +1091,7 @@
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'sub',
                                 name  : 'sub_1_2',
-                                label : 'Yetkililer',
+                                label : 'Yetkililer (İletişim Bilgileriyle Beraber Girilmelidir)',
                                 type  : 'multiple',
                                 requiredIfFirst : true,
                                 group_key : 'clientcontgroup',
@@ -791,6 +1142,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
+                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_imza_file',
                                         required : true,
                                         label : ' ',
@@ -811,6 +1163,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
+                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_vergi_file',
                                         required : true,
                                         label : ' ',
@@ -831,6 +1184,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
+                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_odasicil_file',
                                         required : true,
                                         label : ' ',
@@ -851,6 +1205,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
+                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_iban_file',
                                         required : true,
                                         label : ' ',
@@ -880,7 +1235,518 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
+                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_otherdocs_file',
+                                        required : false,
+                                        label : 'Belge Dosyası',
+                                        col      : 6,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
+                    },'op-doc-offer-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {
+                            document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
+
+                            
+
+                            document.querySelector("[data-tag*='calory_settings']").parentNode.parentNode.hidden = false;
+                            document.querySelector("[data-tag*='coal_specs']").parentNode.parentNode.hidden = false;
+                        },
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_4',
+                                label : 'Teklif Formu',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'request_id',
+                                        readOnly : true,
+                                        hidden : true,
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Talep kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'offer_type',
+                                        hidden : true,
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Teklif Türü',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'clititle',
+                                        readOnly : true,
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Teklif Veren Cari',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'cliid',
+                                        readOnly : true,
+                                        hidden : true,
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Teklif Veren Cari Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'qnid',
+                                        col      : 4,
+                                        required : false,
+                                        readOnly : true,
+                                        //showOnValue : true,
+                                        hidden : true,
+                                        label : 'Teklif Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'date',
+                                        isDate : true,
+                                        readOnly : true,
+                                        col      : 4,
+                                        required : true,
+                                        defaultValue : dayjs().format('DD/MM/YYYY'),
+                                        label : 'Belge Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'rev_date',
+                                        hidden : true,
+                                        isDate : true,
+                                        showOnValue : true,
+                                        label : 'Revizyon Tarihi',
+                                        col      : 4,
+                                        required : false,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file' ? 'select' : 'text',
+                                        name     : 'target_type',
+                                        col      : 4,
+                                        required : true,
+                                        readOnly : !(useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file'),
+                                        label    : 'Alıcı',
+                                        options  : [
+                                            {
+                                                text  : 'Yatağan',
+                                                value : 'Yatağan'
+                                            },
+                                            {
+                                                text  : 'ÇATES',
+                                                value : 'ÇATES'
+                                            }, {
+                                                text  : 'Her İkisi',
+                                                value : 'Her İkisi'
+                                            }
+                                        ],
+                                        oninput  : (e) =>{
+                                            this.submitDynamicChanges(e.target)
+                                        } 
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        name     : 'order_radius',
+                                        col      : 4,
+                                        required : true,
+                                        label    : 'Sipariş Kapsamı',
+                                        options  : [
+                                            {
+                                                text  : 'Nakliye Dahil',
+                                                value : 'Nakliye Dahil'
+                                            },
+                                            {
+                                                text  : 'Nakliye Hariç',
+                                                value : 'Nakliye Hariç'
+                                            }, {
+                                                text  : 'Sadece Nakliye',
+                                                value : 'Sadece Nakliye'
+                                            }
+                                        ],
+                                        oninput  : (e) =>{
+                                            const elements = {
+                                                'priceRow' : document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode,
+                                                'calory_settings': document.querySelector("[data-tag*='calory_settings']")?.parentNode?.parentNode,
+                                                'coal_specs': document.querySelector("[data-tag*='coal_specs']")?.parentNode?.parentNode
+                                            }
+
+
+                                            if(useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file'){
+                                                switch (e.target.value) {
+                                                    case 'Nakliye Dahil':
+                                                        if(elements['priceRow'])elements['priceRow'].style.display = '';
+
+                                                        if(elements['calory_settings'])elements['calory_settings'].hidden = false;
+                                                        if(elements['coal_specs'])elements['coal_specs'].hidden = false;
+                                                        break;
+                                                    case 'Sadece Nakliye':
+                                                        if(elements['priceRow'])elements['priceRow'].style.display = '';
+
+                                                        if(elements['calory_settings'])elements['calory_settings'].hidden = true;
+                                                        if(elements['coal_specs'])elements['coal_specs'].hidden = true;
+                                                        break;
+                                                
+                                                    default:
+                                                        if(elements['priceRow'])elements['priceRow'].style.display = 'none';
+
+                                                        if(elements['calory_settings'])elements['calory_settings'].hidden = false;
+                                                        if(elements['coal_specs'])elements['coal_specs'].hidden = false;
+                                                       
+                                                        break;
+                                                }
+                                            }else{
+                                                if(elements['priceRow'])elements['priceRow'].style.display = 'none';
+                                            }
+                                            
+
+
+                                            this.submitDynamicChanges(e.target);
+                                        } 
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'contract_start_date',
+                                        col      : 4,
+                                        isDate : true,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : 'Teklif Başlangıç Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'contract_end_date',
+                                        col      : 4,
+                                        isDate : true,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : 'Teklif Bitiş Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'unload_area',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : 'Ürün Boşaltma Yeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_5',
+                                group_key : 'coal_specs',
+                                hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                label : 'Kömürün Özellikleri / Red Şartları',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'coal_size',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        label : 'Ebat Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'coal_hgi',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        label : 'HGİ Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'coal_ucucu',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        label : 'Uçucu Madde Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'coal_type',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        label : 'Cinsi Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'calory',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        label : 'Kalori Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'humidity',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        label : 'Nem Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'ash_content',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        label : 'Kül Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'number',
+                                        name  : 'sulfur',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        label : 'Kükürt Değeri',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_6',
+                                group_key : 'calory_settings',
+                                hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                label : 'Kömür kalori aralığına göre birim fiyatı',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'prime_condition_is',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : 'Kalori Aralığı Başlangıç( Kcal)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'prime_condition_is_bellow',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : 'Kalori Aralığı Bitiş (Kcal)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'prime_unit_price',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : 'Birim Fiyat',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_7',
+                                
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'amount',
+                                        isMasked : true,
+                                        mask : 'money',
+                                        col      : 2,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        hasIcon : true,
+                                        icon : 'Ton',
+                                        label : 'Miktar',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type     : 'select',
+                                        name     : 'payment_periods',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        label    : 'Hakediş Dönemleri',
+                                        options  : [
+                                            {
+                                                text  : 'Günlük',
+                                                value : 'Günlük'
+                                            },
+                                            {
+                                                text  : 'Haftalık',
+                                                value : 'Haftalık'
+                                            }, {
+                                                text  : 'Aylık',
+                                                value : 'Aylık'
+                                            }
+                                        ],
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'payment_desc',
+                                        col      : 6,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : "Hakediş Açıklama",
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_8',
+                                label : 'Akaryakıt Birim Fiyat Değişim Oranları',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'tiufe_price_impact',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        hasIcon : true,
+                                        icon : '%',
+                                        label : 'Birim Fiyatın  ((Tİ-ÜFE +TÜFE)/2 ) Etkilenme Oranı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'fuel_price_impact',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : false,
+                                        hasIcon : true,
+                                        icon : '%',
+                                        label : 'Birim Fiyatın Akaryakıt (Artış/Azalış) Etkilenme Oranı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'fuel_price_impact_2',
+                                        col      : 4,
+                                        required : false,
+                                        hasIcon : true,
+                                        icon : '%',
+                                        label : 'Birim Fiyatın Akaryakıttan Etkilenmeyecek Oranı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        isMasked : true,
+                                        mask  : 'money',
+                                        name  : 'transfer_price_impact',
+                                        col      : 4,
+                                        required : false,
+                                        label : 'Nakliye Birim Fiyat',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_7',
+                                
+                                label : ' ',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'payment_due',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : "Ödeme Vadesi",
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'transfer_start_date',
+                                        isDate : true,
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : 'Sevkiyata Başlangıç Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'transfer_end_date',
+                                        isDate : true,
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : 'Sevkiyat Bitiş Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'desc',
+                                col      : 12,
+                                required : false,
+                                label : 'Ek Açıklama',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_4',
+                                label : 'Teklif Belgeleri',
+                                type  : 'multiple',
+                                //removable : false,
+                                //requiredIfFirst : false,
+                                group_key : 'offerotherdocs',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'offer_otherdocs_file_text',
+                                        required : false,
+                                        label : 'Belge İsmi',
+                                        col      : 6,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        name  : 'offer_otherdocs_file',
                                         required : false,
                                         label : 'Belge Dosyası',
                                         col      : 6,
@@ -900,26 +1766,94 @@
             }
         },
         async mounted() {
-            this.isLoadingRoles = true
-            await this.usePermissionDataStore().fetchRoleTemplates()
-            this.isLoadingRoles = false
+            this.isLoadingRoles = true;
+            await this.usePermissionDataStore().fetchRoleTemplates();
+            this.isLoadingRoles = false;
 
             // Ensure template is re-rendered so .area-target nodes are present before we attach rows
-            await this.$nextTick()
-
-            this.ftypes.forEach(async key => {
+            await this.$nextTick();
+            //here wait all forms are building
+            await Promise.all(this.ftypes.map(async key => {
                 const formData = this.formDataStore.formData?.[key] ?? undefined;
-                /**get facilities and inventories if visit form */
-                if(key == 'op-doc-visit-form'){
-                    /*await this.formDataStore.setFacilitiesData();
-                    await this.formDataStore.setInventoriesData();*/
-                }
-                this.buildDynamicFForm(key,formData !== undefined ? Object.keys(formData)[0] : 'new-'+(new Date).getTime() ,formData !== undefined ? Object.values(formData)[0] : {});
-            });
-
-            this.formDataStore.setData({});
+                await this.buildDynamicFForm(
+                    key,
+                    formData !== undefined ? Object.keys(formData)[0] : 'new-'+(new Date).getTime(),
+                    formData !== undefined ? Object.values(formData)[0] : {}
+                );
+            }));
+            //here empty form data to prevent submit with old data because buildDynamicFForm set formData with default values
+            this.formDataStore.setData({},{});
         },
         methods: {
+            tcKimlikDogrula(tc) {
+                tc = tc.toString().trim();
+
+                // 1. Uzunluk ve sadece rakam kontrolü
+                if (tc.length !== 11 || !/^\d{11}$/.test(tc)) {
+                    return false;
+                }
+
+                // 2. İlk rakam 0 olamaz
+                if (tc[0] === '0') {
+                    return false;
+                }
+
+                let digits = tc.split('').map(Number);
+
+                // 3. 10. hane kontrolü
+                let tekToplam = digits[0] + digits[2] + digits[4] + digits[6] + digits[8];
+                let ciftToplam = digits[1] + digits[3] + digits[5] + digits[7];
+                let onuncuHane = (tekToplam * 7 - ciftToplam) % 10;
+
+                if (onuncuHane !== digits[9]) {
+                    return false;
+                }
+
+                // 4. 11. hane kontrolü
+                let ilkOnToplam = digits.slice(0, 10).reduce((a, b) => a + b, 0);
+                let onbirinciHane = ilkOnToplam % 10;
+
+                return onbirinciHane === digits[10];
+            },
+            /**
+             * 10 Haneli Vergi Kimlik Numarası (VKN) doğrulama
+             * @param {string} vkn - Doğrulanacak 10 haneli vergi kimlik numarası
+             * @returns {boolean} Geçerli ise true, değilse false
+             */
+            vergiKimlikDogrula(vkn) {
+                if (vkn.length !== 10 && vkn.length !== 11) {
+                    return false;
+                }else{
+                    if(vkn.length === 11){
+                        return this.tcKimlikDogrula(vkn);
+                    }
+                }
+                return true;
+
+                /*const digits = vkn.split('').map(Number);
+                const controlDigit = digits[9];           // Son basamak (kontrol basamağı)
+                
+                let toplam = 0;
+
+                for (let i = 0; i < 9; i++) {
+                    let x = (digits[i] + (9 - i)) % 10;   // (rakam + ağırlık) mod 10
+                    let weight = Math.pow(2, 9 - i);      // 512, 256, 128, 64, 32, 16, 8, 4, 2
+                    
+                    let val = (x * weight) % 9;
+                    
+                    // Eğer x != 0 ve sonuç 0 ise, 9 kabul edilir
+                    if (x !== 0 && val === 0) {
+                        val = 9;
+                    }
+                    
+                    toplam += val;
+                }
+
+                // Hesaplanan kontrol basamağı
+                const hesaplananKontrol = (10 - (toplam % 10)) % 10;
+
+                return hesaplananKontrol === controlDigit;*/
+            },
             formCallback() {
                 if(this.savecallback) return this.savecallback(this.formData);
             },
@@ -966,7 +1900,7 @@
                 const row    = document.createElement('div');
                 const rowSub = document.createElement('div');
                 let target;
-                
+               
                 row.dataset.id  = rowId;
                 row.dataset.tag = tag;
                 row.classList.add('dform-row');
@@ -990,7 +1924,8 @@
                     const itemRow = document.createElement('div');
                     itemRow.classList.add('row','mt-3','mb-6','item-row');
                     if(fitem?.rowClass !== undefined) itemRow.classList.add(...fitem?.rowClass);
-
+                    if(fitem?.disabled) itemRow.style.display = 'none';
+                    
                     const inLabel   = document.createElement('label');
                     inLabel.classList.add('form-label');
                     if(fitem?.required) inLabel.classList.add('required');
@@ -1028,12 +1963,18 @@
                         
                         attr.element         = input;
                         
+                        if(attr?.defaultValue)            input.value = attr.defaultValue;
                         if(attr?.readOnly)                input.readOnly = attr.readOnly;
                         if(attr.class !== undefined)      input.classList.add(...attr?.class);
                         if(attr?.required !== undefined)  input.required = attr.required;
                         if(attr?.hidden){
-                            input.hidden = attr.hidden;
-                            iDiv.parentNode.style.display = 'none';
+                            //here check if showOnValue is setted
+                            if(!(attr?.showOnValue === true && data?.entities?.[attr.name] !== undefined)) {
+                                input.hidden = attr.hidden;
+                                if(iDiv?.parentNode)iDiv.parentNode.style.display = 'none';
+                                //if its hidden do not make required even if required is setted
+                                input.required = false;
+                            }
                         }                  
 
                         input.classList.add('form-item');
@@ -1041,28 +1982,93 @@
                         input.onclick = (e) => attr?.onclick?.(e,input) ?? (() => {})();
                         input.oninput = (e) => attr?.oninput?.(e) ?? (() => {})();
                         iDiv.appendChild(input);
+
+                        if(attr?.hasIcon === true){
+                            iDiv.classList.add('input-group');
+                            const icon = document.createElement('span');
+                            icon.classList.add('input-group-text','password-toggle');
+                            icon.style.cursor = 'pointer';
+                            icon.innerHTML = attr?.icon;
+                            iDiv.appendChild(icon);
+                        }
+
+
+                        // add show/hide toggle for password fields
+                        if (attr?.type === 'password') {
+                            // Use Keen theme icons for consistency with the project
+                            const makeIcon = (visible) => visible
+                                ? '<i class="ki-outline ki-eye-slash fs-5" role="img"></i>'
+                                : '<i class="ki-outline ki-eye fs-5" role="img"></i>';
+
+                            let toggle;
+                            if (iDiv.classList && iDiv.classList.contains('input-group')) {
+                                toggle = document.createElement('span');
+                                toggle.classList.add('input-group-text','password-toggle');
+                                toggle.style.cursor = 'pointer';
+                                toggle.innerHTML = makeIcon(false);
+                               
+                            } else {
+                                toggle = document.createElement('button');
+                                toggle.type = 'button';
+                                toggle.classList.add('btn','btn-outline-secondary','ms-2','password-toggle');
+                                toggle.style.minWidth = '38px';
+                                toggle.style.display = 'inline-flex';
+                                toggle.style.alignItems = 'center';
+                                toggle.style.justifyContent = 'center';
+                                toggle.innerHTML = makeIcon(false);
+                                
+                            }
+
+                            iDiv.appendChild(toggle);
+
+                            toggle.onclick = (ev) => {
+                                ev.preventDefault();
+                                const visible = input.type !== 'password';
+                                input.type = visible ? 'password' : 'text';
+                                // update icon (use opposite since visible var was previous state)
+                                toggle.innerHTML = makeIcon(!visible);
+                            };
+                        }
                         
                         if(attr.type === 'file'){
                             input.setAttribute('accept',attr?.accept);
                             input.dataset.fileId = 0;
                                 
+                            const sizeFeedback = document.createElement('div');
+                            sizeFeedback.classList.add('m-1');
+                            sizeFeedback.innerHTML = 'Max. Boyut : 40 MB ve Dosya Tipi : .pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png olmalıdır.';
+                            sizeFeedback.style.display = 'block';
+                            iDiv.parentNode.appendChild(sizeFeedback);
+
+
                             const fileData = JSON.parse(data?.entities?.[attr.name] ?? '{}');
                             if(fileData?.description){
                                 
                                 input.dataset.fileId = fileData.id;
                                 input.dataset.file = 'Dosya Mevcut';
-                                if(fileData?.last_status?.op_key == 'doc_file_rejected'){
-                                    input.classList.add('is-invalid');
-                                    const invalidFeedback = document.createElement('div');
-                                    invalidFeedback.classList.add('invalid-feedback');
-                                    invalidFeedback.innerHTML = 'Dosya reddedilmiş durumda. Lütfen yeni bir dosya yükleyiniz.';
-                                    invalidFeedback.style.display = 'block';
-                                    iDiv.parentNode.appendChild(invalidFeedback);
+
+                                switch(fileData?.last_status?.op_key){
+                                    case 'doc_file_accepted':
+                                        input.classList.add('is-valid');
+                                        const validFeedback = document.createElement('div');
+                                        validFeedback.classList.add('valid-feedback');
+                                        validFeedback.innerHTML = 'Dosya kabul edilmiş durumda.';
+                                        validFeedback.style.display = 'block';
+                                        iDiv.parentNode.appendChild(validFeedback);
+                                        break;
+                                    case 'doc_file_rejected':
+                                        input.classList.add('is-invalid');
+                                        const invalidFeedback = document.createElement('div');
+                                        invalidFeedback.classList.add('invalid-feedback');
+                                        invalidFeedback.innerHTML = 'Dosya reddedilmiş durumda. Lütfen yeni bir dosya yükleyiniz.';
+                                        invalidFeedback.style.display = 'block';
+                                        iDiv.parentNode.appendChild(invalidFeedback);
+                                        break;
                                 }
 
                                 const showB     = document.createElement('span');
                                 showB.classList.add('input-group-text','rmv-btn-form');
-                                showB.innerHTML = '<i class="ki-outline ki-magnifier fs-4 text-body-emphasis"></i>';
+                                showB.innerHTML = '<i class="ki-outline ki-magnifier fs-4"></i>';
                                 showB.onclick   = (e) => {
                                     window.open('/order-file/'+fileData?.description);
                                 };
@@ -1090,8 +2096,14 @@
                                 input.files = fileList;
                             }
                         }else {
-                            input.value          = data?.entities?.[attr.name] ?? '';
+                            input.value          = data?.entities?.[attr.name] ?? (attr.defaultValue ?? '');
+                            
+                            if(this.formDataStore.addional?.[attr.name] !== undefined){
+                                input.value = this.formDataStore.addional[attr.name];
+                                input.dispatchEvent(new Event('input') );
+                            }
                         } 
+                        if(attr?.defaultValue) input.dispatchEvent(new Event('input'));
 
                         if(attr?.isMasked){
                             input.dataset.mask    = attr.mask;
@@ -1132,25 +2144,27 @@
                                     input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
                                 }
                             }
-
-                            // initialize flatpickr
-                            const fpOptions = {
-                                dateFormat : attr?.hasTime ? 'd/m/Y H:i' : 'd/m/Y',
-                                enableTime : !!attr?.hasTime,
-                                time_24hr  : true,
-                                locale     : 'tr',
-                                defaultDate: data?.entities?.[attr.name] ?? null,
-                                onChange   : (selectedDates, dateStr, instance) => {
-                                    if(selectedDates.length){
-                                        const formatted = instance.formatDate(selectedDates[0], attr?.hasTime ? 'd/m/Y H:i' : 'd/m/Y');
-                                        input.value = formatted;
-                                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                            if(attr?.readOnly !== true){
+                                // initialize flatpickr
+                                const fpOptions = {
+                                    dateFormat : attr?.hasTime ? 'd/m/Y H:i' : 'd/m/Y',
+                                    enableTime : !!attr?.hasTime,
+                                    time_24hr  : true,
+                                    locale     : 'tr',
+                                    defaultDate: data?.entities?.[attr.name] ?? null,
+                                    onChange   : (selectedDates, dateStr, instance) => {
+                                        if(selectedDates.length){
+                                            const formatted = instance.formatDate(selectedDates[0], attr?.hasTime ? 'd/m/Y H:i' : 'd/m/Y');
+                                            input.value = formatted;
+                                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                                        }
                                     }
-                                }
-                            };
-
-                            const fp = flatpickr(input, fpOptions);
-                            this.flatpickrInstances.push(fp);
+                                };
+                                
+                                const fp = flatpickr(input, fpOptions);
+                                this.flatpickrInstances.push(fp);
+                            }
+                            
                             input.readOnly = true;
                         }
 
@@ -1197,8 +2211,13 @@
                         input.name           = attr.name;
 
                         if(attr?.class !== undefined)    input.classList.add(...attr?.class);
-                        
+                        if(attr?.disabled !== undefined && attr.disabled) iDiv.style.display = 'none';
                         if(attr?.required !== undefined) input.required = attr.required;
+                        if(attr?.hidden){
+                            input.hidden = attr.hidden;
+                            iDiv.hidden = attr.hidden;
+                            if(iDiv.parentNode) iDiv.parentNode.style.display = 'none';
+                        }  
                         
                         let op      = document.createElement('option');
                         op.value    = '';
@@ -1219,9 +2238,16 @@
                             if(attr.options[index].limit !== undefined) op.dataset.limit = attr.options[index].limit;
                             if(attr.options[index].data !== undefined) op.dataset.info = JSON.stringify(attr.options[index].data);
                             if(data?.entities?.[attr.name] !== undefined && data?.entities?.[attr.name] == op.value) op.selected = true;
-                        
+                            if(this.formDataStore.addional?.[attr.name] !== undefined && this.formDataStore.addional[attr.name] == op.value){
+                                op.selected = true;
+                                input.dispatchEvent(new Event('input') );
+                            }
                             
                             input.appendChild(op);
+                        }
+
+                        if(this.formDataStore.addional?.[attr.name] !== undefined){
+                            input.dispatchEvent(new Event('input') );
                         }
                         iDiv.appendChild(input);
                         if(data?.entities?.[attr.name] !== undefined){
@@ -1236,6 +2262,7 @@
                     
                     let inputDiv = document.createElement('div');
                     inputDiv.classList.add('col-lg-12');
+                    inputDiv.classList.add('row');
                     
                     switch (fitem.type) {   
                         case 'sub':
@@ -1261,7 +2288,7 @@
                                     const rowElm = document.createElement('div');
                                     rowElm.classList.add('col-md-'+el.col);
                                     let lbl   = document.createElement('label');
-                                    lbl.classList.add('form-label','mt-5');
+                                    lbl.classList.add('form-label','mt-5','input-label');
                                     //item label
                                     if(el?.label !== undefined && el?.label != ''){
                                         lbl.innerHTML = el.label;
@@ -1335,7 +2362,7 @@
                                     if(el.isDate){
                                         const calInp     = document.createElement('span');
                                         calInp.classList.add('input-group-text');
-                                        calInp.innerHTML = '<i class="fa fa-calendar fs-5 text-body-emphasis"></i>';
+                                        calInp.innerHTML = '<i class="fa fa-calendar fs-5"></i>';
                                         calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
                                         inpGroup.appendChild(calInp);
                                     }
@@ -1345,7 +2372,7 @@
                                         switch (el.mask) {
                                             case 'phone':
                                                 calInp.classList.add('input-group-text');
-                                                calInp.innerHTML = '<i class="fa fa-phone fs-5 text-body-emphasis"></i>';
+                                                calInp.innerHTML = '<i class="fa fa-phone fs-5"></i>';
                                                 calInp.onclick = () => el.element.dispatchEvent(new Event('focus'));
                                                 inpGroup.appendChild(calInp);
                                                 break;
@@ -1363,7 +2390,7 @@
                                     if(fitem.type == 'multiple' && fitem.subs[fitem.subs.length-1] === element){
                                         const rmvInp     = document.createElement('span');
                                         rmvInp.classList.add('input-group-text','rmv-btn-form');
-                                        rmvInp.innerHTML = '<i class="selectable-icon ki-outline ki-trash fs-4 text-body-emphasis"></i>';
+                                        rmvInp.innerHTML = '<i class="selectable-icon ki-outline ki-trash fs-4"></i>';
                                         rmvInp.onclick   = (e) => {
                                             document.querySelectorAll('[name*="'+nameTag.split('-')[0]+'"]').forEach(rmElm => {
                                                 this.formData.removedData.push({
@@ -1389,6 +2416,8 @@
                             };
 
                             inLabel.classList.add('d-flex','justify-content-between','align-items-center');
+                            if(fitem.label && fitem.label.trim().length > 0) inLabel.classList.add('form-section-heading');
+                            else inLabel.remove();
                             
                             const iconDiv = document.createElement('div');
                             iconDiv.classList.add('align-items-center','bg-highlight','d-flex','flex-shrink-0','h-10','justify-content-center','me-5','rounded-circle','w-10');
@@ -1396,7 +2425,7 @@
                             if(fitem.type === 'multiple'){
                                 inputDiv.classList.add('border','rounded','p-2');
                                 const icon = document.createElement('i');
-                                icon.classList.add('ki-outline','selectable-icon','ki-plus','fs-1','text-body-emphasis');
+                                icon.classList.add('ki-outline','selectable-icon','ki-plus','fs-1');
                                 icon.id = tag+'-'+(fitem.group_key ?? 'unalign-group-key')+'-subadd-'+rowId;
                                 iconDiv.appendChild(icon);
 
@@ -1405,17 +2434,25 @@
                                 }; 
                                 
                                 inLabel.appendChild(iconDiv);
-                                //append one empty row
-                                icon.click();
+                                
                                 //await addElements(null,true);
+                                let hasData = false;
                                 //here create elements if data is exist on given data with object nametag
                                 if(data?.entities){
                                     for(let key in data?.entities) {
                                         if(key.includes('**'+fitem.group_key) && !this.keyLock.includes(fitem.group_key+'-'+key.split('**')[2].split('-')[0]+'-row')){
                                             await addElements(key.split('**')[2]);
+                                            hasData = true;
                                         } 
                                     };
                                 }
+
+                                if(!hasData){
+                                    //append one empty row
+                                    icon.click();
+                                }
+
+                                if(fitem?.hideAdd === true) icon.hidden = true;
                                 
                             } 
                         
@@ -1436,6 +2473,7 @@
                             
                             if(fitem.type == 'sub') addElements();
                             itemRow.appendChild(inputDiv);
+                            if(fitem.hidden == true) itemRow.style.display = 'none';
                             
                             if(fitem?.requiredIfFirst){
                                        
@@ -1481,7 +2519,7 @@
                             }
 
 
-                            if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 1) input.checked = true;
+                            if(data?.entities?.[fitem.name] !== undefined && data?.entities?.[fitem.name] == 1) input.checked = true;
 
                             checkDiv.appendChild(input);
 
@@ -1534,7 +2572,7 @@
                             break;
                         case 'textarea':
                             input                = document.createElement('textarea');
-                            
+                            input.classList.add('m-2');
                             input.name           = fitem.name;
                             //input.dataset.fileId = fileId;
                             input.dataset.rowId  = rowId;
@@ -1555,6 +2593,7 @@
                                 input.innerHTML = data.entities[fitem.name];
                             }
 
+                            inLabel.classList.add('input-label');
                             itemRow.appendChild(inputDiv);
 
                             break;
@@ -1571,7 +2610,7 @@
                             inputDiv = document.createElement('div');
                             inputDiv.classList.add('col-lg-'+fitem?.col,'d-flex','align-items-center');
                             itemRow.appendChild(inputDiv);
-                           
+                            
                             this.permissionTree = TreeModal.render({
                                 target: inputDiv,
                                 items: fitem?.list,
@@ -1587,18 +2626,15 @@
                             break;
                         case 'select':
                             itemRow.appendChild(createSelect(fitem));
+                            inLabel.classList.add('input-label');
                             break;
                         case 'switch':
+                            inLabel.classList.add('input-label');
                             inputDiv = document.createElement('div');
-                            inputDiv.classList.add('col-lg-4','fv-row','d-flex','align-items-center');
+                            inputDiv.classList.add('form-check','m-5','form-check-custom','form-check-solid');
                             
-                            const switchDiv = document.createElement('div');
-                            switchDiv.classList.add('form-check','form-switch','form-check-custom','form-check-solid','me-10');
-
-                            const lbl  = document.createElement('label');
-                            lbl.classList.add('switch');
-
                             input = document.createElement('input');
+                            input.classList.add('form-check-input');
                             input.type = 'checkbox';
                             input.oninput = (e) => fitem.oninput(e);
                             //input.dataset.fileId = fileId;
@@ -1607,16 +2643,14 @@
                             input.name           = fitem.name;
                             if(fitem?.required !== undefined) input.required = fitem.required;
 
-                            if(data?.entities[fitem.name] !== undefined && data.entities[fitem.name] == 1) input.checked = true;
+                            if(data?.entities?.[fitem.name] !== undefined && data?.entities?.[fitem.name] == 1) input.checked = true;
 
-                            lbl.appendChild(input);
-                            const sspan = document.createElement('span');
-                            sspan.classList.add('slider','round');
-                            lbl.appendChild(sspan);
+                            inputDiv.appendChild(input);
 
-
-                            switchDiv.appendChild(lbl);
-                            inputDiv.appendChild(switchDiv);
+                            const lbl  = document.createElement('label');
+                            lbl.classList.add('form-check-label','ps-2');
+                            lbl.innerHTML = fitem?.desc ?? '-';
+                            inputDiv.appendChild(lbl);
                             itemRow.appendChild(inputDiv);
 
                             if(fitem?.sub){
@@ -1651,14 +2685,16 @@
                                     itemRow.appendChild(inputDiv);
                                 }
                             }
+
+                            if(fitem?.hidden){
+                                itemRow.style.display = 'none';
+                            }  
                             break;
                         default:
                             itemRow.appendChild(createInput(fitem,inputDiv));
                             break;
                     }
                     
-                    
-
                     rowSub.appendChild(itemRow);
                 }
 
@@ -1762,8 +2798,8 @@
                             value : 'op-doc-client'
                         }
                     ],
-                    nextPageIcon : '<i class="ki-outline ki-arrow-right  text-body-emphasis"></i>',
-                    prevPageIcon : '<i class="ki-outline ki-arrow-left text-body-emphasis"></i>',
+                    nextPageIcon : '<i class="ki-outline ki-arrow-right "></i>',
+                    prevPageIcon : '<i class="ki-outline ki-arrow-left"></i>',
                     rowClick     : (elm,data)=> clickEvent(data),
                     rowFormatter : (elm,data)=>{
                         //console.log(elm,data);
@@ -1808,6 +2844,25 @@
     </div>
     <div v-else>
         <div class="area-target" v-for="(item, index) in ftypes" :data-tag="item"></div>
-        <AppFab v-if="authStore.data.type=='admin'" btntype="saveBtn" :callback="formCallback"/>
+        <AppFab v-if="authStore.data.type=='admin' || formtypes=='op-doc-request-form'" :savebtntitle="savebtntitle ?? 'Formu Kaydet'" :btntype="fabtype" :callback="formCallback" :rejectcallback="rejectcallback" :acceptcallback="acceptcallback" :cancelcallback="() => $router.go(-1)" />
     </div>
 </template>
+
+<style>
+.custom-button{
+    background-color: #154b91!important;
+    color: #fff!important;
+    border-color: #154b91!important;
+    width: auto;
+    margin-left: auto;
+}
+.custom-button:hover{
+    background-color: #fff!important;
+    color: #154b91!important;
+    border-color: #0c3560!important;
+}
+.area-target .input-label{
+    font-weight: 600 !important;
+    color: slategrey !important;
+}
+</style>

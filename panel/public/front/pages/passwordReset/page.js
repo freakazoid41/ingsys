@@ -81,7 +81,14 @@ import Plib from "/coaltheme/js/pickle.js";
 
                 //listen form
                 document.getElementById('kt_sign_in_submit').addEventListener('click',async e=>{
-                    Swal.showLoading();
+                    Swal.fire({
+                        heightAuto: false,
+                        title: 'Lütfen Bekleyiniz..',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading()
+                        }
+                    });
                     const rsp = this.plib.validatePassword(document.getElementById('in-check'));
                     if(rsp.valid){
                         document.getElementById('in-check').classList.remove('is-invalid');

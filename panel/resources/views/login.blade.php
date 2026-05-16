@@ -31,7 +31,7 @@
         <div class="card m-auto mw-400 p-8 w-100 main-div"> 
             <h2 class="fs-6 text-body-emphasis" style="color:#d6e9ff !important">Hoşgeldiniz!</h2>
             <div class="mb-5 text-body-secondary">Sisteme giriş yapmak için bilgilerinizi giriniz..</div> 
-            <form class="mb-5" action="{{route('login-user','admin')}}" id="login-form"  method="POST" novalidate="novalidate"> 
+            <form class="mb-5" action="{{ route('login-user','admin', false) }}" id="login-form"  method="POST" novalidate="novalidate"> 
                 @csrf
                 <div class="mb-3 position-relative"> 
                     <i class="fs-3 left-0 m-2.5 ph ph-user-circle position-absolute text-body-secondary top-0"></i> 

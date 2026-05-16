@@ -80,11 +80,11 @@ function ensureArray(a) { return Array.isArray(a) ? a : []; }
       .tm-root, .tm-children { list-style: none; margin: 0; padding-left: 0; }
       .tm-root { width: 100%; max-height: 280px; overflow-y: auto; }
       .tm-node { margin: 4px 0; }
-      .tm-node-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; transition: all .2s ease; cursor: pointer; }
+      .tm-node-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; transition: all .2s ease; cursor: pointer; height: 40px }
       .tm-node-row:hover { background: #f8fafc; border-color: #93c5fd; }
       .tm-toggle, .tm-toggle-empty { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; color: #2563eb; font-weight: 700; border-radius: 3px; }
       .tm-toggle-empty { visibility: hidden; }
-      .tm-node-row input[type="checkbox"] { accent-color: #ff671d; width: 18px; height: 18px; margin: 0; }
+      .tm-node-row input[type="checkbox"] { accent-color: #154B91; width: 18px; height: 18px; margin: 0; }
       .tm-node-label { font-size: 14px; font-weight: 600; color: #0f172a; }
       .tm-children { padding-left: 14px; margin-top: 3px; }
       .tm-children.tm-collapsed { display: none; }
@@ -225,7 +225,7 @@ function ensureArray(a) { return Array.isArray(a) ? a : []; }
         // update ancestors
         updateAncestorState(tgt);
         const checked = getCheckedValues(nodeContainer, true);
-        console.debug('TreeModal checked data', checked);
+        //console.debug('TreeModal checked data', checked);
         if (typeof onChange === 'function') onChange(checked);
       }
     });

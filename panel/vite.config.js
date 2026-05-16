@@ -17,10 +17,11 @@ export default defineConfig({
     laravel({
       input: [
         'resources/js/app.js',
-        'public/js/index.js',
-        'public/js/vendor.js',
-        'public/css/theme.css',
-        'public/css/custom.css'
+        'resources/js/coal-swal.js',
+        'public/coaltheme/css/plugins.css',
+        'public/coaltheme/css/treeModal.css',
+        'public/coaltheme/css/theme.css',
+        'public/coaltheme/css/custom.css'
       ],
       refresh: true,
       // detectTls: 'vue-laravel-spa.test',

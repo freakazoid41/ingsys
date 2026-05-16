@@ -2,40 +2,6 @@ import { createRouter, createWebHistory } from "vue-router"
 import { useAuthStore } from '@/stores/auth.js'
 
 
-import Panel from '@/layouts/Panel.vue'
-import Apartments from '@/pages/Apartments.vue'
-
-import PIndex from '@/pages/PIndex.vue'
-import User from '@/pages/User.vue'
-import Calendar from '@/pages/events/Calendar.vue'
-import CalendarForm from '@/pages/events/CalendarForm.vue'
-import Contacts from '@/pages/Contacts.vue'
-
-
-import Transactions from '@/pages/Transactions.vue'
-/*import Documents from '@/pages/documents/Documents.vue'
-import DocumentList from '@/pages/documents/DocumentList.vue'*/
-import UserList from '@/pages/users/UsersList.vue'
-import UserForm from '@/pages/users/UsersForm.vue'
-
-import FlatList from '@/pages/flats/FlatList.vue'
-import FlatForm from '@/pages/flats/FlatForm.vue'
-
-import TargetList from '@/pages/targets/TargetList.vue'
-import TargetForm from '@/pages/targets/TargetForm.vue'
-
-import MeetingList from '@/pages/meetings/MeetingList.vue'
-import MeetingForm from '@/pages/meetings/MeetingForm.vue'
-
-import ProjectList from '@/pages/projects/ProjectList.vue'
-import ProjectForm from '@/pages/projects/ProjectForm.vue'
-
-import InventoryList from '@/pages/inventory/InventoryList.vue'
-import InventoryForm from '@/pages/inventory/InventoryForm.vue'
-
-import DocumentList from '@/pages/documentFiles/DocumentList.vue'
-
-
 //coalRoutes
 import CoalPanel from '@/layouts/CoalPanel.vue';
 import CIndex from '@/pages/coalsystem/Dashboard.vue';
@@ -50,40 +16,14 @@ import UForm from "@/pages/coalsystem/Users/UForm.vue";
 import TreeExample from "@/pages/coalsystem/treeTest.vue";
 import Roles from "@/pages/coalsystem/Roles/Roles.vue";
 import DList from "@/pages/coalsystem/Documents/DList.vue";
+import OList from "@/pages/coalsystem/Offer/OList.vue";
+import OForm from "@/pages/coalsystem/Offer/OForm.vue";
+import NSettings from "@/pages/coalsystem/Notifications/NSettings.vue";
+import LList from "@/pages/coalsystem/Logs/LList.vue";
+import NList from "@/pages/coalsystem/NotificationLogs/NList.vue";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    {
-      path: '/panel',
-      component: Panel,
-      //meta: { requiresAuth: true },
-      children: [
-        { path: "/panel/apartments", name: 'Apartments', component: Apartments },
-        
-        { path: "/panel", name: 'Index', component: PIndex },
-        { path: "/panel/contacts", name: 'Contacts', component: Contacts },
-        { path: "/panel/user", name: 'User', component: User },
-        { path: "/panel/documents", name: 'DocumentList', component: DocumentList },
-        { path: "/panel/calendar", name: 'Calendar', component: Calendar },
-        { path: "/panel/calendar/form/:id?", name: 'CalendarForm', component: CalendarForm },
-        { path: "/panel/users", name: 'UserList', component: UserList },
-        { path: "/panel/users/form/:id?", name: 'UserForm', component: UserForm },
-        { path: "/panel/transactions", name: 'Transactions', component: Transactions },
-        { path: "/panel/flats", name: 'FlatList', component: FlatList },
-        { path: "/panel/flats/form/:id?", name: 'FlatForm', component: FlatForm },
-        { path: "/panel/targets", name: 'TargetList', component: TargetList },
-        { path: "/panel/targets/form/:id?", name: 'TargetForm', component: TargetForm },
-        { path: "/panel/meetings", name: 'MeetingList', component: MeetingList },
-        { path: "/panel/meetings/form/:id?", name: 'MeetingForm', component: MeetingForm },
-        { path: "/panel/projects", name: 'ProjectList', component: ProjectList },
-        { path: "/panel/projects/form/:id?", name: 'ProjectForm', component: ProjectForm },
-        { path: "/panel/inventory", name: 'InventoryList', component: InventoryList },
-        { path: "/panel/inventory/form/:id?", name: 'InventoryForm', component: InventoryForm }
-        /*{ path: "/panel/documents", name: 'DocumentList', component: DocumentList },
-        { path: "/panel/documents/form/:id?", name: 'Documents', component: Documents },*/
-
-      ]
-    },
     {
       path: '/coalpanel',
       component: CoalPanel,
@@ -91,18 +31,23 @@ const router = createRouter({
       children: [
         
         
-        { path: "/coalpanel", name: 'CIndex', component: CIndex },
-        { path: "/coalpanel/treeexample", name: 'TreeExample', component: TreeExample },
-        { path: "/coalpanel/example", name: 'ExampleList', component: ExampleList },
-        { path: "/coalpanel/example/form/:id?", name: 'ExampleForm', component: ExampleForm },
-        { path: "/coalpanel/request", name: 'RequestList', component: RList },
-        { path: "/coalpanel/request/form/:id?", name: 'RequestForm', component: RForm },
-        { path: "/coalpanel/client", name: 'CList', component: CList },
-        { path: "/coalpanel/client/form/:id?", name: 'CForm', component: CForm },
-        { path: "/coalpanel/users", name: 'UList', component: UList },
-        { path: "/coalpanel/users/form/:id?", name: 'UForm', component: UForm },
-        { path: "/coalpanel/roles", name: 'Roles', component: Roles },
-        { path: "/coalpanel/documents", name: 'DList', component: DList },
+        { path: "/coalpanel", name: 'CIndex', component: CIndex, },
+        { path: "/coalpanel/notifications/settings", name: 'NSettings', component: NSettings},
+        { path: "/coalpanel/treeexample", name: 'TreeExample', component: TreeExample},
+        { path: "/coalpanel/example", name: 'ExampleList', component: ExampleList},
+        { path: "/coalpanel/example/form/:id?", name: 'ExampleForm', component: ExampleForm},
+        { path: "/coalpanel/request", name: 'RequestList', component: RList},
+        { path: "/coalpanel/request/form/:id?", name: 'RequestForm', component: RForm},
+        { path: "/coalpanel/client", name: 'CList', component: CList},
+        { path: "/coalpanel/client/form/:id?", name: 'CForm', component: CForm},
+        { path: "/coalpanel/users", name: 'UList', component: UList},
+        { path: "/coalpanel/users/form/:id?", name: 'UForm', component: UForm},
+        { path: "/coalpanel/roles", name: 'Roles', component: Roles},
+        { path: "/coalpanel/documents", name: 'DList', component: DList},
+        { path: "/coalpanel/offer", name: 'OList', component: OList},
+        { path: "/coalpanel/offer/form/:id?", name: 'OForm', component: OForm},
+        { path: "/coalpanel/sistem-loglari", name: 'LList', component: LList},
+        { path: "/coalpanel/notifikasyon-loglari", name: 'NList', component: NList},
       ]
     },
     /*{
@@ -133,5 +78,26 @@ const router = createRouter({
     next();
   }
 });*/
+
+function closeAsideDrawer(){
+    const aside = document.getElementById('kt_aside');
+    try {
+        if (window.KTDrawer && window.KTDrawer.getInstance && aside) {
+            const inst = window.KTDrawer.getInstance(aside);
+            if (inst && typeof inst.hide === 'function') inst.hide();
+        }
+    } catch (e) {}
+    if (aside) aside.classList.remove('drawer-on');
+    document.body.classList.remove('drawer-on');
+    document.body.removeAttribute('data-kt-drawer');
+    document.body.removeAttribute('data-kt-drawer-aside');
+    document.querySelectorAll('.drawer-overlay').forEach(el => el.remove());
+}
+router.beforeEach((to, from, next) => { closeAsideDrawer(); next(); });
+router.afterEach(() => {
+    closeAsideDrawer();
+    setTimeout(closeAsideDrawer, 50);
+    setTimeout(closeAsideDrawer, 300);
+});
 
 export default router;

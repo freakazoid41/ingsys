@@ -6,6 +6,7 @@ import { usePermissionDataStore } from '@/stores/permissiondata';
 import router from '@/router/index';
 import App from '@/layouts/App.vue';
 import '../css/app.css';
+import breadcrumbsPlugin from '@/plugins/breadcrumbs';
 //import axios from 'axios';
 import { i18nVue } from 'laravel-vue-i18n'; 
 
@@ -30,15 +31,21 @@ const app = createApp(App)
       },
     })
   .use(createHead())
-  .use(router);
+  .use(router)
+  .use(breadcrumbsPlugin);
 
 const initApp = async () => {
   try {
     await authStore.getPermissions();
+
     await Promise.all([
       permissionDataStore.fetchRoleTemplates(),
       permissionDataStore.fetchRoleItems(),
     ]);
+    //console.log(authStore.currentStatus)
+    if (authStore.typeKey == 'op-pert-reseller' && !authStore.currentStatus.canProceed) {
+      router.push('/coalpanel/client/form/'+authStore.currentStatus.clientQnid); // Redirect to a "no access" route
+    }
   } catch (e) {
     console.error('app init failed:', e);
   }

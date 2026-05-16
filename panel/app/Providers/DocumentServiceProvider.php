@@ -8,6 +8,8 @@ use App\Models\Documents;
 use App\Models\Document_files;
 use App\Models\Sys_con_entities;
 use App\Models\Sys_con_ops;
+use App\Models\UserLog;
+use App\Models\User;
 use App\Models\Transactions;
 use Illuminate\Support\Facades\DB;
 
@@ -24,6 +26,7 @@ class DocumentServiceProvider extends ServiceProvider
         $dynamicFiles = [];
         $removed      = $requestData['removedData'] ?? [];
         $isUpdate     = false;
+        $registerUser = session('person_id'); // this is records user_id for more easy logging and reporting
        
         //now add sended files to the document with connection table info
         foreach($files as $key => $f){
@@ -32,6 +35,15 @@ class DocumentServiceProvider extends ServiceProvider
             }
         }
         try {
+            $logData = [
+                'user_id'     => auth('sanctum')->user()->id,
+                'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                'relation'    => 'documents',
+                'relation_id' => $id,
+                'type_id'     => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+                'description' => []
+            ];
+
 
             DB::beginTransaction(); // <= Starting the transaction
 
@@ -41,6 +53,13 @@ class DocumentServiceProvider extends ServiceProvider
             if(!is_numeric($id) && $id != 0){
                 $document = Documents::where('qnid',$id)->first();
                 $isUpdate = true;
+
+                //here get all data for before data logging
+                
+                $logData['description'] = [
+                    'before' => $this->getFormData($document->qnid),
+                    'after'  => [],
+                ];
             }else{
                 $document->type_id = (\App\Models\Sys_options::where('op_key' , $typeKey)->first())->id;
             }
@@ -52,7 +71,8 @@ class DocumentServiceProvider extends ServiceProvider
                 }
             }
 
-            
+            //we are checking because only creator is important
+            if(!$isUpdate) $document->person_id = $registerUser; // this is for more easy reporting or logging
             
             $rsp = $document->save();
 
@@ -88,6 +108,13 @@ class DocumentServiceProvider extends ServiceProvider
             //now add dynamic fields to the personnel (this is canon way for addional fields)
             $stypeIdMain  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-main'])->first())->id;
             $stypeIdFile  = (Sys_options::where(['ctitle' => 'sub_type_id','op_key' => 'form-file'])->first())->id;
+
+            
+            if(in_array($typeKey,['op-doc-request','op-doc-offer']) && !$isUpdate){
+                //here count documents for counable request number
+                $documentCount = Documents::where('type_id',$document->type_id)->count();
+
+            }
             foreach($dynamicF as $key => $field){
                 $id      = explode('**',$key)[1];
                 $tag     = $field['tag'];
@@ -108,6 +135,16 @@ class DocumentServiceProvider extends ServiceProvider
 
                 //now check if any entity sended
                 $field['entities']['qnid'] = $document->qnid;
+
+                if(in_array($typeKey,['op-doc-request','op-doc-offer'])){
+                    if($isUpdate) {
+                        $field['entities']['rev_date'] = date('d/m/Y');
+                    }else{
+                        $field['entities']['req_no'] = $documentCount;
+                    }
+                } 
+
+
                 foreach($field['entities'] as $ekey => $value){
                     $entity  = new Sys_con_entities();
 
@@ -132,8 +169,12 @@ class DocumentServiceProvider extends ServiceProvider
                         $typeTag = explode('**',$fileName)[0];
                         $fileId  = explode('**',$fkey)[2];
                         //add file
-                        
-                        $fileResponse = addFileToDb($file,'form-file',$fileId,'documents',$document->id);
+
+                        //here add short info about file log
+                        $fileTypeInfo = (Sys_options::where(['ctitle' => 'type_id','op_key' => 'op-'.$typeTag])->first());
+                        $fileTypeInfo = !empty($fileTypeInfo) ? $fileTypeInfo->title : 'Dosya';
+
+                        $fileResponse = addFileToDb($file,'form-file',$fileId,'documents',$document->id,($fileTypeInfo.' Dosyası Sisteme Eklendi'));
 
                         if($fileResponse['success'] == false) throw new \Exception('Dosya Sisteme Eklenemedi...');
 
@@ -158,10 +199,29 @@ class DocumentServiceProvider extends ServiceProvider
             }
             //////////////////////////////// Dynamic Fields ********************************
             DB::commit(); // <= Commit the changes
+
+            //here get updated data
+            $updatedResult = $this->getFormData($document->qnid);
+            $oldData       = $logData['description']['before'] ?? [];
+            $logData['description'] = json_encode([
+                'before' => $oldData,
+                'after'  => $updatedResult,
+            ],JSON_UNESCAPED_UNICODE);
+
+            $logData['relation_id'] = $document->id;
+            
+            //here save log data
+            UserLog::create($logData);
+
+
             return [
                 'success'          => $rsp,
                 'id'               => $document->id,
-                'data'             => $document
+                'data'             => $document,
+                'detail'           => $updatedResult,
+                'qnid'             => $document->qnid,
+                'before'           => $oldData,
+                'after'            => $updatedResult,
             ];
         } catch (\Exception $e) {
             
@@ -190,11 +250,13 @@ class DocumentServiceProvider extends ServiceProvider
                             then (  select  json_build_object(
                                                 'description',description,
                                                 'id',df.id,
+                                                'status', df.status,
                                                 'last_status',(select   json_build_object(
                                                                             'op_key',sot.op_key,
                                                                             'title' , sot.title,
                                                                             'name'  , p.name,
                                                                             'note' , t.description
+                                                                            
                                                                         ) 
                                                                         from transactions t 
                                                                 
@@ -218,10 +280,10 @@ class DocumentServiceProvider extends ServiceProvider
                     inner join documents as d on d.id = dco.main_id
     
                     where   so.group_key = 'op-doc-forms' and 
+                            so.op_key not in ('op-doc-user-permission-form','op-doc-user-contact-form','op-doc-user-client-form') and
                             dco.conn_id = 0 and 
                             dco.status  = 1 and
                             d.qnid = '".$id."'";
-
         $data  = DB::select($sql);
 
         foreach ($data as $row){
@@ -248,9 +310,28 @@ class DocumentServiceProvider extends ServiceProvider
 
         //////////////////////////////// Dynamic Fields ********************************
 
-        $document = "select sp.op_key,d.* from documents d 
+        $document = "select sp.op_key,
+                            d.* ,
+                            (select     json_agg(
+                                            json_build_object(
+                                                'op_key',so.op_key,
+                                                'op_title' , so.title,
+                                                'note',t.note,
+                                                'created_at',t.created_at,
+                                                'name',p.name
+                                            )
+                                        )
+                                from transactions as t
+                                    inner join sys_options so on so.id = t.type_id
+                                    inner join user_logs ul on ul.id = t.log_id
+                                    inner join users u on u.id = ul.user_id
+                                    inner join persons p on p.id = u.person_id
+                                where target_id = d.id and so.group_key = 'op-trans-' || sp.op_key)  as  status
+                            
+                            from documents d 
                         inner join sys_options as sp on sp.id = d.type_id
                         where d.qnid = '".$id."'";
+       
         $document  = DB::select($document)[0] ?? [];
         return [
             'document'   => $document,
@@ -261,8 +342,65 @@ class DocumentServiceProvider extends ServiceProvider
     public function removeContent($id){
         //first find all attributes
         $document    = Documents::where('qnid',$id)->first();
-        $connections = Sys_con_ops::where('main_id',$document->id)->get();
+        $document->status = 0;
+        $document->save();
+        
+        $detail = $this->getFormData($document->qnid);
+        
+        if($detail['document']->op_key == 'op-doc-client'){
+            //here deactivate connected client users (only op-pert-reseller)
+            $sql = "select  u.email,
+                            sce2.entity_tag,
+                            sce2.entity_value,
+                            sce2.id
+                            
+                    from sys_con_entities sce
+                            inner join sys_con_entities as sce2 on  sce2.conn_id = sce.conn_id
+                            inner join sys_con_ops sco on sco.id = sce2.conn_id
+                            inner join persons as p on p.id = sco.main_id
+                            inner join users as u on u.person_id = p.id
+                        where   sce.entity_tag like '%cliid%'
+                            and sce.entity_value = '$id'";
+            $data = DB::select($sql);
+            
+            foreach ($data as $key => $value) {
+                if(strpos($value->entity_tag,'userclientgroup') !== false){
+                    //here get user and make it disabled
+                    User::where('email',$value->email)->update(['status' => 0]);
+                }
+            }
+        }
+
+
+        UserLog::create([
+            'user_id'     => auth('sanctum')->user()->id,
+            'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'CATES',
+            'relation'    => 'documents',
+            'relation_id' => $document->id,
+            'type_id'     => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+            'description' => json_encode([
+                'before' => $this->getFormData($document->qnid),
+                'after'  => [],
+                'desc'   => 'İçerik pasife alındı artık listelerde görünmeyecek..'
+            ],JSON_UNESCAPED_UNICODE)
+        ]);
+
+
+        /*$connections = Sys_con_ops::where('main_id',$document->id)->get();
         $entites     = [];
+
+        UserLog::create([
+            'user_id'     => auth('sanctum')->user()->id,
+            'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'CATES',
+            'relation'    => 'documents',
+            'relation_id' => $document->id,
+            'type_id'     => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+            'description' => json_encode([
+                'before' => $this->getFormData($document->qnid),
+                'after'  => [],
+                'desc'   => 'Sistemden Kaldırıldı..'
+            ],JSON_UNESCAPED_UNICODE)
+        ]);
 
         foreach($connections as $c){
             $entites = Sys_con_entities::where('conn_id',$c->id)->get();
@@ -276,7 +414,9 @@ class DocumentServiceProvider extends ServiceProvider
             $c->delete();
         }
 
-        $document->delete();
+        $document->delete();*/
+
+        
 
         return ['success' => true];
     }
@@ -393,21 +533,42 @@ class DocumentServiceProvider extends ServiceProvider
      */
     public function setStatus($id,$statusKey,$note){
         try{
+            $document = Documents::where('qnid',$id)->first();
+            $documentType = Sys_options::where('id', $document->type_id)->first();
+            $log = UserLog::create([
+                'user_id'     => auth('sanctum')->user()->id ?? 0,
+                'sys_code'    => $GLOBALS['SYS_CODE'] ?? 0,
+                'relation'    => 'documents',
+                'relation_id' => $document->id,
+                'type_id'     => Sys_options::where('op_key', 'log-document-status-update')->first()->id ?? 0,
+                'description' => json_encode(
+                    [
+                        'after' => ['document' => ['op_key' => $documentType->op_key, 'qnid' => $document->qnid]],
+                        'desc' => $documentType->title.' Durumu Değiştirildi',
+                        'note' => $note
+                    ], JSON_UNESCAPED_UNICODE)
+            ]);
+
+
+
+
             $type = Sys_options::where('op_key',$statusKey)->first();
             $trans = new Transactions();
-            $trans->target_id  = Documents::where('qnid',$id)->first()->id;  // can be add from both listing pages.. 
+            $trans->target_id  = $document->id;  // can be add from both listing pages.. 
+            $trans->log_id     = $log->id;
             $trans->type_id    = $type->id;
             $trans->note       = $note ?? '-';
             $trans->amount     = 0;
             $trans->cur_id     = 0;
             $trans->rel_id     = 0;
             $trans->sign       = 0;
-            $trans->period     = date('Y-m');
+            $trans->period     = '-';
             //$trans->created_at =  
             $trans->save();
 
             return [
                 'data'    => $type->title,
+                'detail'  => $this->getFormData($id),
                 'success' => true,
             ];
         }catch(Exception $e){
@@ -485,11 +646,13 @@ class DocumentServiceProvider extends ServiceProvider
                 DB::beginTransaction();
 
                 //get file 
-                $file = Document_files::where('qnid',$id)->first();
-                $type = Sys_options::where('op_key',$statusKey)->first();
-
+                $file              = Document_files::where('qnid',$id)->first();
+                $type              = Sys_options::where('op_key',$statusKey)->first();
+                $entity            = Sys_con_entities::where(['entity_value' => $file->id,'table_tag' => 'document_files'])->first();
+                $fileTitle         = Sys_options::where('op_key','op-'.explode('**',$entity->entity_tag)[0])->first()->title ?? 'Dosya';
+                $EntityConnections = Sys_con_entities::where(['conn_id' => $entity->conn_id])->get();
                 //add transaction to file
-                $log              = \App\Models\UserLog::create([
+                $log              = UserLog::create([
                     'user_id'     => auth('sanctum')->user()->id,
                     'sys_code'    => $GLOBALS['SYS_CODE'],
                     'relation'    => 'documents',
@@ -497,7 +660,7 @@ class DocumentServiceProvider extends ServiceProvider
                     'type_id'     => $type->id,
                     'description' => json_encode(array(
                         'file_id' => $file->id,
-                        'desc'    => 'Dosya Durumu Değiştirildi => '.$type->title,
+                        'desc'    => $fileTitle.' Dosya Durumu Değiştirildi => '.$type->title,
                         'note'    => $note,
                     ),JSON_UNESCAPED_UNICODE)
                 ]);
@@ -519,7 +682,11 @@ class DocumentServiceProvider extends ServiceProvider
                 return [
                     'success'          => true,
                     'id'               => $log->id,
-                    'data'             => $type->title
+                    'data'             => $type->title,
+                    'fileTitle'        => $fileTitle,
+                    'description'      => $fileTitle.' Dosya Durumu Değiştirildi => '.$type->title,
+                    'note'             => $note,
+                    'connections'      => $EntityConnections,
                 ];
             }catch(\Exception $e){
                 DB::rollBack();
@@ -536,5 +703,169 @@ class DocumentServiceProvider extends ServiceProvider
                 'id'               => 0,
             ];
         }
+    }
+
+    /**
+     * this method will return rejected file warnings for client users
+     */
+    public function getDocumentFiles($documentId){
+        $sql = "SELECT 
+                        df.qnid,
+                        df.description,
+                        sf.title,
+                        p.name as rejected_by,
+                        d.qnid as cli_id
+                    FROM transactions AS t
+                        INNER JOIN sys_options AS so
+                            ON so.id = t.type_id
+                        INNER JOIN document_files AS df 
+                            ON df.id = t.target_id
+                        INNER JOIN documents AS d 
+                            ON d.id = df.relation_id
+                        INNER JOIN sys_con_entities AS sys 
+                            ON sys.entity_value = df.id::text AND sys.table_tag = 'document_files'
+                        inner join sys_options as sf
+                            on sf.op_key = 'op-'|| SPLIT_PART(sys.entity_tag, '**', 1)
+                        inner join user_logs as ul
+                            on ul.id = t.log_id
+                        inner join users as u
+                            on u.id = ul.user_id    
+                        inner join persons as p
+                            on p.id = u.person_id
+                    WHERE 
+                        df.relation = 'documents'       
+                    and df.status = 1  
+                    and d.qnid = '$documentId'
+                    GROUP BY 
+                        df.qnid, 
+                        df.description,
+                        sf.title,
+                        p.name,
+                        d.qnid";
+        $data = DB::select($sql);
+
+        return [
+            'success' => true,
+            'data'    => $data
+        ];
+    }
+
+    /**
+     * this method will return rejected file warnings for client users
+     */
+    public function getRejectedClientFiles($list = []){
+        $sql = "WITH last_tx AS (
+                        SELECT DISTINCT ON (t.target_id)
+                            t.target_id AS df_id,
+                            sot.op_key,
+                            p.name AS rejected_by
+                        FROM transactions t
+                            JOIN user_logs ul ON ul.id = t.log_id
+                            JOIN users u ON u.id = ul.user_id
+                            JOIN persons p ON p.id = u.person_id
+                            JOIN sys_options sot ON sot.id = t.type_id
+                        WHERE t.op_id = 1
+                            ORDER BY t.target_id, t.id DESC
+                )
+                SELECT 
+                    df.qnid,
+                    df.description,
+                    sf.title,
+                    d.qnid AS cli_id,
+                    lt.rejected_by
+                FROM document_files df
+                    JOIN documents d ON d.id = df.relation_id
+                    JOIN sys_con_entities sys ON sys.entity_value = df.id::text 
+                                            AND sys.table_tag = 'document_files'
+                    JOIN sys_options sf ON sf.op_key = 'op-' || SPLIT_PART(sys.entity_tag, '**', 1)
+                    LEFT JOIN last_tx lt ON lt.df_id = df.id
+                        WHERE   df.relation = 'documents' 
+                            AND df.status = 1 
+                            AND d.qnid in ('".implode("','",$list)."')
+                            AND lt.op_key = 'doc_file_rejected'";
+        $data = DB::select($sql);
+
+        return [
+            'success' => true,
+            'data'    => $data
+        ];
+    }
+
+    /**
+     * this method will return awaiting file warnings for client users
+     */
+    public function getAwaitingClientFiles($list = []){
+        $sql = "SELECT 
+                        df.qnid,
+                        df.description,
+                        sf.title,
+                        p.name as inserted_by,
+                        d.qnid as cli_id,
+                        df.created_at
+                    FROM transactions AS t
+                        INNER JOIN sys_options AS so
+                            ON so.id = t.type_id
+                        INNER JOIN document_files AS df 
+                            ON df.id = t.target_id
+                        INNER JOIN documents AS d 
+                            ON d.id = df.relation_id
+                        INNER JOIN sys_options as sod on sod.id = d.type_id
+                        INNER JOIN sys_con_entities AS sys 
+                            ON sys.entity_value = df.id::text AND sys.table_tag = 'document_files'
+                        inner join sys_options as sf
+                            on sf.op_key = 'op-'|| SPLIT_PART(sys.entity_tag, '**', 1)
+                        inner join user_logs as ul
+                            on ul.id = t.log_id
+                        inner join users as u
+                            on u.id = ul.user_id    
+                        inner join persons as p
+                            on p.id = u.person_id
+                    WHERE df.relation = 'documents' and (
+                            select sot.op_key from transactions as ts
+                                    inner join sys_options as sot on sot.id = ts.type_id
+                                              where ts.target_id = df.id
+                                    order by ts.id desc limit 1
+
+                        ) = 'doc_file_waiting' and sod.op_key = 'op-doc-client'
+                    and df.status = 1 ";
+
+        $data = DB::select($sql);
+
+        return [
+            'success' => true,
+            'data'    => $data
+        ];
+    }
+
+
+    /**
+     * this method will update client connections for other documents
+     */
+    public function updatePersonClients($documentId,$clientData){
+
+       $sql = "select   sce2.entity_tag,
+                        sce2.entity_value,
+                        sce2.id
+                    from sys_con_entities sce
+                            inner join sys_con_entities as sce2 on  sce2.conn_id = sce.conn_id
+                        where   sce.entity_tag like '%cliid%'
+                            and sce.entity_value = '$documentId'";
+        $data = DB::select($sql);
+        
+        foreach ($data as $key => $value) {
+            # code...
+            if(strpos($value->entity_tag,'clicode') !== false){
+                $entity = Sys_con_entities::where('id',$value->id)->first();
+                $entity->entity_value = $clientData['clicode'] ?? '';
+                $entity->save();
+            }
+
+            if(strpos($value->entity_tag,'clititle') !== false){
+                $entity = Sys_con_entities::where('id',$value->id)->first();
+                $entity->entity_value = $clientData['title'] ?? '';
+                $entity->save();
+            }
+        }
+
     }
 }

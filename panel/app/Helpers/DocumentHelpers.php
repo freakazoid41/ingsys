@@ -562,7 +562,7 @@ if(!function_exists('uploadFile')){
                 'type_id'   => (\App\Models\Sys_options::where('op_key' , 'doc_file_waiting')->first())->id,
                 'log_id'    => $log->id,
                 'target_id' => $file->id,
-                'description' => 'Person Added New File'
+                'description' => 'Kullanıcı Yeni Dosya Ekledi'
             ]);
 
             if($rowId != 0){
@@ -576,7 +576,7 @@ if(!function_exists('uploadFile')){
                     'type_id'   => (\App\Models\Sys_options::where('op_key' , 'doc_file_refreshed')->first())->id,
                     'log_id'    => $log->id,
                     'target_id' => $fileOld->id,
-                    'description' => 'Person Replaced File'
+                    'description' => 'Kullanıcı Dosyayı Değiştirdi'
                 ]);
 
                 //copy all entities to new file

@@ -11,6 +11,10 @@ import TreeModal from '@/lib/treeModal.js';
 import Simplebar from 'simplebar-vue';
 
 export default {
+  breadcrumbs: {
+      list: [  { title: 'Rol Şablonları', path: '/coalpanel/roles' } ],
+      title: 'Rol Şablonları'
+  },
   components: { Simplebar },
   setup() {
     Object.assign(Datepicker.locales, tr);
@@ -64,13 +68,7 @@ export default {
   },
   mounted() {
     this.navigationStore.toggle(true);
-    this.navigationStore.setBread(
-      [
-        { title: this.wTrans('menu.home'), url: '/coalpanel' },
-        { title: 'Yetki Roller', url: '/coalpanel/roles' },
-      ],
-      'Rol Şablonları'
-    );
+    
     this.loadGroups();
     this.renderPermissionTree();
 
@@ -90,7 +88,13 @@ export default {
       try {
         const response = await this.plib.request({ url: '/api/v1/roles/templates', method: 'get' });
         if (response && response.success && Array.isArray(response.data)) {
-          this.savedRoles = response.data;
+          // ensure each role has op_keys (mirror of permissions) for compatibility
+          this.savedRoles = response.data.map(r => ({
+            ...r,
+            permissions: Array.isArray(r.permissions) ? r.permissions : [],
+            op_keys: Array.isArray(r.op_keys) ? r.op_keys : (Array.isArray(r.permissions) ? r.permissions : []),
+            op_key: r.op_key || (r.name ? String(r.name).toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-çğıöşüâêîôûüığ]/gi,'') : `role-${r.id || Date.now()}`),
+          }));
         }
       } catch (e) {
         console.error('Roles loadGroups error', e);
@@ -118,11 +122,19 @@ export default {
     },
     async persistGroups() {
       try {
+        // include op_keys for each role when sending to server
+        const payloadRoles = this.savedRoles.map(r => ({
+          ...r,
+          permissions: Array.isArray(r.permissions) ? r.permissions : [],
+          op_keys: Array.isArray(r.op_keys) ? r.op_keys : (Array.isArray(r.permissions) ? r.permissions : []),
+          op_key: r.op_key || (r.name ? String(r.name).toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-çğıöşüâêîôûüığ]/gi,'') : `role-${r.id || Date.now()}`),
+        }));
+
         const response = await this.plib.request({
           url: '/api/v1/roles/templates',
           method: 'post',
           data: {
-            roles: JSON.stringify(this.savedRoles),
+            roles: JSON.stringify(payloadRoles),
           },
         });
         if (!response || !response.success) {
@@ -166,12 +178,18 @@ export default {
       }
 
       const id = this.editingRoleId || Date.now();
+      const generatedOpKey = String(name).toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-çğıöşüâêîôûüığ]/gi,'');
+      const existingRole = this.editingRoleId ? this.savedRoles.find((r) => r.id === this.editingRoleId) : null;
+      const opKey = existingRole?.op_key || generatedOpKey;
+
       const role = {
         id,
         name,
+        op_key: opKey,
         description: String(this.groupDescription).trim(),
         permissions: this.selectedArray,
-        created_at: this.editingRoleId ? (this.savedRoles.find((r) => r.id === this.editingRoleId)?.created_at || new Date().toISOString()) : new Date().toISOString(),
+        op_keys: this.selectedArray, // explicitly include op_keys
+        created_at: this.editingRoleId ? (existingRole?.created_at || new Date().toISOString()) : new Date().toISOString(),
       };
 
       if (this.editingRoleId) {
@@ -187,7 +205,7 @@ export default {
       this.groupName = '';
       this.groupDescription = '';
       this.clearSelection();
-      Swal.fire('Başarılı', this.editingRoleId ? 'Rol şablonu güncellendi.' : 'Rol şablonu kaydedildi.', 'success');
+      this.plib.toast(Swal,'success',this.editingRoleId ? 'Rol şablonu güncellendi.' : 'Rol şablonu kaydedildi.');
     },
     renderPermissionTree() {
       if (this.treeInstance) {
@@ -280,7 +298,7 @@ export default {
 </script>
 
 <template>
-  <div class="card shadow-sm border-0">
+  <div class="card shadow-sm border-0 mt-10">
     <div class="card-header py-4 bg-white border-bottom">
       <div class="d-flex align-items-center justify-content-between">
         <div>
@@ -309,9 +327,9 @@ export default {
           </div>
 
           <div class="d-flex gap-2">
-            <button class="btn btn-theme-outline btn-theme-outline-secondary w-100" @click="clearSelection">Seçimi Temizle</button>
+            <button class="btn btn-theme-outline btn-theme-outline-primary w-100" @click="clearSelection">Seçimi Temizle</button>
             <button class="btn btn-theme-outline btn-theme-outline-primary w-100" @click="addGroup">{{ editingRoleId ? 'Güncelle' : 'Şablonu Kaydet' }}</button>
-            <button v-if="editingRoleId" class="btn btn-theme-outline btn-theme-outline-secondary w-100" @click="cancelEdit">İptal</button>
+            <button v-if="editingRoleId" class="btn btn-theme-outline btn-theme-outline-primary w-100" @click="cancelEdit">İptal</button>
           </div>
           <transition name="fade">
             <div v-if="editingRoleId" class="bg-warning bg-opacity-10 border border-warning rounded-3 p-3 mt-3" style="font-size:0.9rem;">
@@ -329,7 +347,7 @@ export default {
           <div class="mb-4">
             <h5 class="fw-bold mb-3">Kaydedilmiş Şablonlar ({{ savedRoles.length }})</h5>
             <div v-if="savedRoles.length === 0" class="text-muted">Henüz kayıtlı rol şablonu yok.</div>
-            <div class="role-list-scroll" style="max-height: 460px; overflow-y: auto;">
+            <div class="role-list-scroll">
               <div v-for="role in savedRoles" :key="role.id" class="card mb-3 m-3 shadow-sm border-0">
                 <div class="card-body">
                   <div class="d-flex justify-content-between align-items-start">
@@ -345,8 +363,8 @@ export default {
                       <button class="btn btn-sm btn-theme-outline btn-theme-outline-info" style="min-width:80px; font-weight:600;" @click="viewRole(role)">
                         {{ detailRole && detailRole.id === role.id ? 'Kapat' : 'Detay' }}
                       </button>
-                      <button class="btn btn-sm btn-theme-outline btn-theme-outline-warning" style="min-width:80px; font-weight:600; background:#fff4e6; border-color:#ffc68d;" @click="editRole(role)">Düzenle</button>
-                      <button v-if="!immutableRoles.includes(role.name)" class="btn btn-sm btn-theme-outline btn-theme-outline-danger" style="min-width:80px; font-weight:600; background:#ffe8ea; border-color:#f5aeb5;" @click="removeRole(role.id)">Sil</button>
+                      <button class="btn btn-sm btn-theme-outline btn-theme-outline-warning" style="min-width:80px; font-weight:600; background:#154b9024; border-color:#154b9024;" @click="editRole(role)">Düzenle</button>
+                      <button v-if="!immutableRoles.includes(role.name)" class="btn btn-sm btn-theme-outline btn-theme-outline-danger" style="min-width:80px; font-weight:600; background:#154b9024; border-color:#154b9024;" @click="removeRole(role.id)">Sil</button>
                     </div>
                   </div>
                 </div>
@@ -377,3 +395,8 @@ export default {
   </div>
 </template>
 
+<style>
+.tm-node-row{
+  height: 50px!important;
+}
+</style>

@@ -6,7 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Fortify\TwoFactorAuthenticatable;
+
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Str;
 
@@ -19,7 +19,6 @@ class User extends Authenticatable
     use HasApiTokens;
     use HasFactory;
     use Notifiable;
-    use TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +30,7 @@ class User extends Authenticatable
         'email',
         'password',
         'parent_id',
+        'person_id',
         'qnid',
         'status',
         'grp_code',
@@ -46,8 +46,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
     ];
 
     /**
@@ -83,13 +81,29 @@ class User extends Authenticatable
     static function tableList($obj){
        
         $columns = array(
+            'is_active'     => "((select count(id) from active_sessions as au where au.user_id = u.id and last_seen >= now() - interval '1 minutes') > 0)   as   is_active",
             'status'        => 'i.status',
             'id'            => 'i.qnid  as  id',
             'name'          => 'i.name',
             'type_title'    => 't.title  as  type_title',
+            'type_key'      => 't.op_key  as  type_key',
             'username'      => 'u.email  as  username',
             'user_status'   => 'u.status  as  user_status',
-            'needs_refresh' => 'u.needs_refresh  as  needs_refresh'
+            'needs_refresh' => 'u.needs_refresh  as  needs_refresh',
+            'created_at'    => 'u.created_at',
+            'role_title'    => 'r.name  as  role_title',
+            'permissions'   => "(SELECT string_agg(sr.title, ', ')
+                                    FROM sys_con_entities as se
+                                        INNER JOIN sys_con_ops as so ON so.id = se.conn_id
+                                        INNER JOIN sys_options as sp ON sp.id = so.type_id
+                                        INNER JOIN LATERAL (
+                                            SELECT jsonb_array_elements_text(se.entity_value::jsonb) as code
+                                        ) as codes ON true
+                                        INNER JOIN sys_permission_catalogs as sr ON sr.code = codes.code
+                                    WHERE so.conn_id = 0
+                                        AND sp.op_key = 'op-doc-user-permission-form'
+                                        AND so.main_id = i.id
+                                        GROUP BY se.id)  as  permissions"
         );
 
 
@@ -98,9 +112,10 @@ class User extends Authenticatable
         $limit = '';
         $order = '';
         $join = '   inner join sys_options as t on t.id = i.type_id 
-                    inner join users as u on u.person_id = i.id';
+                    inner join users as u on u.person_id = i.id
+                    inner join sys_role_templates as r on r.op_key = u.role ';
         
-        $where = " where i.name != '' and u.email != 'kbbozat41@hotmail.com' and email not like '%picklecan.me%' ";  
+        $where = " where i.name != '' and u.email != 'kadir@kontent.com.tr' ";  
         
 
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
@@ -125,7 +140,7 @@ class User extends Authenticatable
             //$obj['filter'] = json_decode($obj['filters'],true);
             foreach($obj['filter'] as $f){
                 if(isset($f['field'])) $f['key'] = $f['field'];
-                if(isset($f['value'])) $f['value'] = noInject(strip_tags(mb_strtoupper($f['value'])));
+                if(isset($f['value'])) $f['value'] = noInject(strip_tags($f['value']));
                 switch($f['key']){
                     case 'free':
                     case 'all':
@@ -134,19 +149,19 @@ class User extends Authenticatable
                         $i = 0;
                         foreach($columns as $k=>$v){
                             if($i!=0) $where.=' or ';
-                            $column = explode('as  ',$columns[$k])[0];
-                            $where.=' upper(trim(CAST('.$column.' as varchar))) like'."'%" . $f['value'] . "%' ";
+                            $column = explode('  as  ',$columns[$k])[0];
+                            $where.=' '.$column."::text ilike '%" . $f['value'] . "%' ";
                             $i++;
                         }
                         $where .= ' ) ';
                     break;
                     default:
-                        $column = explode('as  ',$columns[$f['key']])[0];
+                        $column = explode('  as  ',$columns[$f['key']])[0];
                         if(trim($f['value']) != ''){
                             if($f['type'] != 'like'){
-                                $where.=" and upper(trim(CAST(".$column." as varchar))) ='".$f['value']."' ";
+                                $where.=" and ".$column."::text ='".$f['value']."' ";
                             }else{
-                                $where.=" and upper(trim(CAST(".$column." as varchar))) like '%".$f['value']."%' ";
+                                $where.=" and ".$column."::text ilike '%".$f['value']."%' ";
                             }
                         }
                         break;

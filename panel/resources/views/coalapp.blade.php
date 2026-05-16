@@ -1,8 +1,4 @@
 
-@php
-   
-@endphp
-
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
@@ -21,14 +17,17 @@
         'public/coaltheme/css/custom.css',
         'resources/js/app.js'
     ])
+    <script src="/coaltheme/js/ktdrawer.js" defer></script>
     <input hidden name="header" value="{{session('grp_title') ?? env('APP_NAME')}}">
     <input hidden name="SYS_CUR" value="{{env('SYS_CUR')}}">
+    <input hidden name="SYS_CODE" value="{{$GLOBALS['SYS_CODE']}}">
 </head>
 <body class="header-fixed header-tablet-and-mobile-fixed aside-fixed aside-secondary-disabled">
     <div id="app" class="d-flex flex-column flex-root">
         
     </div>
-    @vite(['public/coaltheme/js/index.js','public/coaltheme/js/vendor.js'])
+    
+    
 </body>
 
 </html>

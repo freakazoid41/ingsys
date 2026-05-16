@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('table_tag',100);
             $table->string('entity_tag',100);
             $table->text('entity_value');
-            $table->uuid('qnid')->nullable();
+            $table->text('qnid')->nullable();
             
             $table->timestamps();
         });

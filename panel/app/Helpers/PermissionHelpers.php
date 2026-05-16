@@ -1,38 +1,89 @@
 <?php
 use App\Providers\EncryptionProvider;
+use App\Services\PermissionService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
 
 
 if(!function_exists('checkPerm')){
     function checkPerm($key){
-        // allow explicit session permission flags
-        if(session('sper-'.$key) !== null){
-            return true;
+        $user = auth()->user();
+        if(!$user){
+            return false;
         }
+       
+        $permissionService = new PermissionService();
+        return $permissionService->has($user, $key);
+    }
 
-        $user = auth('sanctum')->user();
+    function loadUserPermissionsToSession($user){
+        return (new PermissionService())->loadPermissionsToSession($user);
+    }
+
+    function ensurePermissionSessionFreshness(){
+        $user = auth()->user();
         if(!$user){
             return false;
         }
 
-        // super-user fallback
-        if(in_array($user->email, ['kbbozat41@hotmail.com', 'kadir@kontent.com.tr'])){
-            return true;
-        }
-
-        return false;
+        return (new PermissionService())->ensureSessionFreshness($user);
     }
 
     function docPermCheck($type,$job){
         $map = [
             'op-doc-request' => [
-                'edit' => 'per-05-023',
+                'edit' => 'per-05-02',
                 'read' => 'per-05-01',
+                'status' => 'per-05-02',
+            ],
+            'op-doc-client' => [
+                'edit' => 'per-06-02',
+                'read' => 'per-06-01',
+                'status' => 'per-06-02',
+            ],
+            'op-doc-offer' => [
+                'edit'   => 'per-08-02',
+                'read'   => 'per-08-01',
+                'status' => 'per-05-02',
             ]
         ];
-
         
-        return checkPerm($map[$type][$job] ?? null) ?? false;
+        
+        $tags = explode(',',$map[$type][$job] ?? '');
+        foreach($tags as $tag){
+            if(checkPerm($tag)){
+                return true;
+            }
+        }
+
+        return false;
+        
+        //return checkPerm($map[$type][$job] ?? null) ?? false;
+    }
+
+    function refreshAllUserPermissions(){
+        // Invalidate permission cache for all users
+        // This forces next request to reload permissions
+        
+        $users = \Illuminate\Support\Facades\DB::table('users')->get(['person_id']);
+        
+        foreach($users as $userRow){
+            if($userRow->person_id){
+                // Clear cache keys for this user so next check reloads
+                Cache::forget('user_permissions_' . $userRow->person_id);
+                Cache::forget('user_permissions_version_' . $userRow->person_id);
+            }
+        }
+        
+        // Increment global permission invalidation timestamp
+        Cache::put('permissions_invalidated_at', time(), now()->addDays(30));
+        
+        // Refresh current user immediately
+        if(auth()->user()){
+            loadUserPermissionsToSession(auth()->user());
+        }
+        
+        return true;
     }
 }
 

@@ -2,6 +2,7 @@
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\Api\V1\User\MeController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\PersonsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ReportController;
@@ -27,15 +28,23 @@ Route::post('/v1/auth/register',                  [AuthController::class, 'regis
 Route::post('/v1/auth/resetusercradentals/{id}',  [PersonsController::class, 'resetUserCradentals'])->name('restart-user');
 // expose authenticated user endpoint for tests and API clients
 Route::middleware('auth')->get('/v1/me', MeController::class);
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::class])->group(function () {
     Route::any('/v1/document/{id?}',                   [DocumentController::class, 'index']);
     Route::any('/v1/transaction/{id?}',                [DocumentController::class, 'transaction']);
     Route::get('/v1/get-apartments',                   [DocumentController::class, 'getAparments']);
     Route::post('/v1/set-apartments',                  [DocumentController::class, 'setAparments']);
+    Route::post('/v1/admin/refresh-perms/{personId}',  [PersonsController::class, 'adminRefreshPermissions']);
+    //Route::post('/v1/admin/force-logout/{personId}',   [PersonsController::class, 'forceLogoutUser']);
     Route::post('/v1/table/{model}',                   [SystemController::class, 'table']);
+    Route::post('/v1/export/{model}/{type?}',          [ExportController::class, 'index']);
 
     Route::any('/v1/users/{id?}',                      [PersonsController::class, 'uindex']);
     Route::any('/v1/persons/{id?}',                    [PersonsController::class, 'index']);
+    Route::get('/v1/notifications',                    [SystemController::class, 'getNotifications']);
+    Route::post('/v1/notificationlog/{id}/retrigger',  [SystemController::class, 'retriggerNotification']);
+    Route::get('/v1/notification-users',               [PersonsController::class, 'getNotificationUsers']);
+    Route::post('/v1/set-notification-groups',         [PersonsController::class, 'saveNotificationGroups']);
+    Route::get('/v1/notification/groups',              [PersonsController::class, 'notificationGroups']);
     Route::get('/v1/roles/items',                      [PersonsController::class, 'rolesItems']);
     Route::get('/v1/roles/templates',                  [PersonsController::class, 'rolesTemplate']);
     Route::post('/v1/roles/templates',                 [PersonsController::class, 'rolesTemplate']);
@@ -46,6 +55,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/v1/trans/set-payment',               [DocumentController::class, 'setPayment']);
     Route::post('/v1/trans/set-status',                [DocumentController::class, 'setStatus']);
     Route::post('/v1/trans/set-file-status',           [DocumentController::class, 'setFileStatus']);
+    Route::post('/v1/trans/set-file-status-all',       [DocumentController::class, 'setFileStatusAll']);
+
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
     Route::get('/v1/getpermissions',                   [AuthController::class, 'getPermissions']);

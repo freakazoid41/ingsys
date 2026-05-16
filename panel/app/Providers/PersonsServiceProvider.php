@@ -9,13 +9,16 @@ use App\Models\Sys_con_entities;
 use App\Models\Persons;
 use App\Models\User;
 use App\Models\Contacts;
+use App\Services\RoleTemplateService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Jobs\SendRegisterMailJob;
-use App\Jobs\SendResetMailJob;
 use Illuminate\Support\Facades\Hash;
 use App\Providers\DocumentServiceProvider;
-
+use App\Providers\EmailServiceProvider;
+use App\Models\UserLog;
+use App\Models\ActiveSession;
+use App\Services\PermissionService;
 
 class PersonsServiceProvider extends ServiceProvider
 {
@@ -23,8 +26,27 @@ class PersonsServiceProvider extends ServiceProvider
        
     }
 
+    protected function getPermissionCacheStore(){
+        return config('permissions.cache_store', env('PERMISSIONS_CACHE_STORE', 'file'));
+    }
+
     public function getPersonTypes() {
         return Sys_options::where(['group_key' => 'op-pert'])->get();
+    }
+
+    public function getUserPermissionsByPersonId($personId){
+        $permission = DB::selectOne(
+            "SELECT se.entity_value FROM sys_con_entities se
+             INNER JOIN sys_con_ops so ON so.id = se.conn_id
+             INNER JOIN sys_options sp ON sp.id = so.type_id
+             WHERE so.conn_id = 0
+               AND sp.op_key = 'op-doc-user-permission-form'
+               AND so.main_id = ?",
+            [$personId]
+        );
+
+        $permissions = json_decode($permission->entity_value ?? '[]', true);
+        return is_array($permissions) ? array_values($permissions) : [];
     }
 
     private function upsertConnectionEntity(int $mainId, int $typeId, int $subTypeId, string $entityTag, $entityValue)
@@ -49,6 +71,14 @@ class PersonsServiceProvider extends ServiceProvider
 
     public function setPerson($id = 0, $data = [], $files = [], $fileGroup = 'persons', $allData = []){
         $formData     = $data ?? [];
+        $logData = [
+            'user_id'     => auth('sanctum')->user()->id ?? 0,
+            'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'CATES',
+            'relation'    => 'persons',
+            'relation_id' => $id,
+            'type_id'     => Sys_options::where('op_key', 'log-person-update')->first()->id ?? 0,
+            'description' => []
+        ];
         DB::beginTransaction();
         try{
             $contacts     = [];
@@ -69,7 +99,15 @@ class PersonsServiceProvider extends ServiceProvider
             //first main elements
             $document = new Persons();
 
-            if($id != 0) $document = Persons::where('qnid',$id)->first();
+            if($id != 0){
+                $document = Persons::where('qnid',$id)->first();
+                $logData['description'] = [
+                    'before' => $document,
+                    'after'  => [],
+                ];
+            } 
+
+           
 
             foreach ($formData as $key => $value) {
                 //here split data types and set main person data
@@ -146,10 +184,11 @@ class PersonsServiceProvider extends ServiceProvider
                 if($u){
                     $u->status = $user['status'];
                     $u->save();
+                    (new PermissionService())->forceLogoutPerson($document->id, 'Kullanıcını Durumunuz Değiştirildi. Lütfen tekrar giriş yapın.'); // force logout for all sessions of the user
                 }
             }
 
-            if(!empty($user) && isset($user['role'])){
+            if(!empty($user) && isset($user['role']) && !empty($user['role'])){
                 $u = User::where('person_id',$document->id)->first();
                 if($u){
                     $u->role = $user['role'];
@@ -164,12 +203,12 @@ class PersonsServiceProvider extends ServiceProvider
                     'name'      => 'System User',
                 ];
 
-                if(isset($user['status'])) $sr['status'] = $user['status'];
-                if(isset($user['role'])) $sr['role'] = $user['role'];
+                if(isset($user['status']) && !empty($user['status'])) $sr['status'] = $user['status'];
+                if(isset($user['role']) && !empty($user['role'])) $sr['role'] = $user['role'];
                 if(isset($user['needs_refresh'])) $sr['needs_refresh'] = $user['needs_refresh'];
 
                 if( isset($user['username'])) $sr['email'] = $user['username'];
-                User::updateOrInsert(
+                User::updateOrCreate(
                     ['person_id' => $document->id],
                     $sr,
                 );
@@ -227,7 +266,27 @@ class PersonsServiceProvider extends ServiceProvider
 
             DB::commit();
 
+            // refresh cached permissions and bump version so active sessions detect the change
+            (new PermissionService())->refreshUserPermissionCache($document->id);
+            try{
+                $newStatus = $this->clientPermInfo($document->qnid, $formData['type_key'] ?? session('type_key'));
+                (new PermissionService())->bumpUserPermissionVersion($document->id, $newStatus);
+            }catch(\Throwable $e){
+                // ignore
+            }
+
+            //here get updated data
+            $updatedResult = $this->getPerson($document->qnid);
+            $logData['description'] = json_encode([
+                'before' => $logData['description']['before'] ?? [],
+                'after'  => $updatedResult,
+            ],JSON_UNESCAPED_UNICODE);
+
+            $logData['relation_id'] = $document->id;
             
+            //here save log data
+            UserLog::create($logData);
+
 
             return [
                 'success' => $rsp,
@@ -289,6 +348,7 @@ class PersonsServiceProvider extends ServiceProvider
         }
 
         $sql     = "select  i.id,
+                            i.qnid,
                             i.name,
                             i.surname,
                             i.type_id,
@@ -310,7 +370,7 @@ class PersonsServiceProvider extends ServiceProvider
         if($search == null){
             $where =  $realId == null ? " where i.qnid = '".$id."'" : " where i.id = '".$id."' ";
         }else{
-            //$where = " where (i.spec_code ilike '%".$search."%' or i.name ilike '%".$search."%' ) and i.parent_id = 0 ";
+            $where = " where (".$search.")";
         }
         
         $person  = DB::select($sql.$where);  
@@ -365,69 +425,17 @@ class PersonsServiceProvider extends ServiceProvider
         return ['success' => true];
     }
 
-    public function sendregisterMails($email, $phone){
-        try{
-            SendRegisterMailJob::dispatch($email, $phone, null)->onQueue('emails');
-        }catch(\Throwable $e){
-            Log::error('sendregisterMails dispatch failed', ['exception' => $e, 'email' => $email, 'phone' => $phone]);
-        }
-        
-    }
-
-    public function sendapproveMails($email){
-        try{
-            SendApproveMailJob::dispatch($email)->onQueue('emails');
-        }catch(\Throwable $e){
-            Log::error('SendApproveMailJob dispatch failed', ['exception' => $e, 'email' => $email]);
-        }
-        
-    }
-
-    public function sendresetMail($email, $password){
-        try{
-            //php artisan queue:work --queue=emails
-            SendResetMailJob::dispatch($email, $password)->onQueue('emails');
-        }catch(\Throwable $e){
-            Log::error('sendresetMail dispatch failed', ['exception' => $e, 'email' => $email, 'password' => $password]);
-        }
-        
-    }
-
-    public function getRoleTemplates(){
-        $path = storage_path('app/coal_roles_templates.json');
-        if (!file_exists($path)) {
-            return [];
+    public function roleTemplateTrans($type = 'get',$id = null,$roles = []){
+        $service = new RoleTemplateService();
+        if($type == 'get'){
+            return $service->getRoleTemplates();
+        }elseif($type == 'save'){
+            return $service->saveRoleTemplates($roles);
+        }elseif($type == 'delete' && $id != null){
+            return $service->deleteRoleTemplate($id);
         }
 
-        $content = file_get_contents($path);
-        $data = json_decode($content, true);
-
-        return is_array($data) ? $data : [];
-    }
-
-    public function saveRoleTemplates(array $roles){
-        $path = storage_path('app/coal_roles_templates.json');
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-
-        return file_put_contents($path, json_encode(array_values($roles), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) !== false;
-    }
-
-    public function deleteRoleTemplate($id){
-        $roles = $this->getRoleTemplates();
-        $filtered = array_filter($roles, function($item) use ($id) {
-            return (string)($item['id'] ?? '') !== (string)$id;
-        });
-
-        if (count($filtered) === count($roles)) {
-            return null;
-        }
-
-        $this->saveRoleTemplates(array_values($filtered));
-
-        return array_values($filtered);
+        return null;    
     }
 
     /**
@@ -445,6 +453,22 @@ class PersonsServiceProvider extends ServiceProvider
                 $user->person_id.'**userpermissiongroup**'.$user->person_id,
                 empty($permissions) ? '[]' : json_encode($permissions)
             );
+            (new PermissionService())->refreshUserPermissionCache($user->person_id);
+        }
+    }
+
+    public function updateUserNotificationGroups($persons){
+        $notifTypeId   = (Sys_options::where(['op_key' => 'op-doc-user-notification-form'])->first())->id;
+        $stypeIdMain  = (Sys_options::where(['op_key' => 'personnel-main'])->first())->id;       
+        foreach ($persons as $personE) {
+            $person = Persons::where('qnid', $personE['person_id'])->first();
+            $this->upsertConnectionEntity(
+                $person->id,
+                $notifTypeId,
+                $stypeIdMain,
+                $person->id.'**usernotificationgroup**'.$person->id,
+                empty($personE['op_keys']) ? '[]' : json_encode($personE['op_keys'])
+            );
         }
     }
 
@@ -453,6 +477,8 @@ class PersonsServiceProvider extends ServiceProvider
         try {
             $connId = Sys_options::where('op_key','personnel-main')->first()->id;
             $typeId = Sys_options::where('op_key','op-doc-client-main')->first()->id;
+            $clientTypeId = (Sys_options::where(['op_key' => 'op-doc-user-client-form'])->first())->id;
+            $stypeIdMain  = (Sys_options::where(['op_key' => 'personnel-main'])->first())->id;    
             
             //first chech if connection already exists
             $conn   = Sys_con_ops::where(
@@ -479,6 +505,32 @@ class PersonsServiceProvider extends ServiceProvider
                         ['main_id' => $personData['id'],'type_id' => $typeId,'sub_type_id' => $connId, 'conn_id' => $res['id']]
                     );
 
+                    $k = date('YmdHis').'-0';
+                    //add client info to person connections
+                    $this->upsertConnectionEntity(
+                        $personData['id'],
+                        $clientTypeId,
+                        $stypeIdMain,
+                        'cliid**userclientgroup**'.$k,
+                        $res['qnid']
+                    );
+
+                    $this->upsertConnectionEntity(
+                        $personData['id'],
+                        $clientTypeId,
+                        $stypeIdMain,
+                        'clicode**userclientgroup**'.$k,
+                        $personData->qnid
+                    );
+
+                    $this->upsertConnectionEntity(
+                        $personData['id'],
+                        $clientTypeId,
+                        $stypeIdMain,
+                        'clititle**userclientgroup**'.$k,
+                        $userData->email
+                    );
+
                     //send mail
                 }
             }
@@ -489,10 +541,146 @@ class PersonsServiceProvider extends ServiceProvider
             Log::error('PersonsServiceProvider::setClientToPerson error', [
                 'exception' => $e,
                 'personData' => $personData,
-                'clientData' => $clientData,
+                'clientData' => $userData,
             ]);
 
             return false;
+        }
+    }
+
+    /**
+     * What is the purpose of this method? 
+     * Clients have 2 addional statuses
+     * 1 - If they our not entered their some informations they cannot travel across system so we will check that in here when needed
+     * 2 - If they have non approved required file they cannot give response to tenders also we sill check that here
+     */
+    public function clientPermInfo($personQnId, $typeKey){
+        $response = [
+            'canProceed'  => true,
+            'canResponse' => true,
+            'clientQnid'  => false,
+            'clientTitle' => false,
+            'clientQnidList' => [],
+            'rejectedFiles' => []
+        ];
+
+        try {
+            //first find client qnid's from user connections which are unique connection ids
+            $clients  = "SELECT se.entity_value as client_qnid,
+                                se2.entity_value as title
+                        FROM sys_con_entities as se
+                            inner join sys_con_ops as so on so.id = se.conn_id 
+                            inner join sys_options as sp on sp.id = so.type_id
+                            inner join persons as p on p.id = so.main_id
+                            inner join sys_con_entities se2 on se2.conn_id = se.conn_id and se2.entity_tag like '%title%'
+
+                        where so.conn_id = 0 and sp.op_key = 'op-doc-user-client-form' and se.entity_tag like '%cliid**%'  and p.qnid = '$personQnId'";
+            
+            $clients  = DB::select($clients);  
+
+            $documentProd = new DocumentServiceProvider();
+            foreach ($clients as $row) {
+                try {
+                    // Get client document information
+                   
+                    $response['clientQnidList'][] = $row->client_qnid;
+                    $clientInfo = $documentProd->getFormData($row->client_qnid);
+                    $clientInfo = array_values($clientInfo['formFormat']['op-doc-client-form'])[0]['entities'];
+                    
+                    $result = array_filter($clientInfo, fn($key) => str_starts_with($key, 'cont_imza_file**'), ARRAY_FILTER_USE_KEY);
+                    if (empty($result)) {
+                        if($typeKey == 'op-pert-reseller') $response['canProceed'] = false;
+                    } else {
+                        foreach ($result as $key => $value) {
+                            $data = json_decode($value, true);
+                            if ($data['status'] == 1) {
+                                if ($data['last_status']['op_key'] !== 'doc_file_accepted') {
+                                    if($typeKey == 'op-pert-reseller') $response['canResponse'] = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('Error processing client document information', [
+                        'exception' => $e,
+                        'client_qnid' => $row->client_qnid
+                    ]);
+                    if($typeKey == 'op-pert-reseller') {
+                        $response['canProceed'] = false;
+                        $response['canResponse'] = false;
+                    }
+                }
+            }
+            if(isset($clients[0])){
+                $response['clientQnid']  = $clients[0]->client_qnid;
+                $response['clientTitle'] = $clients[0]->title;
+            }
+           
+
+            //get rejected files here
+            $response['rejectedFiles'] = $documentProd->getRejectedClientFiles($response['clientQnidList'])['data'];
+        } catch (\Throwable $e) {
+            Log::error('Error fetching client information', [
+                'exception' => $e,
+                'personQnId' => $personQnId
+            ]);
+            $response['canProceed'] = false;
+            $response['canResponse'] = false;
+        }
+
+        return $response;
+    }
+
+    //this method will return users who have some notification group permission ornotification groups with permitted users
+    public function getNotificationUsers($opKey = null,$personId = null){
+        try {
+            $sql = "select  p.qnid,
+                        sce.entity_value,
+                        ct.op_key,
+                        p.name as person_name,
+                        u.email as username
+                        
+
+                    from persons as p
+                        inner join sys_con_ops as sco on sco.main_id = p.id
+                        inner join sys_options as ct on ct.id = sco.type_id
+                        inner join sys_con_entities as sce on sce.conn_id = sco.id
+                        inner join users as u on u.person_id = p.id
+                    where ct.op_key = 'op-doc-user-notification-form' ";
+
+            if($opKey != null){
+                $sql.= " and sce.entity_value like '%$opKey%'";
+            }
+
+            if($personId != null){
+                $sql.= " and p.qnid = '$personId' ";
+            }
+            $data = DB::select($sql);
+            $permittedUsers = [];
+            foreach($data as $d){
+                $permissions = json_decode($d->entity_value, true);
+                foreach ($permissions as $key) {
+                    if($opKey != null && $key != $opKey) continue;
+                    $member = [
+                        'person_id' => $d->qnid,
+                        'name' => $d->person_name ?? '',
+                        'username' => $d->username ?? '',
+                    ];
+                    if(isset($permittedUsers[$key])){
+                        $permittedUsers[$key][] = $member;
+                    }else{
+                        $permittedUsers[$key] = [$member];
+                    }
+                }
+            }
+            return $permittedUsers;
+        } catch (\Throwable $e) {
+            Log::error('PersonsServiceProvider::getNotificationUsers error', [
+                'exception' => $e,
+                'opKey' => $opKey,
+            ]);
+            return [];
         }
     }
 }

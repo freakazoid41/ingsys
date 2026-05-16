@@ -17,7 +17,7 @@ Route::post('/auth/passchange' ,          [AuthController::class, 'passChange'])
 })->where('any', '^((?!api).)*');*/
 
 
-Route::middleware(['auth:sanctum'])
+Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::class])
     ->group(function () {
         /*Route::get('/panel', fn () => view('app'))->name('app');
         Route::get('/panel/users', function (){
@@ -25,25 +25,7 @@ Route::middleware(['auth:sanctum'])
         })->where('any', '^((?!api).)*');
         Route::get('/panel/{any}', fn () => view('app'))->where('any', '^((?!api).)*');*/
 
-        $auth = function (){
-            if(session('type_key') !== null){
-                return view('app',['type' => session('type_key') == 'op-pert-admin' ? 'admin' : 'client']);
-                /*switch(session('type_key')){
-                    case 'op-pert-admin':
-                        return view('app');
-                        break;
-                    case 'op-pert-buyer':
-                        //return redirect('/client'); // an alternative to "redirect()->to()"
-                        return view('client');
-                        break;
-                    default:
-                        abort('403');
-                    break;
-                }*/
-            }else{
-                abort('403');
-            }
-        };
+        
 
         $coalAuth = function (){
             if(session('type_key') !== null){
@@ -65,8 +47,7 @@ Route::middleware(['auth:sanctum'])
             }
         };
 
-        Route::get('/panel',$auth)->name('app');
-        Route::get('/panel/{any}',$auth)->where('any', '^((?!api).)*');
+       
 
         Route::get('/coalpanel',$coalAuth)->name('app');
         Route::get('/coalpanel/{any}',$coalAuth)->where('any', '^((?!api).)*');
@@ -78,7 +59,7 @@ Route::middleware(['auth:sanctum'])
             return decryptFile($doc,'view');
         })->name('documentRoute');
 
-        Route::post('/reportpdf/icmal',          [ExportController::class, 'reporticmal'])->name('.reportIcmal');
+        Route::post('/export/offer',             [ExportController::class, 'offerPdf'])->name('.offerPdf');
         Route::get('/export/{model}/{type?}',    [ExportController::class, 'index'])->name('.export-table');
         Route::get('/setapartment/{apartment}',  [AuthController::class,   'setapartment']);
         Route::get('/closeapartment',            [AuthController::class,   'closeapartment']);

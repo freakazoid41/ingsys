@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\NotificationLog;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -153,6 +154,37 @@ class SmsService
         }
     }
 
+    protected function createNotificationLog(string $to, string $message, ?string $originatorId, int $validityPeriod, ?string $clientId): NotificationLog
+    {
+        return NotificationLog::create([
+            'type' => 'sms',
+            'to' => $to,
+            'subject' => 'SMS',
+            'body' => $message,
+            'status' => NotificationLog::STATUS_PENDING,
+            'payload' => [
+                'originatorId' => $originatorId,
+                'validityPeriod' => $validityPeriod,
+                'clientId' => $clientId,
+            ],
+            'attempts' => 0,
+            'last_attempt_at' => now(),
+        ]);
+    }
+
+    public function retryNotificationLog(NotificationLog $log): array
+    {
+        $payload = $log->payload ?? [];
+        return $this->sendSms(
+            $log->to,
+            $log->body ?? ($payload['message'] ?? ''),
+            $payload['originatorId'] ?? null,
+            intval($payload['validityPeriod'] ?? 1440),
+            $payload['clientId'] ?? null,
+            $log
+        );
+    }
+
     public function getOriginators(): array
     {
         try {
@@ -199,8 +231,10 @@ class SmsService
         }
     }
 
-    public function sendSms(string $to, string $message, ?string $originatorId = null, int $validityPeriod = 1440, ?string $clientId = null): array
+    public function sendSms(string $to, string $message, ?string $originatorId = null, int $validityPeriod = 1440, ?string $clientId = null, ?NotificationLog $existingLog = null): array
     {
+        $notificationLog = $existingLog ?? $this->createNotificationLog($to, $message, $originatorId, $validityPeriod, $clientId);
+
         try {
             $token = $this->getToken();
             $originatorId = $originatorId ?: $this->originatorId;
@@ -231,14 +265,36 @@ class SmsService
             ];
 
             $response = Http::timeout(30)->asForm()->post($url, $query);
-            if ($response->failed()) {
-                $body = $response->body();
-                Log::error('SMS sendSms request failed', ['url' => $url, 'query' => $query, 'response' => $body]);
-                return ['success' => false, 'message' => 'SMS gönderilemedi: ' . substr($body, 0, 400)];
-            }
 
+            $status = $response->status();
+            $headers = method_exists($response, 'headers') ? $response->headers() : [];
             $body = $response->body();
-            Log::debug('SMS sendSms response', ['body' => $body]);
+
+            // Detailed logging for request and full gateway response
+            Log::debug('SMS sendSms request', [
+                'url' => $url,
+                'query' => $query,
+                'clientTransactionId' => $clientTransactionId,
+            ]);
+
+            Log::debug('SMS sendSms response', [
+                'status' => $status,
+                'headers' => $headers,
+                'body' => $body,
+            ]);
+
+            if ($response->failed()) {
+                Log::error('SMS sendSms request failed', ['url' => $url, 'query' => $query, 'status' => $status, 'response' => $body]);
+                $notificationLog->update([
+                    'status' => NotificationLog::STATUS_ERROR,
+                    'attempts' => ($notificationLog->attempts ?? 0) + 1,
+                    'last_attempt_at' => now(),
+                    'error_message' => 'SMS gönderilemedi',
+                    'detail' => ['status' => $status, 'response' => $body],
+                ]);
+
+                return ['success' => false, 'message' => 'SMS gönderilemedi: ' . substr($body, 0, 400), 'notification_log_id' => $notificationLog->id];
+            }
 
             // SMS Gateway XML response
             $payload = null;
@@ -249,9 +305,27 @@ class SmsService
                     $desc = (string) ($xml->STATUS->DESC ?? '');
                     $payload = ['code' => $code, 'desc' => $desc, 'raw' => $body];
                     if ($code === '0') {
-                        return ['success' => true, 'data' => $payload];
+                        $notificationLog->update([
+                            'status' => NotificationLog::STATUS_SENT,
+                            'attempts' => ($notificationLog->attempts ?? 0) + 1,
+                            'sent_at' => now(),
+                            'last_attempt_at' => now(),
+                            'error_message' => null,
+                            'detail' => ['response' => $payload],
+                        ]);
+
+                        return ['success' => true, 'data' => $payload, 'notification_log_id' => $notificationLog->id];
                     }
-                    return ['success' => false, 'message' => $desc ?: 'SMS gönderimi başarısız', 'data' => $payload];
+
+                    $notificationLog->update([
+                        'status' => NotificationLog::STATUS_ERROR,
+                        'attempts' => ($notificationLog->attempts ?? 0) + 1,
+                        'last_attempt_at' => now(),
+                        'error_message' => $desc ?: 'SMS gönderimi başarısız',
+                        'detail' => ['response' => $payload],
+                    ]);
+
+                    return ['success' => false, 'message' => $desc ?: 'SMS gönderimi başarısız', 'data' => $payload, 'notification_log_id' => $notificationLog->id];
                 }
             }
 
@@ -259,19 +333,48 @@ class SmsService
                 $json = $response->json();
                 if (is_array($json)) {
                     $payload = $json;
-                    if (data_get($json, 'status') === 'success' || data_get($json, 'status') === 0) {
-                        return ['success' => true, 'data' => $payload];
+                    $success = data_get($json, 'status') === 'success' || data_get($json, 'status') === 0;
+                    $notificationLog->update([
+                        'status' => $success ? NotificationLog::STATUS_SENT : NotificationLog::STATUS_ERROR,
+                        'attempts' => ($notificationLog->attempts ?? 0) + 1,
+                        'last_attempt_at' => now(),
+                        'sent_at' => $success ? now() : null,
+                        'error_message' => $success ? null : data_get($json, 'message', 'SMS gönderimi başarısız'),
+                        'detail' => ['response' => $payload],
+                    ]);
+
+                    if ($success) {
+                        return ['success' => true, 'data' => $payload, 'notification_log_id' => $notificationLog->id];
                     }
-                    return ['success' => false, 'message' => data_get($json, 'message', 'SMS gönderimi başarısız'), 'data' => $payload];
+                    return ['success' => false, 'message' => data_get($json, 'message', 'SMS gönderimi başarısız'), 'data' => $payload, 'notification_log_id' => $notificationLog->id];
                 }
             } catch (Exception $e) {
                 // ignore
             }
 
-            return ['success' => false, 'message' => 'SMS gönderimi yapılamadı, beklenmeyen yanıt: ' . substr($body, 0, 400), 'data' => $payload];
+            $notificationLog->update([
+                'status' => NotificationLog::STATUS_ERROR,
+                'attempts' => ($notificationLog->attempts ?? 0) + 1,
+                'last_attempt_at' => now(),
+                'error_message' => 'Beklenmeyen yanıt alındı',
+                'detail' => ['response' => $body],
+            ]);
+
+            return ['success' => false, 'message' => 'SMS gönderimi yapılamadı, beklenmeyen yanıt: ' . substr($body, 0, 400), 'data' => $payload, 'notification_log_id' => $notificationLog->id];
         } catch (Exception $e) {
             Log::error('SMS sendSms exception', ['message' => $e->getMessage()]);
-            return ['success' => false, 'message' => $e->getMessage()];
+
+            if (!empty($notificationLog)) {
+                $notificationLog->update([
+                    'status' => NotificationLog::STATUS_ERROR,
+                    'attempts' => ($notificationLog->attempts ?? 0) + 1,
+                    'last_attempt_at' => now(),
+                    'error_message' => $e->getMessage(),
+                    'detail' => ['exception' => $e->getMessage()],
+                ]);
+            }
+
+            return ['success' => false, 'message' => $e->getMessage(), 'notification_log_id' => $notificationLog->id ?? null];
         }
     }
 }

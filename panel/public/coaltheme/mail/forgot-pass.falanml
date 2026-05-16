@@ -22,7 +22,7 @@
         </td>
     </tr>
     <tr>
-        <td style="text-align: center; text-align: center; font-size: 10px; font-weight: bold; color: #ff671d;">
+        <td style="text-align: center; text-align: center; font-size: 10px; font-weight: bold; color: #154B91;">
             <a href="http://{*pass-url*}">{*pass-url*}</a>
         </td>
     </tr>

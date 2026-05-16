@@ -26,6 +26,10 @@ import TreeModal from '@/lib/treeModal.js';
 
 export default {
   name: 'TreeTestPage',
+  breadcrumbs: {
+    list: [ { title: 'Panel', path: '/' }, { title: 'Tree Test', path: '/tree-test' } ],
+    title: 'Tree Test'
+  },
   data() {
     return {
       items: [

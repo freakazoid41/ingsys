@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 
@@ -10,6 +11,9 @@
     @vite(['public/coaltheme/css/theme.css', 'resources/js/coal-swal.js'])
 </head>
 <style>
+    a{
+        color: #154B91
+    }
     #kt_sign_in_submit>* {
         pointer-events: none;
         
@@ -22,11 +26,11 @@
     }
 
     .bg-body {
-        border: 3px solid #ff671d
+        border: 3px solid #154B91;
     }
 
     h2 {
-        color: #ff671d;
+        color: #154B91;
         font-weight: bold;
         font-size: 24px;
     }
@@ -39,9 +43,9 @@
        
         <div class="d-flex flex-column flex-column-fluid flex-lg-row">
             <div class="d-flex flex-center w-lg-50 pt-15 pt-lg-0 px-10">
-                <div class="d-flex flex-center flex-lg-start flex-column">
+                <div class="d-flex flex-center flex-lg-start flex-column align-items-center">
                     <a href="" class="mb-7">
-                        <img alt="Logo" src="/system/front/media/logos/adm-logo.svg" width="300px" />
+                        <img alt="Logo" src="/coaltheme/{{$GLOBALS['SYS_CODE']}}.svg" width="300px" />
                     </a>
                     <h2 class="m-0">Kömür Tedarik Sistemi</h2>
                 </div>
@@ -51,7 +55,7 @@
                 <div id="div-login"
                     class="bg-body d-flex flex-column align-items-stretch flex-center rounded-4 w-600px p-20">
                     <div class="d-flex flex-center flex-column flex-column-fluid px-lg-10 pb-15 pb-lg-20">
-                        <form id="login-form" class="form w-100" method="POST" action="{{route('login-user','admin')}}" novalidate="novalidate">
+                        <form id="login-form" class="form w-100" method="POST" action="{{ route('login-user','admin', false) }}" novalidate="novalidate">
                             @csrf
                             <div class="text-center mb-11">
                                 <h1 class="text-gray-900 fw-bolder mb-3">Giriş Yapınız</h1>
@@ -60,7 +64,7 @@
                                 <span class="w-125px text-gray-500 fw-semibold fs-7">Kullanıcı Bilgileriniz</span>
                             </div>
                             <div class="fv-row mb-8">
-                                <input required type="text" id="email" placeholder="Kullancı Adı" value="{{env('IS_TEST') ? 'kadir@kontent.com.tr' : ''}}" name="email" autocomplete="off"
+                                <input required type="text" id="email" placeholder="Kullancı Adı" value="" name="email" autocomplete="off"
                                     class="form-control bg-transparent login-item" />
                             </div>
 
@@ -75,15 +79,18 @@
                             </div>
 
                             <div class="fv-row mb-8">
-                                <input required type="password" id="password" value="{{env('IS_TEST') ? 'Kadir412.' : ''}}" placeholder="Şifre" name="password" autocomplete="off"
+                                <input required type="password" id="password" value="" placeholder="Şifre" name="password" autocomplete="off"
                                     class="form-control bg-transparent login-item" />
                             </div>
                             
-                            <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+                            @php $recaptchaSiteKey = config('services.recaptcha.site_key') ?: env('RECAPTCHA_SITE_KEY'); @endphp
+                            @if($recaptchaSiteKey)
+                                <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
-                            <div class="mb-3">
-                                <div class="g-recaptcha mt-2 d-flex justify-content-center" data-sitekey="{{ env('RECAPTCHA_SITE_KEY') }}"></div>
-                            </div>
+                                <div class="mb-3">
+                                    <div class="g-recaptcha mt-2 d-flex justify-content-center" data-sitekey="{{ $recaptchaSiteKey }}"></div>
+                                </div>
+                            @endif
                             <div id="err-password" class="alert alert-danger mt-2 d-flex align-items-center p-2"
                                 style="display:none !important">
                                 <i class="ki-duotone ki-shield-tick fs-2hx text-danger me-4"><span

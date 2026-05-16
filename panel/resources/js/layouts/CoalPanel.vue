@@ -24,8 +24,13 @@ export default {
         navigationStore: useNavigationStore(),
       }
     },
-    mounted : () => {
+    mounted() {
       document.body.dataset.saTheme = localStorage.getItem("sa-theme");
+      this.$nextTick(() => {
+        if (window.KTDrawer && document.getElementById('kt_aside') && document.getElementById('kt_aside_toggle')) {
+          window.KTDrawer.createInstances('[data-kt-drawer="true"]');
+        }
+      });
     },
     beforeMount: () => {
      
@@ -56,6 +61,20 @@ export default {
         </div>
        </div>
 </template>
+
+<style>
+#kt_content_container {
+  max-height: unset !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.container-xxl {
+  max-height: unset !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+</style>
 
 
 

@@ -53,35 +53,33 @@ export default class Page {
         const phoneInput = document.getElementById('phone');
         if (phoneInput) {
             const formatPhone = (value) => {
-                let digits = (value || '').replace(/\D/g, '');
-                // Normalize: drop leading 0 or country code 90
-                if (digits.startsWith('90')) digits = digits.slice(2);
-                if (digits.startsWith('0')) digits = digits.slice(1);
+                let digits = (value || '').replace(/\D/g, ''); // Remove non-digit characters
+                if (digits.startsWith('90')) digits = digits.slice(2); // Remove leading '90'
+                if (digits.startsWith('0')) digits = digits.slice(1); // Remove leading '0'
 
-                const a = digits.slice(0, 3);
-                const b = digits.slice(3, 6);
-                const c = digits.slice(6, 10);
-                const rest = digits.slice(10);
+                const a = digits.slice(0, 3); // Area code
+                const b = digits.slice(3, 6); // Next 3 digits
+                const c = digits.slice(6, 8); // Next 2 digits
+                const d = digits.slice(8, 10); // Last 2 digits
 
-                let out = '+90';
+                let out = '';
                 if (a) {
-                    out += ' (' + a;
-                    if (a.length === 3) out += ')';
+                    out += '(' + a + ')'; // Add area code in parentheses
                 }
-                if (b) out += ' ' + b;
-                if (c) out += '-' + c;
-                if (rest) out += ' ' + rest;
+                if (b) out += ' ' + b; // Add next 3 digits
+                if (c) out += ' ' + c; // Add next 2 digits
+                if (d) out += ' ' + d; // Add last 2 digits
 
-                return out;
+                return out; // Return formatted phone number
             };
 
             phoneInput.addEventListener('input', (e) => {
                 const start = phoneInput.selectionStart || 0;
                 const oldLen = phoneInput.value.length;
-                phoneInput.value = formatPhone(phoneInput.value);
+                phoneInput.value = formatPhone(phoneInput.value); // Apply formatting
                 const newLen = phoneInput.value.length;
                 const diff = newLen - oldLen;
-                const newPos = Math.max(0, start + (diff > 0 ? diff : 0));
+                const newPos = Math.max(0, start + (diff > 0 ? diff : 0)); // Adjust cursor position
                 phoneInput.setSelectionRange(newPos, newPos);
             });
 

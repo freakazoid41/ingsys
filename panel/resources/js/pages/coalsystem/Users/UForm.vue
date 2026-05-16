@@ -7,6 +7,8 @@
     import { wTrans } from 'laravel-vue-i18n';
     import Plib from '@/lib/pickle';
     import { useRoute } from 'vue-router';
+    import { useAuthStore } from '@/stores/auth';
+
     import { useNavigationStore } from '@/stores/navigation';
     import { useFormDataStore } from '@/stores/formdata';
     import Swal from 'sweetalert2';
@@ -15,6 +17,10 @@
 
 
     export default {
+        breadcrumbs: {
+            list: [  { title: 'Kullanıcılar', path: '/coalpanel/users' } ],
+            title: 'Kullanıcı Düzenle / Oluştur'
+        },
         components: {
             CoalForm,
         },
@@ -31,6 +37,7 @@
         },
         mounted(){
             this.navigationStore.toggle(true);
+            
             const checkData = async () => {
                 //if has id param get document data first
                 if(this.id !== undefined && this.id !== ''){
@@ -53,7 +60,6 @@
                     response.data.main_name     = response?.data.name;
                     response.data.user_status   = response?.data.user_status;
                 }   
-                console.log(response.data)
                 //here set permissions options
                 let permissions = JSON.parse(response?.data?.permissions ?? '[]');
 
@@ -107,16 +113,7 @@
                 
             });
 
-            this.navigationStore.setBread([
-                {
-                    title : this.wTrans('menu.home'),
-                    url   : '/secpanel',
-                },
-                {
-                    title : this.wTrans('menu.users'),
-                    url   : '/secpanel/users',
-                }
-            ] ,this.wTrans('form.users'));
+           
         },  
         data() {
             const route = useRoute();
@@ -125,6 +122,7 @@
                 loadForm        : false,
                 plib            : new Plib(),
                 navigationStore : useNavigationStore(),
+                authStore       : useAuthStore(),
                 formDataStore   : useFormDataStore(),
                 id              : route?.params?.id !== '' ? route?.params?.id : undefined,
             };
@@ -133,7 +131,6 @@
             
             async submitForm(formData){
                 this.formData = formData;
-                //console.log(formData);
                 this.navigationStore.toggle(true);
                 this.formData.typeKey = 'op-pert-admin';
                 const rsp = this.plib.checkForm('.form-item');
@@ -150,6 +147,23 @@
                     }
 
 
+                    //here check password rules
+                    if(fields?.user_password !== undefined){
+                        const valid = fields?.user_password.match(
+                            /^(?=.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[=!\-@._*])[A-Za-z0-9=!\-@._*]+$/
+                        ) != null;
+                        if(!valid){
+                            this.navigationStore.toggle(false);
+                            this.plib.toast(this.Swal,'error',`Şifreniz en az bir tane büyük/küçük harf, rakam
+                                            ve özel karakter
+                                            içermelidir ve 8 karakterden oluşmalıdır.`,);
+                            document.querySelector('input[name="user_password"]').classList.add('is-invalid');
+                            return false;
+                        }
+                    }
+
+
+
                     //here check passwords
                     if(fields?.user_password){
                         
@@ -160,6 +174,10 @@
                             document.querySelector('input[name="user_password_check"]').classList.add('is-invalid');
                             return false;
                         }
+                    }
+                    if(this.formData.permissions){
+                        fields.permissions = this.formData.permissions.map(el => el.op_key);
+                        //fields.permissions
                     }
                     
                     const   envelope  = new FormData();
@@ -177,10 +195,11 @@
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            this.$router.push({ name: 'UList' });
-                            /*if(this.typeKey !== "op-pert-reseller"){
+                            if(this.authStore.permissions?.includes('per-04-01')){
                                 this.$router.push({ name: 'UList' });
-                            }*/
+                            }else{
+                                window.location.reload();
+                            }
                         });
                     }, 300);
 

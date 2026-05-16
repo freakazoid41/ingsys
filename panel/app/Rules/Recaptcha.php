@@ -16,8 +16,11 @@ class Recaptcha implements Rule
      */
     public function passes($attribute, $value)
     {
-        $response = Http::asForm()->post(env('RECAPTCHA_VERIFY_URL'), [
-            'secret' => env('RECAPTCHA_SECRET_KEY'),
+        $verifyUrl = env('RECAPTCHA_VERIFY_URL', 'https://www.google.com/recaptcha/api/siteverify');
+        $secret = env('RECAPTCHA_SECRET_KEY', config('services.recaptcha.secret'));
+
+        $response = Http::asForm()->post($verifyUrl, [
+            'secret' => $secret,
             'response' => $value,
             'remoteip' => request()->ip(), // İsteğe bağlı: Kullanıcı IP'si
         ]);

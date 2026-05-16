@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('user_id');
             $table->integer('type_id');
             $table->integer('relation_id')->default('0');
+            $table->string('ip');
             $table->text('relation')->default('-');;
             $table->text('description');
             $table->timestamps();

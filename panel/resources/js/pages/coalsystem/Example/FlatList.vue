@@ -28,26 +28,7 @@
             this.navigationStore.toggle(true);
             this.buildTestTable();
             
-            this.navigationStore.setBread([
-                {
-                    title : this.wTrans('menu.home'),
-                    url   : '/panel',
-                },
-                {
-                    title : this.wTrans('menu.flats'),
-                    url   : '/panel/flats',
-                }
-            ] ,this.wTrans('form.flats.list'));
-
-            this.navigationStore.setButtons([
-              {
-                icon : 'ph ph-download',
-                onclick   : () => window.open('/export/documents/flats'),
-              },{
-                icon : 'ph ph-plus-circle',
-                onclick   : () => this.$router.push({ name: 'FlatForm' }),
-              }
-            ]);
+          
 
 
             setTimeout(() => {
@@ -103,13 +84,13 @@
 
                             let btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
-                            btn.innerHTML = '<i class="ph ph-download-simple fs-4 text-body-emphasis"></i> <span class="ms-2 icon-info">Bakiye</span>';
+                            btn.innerHTML = '<i class="ph ph-download-simple fs-4"></i> <span class="ms-2 icon-info">Bakiye</span>';
                             btn.onclick   = () => this.transmodal('addbalance',columnData,rowData.title);
                             span.appendChild(btn);
 
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
-                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4 text-body-emphasis"></i><span class="ms-2 icon-info">Ödeme</span>';
+                            btn.innerHTML = '<i class="ph ph-upload-simple fs-4"></i><span class="ms-2 icon-info">Ödeme</span>';
                             btn.onclick   = () => this.transmodal('income',columnData,rowData.title);
                             span.appendChild(btn);
                             return span;
@@ -125,7 +106,7 @@
                             span.classList.add('d-flex','justify-content-center','align-items-center','flex-row');
                             let btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
-                            btn.innerHTML = '<i class="ki-duotone ki-pencil text-gray-900 fs-2x text-body-emphasis" role="img"><span class="path1"></span><span class="path2"></span></i>';
+                            btn.innerHTML = '<i class="ki-duotone ki-pencil text-gray-900 fs-2x" role="img"><span class="path1"></span><span class="path2"></span></i>';
                             btn.onclick   = () => this.$router.push({ name: 'ExampleForm' , params: { id: columnData }});
                             span.appendChild(btn);
 
@@ -133,7 +114,7 @@
 
                             btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
-                            btn.innerHTML = '<i class="ki-duotone ki-cross-square text-gray-900 fs-2x text-body-emphasis" role="img"><span class="path1"></span><span class="path2"></span></i>';
+                            btn.innerHTML = '<i class="ki-duotone ki-cross-square text-gray-900 fs-2x" role="img"><span class="path1"></span><span class="path2"></span></i>';
                             btn.onclick   =  async () => {
                                 this.navigationStore.toggle(true);
                                 await this.plib.request({
@@ -210,8 +191,8 @@
                             value : 'op-doc-flat'
                         }
                     ],
-                    nextPageIcon : '<i class="ph ph-arrow-right  text-body-emphasis"></i>',
-                    prevPageIcon : '<i class="ph ph-arrow-left text-body-emphasis"></i>',
+                    nextPageIcon : '<i class="ph ph-arrow-right "></i>',
+                    prevPageIcon : '<i class="ph ph-arrow-left"></i>',
                     rowFormatter:(elm,data)=>{
                         //console.log(elm,data);
                         //modify row element
@@ -404,7 +385,7 @@
     <div class="card">
         <div class="card-header align-items-center py-5 gap-2 gap-md-5">
                    <div class="card-title">
-                        <div class="d-flex align-items-center position-relative my-1">
+                        <div class="d-flex align-items-center position-relative my-1  w-100">
                              <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-4">
                                   <span class="path1"></span>
                                   <span class="path2"></span>

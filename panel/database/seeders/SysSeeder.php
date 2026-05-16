@@ -47,19 +47,38 @@ class SysSeeder extends Seeder
             ]
         ];
 
-        
-
         $logs = [
             [
                 'parent_id' => 0,
-                'title'     => 'Login',
+                'title'     => 'Sistem Giriş',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
                 'op_key'    => 'log-login',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Logout',
+                'title'     => 'Hesap Geçici Kilitleme',
+                'ttitle'    => 'User_logs',
+                'ctitle'    => 'log_id',
+                'group_key' => 'op-logs',
+                'op_key'    => 'log-lock',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Sistem Başarısız Giriş',
+                'ttitle'    => 'User_logs',
+                'ctitle'    => 'log_id',
+                'group_key' => 'op-logs',
+                'op_key'    => 'log-login-failed',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Sistem Başarısız Kod Giriş',
+                'ttitle'    => 'User_logs',
+                'ctitle'    => 'log_id',
+                'group_key' => 'op-logs',
+                'op_key'    => 'log-login-code-failed',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Sistem Çıkış',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
@@ -73,18 +92,25 @@ class SysSeeder extends Seeder
                 'op_key'    => 'log-role-update',
             ],[
                 'parent_id' => 0,
-                'title'     => 'İhale Düzenleme',
+                'title'     => 'Kullanıcı Durum Değişimi',
+                'ttitle'    => 'User_logs',
+                'ctitle'    => 'log_id',
+                'group_key' => 'op-logs',
+                'op_key'    => 'log-user-status-update',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Detay Düzenleme',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
                 'op_key'    => 'log-tender-update',
             ],[
                 'parent_id' => 0,
-                'title'     => 'İhale Hakediş Düzenleme',
+                'title'     => 'Durum Değişimi',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
-                'op_key'    => 'log-tender-period-update',
+                'op_key'    => 'log-document-status-update',
             ],[
                 'parent_id' => 0,
                 'title'     => 'Sistem Girdileri Güncelleme',
@@ -136,18 +162,18 @@ class SysSeeder extends Seeder
                 'op_key'    => 'log-tender-start',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Yüklenici Personel Düzenleme',
+                'title'     => 'Kullanıcı Düzenleme',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
-                'op_key'    => 'log-personnel-update',
+                'op_key'    => 'log-person-update',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Yüklenici Personel Ekleme',
+                'title'     => 'Notifikasyon Grupları Güncellendi',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
-                'op_key'    => 'log-personnel-add',
+                'op_key'    => 'log-notification-group-update',
             ],[
                 'parent_id' => 0,
                 'title'     => 'Yüklenici Çoklu Personel Ekleme',
@@ -202,32 +228,81 @@ class SysSeeder extends Seeder
 
         $trans = [
             [
-                'parent_id' => 0,                   //main document status
+                'parent_id' => 0,                   
                 'title'     => 'Dosya Sisteme Eklendi',
                 'ttitle'    => 'Transactions',
                 'ctitle'    => 'type_id',
                 'group_key' => 'op-trans',
                 'op_key'    => 'doc_trans_created',
             ],[
+                'parent_id' => 0,                   
+                'title'     => 'Teklif Taslak Aşamasında',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans-offer',
+                'op_key'    => 'doc_trans_offer_draft',
+            ],[
+                'parent_id' => 0,                 
+                'title'     => 'Teklif Gönderidi',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans-op-doc-offer',
+                'op_key'    => 'doc_trans_offer_sended',
+            ],[
+                'parent_id' => 0,                   //main document status
+                'title'     => 'Teklif İnceleniyor',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans-op-doc-offer',
+                'op_key'    => 'doc_trans_offer_review',
+            ],[
+                'parent_id' => 0,                   //main document status
+                'title'     => 'Teklif Revizyon Bekleniyor',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans-op-doc-offer',
+                'op_key'    => 'doc_trans_offer_revision',
+            ],[
+                'parent_id' => 0,                   //main document status
+                'title'     => 'Teklif Revize Edildi',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans-op-doc-offer',
+                'op_key'    => 'doc_trans_offer_revised',
+            ],[
+                'parent_id' => 0,                   //main document status
+                'title'     => 'Teklif Onaylandı',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans-op-doc-offer',
+                'op_key'    => 'doc_trans_offer_approved',
+            ],[
+                'parent_id' => 0,                   //main document status
+                'title'     => 'Teklif Reddedildi',
+                'ttitle'    => 'Transactions',
+                'ctitle'    => 'type_id',
+                'group_key' => 'op-trans-op-doc-offer',
+                'op_key'    => 'doc_trans_offer_rejected',
+            ],[
                 'parent_id' => 0,                   //main document status
                 'title'     => 'Talep Başladı',
                 'ttitle'    => 'Transactions',
                 'ctitle'    => 'type_id',
-                'group_key' => 'op-trans',
+                'group_key' => 'op-trans-op-doc-request',
                 'op_key'    => 'doc_trans_request_start',
             ],[
                 'parent_id' => 0,                   //main document status
                 'title'     => 'Talep Tamamlandı',
                 'ttitle'    => 'Transactions',
                 'ctitle'    => 'type_id',
-                'group_key' => 'op-trans',
+                'group_key' => 'op-trans-op-doc-request',
                 'op_key'    => 'doc_trans_request_end',
             ],[
                 'parent_id' => 0,                   //main document status
                 'title'     => 'Talep İptal Edildi',
                 'ttitle'    => 'Transactions',
                 'ctitle'    => 'type_id',
-                'group_key' => 'op-trans',
+                'group_key' => 'op-trans-op-doc-request',
                 'op_key'    => 'doc_trans_request_cancelled',
             ],[
                 'parent_id' => 0,                   //main document status
@@ -285,62 +360,6 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'type_id',
                 'group_key' => 'op-trans',
                 'op_key'    => 'doc_file_accepted',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Aidat',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_aidat',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Demirbaş',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_sometinguntransable',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Kira',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_rent',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Yakıt',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_fuel',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Diğer',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_other',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Borç Giriş',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_dept',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Borç Ödeme',  //bu giriş bir yere gitmek zorunda ayrıca denk gelen borç hareketinide 
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_dept_payment',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Para Transferi',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-payment',
-                'op_key'    => 'doc_acc_transfer',
             ]
         ];
 
@@ -368,6 +387,13 @@ class SysSeeder extends Seeder
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
+                'title'     => 'Teklif Formu',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-offer-form',
+                'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
                 'title'     => 'Cari Formu',
                 'ttitle'    => 'Documents',
                 'ctitle'    => 'type_id',
@@ -389,62 +415,6 @@ class SysSeeder extends Seeder
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Dönemler Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-period-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Daireler Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-flat-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Kasalar Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-target-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Toplantı Sonuç Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-meeting-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Proje Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-project-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Aktivite Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-calendar-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Envanter Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-inventory-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Apartman Ana Form',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-apartment-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
                 'title'     => 'Kullanıcı İletişim Listesi',
                 'ttitle'    => 'Documents',
                 'ctitle'    => 'type_id',
@@ -456,6 +426,13 @@ class SysSeeder extends Seeder
                 'ttitle'    => 'Documents',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-user-permission-form',
+                'group_key' => 'op-doc-forms',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Kullanıcı Bildirim Listesi',
+                'ttitle'    => 'Documents',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-doc-user-notification-form',
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
@@ -500,24 +477,10 @@ class SysSeeder extends Seeder
                 'group_key' => 'op-pert',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Müşteri',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-pert-buyer',
-                'group_key' => 'op-pert',
-            ],[
-                'parent_id' => 0,
                 'title'     => 'Tedarikçi',
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-pert-reseller',
-                'group_key' => 'op-pert',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Satıcı',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-pert-seller',
                 'group_key' => 'op-pert',
             ]
         ]; 
@@ -525,17 +488,10 @@ class SysSeeder extends Seeder
         $documentTypes = [
             [
                 'parent_id' => 0,
-                'title'     => 'Apartman Listesi',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-apartment',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Period',
+                'title'     => 'Teklif',
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-period',
+                'op_key'    => 'op-doc-offer',
                 'group_key' => 'op-doc',
             ],[
                 'parent_id' => 0,
@@ -564,41 +520,6 @@ class SysSeeder extends Seeder
                 'ttitle'    => '-',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-flat',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Aktivite',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-calendar',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Account',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-target',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Meeting',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-meeting',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Project',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-project',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Inventory',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-inventory',
                 'group_key' => 'op-doc',
             ]
         ];
@@ -643,8 +564,59 @@ class SysSeeder extends Seeder
             ]
         ];
 
+        $fileTypes = [
+            [
+                'parent_id' => 0,
+                'title'     => 'Teklif Dosyası',
+                'code'      => '',
+                'ttitle'    => 'document_files',
+                'icon'      => '',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-offer_otherdocs_file',
+                'group_key' => 'op-file-types',
+            ],
+            [
+                'parent_id' => 0,
+                'title'     => 'Kaşeli-imzalı IBAN bilgi formu',
+                'code'      => '',
+                'ttitle'    => 'document_files',
+                'icon'      => '',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-cont_iban_file',
+                'group_key' => 'op-file-types',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Oda sicil belgesi / Ticaret Sicil',
+                'code'      => '',
+                'ttitle'    => 'document_files',
+                'icon'      => '',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-cont_odasicil_file',
+                'group_key' => 'op-file-types',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Vergi levhası',
+                'code'      => '',
+                'ttitle'    => 'document_files',
+                'icon'      => '',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-cont_vergi_file',
+                'group_key' => 'op-file-types',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'İmza Sirküleri',
+                'code'      => '',
+                'ttitle'    => 'document_files',
+                'icon'      => '',
+                'ctitle'    => 'type_id',
+                'op_key'    => 'op-cont_imza_file',
+                'group_key' => 'op-file-types',
+            ]
+            
+        ];
+
         $start = array_merge($start,$apartment);
-        
+        $start = array_merge($start,$fileTypes);
         $start = array_merge($start,$logs);
         $start = array_merge($start,$trans);
         $start = array_merge($start,$forms);

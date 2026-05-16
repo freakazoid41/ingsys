@@ -3,12 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Models\Sys_options;
-use App\Models\Documents;
 
-use App\Models\Sys_con_entities;
-use App\Models\Sys_con_ops;
-use App\Models\Transactions;
+use App\Providers\PersonsServiceProvider;
+use App\Providers\DocumentServiceProvider;
 use Illuminate\Support\Facades\DB;
 
 class ReportServiceProvider extends ServiceProvider
@@ -17,424 +14,450 @@ class ReportServiceProvider extends ServiceProvider
        
     }
 
-    public function dashboardInfo($type,$period = null){
-        $data = [
-            'success' => true
-        ];
-
-        $systemCur = Sys_options::where('code' , env('SYS_CUR'))->first();
-        switch($type){
-            case 'updatedstatus':
-                $sql = "select  (SELECT     json_agg(
-                                                json_build_object(
-                                                    'key',se.entity_tag,
-                                                    'value' , se.entity_value
-                                                )
-                                            ) 
-                                        FROM sys_con_entities as se
-                                            inner join sys_con_ops as so on so.id = se.conn_id 
-                                            inner join sys_options as sp on sp.id = so.type_id
-                                        where so.conn_id = 0 and sp.op_key = 'op-doc-meeting-form'  and so.main_id = d.id)  as  main_attr,
-                                (select icon from sys_options where code = '".env('SYS_CUR')."') as cur,
-                                (select json_agg(
-                                    json_build_object(
-                                        'key'   , target_cur,
-                                        'value' , amount
-                                    )
-                                ) from currencies where target_cur in ('TRY','EUR','USD'))  as  curvalues,
-                                (SELECT sum(
-                                                t.amount *
-                                                (select amount from currencies where target_cur = cur.code)
-                                        ) FROM transactions as t
-                                            inner join sys_options as cur on cur.id = t.cur_id
-                                            inner join sys_options as so on so.id = t.type_id
-                                    where   t.sign = '0' and 
-                                            so.op_key = 'doc_acc_aidat' and 
-                                            t.period='".date('Y-m')."' and
-                                            t.grp_code = '".session('grp_code')."' 
-                                ) as total_income,
-                                (SELECT sum(
-                                                t.amount *
-                                                (select amount from currencies where target_cur = cur.code)
-                                        ) FROM transactions as t
-                                            inner join sys_options as cur on cur.id = t.cur_id
-                                            inner join sys_options as so on so.id = t.type_id
-                                    where   t.sign = '0' and 
-                                            so.op_key = 'doc_acc_rent' and 
-                                            t.period='".date('Y-m')."' and
-                                            t.grp_code = '".session('grp_code')."' 
-                                ) as total_rent,
-                                (select count(*) from documents as pd 
-                                    inner join sys_options as spd on spd.id = pd.type_id
-                                        where   spd.op_key = 'op-doc-project' and 
-                                                pd.grp_code = '".session('grp_code')."' 
-                                )  as  project_count,
-                                (select count(*) from documents as pd 
-                                    inner join sys_options as spd on spd.id = pd.type_id
-                                        where   spd.op_key = 'op-doc-flat' and 
-                                                pd.grp_code = '".session('grp_code')."'               
-                                )  as  flat_count      
-
-                                from documents as d
-                        inner join sys_options as so on so.id = d.type_id
-
-                            where   so.op_key = 'op-doc-meeting' and
-                                    d.grp_code = '".session('grp_code')."'
-                            
-                                    order by d.id desc limit 1";
-                $rows = DB::select($sql);
-                if(isset($rows[0])){
-                    $currencies = json_decode($rows[0]->curvalues);
-                    $row = json_decode($rows[0]->main_attr);
-                    $rentInfo = [];
-                    foreach ($currencies as $r) $currencies[$r->key] = $r->value;
-                    foreach($row as $r){
-                        $data[$r->key] = $r->value;
-                        if(strpos($r->key,'meetrentsgroup')){
-                            $key = explode('**',$r->key);
-                            if(!isset($rentInfo[$key[2]])) $rentInfo[$key[2]] = [];
-
-                            $rentInfo[$key[2]][$key[0]] = $r->value;
-
-                        }
-                    }
-
-                    foreach($rentInfo as $key => $rent){
-                        $rentInfo[$key]['meet_rent'] = floatval($rent['meet_rent']) * floatval($currencies[$rent['currency']]);
-                        $data['meet_rent**meetrentsgroup**'.$key] = $rentInfo[$key]['meet_rent'];
-                    }
-
-                    $data['rents'] = $rentInfo;
-                }
-                $data = array_merge($data,(array)($rows[0] ?? []));
+    public function getAdminNotifications($notifKey){
+        $personsProvider = new PersonsServiceProvider();
+        $data = [];
+        //means our user is in the group or not
+        $permittedUsers = $personsProvider->getNotificationUsers($notifKey,session('person_id'));
+        if(empty($permittedUsers)) return [];
+        switch ($notifKey) {
+            //tedarikçi kayıt başvuruları
+            case 'notif-00':
+                //lets get awaiting user request list here
+                $data = $this->getAwaitingUserRequests();
+                # code...
                 break;
-            
-            case 'incomestatus':
-                $monthlySql = "(select  count(t.id) 
-                                        from transactions t 
-                                    inner join sys_options as so on so.id = t.type_id
-                                where   t.target_id = i.id and 
-                                        so.op_key = '".($period ?? 'doc_acc_aidat')."' and 
-                                        t.sign = '0' and 
-                                        t.grp_code = '".session('grp_code')."' and
-                                        t.period='".date('Y-m')."')";
-                $sql = "select  $monthlySql  as  has_monthly_income ,
-                                (select icon from sys_options where code = '".env('SYS_CUR')."')  as  cur,
-                                (select      Sum(
-                                                (select amount from currencies where target_cur = cur.code) * 
-                                                CAST(
-                                                    (CASE
-                                                        when t.sign = 0 then -t.amount
-                                                        else t.amount
-                                                    end) as float 
-                                                )
-                                            ) as total
-                                            from documents as d
-                                                inner join sys_options as so on so.id = d.type_id
-                                                inner join transactions as t on t.target_id = d.id
-                                                inner join sys_options as cur on cur.id= t.cur_id
-                                                inner join sys_options as st on st.id = t.type_id
-
-                                    where   ---so.op_key = 'op-doc-target' and  
-                                            d.id = i.id and t.status = 1 and
-                                            st.group_key in ('op-trans-payment')
-                                )  as  balance,
-                                (SELECT    json_agg(
-                                                                json_build_object(
-                                                                    'Key',se.entity_tag,
-                                                                    'Value' , se.entity_value
-                                                                )
-                                                            ) 
-                                                        FROM sys_con_entities as se
-                                                            inner join sys_con_ops as so on so.id = se.conn_id 
-                                                            inner join sys_options as sp on sp.id = so.type_id
-                                                        where so.conn_id = 0 and sp.op_key = 'op-doc-flat-form'  and so.main_id = i.id)  as  main_attr
-                            from documents as i
-                                inner join sys_options as sp on sp.id = i.type_id
-                            where   i.status = '1' and 
-                                    i.grp_code = '".session('grp_code')."' and
-                                    sp.op_key   = 'op-doc-flat' and 
-                                    $monthlySql = 0";
-                //$startTime = microtime(true);
-                $data = DB::select($sql);
-                //$endTime = microtime(true);
-                //$executionTime = $endTime - $startTime;
-                //$formattedTime = number_format($executionTime, 3, '.', '');
-                //echo "Execution time: " . $formattedTime . " seconds";
-                //die;
+            //Tedarikçi bilgilerini güncelledi vs..
+            case 'notif-01':
+                //lets get client is upload new file
+                $data = $this->getAwaitingClientFiles();
                 break;
-            case 'updatedmeeting':
-                $sql = "select  (SELECT     json_agg(
-                                                json_build_object(
-                                                    'key',se.entity_tag,
-                                                    'value' , se.entity_value
-                                                )
-                                            ) 
-                                        FROM sys_con_entities as se
-                                            inner join sys_con_ops as so on so.id = se.conn_id 
-                                            inner join sys_options as sp on sp.id = so.type_id
-                                        where so.conn_id = 0 and sp.op_key = 'op-doc-meeting-form'  and so.main_id = d.id)  as  main_attr,
-                                
-                                (select json_agg(
-                                    json_build_object(
-                                        'key'   , target_cur,
-                                        'value' , amount
-                                    )
-                                ) from currencies where target_cur in ('TRY','EUR','USD'))  as  cur
-
-                                from documents as d
-                        inner join sys_options as so on so.id = d.type_id
-
-                            where   so.op_key = 'op-doc-meeting' and
-                                    d.grp_code = '".session('grp_code')."'
-                                    
-                                    order by d.id desc limit 1";
-                $row = DB::select($sql);
-                
-                
-                if(isset($row[0])){
-                    $currencies = json_decode($row[0]->cur);
-                    $row        = json_decode($row[0]->main_attr);
-                    foreach ($currencies as $r) {
-                        $currencies[$r->key] = $r->value;
-                    }
-
-                    $rentInfo = [];
-                    foreach($row as $r){
-                        $data[$r->key] = $r->value;
-                        
-                        if(strpos($r->key,'meetrentsgroup')){
-                            $key = explode('**',$r->key);
-                            if(!isset($rentInfo[$key[2]])) $rentInfo[$key[2]] = [];
-
-                            $rentInfo[$key[2]][$key[0]] = $r->value;
-
-                        }
-                    }
-
-                    foreach($rentInfo as $key => $rent){
-                        $rentInfo[$key]['meet_rent'] = floatval($rent['meet_rent']) * floatval($currencies[$rent['currency']]);
-                        $data['meet_rent**meetrentsgroup**'.$key] = $rentInfo[$key]['meet_rent'];
-                    }
-
-                    $data['rents'] = $rentInfo;
-                }
-            case 'income': // this month
-            case 'outcome': // this month
-                $sql = "SELECT DISTINCT ON (t.id)  -- Better than DISTINCT on whole row
-                                t.id,
-                                SUM(
-                                    COALESCE(
-                                        (SELECT amount FROM currencies WHERE target_cur = cur.code),
-                                        1  -- fallback rate if no conversion
-                                    ) * t.amount
-                                ) OVER (PARTITION BY t.id) AS amount,  -- Sum per transaction (if multiple rows, adjust logic)
-
-                                (SELECT icon FROM sys_options WHERE code = 'TRY') AS cur,
-
-                                t.amount AS amount_pure,
-                                cur.code AS cur_pure,
-                                st.op_key,
-                                st.title,
-                                t.note,
-
-                                -- Main info (target document)
-                                main_info.data AS main_info,
-
-                                -- Account info (related document)
-                                acc_info.data AS acc_info
-
-                            FROM transactions t
-                            INNER JOIN documents d ON d.id = t.target_id
-                            INNER JOIN sys_options so ON so.id = d.type_id
-                            INNER JOIN sys_options cur ON cur.id = t.cur_id
-                            INNER JOIN sys_options st ON st.id = t.type_id
-
-                            -- Lateral join for main_info (target document attributes)
-                            LEFT JOIN LATERAL (
-                                SELECT json_agg(se.entity_value) AS data
-                                FROM sys_con_entities se
-                                INNER JOIN sys_con_ops sco ON sco.id = se.conn_id
-                                INNER JOIN sys_options spt ON spt.id = sco.type_id
-                                WHERE sco.conn_id = 0
-                                AND sco.main_id = ".($type == 'income' ? 't.rel_id' : 't.target_id')."
-                                AND spt.op_key = CASE so.op_key
-                                                    WHEN 'op-doc-flat'    THEN 'op-doc-flat-form'
-                                                    WHEN 'op-doc-target'  THEN 'op-doc-target-form'
-                                                    WHEN 'op-doc-period'  THEN 'op-doc-period-form'
-                                                END
-                            ) main_info ON TRUE
-
-                            -- Lateral join for acc_info (rel document attributes)
-                            LEFT JOIN LATERAL (
-                                SELECT json_agg(se.entity_value) AS data
-                                FROM sys_con_entities se
-                                INNER JOIN sys_con_ops sco ON sco.id = se.conn_id
-                                INNER JOIN sys_options spt ON spt.id = sco.type_id
-                                INNER JOIN documents rel_doc ON rel_doc.id = t.rel_id
-                                INNER JOIN sys_options rel_type ON rel_type.id = rel_doc.type_id
-                                WHERE sco.conn_id = 0
-                                AND sco.main_id = ".($type == 'income' ? 't.target_id' : 't.rel_id')."
-                                AND spt.op_key = CASE rel_type.op_key
-                                                    WHEN 'op-doc-flat'   THEN 'op-doc-flat-form'
-                                                    WHEN 'op-doc-target' THEN 'op-doc-target-form'
-                                                    WHEN 'op-doc-period' THEN 'op-doc-period-form'
-                                                    ELSE NULL
-                                                END
-                            ) acc_info ON TRUE
-
-                            WHERE so.op_key = 'op-doc-target'
-                            AND t.status = 1
-                            AND t.sign =  ".($type == 'income' ? '1' : '0')."
-                            AND st.group_key IN ('op-trans-payment')
-                            AND d.grp_code =  '".session('grp_code')."' ";
-                            
-                if($period != null){
-                    $data['list']  = DB::select($sql." and t.period >= '".$period[0]."' and t.period <= '".$period[1]."' ");
-                    $data['ratio'] = [];
-                }else{
-                    $data['list']  = DB::select($sql." and t.period = '".(date('Y-m'))."' ");
-                    $data['ratio'] = DB::select($sql." and t.period = '".(date("Y-m",strtotime("-1 month")))."' ");
-                }
-               
-                $data['cur']  = $systemCur->icon;
-                $data['data'] = 0;
-                foreach($data['list'] as $row){
-                    if($row->op_key != 'doc_acc_dept') $data['data'] += floatval($row->amount);
-                }
-
-                $ratio = 0;
-                foreach($data['ratio'] as $row){
-                    if($row->op_key != 'doc_acc_dept') $ratio+= floatval($row->amount);
-                }
-                $data['ratio'] = $ratio == 0 ? 0 : ((floatval($data['data'] ?? 1) - floatval($ratio ?? 1)) / floatval($ratio ?? 1)) * 100;
-                                        
-                break;   
-            case 'flatcount':
-                $data['data'] = DB::select("SELECT count(d.id) as fcount 
-                                                        from documents as d
-                                                            inner join sys_options as sp on sp.id = d.type_id
-                                                                where sp.op_key = 'op-doc-flat' and d.grp_code = '".session('grp_code')."'")[0]->fcount;
+            case 'notif-02':
+                //lets get client offers
+                $data = $this->getOffers();
+                break;
+            case 'notif-03':
+                //lets get client offers
+                $data = $this->getOffers('doc_trans_offer_revised');
                 break;
             default:
-                $data = array_merge($this->{$type}(),$data);
+                # code...
+                break;
+        }
+
+        return $data;
+    }
+
+    public function getUserNotifications($notifKey){
+        switch ($notifKey) {
+            //tedarikçi kayıt başvuruları
+            case 'offer-revision-request':
+                if(session('type_key') != 'op-pert-reseller') return [];
+                $data = $this->getOffers('doc_trans_offer_revision');
+                break;
+            default:
+                # code...
+                break;
+        }
+
+        return $data;
+    }
+
+    public function getAwaitingUserRequests(){
+        $data = \App\Models\User::tableList([
+            'filter' => [
+                ['key' => 'user_status', 'type' => '=','value' => '-1']
+            ]
+        ]);
+
+        return $data['data'];
+    }
+
+    public function getAwaitingClientFiles(){
+        $data = (new DocumentServiceProvider())->getAwaitingClientFiles();
+        return $data['data'];
+    }
+
+    public function getOffers($type = 'null'){
+        $data = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'transactions', 'type' => '=','value' => $type],
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-offer'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-offer-form'],
+            ]
+        ]);
+
+        return $data['data'];
+    }
+
+    public function dashboardInfo($type,$addional){
+        switch($type){
+            case 'topstats':
+                return $this->dashboardTopInfo();
             break;
+            case 'monthlyoffers':
+                return $this->dashboardMonthlyOffers($addional ?? true);
+            break;
+            case 'monthlydistribution':
+                return $this->dashboardMonthlyDistribution();
+            break;
+            case 'importantinfo':
+                return $this->dashboardImportantInfo();
+            break;
+            case 'clienttopstatus':
+                return $this->dashboardClientTopStatus();
         }
-
-        return $data;
     }
 
-    public function contacts(){
-        $list = [];
-        $sql  = "SELECT     
-                            json_build_object(
-                                'key',se.entity_tag,
-                                'value' , se.entity_value
-                            ) as main_attr,
-                            d.id as document
-                                        
-                        FROM sys_con_entities as se
-                            inner join sys_con_ops as so on so.id = se.conn_id 
-                            inner join sys_options as sp on sp.id = so.type_id
-                            inner join documents as d on d.id = so.main_id
-                            inner join sys_options as sd on sd.id = d.type_id
-                        where   so.conn_id = 0  and 
-                                d.grp_code = '".session('grp_code')."' and
-                                sp.op_key in ('op-doc-flat-form','op-doc-meeting-form','op-doc-project-form')";
-        $rows = DB::select($sql);
-        foreach($rows as $r){
-            $data = json_decode($r->main_attr);
-            if(!isset($list[$r->document])) $list[$r->document] = [];
-            if(strpos($data->key,'title') !== false) $list[$r->document]['title'] = $data->value;
+    /**
+     * Returns monthly distribution grouped by target_type from main_attr.
+     * Each item: ['name' => string, 'totalRequests' => int, 'totalOffers' => int, 'approvedOffers' => int]
+     */
+    public function dashboardMonthlyDistribution(){
+        $monthFilter = '-'.date('m').'-';
+
+        // get monthly requests
+        $requests = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'monthly', 'type' => 'date','value' => $monthFilter],
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-request'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-request-form'],
+            ]
+        ])['data'];
+
+        // get monthly offers
+        $offers = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'monthly', 'type' => 'date','value' => $monthFilter],
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-offer'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-offer-form'],
+            ]
+        ])['data'];
+
+
+        $returnData = [];
+
+        foreach ($offers as $row) {
+            $raw = $row->main_attr ?? '';
+            $key = '-';
+            if(function_exists('mb_stripos')){
+                if(mb_stripos($raw,'Çates',0,'UTF-8') !== false) $key = 'Çates';
+                if(mb_stripos($raw,'Yatağan',0,'UTF-8') !== false) $key = 'Yatağan';
+                if(mb_stripos($raw,'Her İkisi',0,'UTF-8') !== false) $key = 'Her İkisi';
+            } else {
+                if(strpos($raw,'Çates') !== false) $key = 'Çates';
+                if(strpos($raw,'Yatağan') !== false) $key = 'Yatağan';
+                if(strpos($raw,'Her İkisi') !== false) $key = 'Her İkisi';
+            }
+
+            if(!isset($returnData[$key])){
+                $returnData[$key] = ['name' => $key, 'totalRequests' => 0, 'totalOffers' => 0];
+            }
+            $returnData[$key]['totalOffers'] ++;
+        }
+
+        foreach ($requests as $row) {
+            $raw = $row->main_attr ?? '';
+            $key = '-';
+            if(function_exists('mb_stripos')){
+                if(mb_stripos($raw,'Çates',0,'UTF-8') !== false) $key = 'Çates';
+                if(mb_stripos($raw,'Yatağan',0,'UTF-8') !== false) $key = 'Yatağan';
+                if(mb_stripos($raw,'Her İkisi',0,'UTF-8') !== false) $key = 'Her İkisi';
+            } else {
+                if(strpos($raw,'Çates') !== false) $key = 'Çates';
+                if(strpos($raw,'Yatağan') !== false) $key = 'Yatağan';
+                if(strpos($raw,'Her İkisi') !== false) $key = 'Her İkisi';
+            }
+
+            if(!isset($returnData[$key])){
+                $returnData[$key] = ['name' => $key, 'totalRequests' => 0, 'totalOffers' => 0];
+            }
+            $returnData[$key]['totalRequests'] ++;
+        }
+
+        return $returnData;
+    }
+
+    public function dashboardTopInfo(){
+        //here get monthly requests
+        $requests = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'monthly', 'type' => 'date','value' => '-'.date('m').'-'],
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-request'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-request-form'],
+            ]
+        ])['data'];
+
+
+        $offers = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'monthly', 'type' => 'date','value' => '-'.date('m').'-'],
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-offer'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-offer-form'],
+            ]
+        ])['data'];
+
+        
+
+
+
+        $approvedOffer = [];
+        $todaysOffer   = [];
+        foreach ($offers as $row) {
+            if(strpos($row->status,'doc_trans_offer_approved') !== false){
+                $approvedOffer[] = $row;
+            }
+            if(strpos($row->created_at,date('Y-m-d')) !== false){
+                $todaysOffer[] = $row;
+            }
+        }
+
+        $awaitingOffers = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-offer'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-offer-form'],
+                ['key' => 'status-null' , 'type' => 'like' , 'value' => '%%']
+            ]
+        ])['data'];
+
+        $clients = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-client'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-client-form'],
+            ]
+        ])['data'];
             
-            if(strpos($data->key,'contgroup') !== false){
-                $key = explode('**',$data->key);
-                
-                if(!isset($list[$r->document][$key[2]])) $list[$r->document][$key[2]] = [
-                    'group' => explode('contgroup',$key[1])[0]
+       
+
+
+       return [
+            'totalRequests' => count($requests),
+            'totalOffers' => count($offers),
+            'approvedOffers' => count($approvedOffer),    
+            'awaitingOffers' => count($awaitingOffers),
+            'todaysOffers' => count($todaysOffer),
+            'allClients' => count($clients)
+       ];
+    }
+
+    public function dashboardMonthlyOffers($isMonthly = true){
+        $filter = [
+            ['key' => 'type', 'type' => '=','value' => 'op-doc-offer'],
+            ['key' => 'form-type', 'type' => '=','value' => 'op-doc-offer-form'],
+        ];
+        
+        if($isMonthly === true) $filter[] = ['key' => 'monthly', 'type' => 'date','value' => '-'.date('m').'-'];
+
+        $offers = \App\Models\Documents::tableList([
+            'filter' => $filter
+        ])['data'];
+
+        // Build initial groups from sys_options for offer transaction statuses
+        $ops = \App\Models\Sys_options::where(function($q){
+            $q->where('op_key', 'like', 'doc_trans_offer_%')
+                ->orWhere('group_key', 'like', 'op-trans%');
+        })->get();
+
+        // define color palette for offer statuses
+        $colorMap = [
+            'doc_trans_offer_sended' => '#0d6efd',
+            'doc_trans_offer_review' => '#ffc107',
+            'doc_trans_offer_revision' => '#ff9800',
+            'doc_trans_offer_revised' => '#17a2b8',
+            'doc_trans_offer_approved' => '#198754',
+            'doc_trans_offer_rejected' => '#e74c3c',
+        ];
+
+        $groups = [];
+        foreach($ops as $op){
+            // only keep relevant keys that start with doc_trans_offer_
+            if(strpos($op->op_key, 'doc_trans_offer_') === 0){
+                // skip draft key - we'll merge drafts/empty into 'sended'
+                if($op->op_key === 'doc_trans_offer_draft') continue;
+                $groups[$op->op_key] = [
+                    'label' => $op->title,
+                    'value' => 0,
+                    'color' => isset($colorMap[$op->op_key]) ? $colorMap[$op->op_key] : null
                 ];
-                
-                $list[$r->document][$key[2]][$key[0]] = $data->value;
-                
-               
             }
         }
 
-        $shapedList = [];
-        foreach ($list as $doc => $row) {
-            foreach ($row as $key => $value) {
-                if($key != 'title'){
-                    if(isset($row['title'])) $value['title'] = $row['title'];
-                    $shapedList[] = $value;
-                } 
+        // ensure 'sended' exists (we'll map empty/draft statuses to this)
+        if(!isset($groups['doc_trans_offer_sended'])){
+            $s = \App\Models\Sys_options::where('op_key','doc_trans_offer_sended')->first();
+            $groups['doc_trans_offer_sended'] = [
+                'label' => $s? $s->title : 'Teklif Gönderidi',
+                'value' => 0,
+                'color' => isset($colorMap['doc_trans_offer_sended']) ? $colorMap['doc_trans_offer_sended'] : null
+            ];
+        } else {
+            // ensure sended has a color if in colorMap
+            if(isset($colorMap['doc_trans_offer_sended'])){
+                $groups['doc_trans_offer_sended']['color'] = $colorMap['doc_trans_offer_sended'];
             }
-            
         }
 
-        return ['list' => array_values($shapedList)];
-    }
-    
-    public function totalBalance(){
-        $data = [];
-        $sqlTotal = "select Sum(
-                                (select amount from currencies where target_cur = cur.code) * 
-                                CAST(
-                                    (CASE
-                                        when t.sign = 0 then -t.amount
-                                        else t.amount
-                                    end) as float 
-                                )
-                            ) as total,
-                            (select icon from sys_options where code = '".env('SYS_CUR')."') as cur
-                            from documents as d
-                inner join sys_options as so on so.id = d.type_id
-                inner join transactions as t on t.target_id = d.id
-                inner join sys_options as cur on cur.id= t.cur_id
-                inner join sys_options as st on st.id = t.type_id
+        // Count offers per status key. status field can contain the op_key.
+        foreach($offers as $row){
+            $status = trim((string)($row->status ?? ''));
 
-                    where   so.op_key = 'op-doc-target' and  t.status = 1 and
-                            d.grp_code = '".session('grp_code')."' and
-                            t.period != '-' and
-                            st.op_key in ('doc_acc_aidat','doc_acc_other','doc_acc_rent','doc_acc_sometinguntransable','doc_acc_fuel')";
+            // map empty or draft statuses to 'sended'
+            if($status === '' || strpos($status, 'doc_trans_offer_draft') !== false){
+                $status = 'doc_trans_offer_sended';
+            }
 
+            $matched = false;
+            foreach($groups as $key => &$g){
+                if($status !== '' && strpos($status, $key) !== false){
+                    $g['value']++;
+                    $matched = true;
+                    break;
+                }
+            }
+            unset($g);
 
-        
-        
-        $data['data'] = DB::select($sqlTotal)[0];
-        $data['currency'] = $data['data']->cur;
-        $data['data']     = $data['data']->total;
-
-        $charList = [];
-        for ($i=1; $i<=12 ; $i++) { 
-            $month = ($i < 10 ? '0'.$i : $i);
-            $charList[date('Y-'.$month)] = ($i <= intval(date('m')) ? 
-                            DB::select(  $sqlTotal .
-                                        "and DATE(t.period || '-01') <= '".date('Y-'.$month.'-01')."' and
-                                                DATE(t.period || '-01') >= '".date('Y-01-01')."'  ")[0]->total ?? 0 : 0);
+            // if no specific match, but a general sended group exists, increment it
+            if(!$matched){
+                if(isset($groups['doc_trans_offer_sended'])){
+                    $groups['doc_trans_offer_sended']['value']++;
+                }
+            }
         }
-        
-        $data['chart'] = $charList;
 
-        return $data;
+        // If no groups found, fallback to grouping by status raw value
+        if(empty($groups)){
+            $counts = [];
+            foreach($offers as $row){
+                $k = $row->status ?? 'unknown';
+                if(!isset($counts[$k])) $counts[$k] = 0;
+                $counts[$k]++;
+            }
+            $out = [];
+            foreach($counts as $k=>$v){
+                $out[] = ['label' => $k, 'value' => $v, 'color' => null];
+            }
+            return $out;
+        }
+
+        // Return as array of label/value objects
+        $result = [];
+        foreach($groups as $k => $v){
+            $result[] = ['label' => $v['label'], 'value' => $v['value'], 'key' => $k, 'color' => $v['color']];
+        }
+
+        return $result;
     }
 
-    public function getOngoingTasks(){
-        return Documents::tableList(json_decode('{"filter":[
-                                                                {"key":"form-type","type":"=","value":"op-doc-project-form"},
-                                                                {"key":"type","type":"=","value":"op-doc-project"},
-                                                                {"key":"status-not","type":"=","value":"doc_trans_project_end"}
-                                                            ]}',true));
+    public function dashboardImportantInfo(){
+        $events = [];
+
+        $monthToken = '-'.date('m').'-';
+
+        $queries = [
+            // requests
+            ['type' => 'op-doc-request', 'form' => 'op-doc-request-form', 'attr' => 'contract_end_date', 'label' => 'Sözleşme Bitişi'],
+            ['type' => 'op-doc-request', 'form' => 'op-doc-request-form', 'attr' => 'contract_start_date', 'label' => 'Sözleşme Başlangıcı'],
+            ['type' => 'op-doc-request', 'form' => 'op-doc-request-form', 'attr' => 'transfer_end_date', 'label' => 'Sevkiyat Bitişi'],
+            ['type' => 'op-doc-request', 'form' => 'op-doc-request-form', 'attr' => 'transfer_start_date', 'label' => 'Sevkiyat Başlangıcı'],
+            // offers
+            ['type' => 'op-doc-offer', 'form' => 'op-doc-offer-form', 'attr' => 'contract_end_date', 'label' => 'Sözleşme Bitişi'],
+            ['type' => 'op-doc-offer', 'form' => 'op-doc-offer-form', 'attr' => 'transfer_start_date', 'label' => 'Sevkiyat Başlangıcı'],
+            ['type' => 'op-doc-offer', 'form' => 'op-doc-offer-form', 'attr' => 'transfer_end_date', 'label' => 'Sevkiyat Bitişi'],
+        ];
+
+        foreach ($queries as $q) {
+            $rows = \App\Models\Documents::tableList([
+                'filter' => [
+                    ['key' => 'attr', 'type' => $q['attr'], 'value' => '/'.date('m').'/'],
+                    ['key' => 'type', 'type' => '=', 'value' => $q['type']],
+                    ['key' => 'form-type', 'type' => '=', 'value' => $q['form']],
+                ]
+            ])['data'];
+
+            foreach ($rows as $row) {
+                $dateVal = null;
+                $title = null;
+
+                // try parse main_attr
+                $main = $row->main_attr ?? '';
+                if($main){
+                    $decoded = @json_decode($main, true);
+                    if(!is_array($decoded)){
+                        // try unserialize
+                        try{
+                            $decoded = @unserialize($main);
+                        } catch (\Throwable $e){
+                            $decoded = null;
+                        }
+                    }
+                    if(is_array($decoded)){
+                        foreach($decoded as $m){
+                            if((isset($m['Key']) && $m['Key'] == $q['attr']) || (isset($m['Key']) && strtolower($m['Key']) == strtolower($q['attr']))){
+                                $dateVal = $m['Value'];
+                            }
+
+
+                           
+                            if(isset($m['Key']) && in_array($m['Key'], ['title'])){
+                                $title = $m['Value'];
+                            }
+
+                            if(isset($m['Key']) && in_array($m['Key'], ['req_no','offer_no'])){
+                                $docNo = $m['Value'];
+                            }
+                        }
+                    }
+                }
+                
+                // fallback to specific fields
+                if(!$title){
+                    $title = $row->title ?? ($row->clititle ?? null);
+                }
+
+                if(!$dateVal){
+                    // try to pick a date-like column
+                    if(!empty($row->{$q['attr']})) $dateVal = $row->{$q['attr']};
+                    elseif(!empty($row->contract_end_date)) $dateVal = $row->contract_end_date;
+                    elseif(!empty($row->created_at)) $dateVal = $row->created_at;
+                }
+
+                $label = ($q['type'] === 'op-doc-offer') ? 'Teklif' : 'Talep';
+                //$docNo = $row->doc_no ?? $row->id ?? '';
+
+                $text = trim(($label . ' #' . $docNo . ($title ? ' — ' . $title : '') . ' — ' . $q['label']));
+
+                // format date to Y-m-d if possible
+                $date = null;
+                if($dateVal){
+                    $date = substr($dateVal,0,10);
+                }
+
+                $events[] = [
+                    'text' => $text,
+                    'date' => $date,
+                    'type' => $q['attr'],
+                    'event' => $q['type'],
+                    'doc_id' => $row->id ?? null
+                ];
+            }
+        }
+
+        // sort events by date ascending (nulls last)
+        usort($events, function($a,$b){
+            if(empty($a['date']) && empty($b['date'])) return 0;
+            if(empty($a['date'])) return 1;
+            if(empty($b['date'])) return -1;
+            return strcmp($a['date'],$b['date']);
+        });
+
+        return $events;
+
+
+
+
+
+
+
     }
 
-    public function getAparments(){
-        return Sys_options::where(['group_key' => 'op-apt-types' , 'status' => '1'])->get();
-    }
-
-    public function monthlyEvents(){
-        return Documents::tableList(json_decode('{"filter":[
-                                                                {"key":"form-type","type":"=","value":"op-doc-calendar-form"},
-                                                                {"key":"type","type":"=","value":"op-doc-calendar"},
-                                                                {"key":"month-period","type":"=","value":"'.($period ?? date('Y-m')).'"}
-                                                            ]}',true));
-    }
 }

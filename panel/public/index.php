@@ -4,7 +4,16 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+
+
 $GLOBALS['SYS_CODE'] = 'CATES';
+if (strpos($_SERVER['HTTP_HOST'], 'yatagantermik') !== false) {
+    $GLOBALS['SYS_CODE'] = 'YATAGAN';
+    
+}
+
+$GLOBALS['CSP_ADDITIONAL_HOSTS'] = $_SERVER['HTTP_HOST'];
+
 
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {

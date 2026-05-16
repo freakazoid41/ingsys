@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('description',300)->default('-');
             $table->string('note',300)->default('-');
             $table->string('grp_code',100)->nullable()->default('-');
-            $table->uuid('qnid')->nullable();
+            $table->text('qnid')->nullable();
             
             $table->timestamps();
 

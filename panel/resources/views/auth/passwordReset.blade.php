@@ -9,6 +9,9 @@
     @vite(['public/coaltheme/css/theme.css', 'resources/js/coal-swal.js'])
 </head>
 <style>
+    a{
+        color: #154B91
+    }
     #kt_sign_in_submit>* {
         pointer-events: none;
 
@@ -22,11 +25,11 @@
     }
 
     .bg-body {
-        border: 3px solid #ff671d
+        border: 3px solid #154B91;
     }
 
     h2 {
-        color: #ff671d;
+        color: #154B91;
         font-weight: bold;
         font-size: 24px;
     }
@@ -39,9 +42,9 @@
 
         <div class="d-flex flex-column flex-column-fluid flex-lg-row">
             <div class="d-flex flex-center w-lg-50 pt-15 pt-lg-0 px-10">
-                <div class="d-flex flex-center flex-lg-start flex-column">
+                <div class="d-flex flex-center flex-lg-start flex-column align-items-center">
                     <a href="" class="mb-7">
-                        <img alt="Logo" src="/system/front/media/logos/adm-logo.svg" width="300px" />
+                        <img alt="Logo" src="/coaltheme/{{$GLOBALS['SYS_CODE']}}.svg" width="300px" />
                     </a>
                     <h2 class="m-0">Kömür Tedarik Sistemi</h2>
                 </div>
@@ -68,9 +71,11 @@
                                             class="path1"></span><span class="path2"></span></i>
 
                                     <div class="d-flex flex-column">
-                                        <h5 class="mb-1 text-danger">Şifreniz en az bir tane büyük/küçük harf, rakam
+                                        <h5 class="mb-1 text-danger">
+                                            Şifreniz en az bir tane büyük/küçük harf, rakam
                                             ve özel karakter
-                                            içermelidir ve 8 karakterden oluşmalıdır.</h5>
+                                            içermelidir ve 8 karakterden oluşmalıdır.
+                                        </h5>
                                     </div>
                                 </div>
                                 <div class="fv-row mb-8">

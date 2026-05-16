@@ -13,6 +13,10 @@
 
 
     export default {
+        breadcrumbs: {
+            list: [  { title: 'Kullanıcılar', path: '/coalpanel/users' } ],
+            title: 'Kullanıcılar'
+        },
         setup() {
             Object.assign(Datepicker.locales, tr);
             
@@ -31,16 +35,7 @@
             this.navigationStore.toggle(true);
             this.buildTestTable();
             await useAuthStore().getPermissions();
-            this.navigationStore.setBread([
-                {
-                    title : this.wTrans('menu.home'),
-                    url   : '/secpanel',
-                },
-                {
-                    title : this.wTrans('menu.users'),
-                    url   : '/secpanel/users',
-                }
-            ] ,this.wTrans('menu.users.list'));
+            
 
             setTimeout(() => {
                 this.navigationStore.toggle(false);
@@ -54,6 +49,19 @@
             }
         },
         methods: {
+            searchTable(){
+                this.table.setFilter(
+                    [{
+                        key   : 'all', // column key
+                        type  : '=', // filtering type ('like','<','>')
+                        value : document.getElementById('mainSearch').value.trim()//wanted column value
+                    }]
+                );
+            },
+            resetSearch(){
+                document.getElementById('mainSearch').value = '';
+                this.table.setFilter([]);
+            },
             async buildTestTable(){
                 await useAuthStore().getPermissions();
                 //set headers
@@ -64,7 +72,6 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
-                            console.log('triggered')
                             const span = document.createElement('span');
                             switch (String(columnData)) {
                                 case '1':
@@ -99,10 +106,26 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
+                        title : 'Rol',
+                        key   : 'role_title',
+                        order : true,
+                        type  : 'string', // if column is string then make type string
+                    },{
                         title : 'Kullanıcı Adı',
                         key   : 'username',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const isActive = rowData.is_active;
+                            const icon = document.createElement('i'); 
+                            icon.classList.add('fs-5', 'fa', 'fa-user', 'selectable-icon');
+                            icon.style.color = isActive ? '#3CB371' : 'tomato';   
+                            
+                            const span = document.createElement('span');
+                            span.appendChild(icon);
+                            span.appendChild(document.createTextNode(' '+columnData));
+                            return span;
+                        }
                     },{
                         title : '',
                         key   : 'id',
@@ -115,7 +138,7 @@
                             reset.onclick   = () => {
                                 Swal.fire({
                                     title: 'Kullanıcı Şifresini Sıfırla',
-                                    text: "Bu işlem kullanıcının şifresini varsayılan şifre yapacaktır. Devam etmek istediğinize emin misiniz?",
+                                    text: "Bu işlem kullanıcının şifresini geçersiz olacak ve kullanıcıya geçici bir şifre maili gönderilecektir. Devam etmek istediğinize emin misiniz?",
                                     icon: 'warning',
                                     showCancelButton: true,
                                     confirmButtonColor: '#3085d6',
@@ -132,7 +155,7 @@
 
                                         Swal.fire(
                                             'Sıfırlandı!',
-                                            'Kullanıcının şifresi başarıyla sıfırlandı.',
+                                            'Kullanıcının şifresi başarıyla sıfırlandı ve kullanıcıya geçici şifre bilgi maili gönderildi.',
                                             'success'
                                         );
 
@@ -166,9 +189,10 @@
                                     url      : '/api/v1/persons/'+columnData,
                                     method   : 'DELETE',
                                 },null);
-
-                                this.table.deleteRow(columnData);
-                              
+                                this.table.updateRow(columnData,{
+                                    status : 0,
+                                    user_status : 0
+                                });
                                 setTimeout(() => {
                                     this.navigationStore.toggle(false);
                                 }, 300);
@@ -215,6 +239,9 @@
                     },
                 });
             },
+            exportTable(){
+                this.plib.openTab('POST', '/api/v1/export/users', this.table.currentFilter,'_blank');
+            },
             searchTable(){
                 this.table.setFilter(
                     [{
@@ -229,42 +256,30 @@
 
 </script>
 <template>
-    <div class="card">
-        <div class="card-header align-items-center py-5 gap-2 gap-md-5">
-                   <div class="card-title">
-                        <div class="d-flex align-items-center position-relative my-1">
-                             <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-4">
-                                  <span class="path1"></span>
-                                  <span class="path2"></span>
-                             </i>
-                             <input type="text" class="search form-control form-control-solid w-250px ps-12" id="mainSearch" placeholder="Kullanıcı Ara">
-                        </div>
-                   </div>
-                   <div class="card-toolbar flex-row-fluid justify-content-end gap-5">
-                        <!--<div class="w-100  mw-200px d-flex align-items-center">
-                             <label class="mx-2" for="">Durum: </label>
-                             <select class="mw-150px form-select form-select-solid" data-control="select2" data-hide-search="true" data-placeholder="Durum" data-kt-ecommerce-product-filter="durum">
-                                  <option></option>
-                                  <option value="all">Tümü</option>
-                                  <option value="Aktif">Aktif</option>
-                                  <option value="Pasif">Pasif</option>
-                             </select>
-                        </div>
-                        <div class="w-100 mw-200px d-flex align-items-center">
-                             <label class="mx-2">Alt Yüklenici: </label>
-                             <select class="mw-150px form-select form-select-solid" data-control="select2" data-hide-search="true" data-placeholder="Alt Yüklenici" data-kt-ecommerce-product-filter="alt_yuklenici">
-                                  <option></option>
-                                  <option value="all">Tümü</option>
-                                  <option value="Evet">Evet</option>
-                                  <option value="Hayır">Hayır</option>
-                             </select>
-                        </div>-->
-                        <router-link :to="{ name: 'UForm' }" :class="['btn','btn-primary']">
-                            Kullanıcı Oluştur
-                        </router-link>
-                   </div>
-              </div>
-        <div class="card-body">
+    <div class="card rlist-card mt-10">
+        <div class="card-header rlist-header">
+            <div class="rlist-search-group">
+                <div class="rlist-search-wrap">
+                    <i class="ki-duotone ki-magnifier fs-4 rlist-search-icon">
+                        <span class="path1"></span><span class="path2"></span>
+                    </i>
+                    <input type="text" id="mainSearch" class="rlist-search-input" placeholder="Kullanıcı ara...">
+                </div>
+                <button type="button" class="rlist-btn rlist-btn-primary" @click="searchTable">
+                    <i class="ki-outline ki-magnifier fs-5"></i> Ara
+                </button>
+                <button type="button" class="rlist-btn rlist-btn-ghost" @click="resetSearch">Sıfırla</button>
+                <button type="button" class="rlist-btn rlist-btn-ghost" @click="exportTable">
+                    <i class="ki-outline ki-exit-down fs-5"></i> Excel
+                </button>
+            </div>
+            <div class="rlist-toolbar">
+                <router-link :to="{ name: 'UForm' }" class="rlist-btn rlist-btn-create">
+                    <i class="ki-outline ki-plus fs-5"></i> Kullanıcı Oluştur
+                </router-link>
+            </div>
+        </div>
+        <div class="card-body p-0">
             <div id="div_table"></div>
         </div>
     </div>

@@ -27,7 +27,7 @@ return new class extends Migration
             $table->string('profile_photo_path', 2048)->nullable();
             $table->string('avatar')->nullable()->default('-');
             $table->string('bg_image')->nullable()->default('-');
-            $table->uuid('qnid')->nullable();
+            $table->text('qnid')->nullable();
             
             $table->timestamps();
         });

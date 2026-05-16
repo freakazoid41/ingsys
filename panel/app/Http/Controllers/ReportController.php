@@ -14,6 +14,6 @@ use Illuminate\Support\Facades\Validator;
 class ReportController extends Controller
 {
     public function dashboard(Request $request,$type,$period = null){
-        return response()->json((new ReportServiceProvider())->dashboardInfo($type,$period));
+        return response()->json((new ReportServiceProvider())->dashboardInfo($type,$period), 200, [], JSON_UNESCAPED_UNICODE);
 	}
 }

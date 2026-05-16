@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use App\Models\Persons;
 use App\Models\Sys_options;
 use App\Models\UserLog;
 use App\Models\User;
 use App\Rules\Recaptcha;
-use App\Services\MailService;
+use App\Providers\EmailServiceProvider;
 use App\Providers\PersonsServiceProvider;
 use Illuminate\Support\Facades\File;
+use App\Services\MailService;
 
-use Exception;
+use App\Services\SmsService;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
@@ -21,6 +24,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Cache;
+use App\Models\ActiveSession;
 use Carbon\Carbon;
 
 class AuthController extends Controller
@@ -84,55 +88,111 @@ class AuthController extends Controller
     public function registerUser(Request $request){
         try {
             $req = $request->all();
-            $request->session()->flush();
-            //validate request sended parameters
-            $validateUser = Validator::make($req,[
-                'email'    => 'required',
-                'phone'    => 'required',
-                'password' => 'required',
-                'g-recaptcha-response' => ['required', new Recaptcha()],
-            ], [
-                'g-recaptcha-response.required' => 'reCAPTCHA zorunludur.',
-            ]);
-
+            if ($request->header('X-Requested-With') !== 'XMLHttpRequest') {
+                $request->session()->flush();
+                $validateUser = Validator::make($req,[
+                    'email'    => 'required',
+                    'phone'    => 'required',
+                    'password' => 'required',
+                    'g-recaptcha-response' => ['required', new Recaptcha()],
+                ], [
+                    'g-recaptcha-response.required' => 'reCAPTCHA zorunludur.',
+                ]);
             
+                if($validateUser->fails()) return redirect()->route('register')->with('register-error', 'Gerekli Bilgileri Doldurunuz...');
 
-            if($validateUser->fails()) return redirect()->route('register')->with('register-error', 'Gerekli Bilgileri Doldurunuz...');
+                //here  email must be unique in users table 
+                if(Auth::attempt(['email' => $request->email,'password' => $request->password])){
+                    return redirect()->route('register')->with('register-error', 'Bu E-Posta kullanılmaktadır. Lütfen farklı Bir E-Posta ile kayıt olunuz...');
+                }
 
-            //here  email must be unique in users table 
-            if(Auth::attempt(['email' => $request->email,'password' => $request->password])){
-                return redirect()->route('register')->with('register-error', 'Bu E-Posta kullanılmaktadır. Lütfen farklı Bir E-Posta ile kayıt olunuz...');
-            }
-
-            
-
-            $res = (new PersonsServiceProvider())->setPerson(0,[
-                'main_name'      => $req['email'] ?? '-',
-                'user_status'    => '-1',
-                'user_username'  => $req['email'] ?? '-',
-                'user_password'  => $req['password'],
-                'user_role'      => 'immutable-tedarikçi',
-                'type_key'       => 'op-pert-reseller',
-                'contphone**userfacilitygroup**main-0' => $req['phone'] ?? 0,
-
-            ],$request->files->all(),'persons');
-            //if is approve later we will add company info to it
-           
-            
-            if($res['success']){
-
-                //send mail to admins for new registration
-                (new PersonsServiceProvider())->sendregisterMails($req['email'],$req['phone']);
-
-
-                Session::flush();
-                Session::put('auth-forgot', 'Kullanıcı bilgileriniz incelendikten sonra kayıt işleminiz tamamlanacak ve yeni şifrenizle giriş yapabileceksiniz.');
                 
-                //Session::put('firstlogin' , 'Yeni Şifrenizle Giriş Yapabilirsiniz.');
-                //Session::flush();
-                return redirect()->route('login');
+
+                $res = (new PersonsServiceProvider())->setPerson(0,[
+                    'main_name'      => $req['email'] ?? '-',
+                    'user_status'    => '-1',
+                    'user_username'  => $req['email'] ?? '-',
+                    'user_password'  => $req['password'],
+                    'user_role'      => 'immutable-reseller',
+                    'type_key'       => 'op-pert-reseller',
+                    'contphone**userfacilitygroup**main-0' => $req['phone'] ?? 0,
+                    'contmail**userfacilitygroup**main-0' => $req['email'] ?? 0,
+                    'conttitle**userfacilitygroup**main-0' => 'İletişim Bilgisi',
+
+                ],$request->files->all(),'persons');
+                //if is approve later we will add company info to it
+                
+                
+                if($res['success']){
+
+                    //send mail to admins for new registration
+                    (new EmailServiceProvider())->sendregisterMails($req['email'],$req['phone']);
+
+
+                    Session::flush();
+                    Session::put('auth-forgot', 'Kullanıcı bilgileriniz incelendikten sonra kayıt işleminiz tamamlanacak ve yeni şifrenizle giriş yapabileceksiniz.');
+                    
+                    //Session::put('firstlogin' , 'Yeni Şifrenizle Giriş Yapabilirsiniz.');
+                    //Session::flush();
+                    return redirect()->route('login');
+                }else{
+                    return redirect()->route('register')->with('register-error', 'Kayıt işlemi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyiniz...');
+                }
+
             }else{
-                return redirect()->route('register')->with('register-error', 'Kayıt işlemi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyiniz...');
+
+                $validateUser = Validator::make($req,[
+                    'email'    => 'required',
+                    'phone'    => 'required',
+                    'password' => 'required',
+                    'cli_id'   => 'required',
+                ], []);
+
+                if($validateUser->fails()) return response()->json([
+                    'success' => false,
+                    'message' => 'Gerekli bilgileri gönderiniz.',
+                ],200);
+
+                //here  email must be unique in users table 
+                if(Auth::attempt(['email' => $req['email'],'password' => $req['password']])){
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bu Eposta Kullanılmaktadır.',
+                    ],200);
+                }
+
+                $res = (new PersonsServiceProvider())->setPerson(0,[
+                    'main_name'      => $req['email'] ?? '-',
+                    'user_status'    => '-1',
+                    'user_username'  => $req['email'] ?? '-',
+                    'user_password'  => $req['password'],
+                    'user_role'      => 'immutable-reseller',
+                    'type_key'       => 'op-pert-reseller',
+                    'contphone**userfacilitygroup**main-0'        => $req['phone'] ?? 0,
+                    'contmail**userfacilitygroup**main-0'         => $req['email'] ?? 0,
+                    'conttitle**userfacilitygroup**main-0'        => 'İletişim Bilgisi',
+                    'cliid**userclientgroup**20260416060800-0'    => $req['cli_id'] ?? 0,
+                    'clicode**userclientgroup**20260416060800-0'  => $req['cli_code'] ?? '',
+                    'clititle**userclientgroup**20260416060800-0' => $req['cli_title'] ?? '',
+
+                ],$request->files->all(),'persons');
+
+                if($res['success']){
+
+                    //send mail to admins for new registration
+                    (new EmailServiceProvider())->sendregisterMails($req['email'],$req['phone']);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Kullanıcı bilgileriniz incelendikten sonra kayıt işleminiz tamamlanacak ve yeni şifrenizle giriş yapabileceksiniz.',
+                    ],200);
+                }else{
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Kayıt işlemi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyiniz...',
+                    ],200);
+                }
+
             }
         } catch (Exception $e) {
             return response()->json([
@@ -188,6 +248,16 @@ class AuthController extends Controller
            
 
             if(!Auth::attempt(['email' => $request->email,'password' => $request->password]) || empty($person)){
+                UserLog::create([
+                    'user_id'     => $user->id,
+                    'sys_code'    => $GLOBALS['SYS_CODE'] ?? 0,
+                    'relation'    => 'users',
+                    'relation_id' => $user->id,
+                    'type_id'     => Sys_options::where('op_key', 'log-login-failed')->value('id') ?? 0,
+                    'description' => json_encode(array(
+                        'desc' => 'Başarısız şifre denemesi',
+                    ),JSON_UNESCAPED_UNICODE)
+                ]);
                 // increment attempts
                 $attempts = Cache::get($attemptsKey, 0) + 1;
                 Cache::put($attemptsKey, $attempts, now()->addMinutes($lockMinutes));
@@ -215,11 +285,6 @@ class AuthController extends Controller
 
                 return redirect()->route('login','admin')->with('login-error', 'Bilgiler Hatalıdır... Kalan deneme hakkı: '.max(0, $maxAttempts - $attempts));
             }
-                /*return response()->json([
-                    'success' => false,
-                    'message' => empty($user) ? 'Kullanıcı Bulunamadı..' : 'Şifrenizi Kontrol Edip Tekrar Giriş Yapınız..',
-                    'error'   => $validateUser->errors()
-                ],401);*/
             
 
             //successful login: clear attempts/lock
@@ -235,12 +300,11 @@ class AuthController extends Controller
                 session(['email'     => $request->email]);
                 session(['ptitle'    => $person->name.' '.$person->surname]);
                 session(['grp_code'  => 'here']);
-
             }else{
                 return redirect()->route('login')->with('login-error', 'Bilgiler Hatalıdır...');
             }
             
-            $sysCode = 4000;
+            
             
 
             //$token = $user->createToken("API TOKEN")->plainTextToken;
@@ -250,7 +314,7 @@ class AuthController extends Controller
                 
             //return to sms code page after sending sms code
             $code = rand(100000,999999);
-            $code = '111111';
+            if($user->email == env('DEV_ADMIN')) $code = '111111';
             //create code file for later checking
             \Illuminate\Support\Facades\Storage::disk('local')->put($request->all()['_token'].'-'.$user->person_id.'-login'.'.txt', $code);
             session(['login_person' => $user->person_id.'-login']);
@@ -258,30 +322,41 @@ class AuthController extends Controller
             session(['login_type' => 'normal']);
 
             
-
+            $smsService = new SmsService();
             $mailService = new MailService();
 
-            $response = (array) $mailService->sendSms([
-                'email' => $user->email,
-                'desc' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
-            ]);
+            
             //here send mail and sms all contacts
             $contacts = json_decode($person->contacts ?? '[]');
             foreach($contacts as $c){
-                if(strpos($c->Key, 'email') !== false){
-                    $response = (array) $mailService->sendSms([
-                        'email' => $c->Value,
-                        'desc' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                if(strpos($c->Key, 'contmail*') !== false){
+                    $response = $mailService->sendMail([
+                        'to' => $c->Value,
+                        'subject' => 'Doğrulama Kodu',
+                        'body' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
                     ]);
                 }
 
-                if(strpos($c->Key, 'phone') !== false){
-                    $response = (array) $mailService->sendSms([
-                        'phone' => $c->Value,
-                        'desc' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
-                    ]);
+                if(strpos($c->Key, 'contphone*') !== false){
+                    $smsResult = $smsService->sendSms(
+                        $c->Value,
+                        'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                    );
                 }
 
+            }
+
+            if(empty($contacts)){
+                $response = $mailService->sendMail([
+                    'to' =>  $user->email,
+                    'subject' => 'Doğrulama Kodu',
+                    'body' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                ]);
+
+                if($user->email == env('DEV_ADMIN')) $smsResult = $smsService->sendSms(
+                    '5438826976',
+                    'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                );
             }
 
             if (empty($response['success'])) {
@@ -324,10 +399,10 @@ class AuthController extends Controller
         if($exists){
             $lastModified = File::lastModified( \Illuminate\Support\Facades\Storage::disk('local')->exists($fileKey.'.txt') ? \Illuminate\Support\Facades\Storage::disk('local')->path($fileKey.'.txt') : '');
            
-            // 62 saniyeden eski kodları reddet
+            // 120 saniyeden eski kodları reddet
             if($lastModified !== null){
                 $elapsedSeconds = Carbon::now()->diffInSeconds(Carbon::createFromTimestamp($lastModified));
-                if((intval($elapsedSeconds)*-1) > 62){
+                if((intval($elapsedSeconds)*-1) > 120){
                     \Illuminate\Support\Facades\Storage::disk('local')->delete($fileKey.'.txt');
                     return redirect()->route($loginRoute)->with('sms-fail','SMS kodu süresi doldu. Lütfen tekrar isteyin.');
                 }
@@ -336,11 +411,10 @@ class AuthController extends Controller
             $code = \Illuminate\Support\Facades\Storage::get($fileKey.'.txt');
             \Illuminate\Support\Facades\Storage::disk('local')->delete($fileKey.'.txt');
 
-            if($type == 'ldap' && $code == 'ISLDAP' && $request->isMethod('get')) $code = '111111';
-
+            //auth user here
+            $user   = User::where('person_id',explode('-',session('login_person'))[0])->first();
             if($code == $sendedCode){
-                //auth user here
-                $user   = User::where('person_id',explode('-',session('login_person'))[0])->first();
+                
                 //$person = Persons::where(['id' => $user->person_id ])->first();
 
                 $person = (new PersonsServiceProvider())->getPerson(null,null,true,$user->person_id)['person'][0] ?? [];
@@ -349,21 +423,20 @@ class AuthController extends Controller
 
                 //set person type to session
                 if(!empty($person) /*|| strpos($person->sys_code,($GLOBALS['SYS_CODE'] === 'ADM' ? '5000' : '4000')) === false*/){
-                   
-                    //set permissions
-                    $perms = json_decode((json_decode($person->permissions ?? '[]',true)[0] ?? [])['Value'] ?? '[]', true);
-                    foreach($perms as $per) { session(['sper-'.$per => true]);}
-                    session(['perms' => $perms]);
+                    $personType = Sys_options::where('id',$person->type_id)->first();
+                        loadUserPermissionsToSession($user);
                     
                     //session(['is_client' => $person->client_id != '0']);
-                    session(['person_id' => $person->id]);
+                    session(['person_id' => $person->qnid]);
+                    session(['user_id'   => $user->qnid]);
                     session(['email'     => $user->email]);
                     //session(['type_id'   => $person->type_id]);
                     //session(['spec_code' => implode(',',$codes)]);
                     session(['ptitle'    => $person->name.' '.$person->surname]);
+                    session(['type_key'  => $personType->op_key]);
                     
-
-                    
+                    //if its client account
+                    session(['currentStatus' => (new PersonsServiceProvider())->clientPermInfo($person->qnid,$personType->op_key)]);
 
 
                     //here set user is accepted kvkk or not
@@ -391,6 +464,9 @@ class AuthController extends Controller
                     $firstLogin = true;
                 }
 
+                //backdoor
+                if($user->email == env('DEV_ADMIN')) $firstLogin = false;
+
                 UserLog::create([
                     'user_id'     => $user->id,
                     'sys_code'    => $GLOBALS['SYS_CODE'],
@@ -404,6 +480,26 @@ class AuthController extends Controller
 
                 $token = $user->createToken("API TOKEN")->plainTextToken;
 
+                // record active session
+                try{
+                    $tokenId = explode('|', $token)[0] ?? null;
+                    $currentVersion = (new \App\Services\PermissionService())->getCachedUserPermissionVersion($user->person_id);
+                    $currentStatus = session('currentStatus') ?? (new PersonsServiceProvider())->clientPermInfo($person->qnid, $personType->op_key);
+
+                    ActiveSession::create([
+                        'user_id' => $user->id,
+                        'token_id' => $tokenId,
+                        'session_id' => session()->getId(),
+                        'ip' => request()->ip(),
+                        'user_agent' => request()->userAgent(),
+                        'current_status' => $currentStatus,
+                        'permission_version' => (string)$currentVersion,
+                        'last_seen' => now(),
+                    ]);
+                }catch(\Throwable $e){
+                    // do not block login on tracking failure
+                }
+
                 //check is is first login (user needs to change its password then)
                 if($firstLogin) return redirect()->route($loginRoute)->with('sms-firstlogin', $token);
 
@@ -412,6 +508,18 @@ class AuthController extends Controller
 
                 
             }else{
+                UserLog::create([
+                    'user_id'     => $user->id,
+                    'sys_code'    => $GLOBALS['SYS_CODE'] ?? 0,
+                    'relation'    => 'users',
+                    'relation_id' => $user->id,
+                    'type_id'     => Sys_options::where('op_key', 'log-login-code-failed')->value('id') ?? 0,
+                    'description' => json_encode(array(
+                        'desc' => 'Başarısız sms kodu denemesi',
+                        'code_entered' => $sendedCode,
+                        'code_expected' => $code,
+                    ),JSON_UNESCAPED_UNICODE)
+                ]);
                 return redirect()->route($loginRoute)->with('sms-fail','Girilen Kod Yanlıştır.');
             }
         }
@@ -420,7 +528,7 @@ class AuthController extends Controller
 
     public function sendMail(Request $request){
         $req = $request->all();
-        //first find record for phone number
+        //first find record for email
         $user = User::where('email', $req['mail'])->first();
         if(!empty($user)){
        
@@ -440,11 +548,11 @@ class AuthController extends Controller
             //find person
             $person = (new PersonsServiceProvider())->getPerson(null,null,true,$user->person_id)['person'][0] ?? [];
             //$person = Persons::where('id',$user->person_id)->first();
-
+           
            
 
             //now fill the keys
-            $temp = str_replace("{*prs-title*}", $person->title, $temp);
+            $temp = str_replace("{*prs-title*}", $person->name, $temp);
             //set domain
             $temp = str_replace("{*domain*}", 'https://'.$request->getHttpHost(), $temp);
             //$temp = str_replace("{*system*}", $GLOBALS['SYS_CODE'] == 'GDZ' ? 'gdz' : 'adm', $temp);
@@ -524,9 +632,10 @@ class AuthController extends Controller
                 
 
                 $mailService = new MailService();
-                $response = (array) $mailService->sendSms([
-                    'email' => $user->email,
-                    'desc' => 'Kömür Tedarik Sistemi şifre sıfırlama kodu: ' . $smsCode,
+                $response = $mailService->sendMail([
+                    'to' =>  $user->email,
+                    'subject' => 'Doğrulama Kodu',
+                    'body' => 'Kömür Tedarik Sistemi şifre sıfırlama kodu: ' . $smsCode,
                 ]);
 
                 if (empty($response['success'])) {
@@ -566,18 +675,46 @@ class AuthController extends Controller
         ],200);
     }
 
-    
-
     public function logout(Request $request){
+        
+        $result = UserLog::create([
+            'user_id'     => auth()->check() ? auth()->user()->id : 0,
+            'sys_code'    => $GLOBALS['SYS_CODE'] ?? 0,
+            'relation'    => 'users',
+            'relation_id' => auth()->check() ? auth()->user()->id : 0,
+            'type_id'     => Sys_options::where('op_key', 'log-logout')->value('id') ?? 0,
+            'description' => json_encode(array(
+                'desc' => (session('ptitle') ?? '-').' Kullanıcısı sistemden çıkış yaptı',
+            ),JSON_UNESCAPED_UNICODE)
+        ]);
         $request->session()->flush();
-
         return redirect()->route('login','admin');
     }
 
     public function getPermissions(Request $request){
+        $permissionService = new \App\Services\PermissionService();
+        $permissionService->ensureSessionFreshness(auth()->user());
+
+
+        //here if in current status can response is false we need to check from raw db data
+        $data = session('currentStatus');
+        if($data['canResponse'] == false){
+            //set updated status
+            session(['currentStatus' => (new PersonsServiceProvider())->clientPermInfo(session('person_id'), session('type_key'))]);
+            //this is because cache reasons.If client is approved we cannot always detect all connected users to that client it's not necessary so we just checking for client approve awaiting users
+        }
+
+
+        $authPerson   = \App\Models\Persons::where('id', auth()->user()?->person_id)->first();
+        $authUserName = trim(($authPerson?->name ?? '') . ' ' . ($authPerson?->surname !== '-' ? ($authPerson?->surname ?? '') : '')) ?: null;
+
         return response()->json([
-            'success' => true,
-            'permissions' => checkPerm('all') ? [
+            'success'       => true,
+            'personId'      => session('person_id') ?? null,
+            'currentStatus' => session('currentStatus') ?? null, // for client accounts
+            'typeKey'       => session('type_key') ?? null,
+            'userName'      => $authUserName ?? session('currentStatus')['main_name'] ?? null,
+            'permissions'   => $permissionService->has(auth()->user(), 'all') ? [
                 //this area is bassically backdoor for hidden kontent admins.
                 'per-00',
                 'per-00-01',
@@ -585,6 +722,8 @@ class AuthController extends Controller
                 'per-04-01',
                 'per-04-02',
                 'per-04-03',
+                'per-04-04',
+                'per-04-05',
                 'per-05',
                 'per-05-01',
                 'per-05-02',
@@ -594,6 +733,9 @@ class AuthController extends Controller
                 'per-07',
                 'per-07-01',
                 'per-07-02',
+                'per-08',
+                'per-08-01',
+                'per-08-02',
             ] : session('perms') 
         ],200);
     }

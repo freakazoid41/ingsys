@@ -8,13 +8,16 @@
     import Swal from 'sweetalert2';
     
     import Form from '@/components/coalparts/Form.vue';
-    import Transactions from '@/components/Transactions.vue';
 
 
     export default {
+        breadcrumbs: {
+            list: [ { title: 'Panel', path: '/' }, { title: 'Daire', path: '/flats/form' } ],
+            title: 'Daire'
+        },
         components: {
-            Form,
-            Transactions 
+            Form
+            
         },
         setup() {
             // expose to template and other options API hooks
@@ -58,16 +61,7 @@
                 
             });
 
-            this.navigationStore.setBread([
-                {
-                    title : this.wTrans('menu.home'),
-                    url   : '/panel',
-                },
-                {
-                    title : this.wTrans('menu.flats'),
-                    url   : '/panel/flats',
-                }
-            ] ,this.wTrans('form.flats'));
+           
         },  
         data() {
             const route = useRoute();

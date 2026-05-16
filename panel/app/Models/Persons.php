@@ -84,7 +84,7 @@ class Persons extends Model
         $join = '   inner join sys_options as t on t.id = i.type_id 
                     inner join users as u on u.person_id = i.id';
         
-        $where = " where i.name != '' and u.email != 'kbbozat41@hotmail.com' and email not like '%picklecan.me%' ";  
+        $where = " where i.name != '' ";  
         
 
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {

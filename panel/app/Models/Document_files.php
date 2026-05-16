@@ -65,9 +65,13 @@ class Document_files extends Model
             'file'              => 'i.description  as  file',
             'type_title'        => 'so.title  as  type_title',
             'type_key'          => 'so.op_key  as  type_key',
+            'file_type'         => 'sf.title  as  file_type',
+            'file_type_key'     => 'sf.op_key  as  file_type_key',
             'relation'          => 'i.relation',
-            'entity_tag'        => 'se.entity_tag as entity_tag',
-            'created_at'        => 'i.created_at  as  created_at',
+            'relation_qnid'     => 'd.qnid  as  relation_qnid',
+            'relation_type'     => 'dt.op_key  as  relation_type',
+            'entity_tag'        => 'se.entity_tag  as  entity_tag',
+            'created_at'        => 'i.created_at   as  created_at',
             'relation_detail'   => "(SELECT    json_agg(
                                             json_build_object(
                                                 'Key',se1.entity_tag,
@@ -106,9 +110,14 @@ class Document_files extends Model
         $limit = '';
         $order = '';
         $join = "   inner join sys_options so on so.id = i.type_id 
-                    inner join sys_con_entities se on se.entity_value = i.id::text";
+                    inner join sys_con_entities se on se.entity_value = i.id::text
+                    inner join documents as d on d.id = i.relation_id::int
+                    inner join sys_options as dt on dt.id = d.type_id
+                    inner join sys_options as sf on sf.op_key = 'op-'|| SPLIT_PART(se.entity_tag, '**', 1)";
         
         $where  = " where i.description!='' and i.status = 1 and i.grp_code='".($GLOBALS['SYS_CODE'] ?? 'CATES')."'"; 
+
+        $where  .= " and sf.op_key not in ('op-offer_otherdocs_file') ";
         
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);
@@ -145,9 +154,9 @@ class Document_files extends Model
                                 if($i!=0) $where.=' or ';
                                 $column = explode('as  ',$columns[$k])[0];
                                 if($column === 'i.created_at'){
-                                    " ".$column." like '%" . $value . "%' " ;
+                                    " ".$column."::text ilike '%" . $value . "%' " ;
                                 }else{
-                                    $where.=' '.$column.' like'."'%" . $value . "%' ";
+                                    $where.=' '.$column.'::text ilike '."'%" . $value . "%' ";
                                 }
                                 
                                 $i++;
@@ -161,7 +170,7 @@ class Document_files extends Model
                             if($f['type'] != 'like'){
                                 $where.=" and ".$column." ='".$f['value']."' ";
                             }else{
-                                $where.=" and ".$column." like '%".$f['value']."%' ";
+                                $where.=" and ".$column."::text ilike '%".$f['value']."%' ";
                             }
                         }
                         break;

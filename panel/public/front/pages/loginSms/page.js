@@ -11,7 +11,7 @@ export default class Page {
     const target = document.getElementById('countdown');
 
     let i = 0;
-    const limit = 60;
+    const limit = 120;
     target.innerHTML = limit;
     const intr = setInterval(() => {
       i++;
@@ -37,14 +37,44 @@ export default class Page {
   pageEvents() {
 
     //listen code steps
-    document.querySelectorAll('.send-code').forEach(el => el.addEventListener('input', e => {
-      if (e.target.value.trim() === '') return false;
+    const inps = document.querySelectorAll('.send-code');
+    inps.forEach(el =>{
+      el.addEventListener('keydown' , e => {
+        if (e.key === 'Backspace') {
+          const step = parseInt(e.target.dataset.step);
+          const prev = document.querySelector('.send-code[data-step="' + (step - 1) + '"]');
 
-      const step = parseInt(e.target.dataset.step);
-      const next = document.querySelector('.send-code[data-step="' + (step + 1) + '"]');
+          if (prev !== null) prev.focus();
+        }
+      });
 
-      if (next !== null) next.focus();
-    }));
+      el.addEventListener('input', e => {
+        if (e.target.value.trim() === '') return false;
+
+
+
+
+        const step = parseInt(e.target.dataset.step);
+        const next = document.querySelector('.send-code[data-step="' + (step + 1) + '"]');
+
+        if (next !== null) next.focus();
+      });
+
+      el.addEventListener('paste', (event) => {
+        // Prevent the default paste action if needed (optional)
+        event.preventDefault();
+
+        // Get the pasted text data from the clipboard
+        const pastedData = event.clipboardData.getData('text');
+        pastedData.trim().split('').forEach((char, index) => {
+          const targetInput = document.querySelector('input[name="code_' + (index + 1) + '"]');
+          if (targetInput && !isNaN(char)) {
+            targetInput.value = char;
+          }
+        });
+      });
+
+    });
 
     document.getElementById('btn-next').addEventListener('click', e => {
       e.target.disabled = true;
