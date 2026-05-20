@@ -454,6 +454,111 @@
                                 
                             }
                         ]
+                    },'op-doc-vehicle-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_vehicle_1',
+                                label : 'Vehicle Details',
+                                subs  : [
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'main_title', col : 4, required : true, label : 'Vehicle Title', placeholder : 'Plate / Model', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'plate_number', col : 4, required : true, label : 'Plate Number', placeholder : 'ABC-123', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'make', col : 4, label : 'Make', placeholder : 'Toyota', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'model', col : 4, label : 'Model', placeholder : 'Corolla', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'color', col : 4, label : 'Color', placeholder : 'White', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'select', name : 'vehicle_type', col : 4, label : 'Vehicle Type', options : [ { text : 'Car', value : 'Car' }, { text : 'Motorcycle', value : 'Motorcycle' }, { text : 'Truck', value : 'Truck' }, { text : 'Van', value : 'Van' } ], oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'owner_name', col : 4, label : 'Owner Name', placeholder : 'John Doe', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'owner_phone', col : 4, isMasked : true, mask : 'phone', label : 'Owner Phone', placeholder : '0500 000 0000', oninput : (e) => this.submitDynamicChanges(e.target) }
+                                ]
+                            }
+                        ]
+                    },'op-doc-parking-spot-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_parking_spot_1',
+                                label : 'Parking Spot Details',
+                                subs  : [
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'main_title', col : 4, required : true, label : 'Spot Title', placeholder : 'Spot A1', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'spot_number', col : 4, label : 'Spot Number', placeholder : 'A1', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'level', col : 4, label : 'Level', placeholder : '1', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'section', col : 4, label : 'Section', placeholder : 'North', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'select', name : 'size', col : 4, label : 'Spot Size', options : [ { text : 'Compact', value : 'Compact' }, { text : 'Standard', value : 'Standard' }, { text : 'Large', value : 'Large' } ], oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'select', name : 'status', col : 4, label : 'Availability', options : [ { text : 'Available', value : 'Available' }, { text : 'Occupied', value : 'Occupied' }, { text : 'Maintenance', value : 'Maintenance' } ], oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'textarea', name : 'notes', col : 12, label : 'Notes', placeholder : 'Optional description', oninput : (e) => this.submitDynamicChanges(e.target) }
+                                ]
+                            }
+                        ]
+                    },'op-doc-parking-session-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_parking_session_1',
+                                label : 'Parking Session Details',
+                                subs  : [
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'main_title', col : 4, required : true, label : 'Session Title', placeholder : 'Vehicle Entry Session', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'vehicle_plate', col : 4, required : true, label : 'Vehicle Plate', placeholder : 'ABC-123', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'parking_spot', col : 4, label : 'Parking Spot', placeholder : 'A1', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'attendant', col : 4, label : 'Attendant', placeholder : 'Jane Doe', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'entry_time', col : 4, isDate : true, label : 'Entry Time', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'exit_time', col : 4, isDate : true, label : 'Exit Time', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'select', name : 'status', col : 4, label : 'Session Status', options : [ { text : 'Active', value : 'Active' }, { text : 'Completed', value : 'Completed' } ], oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'fee', col : 4, label : 'Fee', placeholder : '0.00', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'textarea', name : 'notes', col : 12, label : 'Notes', placeholder : 'Optional details', oninput : (e) => this.submitDynamicChanges(e.target) }
+                                ]
+                            }
+                        ]
+                    },'op-doc-reservation-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_reservation_1',
+                                label : 'Reservation Details',
+                                subs  : [
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'main_title', col : 4, required : true, label : 'Reservation Title', placeholder : 'Plate / Date', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'vehicle_plate', col : 4, required : true, label : 'Vehicle Plate', placeholder : 'ABC-123', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'parking_spot', col : 4, label : 'Parking Spot', placeholder : 'A1', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'customer_name', col : 4, label : 'Customer Name', placeholder : 'John Doe', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'customer_phone', col : 4, isMasked : true, mask : 'phone', label : 'Customer Phone', placeholder : '0500 000 0000', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'reservation_date', col : 4, isDate : true, label : 'Reservation Date', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'start_time', col : 4, label : 'Start Time', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'end_time', col : 4, label : 'End Time', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'select', name : 'status', col : 4, label : 'Reservation Status', options : [ { text : 'Pending', value : 'Pending' }, { text : 'Confirmed', value : 'Confirmed' }, { text : 'Cancelled', value : 'Cancelled' } ], oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'textarea', name : 'notes', col : 12, label : 'Notes', placeholder : 'Optional details', oninput : (e) => this.submitDynamicChanges(e.target) }
+                                ]
+                            }
+                        ]
+                    },'op-doc-attendant-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_attendant_1',
+                                label : 'Attendant Details',
+                                subs  : [
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'main_title', col : 4, required : true, label : 'Name', placeholder : 'Jane Doe', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'employee_id', col : 4, label : 'Employee ID', placeholder : 'EMP001', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'select', name : 'shift', col : 4, label : 'Shift', options : [ { text : 'Morning', value : 'Morning' }, { text : 'Afternoon', value : 'Afternoon' }, { text : 'Night', value : 'Night' } ], oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'phone', col : 4, isMasked : true, mask : 'phone', label : 'Phone', placeholder : '0500 000 0000', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'text', name : 'email', col : 4, label : 'Email', placeholder : 'jane@example.com', oninput : (e) => this.submitDynamicChanges(e.target) },
+                                    { class : ['form-control','mb-2','mb-md-0','form-item'], type : 'textarea', name : 'notes', col : 12, label : 'Notes', placeholder : 'Optional details', oninput : (e) => this.submitDynamicChanges(e.target) }
+                                ]
+                            }
+                        ]
                     },'op-doc-request-form' : {
                         showRemoveButton : false,
                         oncreated       : (id) => {

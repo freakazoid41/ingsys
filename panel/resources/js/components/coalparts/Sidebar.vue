@@ -226,6 +226,81 @@ export default {
                         </div>
                     </div>
 
+                    <!-- Parking -->
+                    <div class="menu-item py-1 menu-row-main" data-kt-menu-trigger="click">
+                        <span class="menu-link main-menu px-3">
+                            <span class="menu-icon me-0">
+                                <i class="ki-solid ki-car fs-1"></i>
+                            </span>
+                            <div class="menu-content d-flex justify-content-between align-items-center w-100">
+                                <span class="menu-section ps-2 py-1 text-dark">Parking</span>
+                                <span class="menu-arrow"><i class="ki-outline ki-down fs-7"></i></span>
+                            </div>
+                        </span>
+                        <div class="sub-menu hidden-menu">
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'VehicleForm' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Add Vehicle</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'VehicleList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Vehicles</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'ParkingSpotForm' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Add Parking Spot</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'ParkingSpotList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Parking Spots</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'ParkingSessionForm' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Add Session</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'ParkingSessionList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Parking Sessions</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'ReservationForm' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Add Reservation</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'ReservationList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Reservations</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'AttendantForm' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Add Attendant</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'AttendantList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Attendants</span>
+                                </router-link>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Teklifler -->
                     <div v-if="this.useAuthStore().permissions?.includes('per-08-01')"
                          class="menu-item py-1 menu-row-main">

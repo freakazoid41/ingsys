@@ -104,6 +104,9 @@ class ReportServiceProvider extends ServiceProvider
             case 'importantinfo':
                 return $this->dashboardImportantInfo();
             break;
+            case 'parkingstats':
+                return $this->dashboardParkingStats();
+            break;
             case 'clienttopstatus':
                 return $this->dashboardClientTopStatus();
         }
@@ -178,6 +181,56 @@ class ReportServiceProvider extends ServiceProvider
         return $returnData;
     }
 
+    public function dashboardParkingStats(){
+        $vehicles = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-vehicle'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-vehicle-form'],
+            ]
+        ])['data'];
+
+        $parkingSpots = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-parking-spot'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-parking-spot-form'],
+            ]
+        ])['data'];
+
+        $reservations = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-reservation'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-reservation-form'],
+            ]
+        ])['data'];
+
+        $sessions = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-parking-session'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-parking-session-form'],
+            ]
+        ])['data'];
+
+        $activeSessions = 0;
+        foreach ($sessions as $row) {
+            if (strpos($row->status, 'doc_trans_parking_session_ended') === false) {
+                $activeSessions++;
+            }
+        }
+
+        $totalSpots = count($parkingSpots);
+        $reservedSpots = count($reservations);
+        $availableSpots = max(0, $totalSpots - $reservedSpots);
+
+        return [
+            'openSessions' => $activeSessions,
+            'reservedSpots' => $reservedSpots,
+            'availableSpots' => $availableSpots,
+            'totalVehicles' => count($vehicles),
+            'totalSpots' => $totalSpots,
+            'activeSessions' => $activeSessions,
+        ];
+    }
+
     public function dashboardTopInfo(){
         //here get monthly requests
         $requests = \App\Models\Documents::tableList([
@@ -196,9 +249,6 @@ class ReportServiceProvider extends ServiceProvider
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-offer-form'],
             ]
         ])['data'];
-
-        
-
 
 
         $approvedOffer = [];
@@ -226,9 +276,43 @@ class ReportServiceProvider extends ServiceProvider
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-client-form'],
             ]
         ])['data'];
-            
-       
 
+        $vehicles = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-vehicle'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-vehicle-form'],
+            ]
+        ])['data'];
+
+        $parkingSpots = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-parking-spot'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-parking-spot-form'],
+            ]
+        ])['data'];
+
+        $reservations = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-reservation'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-reservation-form'],
+            ]
+        ])['data'];
+
+        $sessions = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-parking-session'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-parking-session-form'],
+            ]
+        ])['data'];
+
+        $activeSessions = 0;
+        foreach ($sessions as $row) {
+            if (strpos($row->status, 'doc_trans_parking_session_ended') === false) {
+                $activeSessions++;
+            }
+        }
+
+        $availableSpots = max(0, count($parkingSpots) - count($reservations));
 
        return [
             'totalRequests' => count($requests),
@@ -236,7 +320,10 @@ class ReportServiceProvider extends ServiceProvider
             'approvedOffers' => count($approvedOffer),    
             'awaitingOffers' => count($awaitingOffers),
             'todaysOffers' => count($todaysOffer),
-            'allClients' => count($clients)
+            'allClients' => count($clients),
+            'totalVehicles' => count($vehicles),
+            'availableSpots' => $availableSpots,
+            'activeSessions' => $activeSessions,
        ];
     }
 

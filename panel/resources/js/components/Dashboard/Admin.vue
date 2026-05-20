@@ -185,6 +185,31 @@
           </div>
         </div>
       </div>
+      <!-- Parking Breakdown -->
+      <div class="grid-row">
+        <div class="grid-col-1-3-full">
+          <div class="chart-card process-chart-card">
+            <h5 class="card-title">Parking Usage Breakdown</h5>
+            <div class="chart-content">
+              <div class="chart-wrapper">
+                <div class="chart-container process-chart-container">
+                  <canvas ref="parkingChart" class="pie-chart"></canvas>
+                </div>
+              </div>
+              <div class="chart-legend-right">
+                <div v-for="item in parkingData" :key="item.label" class="legend-item">
+                  <span :style="{ backgroundColor: item.color }" class="legend-color"></span>
+                  <div class="legend-text-group">
+                    <span class="legend-text">{{ item.label }}</span>
+                    <span class="legend-value">{{ item.value }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <router-link :to="{ name: 'ParkingSessionList' }" class="notifications-footer-btn">Detaylara Git <i class="fa-solid fa-angle-right"></i></router-link>
+          </div>
+        </div>
+      </div>
       <!-- Row 2: Tables -->
       <div class="row">
         <!-- Son Talepler -->
@@ -316,9 +341,45 @@ export default {
                     valueClass: 'secondary-value',
                     linkClass: 'secondary-link',
                     iconPath: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z'
+                },
+                totalVehicles: {
+                    id: 7,
+                    label: 'Toplam Araç',
+                    value: 0,
+                    subtext: 'Kayıtlı',
+                    action: 'Detay',
+                    actionKey: 'vehicles',
+                    iconClass: 'success-icon',
+                    keenIcon: 'ki-outline ki-car',
+                    valueClass: 'success-value',
+                    linkClass: 'success-link'
+                },
+                availableSpots: {
+                    id: 8,
+                    label: 'Boş Park Yeri',
+                    value: 0,
+                    subtext: 'Anlık',
+                    action: 'Detay',
+                    actionKey: 'parkingSpots',
+                    iconClass: 'primary-icon',
+                    keenIcon: 'ki-outline ki-location',
+                    valueClass: 'primary-value',
+                    linkClass: 'primary-link'
+                },
+                activeSessions: {
+                    id: 9,
+                    label: 'Aktif Oturum',
+                    value: 0,
+                    subtext: 'Şu anda',
+                    action: 'Detay',
+                    actionKey: 'parkingSessions',
+                    iconClass: 'warning-icon',
+                    keenIcon: 'ki-outline ki-timer',
+                    valueClass: 'warning-value',
+                    linkClass: 'warning-link'
                 }
             },
-            topStatsList: ['totalRequests', 'totalOffers', 'allClients', 'awaitingOffers', 'todaysOffers'],
+            topStatsList: ['totalRequests', 'totalOffers', 'allClients', 'awaitingOffers', 'todaysOffers', 'totalVehicles', 'availableSpots', 'activeSessions'],
             processData: [
                 { label: 'Değerlendirme Aşamasında', value: 28, color: '#0d6efd' },
                 { label: 'Revize Bekliyor', value: 12, color: '#ffc107' },
@@ -327,7 +388,11 @@ export default {
                 { label: 'İptal Edildi', value: 5, color: '#95a5a6' },
                 { label: 'Taslak', value: 35, color: '#d3d3d3' }
             ],
-            
+            parkingData: [
+                { label: 'Open Sessions', value: 0, color: '#0d6efd' },
+                { label: 'Reserved Spots', value: 0, color: '#198754' },
+                { label: 'Available Spots', value: 0, color: '#ffc107' }
+            ],
 
             notifications: [],
             notificationList: [],
@@ -343,7 +408,10 @@ export default {
                 approvedOffers: false,
                 allClients: false,
                 awaitingOffers: false,
-                todaysOffers: false
+                todaysOffers: false,
+                totalVehicles: false,
+                availableSpots: false,
+                activeSessions: false
             },
             charts: {}
         };
@@ -360,6 +428,7 @@ export default {
       // Load dynamic data first, then initialize charts
       this.monthlyOffersLoad();
       this.monthlyDistributionLoad();
+      this.parkingDataLoad();
       this.importantDatesLoad();
       this.$nextTick(() => {
         this.initCharts();
@@ -450,6 +519,9 @@ export default {
                     if(rsp.allClients !== undefined) this.topStats.allClients.value = rsp.allClients;
                     if(rsp.awaitingOffers !== undefined) this.topStats.awaitingOffers.value = rsp.awaitingOffers;
                     if(rsp.todaysOffers !== undefined) this.topStats.todaysOffers.value = rsp.todaysOffers;
+                    if(rsp.totalVehicles !== undefined) this.topStats.totalVehicles.value = rsp.totalVehicles;
+                    if(rsp.availableSpots !== undefined) this.topStats.availableSpots.value = rsp.availableSpots;
+                    if(rsp.activeSessions !== undefined) this.topStats.activeSessions.value = rsp.activeSessions;
                     
                     // Force component update to reflect changes
                     this.$forceUpdate();
@@ -513,6 +585,39 @@ export default {
             }
           } catch (error) {
             console.error('Failed to load monthly offers:', error);
+          }
+        },
+        async parkingDataLoad() {
+          try {
+            const rsp = await (new Plib).request({ url: '/api/v1/dashboard/parkingstats', method: 'GET' }, null);
+            const defaultData = [
+              { key: 'openSessions', label: 'Open Sessions', value: 0, color: '#0d6efd' },
+              { key: 'reservedSpots', label: 'Reserved Spots', value: 0, color: '#198754' },
+              { key: 'availableSpots', label: 'Available Spots', value: 0, color: '#ffc107' }
+            ];
+
+            if (Array.isArray(rsp)) {
+              this.parkingData = rsp.map((item, idx) => ({
+                label: item.label || defaultData[idx]?.label || '',
+                value: Number(item.value ?? item.count ?? 0),
+                color: item.color || defaultData[idx]?.color || '#d3d3d3'
+              }));
+            } else if (rsp && typeof rsp === 'object') {
+              this.parkingData = defaultData.map(item => ({
+                label: item.label,
+                value: Number(rsp[item.key] ?? rsp[item.label] ?? rsp[item.label.replace(/\s+/g, '').toLowerCase()] ?? 0),
+                color: item.color
+              }));
+            }
+
+            if (this.charts.parkingChart) {
+              this.charts.parkingChart.data.labels = this.parkingData.map(i => i.label);
+              this.charts.parkingChart.data.datasets[0].data = this.parkingData.map(i => i.value);
+              this.charts.parkingChart.data.datasets[0].backgroundColor = this.parkingData.map(i => i.color);
+              this.charts.parkingChart.update();
+            }
+          } catch (error) {
+            console.error('Failed to load parking dashboard data:', error);
           }
         },
 
@@ -594,6 +699,15 @@ export default {
                     break;
                 case 'todaysOffers':
                     this.$router.push({ name: 'OList'});
+                    break;
+                case 'vehicles':
+                    this.$router.push({ name: 'VehicleList'});
+                    break;
+                case 'parkingSpots':
+                    this.$router.push({ name: 'ParkingSpotList'});
+                    break;
+                case 'parkingSessions':
+                    this.$router.push({ name: 'ParkingSessionList'});
                     break;
                 default:
                     console.log('Unknown action:', actionKey);
@@ -844,6 +958,41 @@ export default {
                 }
             },
             plugins: [centerTextPlugin]
+            });
+        }
+
+        // Parking breakdown chart
+        const parkingCtx = this.$refs.parkingChart?.getContext('2d');
+        if (parkingCtx) {
+            this.charts.parkingChart = new Chart(parkingCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: this.parkingData.map(item => item.label),
+                    datasets: [{
+                        data: this.parkingData.map(item => item.value),
+                        backgroundColor: this.parkingData.map(item => item.color),
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    return `${label}: ${value}`;
+                                }
+                            }
+                        }
+                    }
+                }
             });
         }
         },
@@ -1600,6 +1749,10 @@ export default {
 
 .grid-col-1-2 {
   grid-column: span 1;
+}
+
+.grid-col-1-3-full {
+  grid-column: span 3;
 }
 
 /* Cards */
@@ -2570,12 +2723,6 @@ export default {
 }
 
 /* Toplam kartı özel stili */
-.totals-card {
-  /* background: #f0f9ff; */
-  /* border: 1px solid #cff4fc; */
-  /* margin-top: 4px; */
-}
-
 .totals-card .distribution-label {
   color: #0a58ca;
 }

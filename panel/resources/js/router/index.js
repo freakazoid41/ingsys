@@ -18,6 +18,16 @@ import Roles from "@/pages/coalsystem/Roles/Roles.vue";
 import DList from "@/pages/coalsystem/Documents/DList.vue";
 import OList from "@/pages/coalsystem/Offer/OList.vue";
 import OForm from "@/pages/coalsystem/Offer/OForm.vue";
+import VehicleList from "@/pages/coalsystem/Parking/VehicleList.vue";
+import VehicleForm from "@/pages/coalsystem/Parking/VehicleForm.vue";
+import ParkingSpotList from "@/pages/coalsystem/Parking/ParkingSpotList.vue";
+import ParkingSpotForm from "@/pages/coalsystem/Parking/ParkingSpotForm.vue";
+import ParkingSessionList from "@/pages/coalsystem/Parking/ParkingSessionList.vue";
+import ParkingSessionForm from "@/pages/coalsystem/Parking/ParkingSessionForm.vue";
+import ReservationList from "@/pages/coalsystem/Parking/ReservationList.vue";
+import ReservationForm from "@/pages/coalsystem/Parking/ReservationForm.vue";
+import AttendantList from "@/pages/coalsystem/Parking/AttendantList.vue";
+import AttendantForm from "@/pages/coalsystem/Parking/AttendantForm.vue";
 import NSettings from "@/pages/coalsystem/Notifications/NSettings.vue";
 import LList from "@/pages/coalsystem/Logs/LList.vue";
 import NList from "@/pages/coalsystem/NotificationLogs/NList.vue";
@@ -38,6 +48,16 @@ const router = createRouter({
         { path: "/coalpanel/example/form/:id?", name: 'ExampleForm', component: ExampleForm},
         { path: "/coalpanel/request", name: 'RequestList', component: RList},
         { path: "/coalpanel/request/form/:id?", name: 'RequestForm', component: RForm},
+        { path: "/coalpanel/vehicles", name: 'VehicleList', component: VehicleList},
+        { path: "/coalpanel/vehicles/form/:id?", name: 'VehicleForm', component: VehicleForm},
+        { path: "/coalpanel/parking-spots", name: 'ParkingSpotList', component: ParkingSpotList},
+        { path: "/coalpanel/parking-spots/form/:id?", name: 'ParkingSpotForm', component: ParkingSpotForm},
+        { path: "/coalpanel/parking-sessions", name: 'ParkingSessionList', component: ParkingSessionList},
+        { path: "/coalpanel/parking-sessions/form/:id?", name: 'ParkingSessionForm', component: ParkingSessionForm},
+        { path: "/coalpanel/reservations", name: 'ReservationList', component: ReservationList},
+        { path: "/coalpanel/reservations/form/:id?", name: 'ReservationForm', component: ReservationForm},
+        { path: "/coalpanel/attendants", name: 'AttendantList', component: AttendantList},
+        { path: "/coalpanel/attendants/form/:id?", name: 'AttendantForm', component: AttendantForm},
         { path: "/coalpanel/client", name: 'CList', component: CList},
         { path: "/coalpanel/client/form/:id?", name: 'CForm', component: CForm},
         { path: "/coalpanel/users", name: 'UList', component: UList},
