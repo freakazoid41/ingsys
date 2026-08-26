@@ -7,7 +7,16 @@ import router from '@/router/index';
 import App from '@/layouts/App.vue';
 import '../css/app.css';
 import breadcrumbsPlugin from '@/plugins/breadcrumbs';
-import { i18nVue } from 'laravel-vue-i18n';
+//import axios from 'axios';
+import { i18nVue } from 'laravel-vue-i18n'; 
+
+
+/*window.axios = axios;
+window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+window.axios.defaults.headers.common['Content-Type'] = 'application/json';
+window.axios.defaults.headers.common['Accept'] = 'application/json';
+window.axios.defaults.withCredentials = true;
+window.axios.defaults.withXSRFToken = true;*/
 
 const pinia = createPinia();
 const authStore = useAuthStore(pinia);
@@ -15,7 +24,7 @@ const permissionDataStore = usePermissionDataStore(pinia);
 
 const app = createApp(App)
   .use(pinia)
-  .use(i18nVue, {
+  .use(i18nVue, { 
         resolve: lang => {
           const langs = import.meta.glob('../../lang/*.json', { eager: true });
           return langs[`../../lang/${lang}.json`].default;
@@ -33,6 +42,10 @@ const initApp = async () => {
       permissionDataStore.fetchRoleTemplates(),
       permissionDataStore.fetchRoleItems(),
     ]);
+    //console.log(authStore.currentStatus)
+    if (authStore.typeKey == 'op-pert-reseller' && !authStore.currentStatus.canProceed) {
+      router.push('/coalpanel/client/form/'+authStore.currentStatus.clientQnid); // Redirect to a "no access" route
+    }
   } catch (e) {
     console.error('app init failed:', e);
   }
@@ -46,3 +59,13 @@ initApp();
 authStore.setData({
   type: 'admin',
 });
+/*const userStore = useAuthStore()
+userStore.attempt_user()
+  .catch((error) => {
+    console.log('Please login.')
+  })
+  .finally(() => {
+    app.use(router)
+      .mount('#app');
+  })*/
+

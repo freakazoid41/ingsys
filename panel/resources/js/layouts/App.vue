@@ -4,7 +4,7 @@
 
 <script>
 import axios from 'axios'
-import router from '@/router/talk'
+import router from '@/router'
 import { mapActions } from 'pinia'
 import { useAuthStore } from '@/stores/auth.js'
 

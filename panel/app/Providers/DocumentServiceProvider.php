@@ -152,9 +152,17 @@ class DocumentServiceProvider extends ServiceProvider
                 if ($typeKey === 'op-doc-client') {
                     if ($isUpdate) {
                         unset($field['entities']['clicode']);
+                    } else {
+                        $field['entities']['clicode'] = $document->qnid;
+                    }
+                }
+
+                if (in_array($typeKey, ['op-doc-request', 'op-doc-offer'])) {
+                    if ($isUpdate) {
                         $field['entities']['rev_date'] = date('d/m/Y');
                     } else {
                         $field['entities']['req_no'] = $documentCount;
+                    }
                 }
 
                 foreach ($field['entities'] as $ekey => $value) {
@@ -600,7 +608,6 @@ class DocumentServiceProvider extends ServiceProvider
         return ['success' => true];
     }
 
-    
     /**
      * this method will prepare export data for documents
      */
@@ -652,7 +659,6 @@ class DocumentServiceProvider extends ServiceProvider
                     ],
                 ],
                 ])['data'];
-
                 break;
         }
 
@@ -672,32 +678,24 @@ class DocumentServiceProvider extends ServiceProvider
             switch ($type) {
                 case 'meetings':
                     $response[] = [
-                        $detail['name'].' '.$detail['surname'],
-                        $detail['phone'],
-                        $detail['email'],
-                        $detail['facility'],
-                        $detail['entered_at'],
-                        isset($detail['video_start']) ? explode(' ',$detail['video_start'])[1] : '-',
-                        isset($detail['video_end']) ? explode(' ',$detail['video_end'])[1] : '-',
-                        isset($detail['video_second']) ? $fancyTimeFormat($detail['video_second']) : '0:00',
-                        $detail['video_status'] ?? '-',
-                        $detail['exited_at'] ?? 'Bekleniyor',
+                        $detail['meet_date'],
+                        $detail['meet_active_supervisor'],
+                        $detail['meet_amount'].' '.env('SYS_CUR'),
                     ];
                     break;
-                case 'inventory':
+                case 'accounts':
                     $response[] = [
                         $detail['title'],
-                        $detail['code'],
+                        ($d->balance_pure ?? 0).' '.($detail['currency'] ?? env('SYS_CUR')),
                     ];
                     break;
-                case 'facility':
+                case 'flats':
                     $response[] = [
                         $detail['title'],
                         implode(' , ', $detail['per_name']),
                         ($d->balance_pure ?? 0).' '.($detail['currency'] ?? env('SYS_CUR')),
                     ];
                     break;
-                
             }
         }
 

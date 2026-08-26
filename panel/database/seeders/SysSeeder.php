@@ -120,25 +120,11 @@ class SysSeeder extends Seeder
                 'op_key'    => 'log-sys-op-update',
             ],[
                 'parent_id' => 0,
-                'title'     => 'Notification Show',
+                'title'     => 'İhale Hakediş Kapatıldı',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
-                'op_key'    => 'log-user-looked',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Ziyaretçi Giriş Yaptı',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-visiter-enter',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Ziyaretçi Çıkış Yaptı',
-                'ttitle'    => 'User_logs',
-                'ctitle'    => 'log_id',
-                'group_key' => 'op-logs',
-                'op_key'    => 'log-visiter-exit',
+                'op_key'    => 'log-tender-period-close',
             ],[
                 'parent_id' => 0,
                 'title'     => 'Dosya Girişi',
@@ -153,6 +139,13 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'log_id',
                 'group_key' => 'op-logs',
                 'op_key'    => 'log-file-status-trans',
+            ],[
+                'parent_id' => 0,
+                'title'     => 'Personel İzin Girişi',
+                'ttitle'    => 'User_logs',
+                'ctitle'    => 'log_id',
+                'group_key' => 'op-logs',
+                'op_key'    => 'log-leave-added',
             ],[
                 'parent_id' => 0,
                 'title'     => 'Dosya Düzenleme',
@@ -684,6 +677,10 @@ class SysSeeder extends Seeder
             }
         }
 
+        
+
+        
+        
         return $i;
     }
 

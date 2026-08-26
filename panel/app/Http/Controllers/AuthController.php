@@ -33,7 +33,7 @@ class AuthController extends Controller
     public function login(){
         
         //list all cards on here
-        return view('talklogin', [
+        return view('login', [
             'scripts' => [
                 //'/system/global/swal.js'
             ],
@@ -195,96 +195,6 @@ class AuthController extends Controller
 
             }
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ],500);
-        }
-    }
-
-    public function loginFrontUser(Request $request){
-        
-        try {
-
-            $request->session()->flush();
-            //validate request sended parameters
-            $validateUser = Validator::make($request->all(),[
-                'phone'    => 'required',
-                'facility' => 'required'
-            ]);
-
-            if($validateUser->fails()){
-                return abort(404);
-                /*return response()->json([
-                    'success' => false,
-                    'message' => 'Form Validate Error',
-                    'error'   => $validateUser->errors()
-                ],401);*/
-            }
-
-            $post   =  $request->all();
-            //here search if anyone is entered with this phone 
-            $person = (new DocumentServiceProvider())->getPerson(['phone' => $post['phone']],false);
-           
-           
-            //set person phone
-            session(['phone'     => $post['phone']]);
-            session(['facility'  => $post['facility']]);
-           
-            if(!empty($person) && $person['success'] != false){
-                session(['qnid'      => $person['qnid']]);
-                session(['email'     => $person['data']['email']]);
-                session(['ptitle'    => $person['data']['name']]);
-                session(['connKey'   => 'op-doc-visit-form**'.$person['connId']]);
-            }
-           
-            /*User_logs::create([
-                'user_id'     => auth('sanctum')->user()->id,
-                'sys_code'    => $GLOBALS['SYS_CODE'] == 'GDZ' ? '4000' : '5000',
-                'relation'    => 'users',
-                'relation_id' => auth('sanctum')->user()->id,
-                'type_id'     => Sys_options::select('id')->where('op_key', 'log-login')->first()->id,
-                'description' => json_encode(array(
-                    'desc' => $person->name.' kullanıcısı sisteme giriş yaptı',
-                ),JSON_UNESCAPED_UNICODE)
-            ]);*/
-
-            //$token = $user->createToken("API TOKEN")->plainTextToken;
-            
-            ///neccessary for auth
-            $user = User::updateOrCreate(
-                ['email' => str_replace(' ', '', $post['phone']).'@visitor.aydem'],
-                [
-                    'email'     => str_replace(' ', '', $post['phone']).'@visitor.aydem',
-                    'person_id' => '0',
-                    'name'      => 'VISITOR',
-                    'password'  => Hash::make($post['phone'])
-                ]
-            );
-
-            Auth::login($user);
-            $token = $user->createToken("VISITOR TOKEN")->plainTextToken;
-            ///neccessary for auth
-
-            if(!empty($person) && !isset($person['data']['exited_at'])){
-                if(!isset($person['data']['test-answers'])){
-                    //means just connection drop
-                    return redirect('/facility/'.$post['facility'].'/quiz');  
-                }else{
-                    //means awaiting exit
-                    return redirect('/facility/'.$post['facility'].'/exit');  
-                }
-            }else{
-                $request->session()->flush();
-                session(['facility'  => $post['facility']]);
-                session(['phone'     => $post['phone']]);
-                //sometime can be old record
-                //video status
-                Auth::login($user);
-                if(!empty($person)) session(['mustWatch' => true]);
-                return redirect('/facility/'.$post['facility']);  
-            }
-        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

@@ -398,6 +398,7 @@ class Documents extends Model
         //create query    
         $sql = 'select distinct '.implode(",", array_values($columns)).'
                     from documents as i '.$join.' ' . $where.$order.$limit ;
+        
         $result = DB::select($sql);
         
         //count query

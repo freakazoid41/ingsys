@@ -16,12 +16,14 @@ Route::post('/auth/passchange' ,          [AuthController::class, 'passChange'])
     return 'test';
 })->where('any', '^((?!api).)*');*/
 
-Route::get('/facility',fn()      => view('frontapp'))->name('frontapp');
-Route::get('/facility/{any}',fn() => view('frontapp'))->where('any', '^((?!api).)*');
 
 Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::class])
     ->group(function () {
-        
+        /*Route::get('/panel', fn () => view('app'))->name('app');
+        Route::get('/panel/users', function (){
+            return strpos(auth('sanctum')->user()->name,'Admin') !== false ? view('app') : abort('403');
+        })->where('any', '^((?!api).)*');
+        Route::get('/panel/{any}', fn () => view('app'))->where('any', '^((?!api).)*');*/
 
         
 
@@ -59,13 +61,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
 
         Route::post('/export/offer',             [ExportController::class, 'offerPdf'])->name('.offerPdf');
         Route::get('/export/{model}/{type?}',    [ExportController::class, 'index'])->name('.export-table');
-        Route::get('/setfacility/{facility}',  [AuthController::class,   'setfacility']);
-        Route::get('/closefacility',            [AuthController::class,   'closefacility']);
+        Route::get('/setapartment/{apartment}',  [AuthController::class,   'setapartment']);
+        Route::get('/closeapartment',            [AuthController::class,   'closeapartment']);
 });
-
-Route::get('/order-file/{doc}', function ($doc){
-    return decryptFile($doc,'view');
-})->name('documentRoute');
 
 
 

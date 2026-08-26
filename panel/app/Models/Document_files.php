@@ -52,9 +52,9 @@ class Document_files extends Model
             //remove transactions
             if(isset($trans[0])) { foreach($trans as $tr){ $tr->delete(); }}*/
             //remove file from storage
-            /*$enc = new \App\Providers\EncryptionProvider();
+            $enc = new \App\Providers\EncryptionProvider();
             $path = 'documents/' . $enc->decrypt($document->description);
-            Storage::disk('public')->delete($path);*/
+            Storage::disk('public')->delete($path);
         });
     }
 

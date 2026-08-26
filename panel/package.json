@@ -20,20 +20,16 @@
     },
     "dependencies": {
         "@unhead/vue": "^1.11.18",
-        "apexcharts": "^5.3.5",
         "chart.js": "^4.4.9",
         "dayjs": "^1.11.20",
         "flatpickr": "^4.6.13",
         "fullcalendar": "^6.1.17",
-        "imask": "^7.6.1",
         "laravel-vue-i18n": "^2.8.0",
         "pickletable": "^1.0.6",
         "process": "^0.11.10",
-        "qrcode": "^1.5.4",
         "quill": "^2.0.3",
         "simplebar-vue": "^2.4.0",
         "sweetalert2": "^11.6.13",
-        "vanilla-masker": "^1.2.0",
-        "vue3-apexcharts": "^1.8.0"
+        "vanilla-masker": "^1.2.0"
     }
 }

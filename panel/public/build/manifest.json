@@ -1,10 +1,10 @@
 {
-  "_sweetalert2.esm.all-CvlpapFA.js": {
-    "file": "assets/sweetalert2.esm.all-CvlpapFA.js",
+  "_sweetalert2.esm.all-0Z_61IYw.js": {
+    "file": "assets/sweetalert2.esm.all-0Z_61IYw.js",
     "name": "sweetalert2.esm.all"
   },
   "public/coaltheme/css/custom.css": {
-    "file": "assets/custom-vSRqGHCl.css",
+    "file": "assets/custom-ds0SJZu9.css",
     "src": "public/coaltheme/css/custom.css",
     "isEntry": true
   },
@@ -157,12 +157,12 @@
     "src": "public/coaltheme/css/fonts/line-awesome/la-solid-900.woff2"
   },
   "public/coaltheme/css/plugins.css": {
-    "file": "assets/plugins-Cbxc3SGD.css",
+    "file": "assets/plugins-WFneVGQ2.css",
     "src": "public/coaltheme/css/plugins.css",
     "isEntry": true
   },
   "public/coaltheme/css/theme.css": {
-    "file": "assets/theme-CTnraVgg.css",
+    "file": "assets/theme-B0ILI074.css",
     "src": "public/coaltheme/css/theme.css",
     "isEntry": true
   },
@@ -172,24 +172,24 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-7-g5GunQ.js",
+    "file": "assets/app-Ds-Wtr4i.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_sweetalert2.esm.all-CvlpapFA.js"
+      "_sweetalert2.esm.all-0Z_61IYw.js"
     ],
     "css": [
-      "assets/app-C0-UAjZ-.css"
+      "assets/app-DZhzDdm0.css"
     ]
   },
   "resources/js/coal-swal.js": {
-    "file": "assets/coal-swal-BInggWre.js",
+    "file": "assets/coal-swal-Cvt_A_qW.js",
     "name": "coal-swal",
     "src": "resources/js/coal-swal.js",
     "isEntry": true,
     "imports": [
-      "_sweetalert2.esm.all-CvlpapFA.js"
+      "_sweetalert2.esm.all-0Z_61IYw.js"
     ]
   }
 }

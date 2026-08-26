@@ -1,5 +1,4 @@
-import { defineStore } from 'pinia';
-import Plib from '@/lib/pickle';
+import { defineStore } from 'pinia'
 
 import Plib from '@/lib/pickle';
 export const useAuthStore = defineStore('auth', {

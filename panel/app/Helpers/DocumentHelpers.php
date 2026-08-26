@@ -641,7 +641,7 @@ if(!function_exists('uploadFile')){
     function uploadFile($file){
         try{
             //check file size and type (40 mb)
-            if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['jpg','png','jpeg','pdf','xls','xlsx','mp4']) ){
+            if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['jpg','png','jpeg','pdf','xls','xlsx']) ){
                 $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
                 $rsp = Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
                     'documents',
