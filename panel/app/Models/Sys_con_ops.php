@@ -21,4 +21,9 @@ class Sys_con_ops extends Model
         'type_id',
         'sub_type_id'
     ];
+
+    public function type()
+    {
+        return $this->belongsTo(Sys_options::class, 'type_id', 'id');
+    }
 }

@@ -260,8 +260,8 @@ class MailService
     public function renderHtmlMessage(array $data): string
     {
         $message = array_merge([
-            'title' => $data['title'] ?? $data['subject'] ?? 'Kömür Tedarik Sistemi',
-            'header' => $data['header'] ?? $data['title'] ?? $data['subject'] ?? 'Kömür Tedarik Sistemi',
+            'title' => $data['title'] ?? $data['subject'] ?? 'Tedarik Yönetim Sistemi',
+            'header' => $data['header'] ?? $data['title'] ?? $data['subject'] ?? 'Tedarik Yönetim Sistemi',
             'intro' => $data['intro'] ?? null,
             'content' => $data['content'] ?? '',
             'ctaUrl' => $data['ctaUrl'] ?? null,

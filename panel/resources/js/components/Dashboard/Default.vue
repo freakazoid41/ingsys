@@ -27,8 +27,8 @@ export default {
           svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`
         },
         {
-          path : '/coalpanel/request',
-          title: 'Talepler',
+          path : '/coalpanel/orders',
+          title: 'Siparişler',
           svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 12.5-8 8a2.119 2.119 0 0 1-3-3l8-8"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/><path d="m21 11-8-8"/></svg>`
         },
         {
@@ -37,8 +37,8 @@ export default {
           svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 10h.01"/><path d="M11 10h6"/><path d="M7 14h.01"/><path d="M11 14h6"/></svg>`
         },
         {
-          path : '/coalpanel/offer', 
-          title: 'Teklifler',
+          path : '/coalpanel/transfers', 
+          title: 'Transferler',
           svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect x="2" y="8" width="20" height="12" rx="2"/></svg>`
         },
         {
@@ -430,7 +430,7 @@ export default {
       </div>
       <div class="hero-top">
         <div>
-          <p class="hero-subtitle">Kömür Tedarik Sistemine</p>
+          <p class="hero-subtitle">Tedarik Yönetim Sistemine</p>
           <h1 class="hero-title">Hoş Geldiniz.</h1>
         </div>
         

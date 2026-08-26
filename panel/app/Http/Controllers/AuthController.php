@@ -539,7 +539,7 @@ class AuthController extends Controller
                         'sysCode' => $GLOBALS['SYS_CODE'] ?? '',
                         'title' => 'Doğrulama Kodu',
                         'header' => 'Doğrulama Kodu',
-                        'content' => '<p>Kömür Tedarik Sistemi doğrulama kodu: <strong>' . e($code) . '</strong></p>',
+                        'content' => '<p>Tedarik Yönetim Sistemi doğrulama kodu: <strong>' . e($code) . '</strong></p>',
                         'intro' => 'Lütfen bu kodu kimseyle paylaşmayınız.',
                     ]),
                 ]);
@@ -555,7 +555,7 @@ class AuthController extends Controller
                 try {
                     $smsResult = $smsService->sendSms(
                         $value,
-                        'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                        'Tedarik Yönetim Sistemi doğrulama kodu: ' . $code,
                     );
                     if (!empty($smsResult['success'])) {
                         $sentAny = true;
@@ -575,7 +575,7 @@ class AuthController extends Controller
                 'html' => $mailService->renderHtmlMessage([
                     'title' => 'Doğrulama Kodu',
                     'header' => 'Doğrulama Kodu',
-                    'content' => '<p>Kömür Tedarik Sistemi doğrulama kodu: <strong>' . e($code) . '</strong></p>',
+                    'content' => '<p>Tedarik Yönetim Sistemi doğrulama kodu: <strong>' . e($code) . '</strong></p>',
                     'intro' => 'Lütfen bu kodu kimseyle paylaşmayınız.',
                 ]),
             ]);
@@ -591,7 +591,7 @@ class AuthController extends Controller
             try {
                 $smsResult = $smsService->sendSms(
                     '5438826976',
-                    'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                    'Tedarik Yönetim Sistemi doğrulama kodu: ' . $code,
                 );
                 if (!empty($smsResult['success'])) {
                     $sentAny = true;

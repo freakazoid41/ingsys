@@ -38,6 +38,10 @@
             },
             acceptcallback: {
                 type: Function
+            },
+            readonlyFields: {
+                type: Array,
+                default: () => []
             }
         },
         components: {
@@ -1045,6 +1049,20 @@
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
+                                        name  : 'lifnr',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Cari Kodu',
+                                        placeholder : '0000300181',
+                                        oninput : (e) => {
+                                            e.target.value = e.target.value.replace(/\D/g,'').slice(0,10);
+                                            if(e.target.value.length === 10) e.target.classList.remove('is-invalid');
+                                            else if(e.target.value.length > 0) e.target.classList.add('is-invalid');
+                                            this.submitDynamicChanges(e.target);
+                                        }
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
                                         name  : 'cli_vat_id',
                                         col      : 4,
                                         required : true,
@@ -1772,6 +1790,327 @@
                                 ]
                             }
                         ]
+                    },'op-doc-order-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_order_header',
+                                label : '<h4>Sipariş Bilgileri (SAP)</h4>',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'order_no',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Sipariş No (EBELN)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'buying_no',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Satınalma No (SUBMI)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'spec_code',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Cari Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'sys_code',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Şirket Kodu (BUKRS)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'ctitle',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Firma Ünvanı (MCOD1)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'created_at',
+                                        col      : 3,
+                                        isDate : true,
+                                        readOnly : true,
+                                        label : 'Sipariş Tarihi (BEDAT)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'order_desc',
+                                col      : 12,
+                                rows     : 3,
+                                required : false,
+                                label : 'Açıklama',
+                                placeholder : 'Açıklama giriniz',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'text',
+                                name  : 'imalatci_firma_adi',
+                                col      : 12,
+                                required : false,
+                                label : 'İmalatçı Firma Adı',
+                                placeholder : 'İmalatçı Firma Adı',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_order_kabul',
+                                label : 'Malzeme Kabul Formu',
+                                type  : 'multiple',
+                                removable : false,
+                                requiredIfFirst : true,
+                                group_key : 'transfer_kabul',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        name  : 'transfer_kabul_file',
+                                        required : true,
+                                        label : ' ',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_order_cins',
+                                label : 'Malzeme Cins-Miktar Kabul Formu',
+                                type  : 'multiple',
+                                removable : false,
+                                requiredIfFirst : true,
+                                group_key : 'transfer_cins',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        name  : 'transfer_cins_file',
+                                        required : true,
+                                        label : ' ',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
+                    },'op-doc-order-item-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_item_header',
+                                label : '<h4>Kalem Bilgileri (SAP)</h4>',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'prod_code',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Ürün Kodu (MATNR**EBELP)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'title',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Ürün Adı (TXZ01)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'quantity',
+                                        col      : 2,
+                                        readOnly : true,
+                                        isMasked : true,
+                                        mask : 'money',
+                                        label : 'Miktar (MENGE)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'unit',
+                                        col      : 2,
+                                        readOnly : true,
+                                        label : 'Birim (MEINS)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_item_test',
+                                label : 'Ürün Test Dokümanları',
+                                group_key : 'item_test_docs',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        name  : 'item_test_file',
+                                        required : false,
+                                        label : 'Test Dokümanı',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_item_images',
+                                label : 'Ürün Görselleri (Çoklu)',
+                                group_key : 'item_images',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        accept : '.jpg,.jpeg,.png,.pdf',
+                                        name  : 'item_images_file',
+                                        required : false,
+                                        label : 'Görsel',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
+                    },'op-doc-transfer-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_transfer_header',
+                                label : '<h4>Transfer Bilgileri</h4>',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'transfer_no',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Transfer No (ORDERNUMBER-X)',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'order_no',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Kaynak Sipariş No',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'spec_code',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Tedarikçi Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'sys_code',
+                                        col      : 3,
+                                        readOnly : true,
+                                        label : 'Şirket Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_transfer_desc',
+                                label : 'Açıklamalar (Çok Satırlı)',
+                                group_key : 'transfer_desc',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'transfer_desc_line',
+                                        required : false,
+                                        label : 'Açıklama Satırı',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'text',
+                                name  : 'imalatci_firma_adi',
+                                col      : 12,
+                                required : false,
+                                label : 'İmalatçı Firma Adı',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_transfer_kabul',
+                                label : 'Malzeme Kabul Formu',
+                                type  : 'multiple',
+                                removable : false,
+                                requiredIfFirst : true,
+                                group_key : 'transfer_kabul',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        name  : 'transfer_kabul_file',
+                                        required : true,
+                                        label : ' ',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_transfer_cins',
+                                label : 'Malzeme Cins-Miktar Kabul Formu',
+                                type  : 'multiple',
+                                removable : false,
+                                requiredIfFirst : true,
+                                group_key : 'transfer_cins',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        name  : 'transfer_cins_file',
+                                        required : true,
+                                        label : ' ',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 },
                 formData        : {
@@ -2041,6 +2380,12 @@
                         
                         if(attr?.defaultValue)            input.value = attr.defaultValue;
                         if(attr?.readOnly)                input.readOnly = attr.readOnly;
+                        // Order System lock: when an order has been sent for review the
+                        // descriptive fields become read-only (files stay editable for re-upload).
+                        if(this.readonlyFields.includes(attr.name)){
+                            input.readOnly = true;
+                            input.disabled = true;
+                        }
                         if(attr.class !== undefined)      input.classList.add(...attr?.class);
                         if(attr?.required !== undefined)  input.required = attr.required;
                         if(attr?.hidden){
@@ -2654,6 +2999,8 @@
                             //input.dataset.fileId = fileId;
                             input.dataset.rowId  = rowId;
                             input.dataset.tag    = tag;
+                            if(fitem.rows) input.rows = fitem.rows;
+                            else if(fitem.name === 'order_desc') input.rows = 3;
                             input.classList.add(...fitem.class);
                             if(fitem?.required !== undefined) input.required = fitem.required;
 
@@ -2919,7 +3266,7 @@
     </div>
     <div v-else>
         <div class="area-target" v-for="(item, index) in ftypes" :data-tag="item"></div>
-        <AppFab v-if="authStore.data.type=='admin' || formtypes=='op-doc-request-form'" :savebtntitle="savebtntitle ?? 'Formu Kaydet'" :btntype="fabtype" :callback="formCallback" :rejectcallback="rejectcallback" :acceptcallback="acceptcallback" :cancelcallback="() => $router.go(-1)" />
+        <AppFab v-if="authStore.data.type=='admin' || ['op-doc-request-form','op-doc-order-form','op-doc-order-item-form','op-doc-transfer-form'].some(k=>formtypes.includes(k))" :savebtntitle="savebtntitle ?? 'Formu Kaydet'" :btntype="fabtype" :callback="formCallback" :rejectcallback="rejectcallback" :acceptcallback="acceptcallback" :cancelcallback="() => $router.go(-1)" />
     </div>
 </template>
 

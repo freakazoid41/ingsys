@@ -112,7 +112,7 @@ class SendNotificationMailJob implements ShouldQueue
             'header' => $subject,
             'intro' => null,
             'content' => $content,
-            'footerText' => 'Kömür Tedarik Sistemi tarafından gönderildi.',
+            'footerText' => 'Tedarik Yönetim Sistemi tarafından gönderildi.',
             'sysCode' => $options['sysCode'] ?? $options['sys_code'] ?? $this->payload['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? '',
         ], $options));
     }

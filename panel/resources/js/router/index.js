@@ -21,6 +21,11 @@ import OForm from "@/pages/coalsystem/Offer/OForm.vue";
 import NSettings from "@/pages/coalsystem/Notifications/NSettings.vue";
 import LList from "@/pages/coalsystem/Logs/LList.vue";
 import NList from "@/pages/coalsystem/NotificationLogs/NList.vue";
+// Order Management System (new)
+import OrderList from "@/pages/coalsystem/Order/OList.vue";
+import OrderForm from "@/pages/coalsystem/Order/OForm.vue";
+import TransferList from "@/pages/coalsystem/Transfer/TList.vue";
+import TransferForm from "@/pages/coalsystem/Transfer/TForm.vue";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -38,6 +43,10 @@ const router = createRouter({
         { path: "/coalpanel/example/form/:id?", name: 'ExampleForm', component: ExampleForm},
         { path: "/coalpanel/request", name: 'RequestList', component: RList},
         { path: "/coalpanel/request/form/:id?", name: 'RequestForm', component: RForm},
+        { path: "/coalpanel/orders", name: 'OrderList', component: OrderList},
+        { path: "/coalpanel/orders/form/:id?", name: 'OrderForm', component: OrderForm},
+        { path: "/coalpanel/transfers", name: 'TransferList', component: TransferList},
+        { path: "/coalpanel/transfers/form/:id?", name: 'TransferForm', component: TransferForm},
         { path: "/coalpanel/client", name: 'CList', component: CList},
         { path: "/coalpanel/client/form/:id?", name: 'CForm', component: CForm},
         { path: "/coalpanel/users", name: 'UList', component: UList},

@@ -158,7 +158,22 @@ class DocumentController extends Controller
                 }
 
                 $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$files);
-                
+
+                // Order System: sending a transfer happens on the same order-detail save.
+                // The client picks transfer mode (at_once | partial) in the form; on save we
+                // either send the order itself (at-once) or clone it as EBELN-X (partial).
+                $decoded = json_decode($data['data'] ?? '{}', true);
+                $transferMode = $decoded['transfer_mode'] ?? null;
+                if ($key == 'op-doc-order' && in_array($transferMode, ['at_once', 'partial'])) {
+                    $selectedItems = $decoded['selected_items'] ?? [];
+                    $transferRes = (new DocumentServiceProvider())->processOrderTransfer($request->id, $transferMode, $selectedItems);
+                    if (! empty($transferRes['transfer_no'])) {
+                        $res['transfer_no'] = $transferRes['transfer_no'];
+                        $res['clone_qnid'] = $transferRes['clone_qnid'] ?? null;
+                    }
+                    $res['transfer_msg'] = $transferRes['msg'] ?? null;
+                }
+
                 // here check if is an offer , and its last status is 'requested revision' if it is and updated make its status 'revisited'
                 if($key == 'op-doc-offer'){
                     //null when the offer has no transaction in the op-trans-op-doc-offer group yet
@@ -362,6 +377,43 @@ class DocumentController extends Controller
         }
 
         $response = (new DocumentServiceProvider())->reopenOffer($request->id,$request->note);
+
+        return response()->json($response, ($response['success'] ?? false) ? 200 : 422);
+    }
+
+    /**
+     * Order System: reject & cancel a whole order (from order detail or list).
+     */
+    public function cancelOrder(Request $request){
+        $validateUser = Validator::make($request->all(),[
+            'id' => 'required|uuid',
+        ]);
+
+        if($validateUser->fails()){
+            return response()->json([
+                'success' => false,
+                'msg'     => 'Missing Parameters',
+                'error'   => $validateUser->errors(),
+            ],422);
+        }
+
+        if(!docPermCheck('op-doc-order','edit')){
+            return response()->json([
+                'success' => false,
+                'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
+            ],403);
+        }
+
+        $form     = (new DocumentServiceProvider())->getFormData($request->id);
+        $document = $form['document'] ?? null;
+        if(!is_object($document) || !in_array($document->op_key ?? null, ['op-doc-order','op-doc-transfer'])){
+            return response()->json([
+                'success' => false,
+                'msg'     => 'Sipariş bulunamadı veya bu belge tipi iptal edilemez.',
+            ],422);
+        }
+
+        $response = (new DocumentServiceProvider())->cancelOrder($request->id,$request->note);
 
         return response()->json($response, ($response['success'] ?? false) ? 200 : 422);
     }

@@ -537,6 +537,12 @@ if(!function_exists('finalizeTempFile')){
                 return ['success' => false, 'msg' => 'Geçici dosya disk üzerinde bulunamadı'];
             }
 
+            // Ensure documents directory exists
+            $docDir = dirname($finalPath);
+            if(!is_dir($docDir)){
+                mkdir($docDir, 0755, true);
+            }
+
             // Move file from temp to documents
             rename($tempPath, $finalPath);
 

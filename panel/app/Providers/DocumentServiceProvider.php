@@ -86,15 +86,33 @@ class DocumentServiceProvider extends ServiceProvider
             // we are checking because only creator is important
             if (! $isUpdate) {
                 $document->person_id = $registerUser;
-            } // this is for more easy reporting or logging
+                // Order System: support parent linking for items/transfers (SAP cron and clone flows)
+                if (isset($requestData['parent_id']) && is_numeric($requestData['parent_id'])) {
+                    $document->parent_id = (int) $requestData['parent_id'];
+                }
+                if (isset($requestData['parent_qnid'])) {
+                    $pq = Documents::where('qnid', $requestData['parent_qnid'])->first();
+                    if ($pq) $document->parent_id = $pq->id;
+                }
+            }
 
             $rsp = $document->save();
 
             if (! $isUpdate) {
+                // Birth status must be in the document's own transaction group so Documents::tableList status subquery finds it.
+                // op-doc-order -> doc_trans_order_created, op-doc-order-item -> doc_trans_created (generic, items have no dedicated order flow), etc.
+                $birthMap = [
+                    'op-doc-order' => 'doc_trans_order_created',
+                    'op-doc-transfer' => 'doc_trans_transfer_created',
+                    'op-doc-order-item' => 'doc_trans_created',
+                ];
+                $birthKey = $birthMap[$typeKey] ?? 'doc_trans_created';
+                $birthType = Sys_options::where('op_key', $birthKey)->first();
+                if (!$birthType) $birthType = Sys_options::where('op_key','doc_trans_created')->first();
                 Transactions::create([
-                    'op_id' => 0, // '0' for document transactions
-                    'type_id' => (Sys_options::where('op_key', 'doc_trans_created')->first())->id,
-                    'log_id' => 0, // $log->id,
+                    'op_id' => 0,
+                    'type_id' => $birthType->id,
+                    'log_id' => 0,
                     'target_id' => $document->id,
                     'description' => 'New Document Added',
                 ]);
@@ -732,6 +750,36 @@ class DocumentServiceProvider extends ServiceProvider
                 ];
             }
 
+            // Order status guard — like offer's editableStatuses, enforce valid transitions
+            if (in_array($documentType->op_key ?? null, ['op-doc-order','op-doc-transfer'])) {
+                $allowed = [
+                    'doc_trans_order_created' => ['doc_trans_order_transfer_sent'],
+                    'doc_trans_order_transfer_sent' => ['doc_trans_order_approved','doc_trans_order_rejected'],
+                    'doc_trans_order_files_rejected' => ['doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected'],
+                    'doc_trans_transfer_created' => ['doc_trans_transfer_sent'],
+                    'doc_trans_transfer_sent' => ['doc_trans_transfer_approved','doc_trans_transfer_rejected'],
+                ];
+                // fetch last order status (op-trans-op-doc-order group)
+                $lastOpKey = DB::table('transactions as t')
+                    ->join('sys_options as so','so.id','=','t.type_id')
+                    ->where('t.target_id',$document->id)
+                    ->where('so.group_key','op-trans-'.$documentType->op_key)
+                    ->orderBy('t.id','desc')
+                    ->value('so.op_key');
+                // if no history yet, treat as created is allowed to go anywhere in its outgoing list
+                if ($lastOpKey) {
+                    $allowedNext = $allowed[$lastOpKey] ?? null;
+                    // terminal states have no entry or empty array → no outgoing allowed
+                    if ($allowedNext === null || !in_array($statusKey,$allowedNext)) {
+                        // allow idempotent re-set to same status? No, block.
+                        return [
+                            'success' => false,
+                            'msg' => 'Bu durum geçişine izin verilmiyor: '.$lastOpKey.' → '.$statusKey,
+                        ];
+                    }
+                }
+            }
+
             $log = UserLog::create([
                 'user_id' => auth('sanctum')->user()->id ?? 0,
                 'sys_code' => $GLOBALS['SYS_CODE'] ?? 0,
@@ -877,6 +925,12 @@ class DocumentServiceProvider extends ServiceProvider
 
                 DB::commit();
 
+                // Order System: keep the parent order's status in sync with its files.
+                // Any rejected file on an order (or its items) flips the order to
+                // "Reddedilen Dosyalar Mevcut"; when all files are accepted/cleared it
+                // returns to "Dosyalar Kontrol Ediliyor".
+                $this->syncOrderStatusFromFiles($entity);
+
                 return [
                     'success' => true,
                     'id' => $log->id,
@@ -901,6 +955,397 @@ class DocumentServiceProvider extends ServiceProvider
                 'id' => 0,
             ];
         }
+    }
+
+    /**
+     * Order System: recompute the parent order's status from its file states.
+     * If any active (status=1) file under the order (or its items) is in a rejected
+     * state we flip the order to "Reddedilen Dosyalar Mevcut", otherwise it returns
+     * to "Dosyalar Kontrol Ediliyor". Called after every file status change.
+     */
+    public function syncOrderStatusFromFiles($entity)
+    {
+        try {
+            if (empty($entity) || empty($entity->conn_id)) {
+                return;
+            }
+
+            $conn = Sys_con_ops::where('id', $entity->conn_id)->first();
+            if (empty($conn)) {
+                return;
+            }
+
+            // Walk up the parent chain: item files belong to items whose parent is the order.
+            $doc = Documents::where('id', $conn->main_id)->first();
+            while ($doc && (int) $doc->parent_id > 0) {
+                $doc = Documents::where('id', $doc->parent_id)->first();
+            }
+            if (empty($doc)) {
+                return;
+            }
+
+            $docType = Sys_options::where('id', $doc->type_id)->first();
+            if (! in_array($docType->op_key ?? null, ['op-doc-order', 'op-doc-transfer'])) {
+                return;
+            }
+
+            // Collect all active files that belong to this order, including its items.
+            $orderFileRows = DB::select(
+                "SELECT df.id FROM document_files df
+                 JOIN sys_con_entities sce ON sce.entity_value = df.id::text AND sce.table_tag = 'document_files'
+                 JOIN sys_con_ops sco ON sco.id = sce.conn_id
+                 JOIN documents d ON d.id = sco.main_id
+                 WHERE df.status = 1 AND df.relation = 'documents'
+                   AND (d.id = ? OR d.parent_id = ?)",
+                [$doc->id, $doc->id]
+            );
+
+            if (empty($orderFileRows)) {
+                return;
+            }
+
+            $hasRejected = false;
+            $allAccepted = true;
+            foreach ($orderFileRows as $fr) {
+                $lastOp = DB::table('transactions as t')
+                    ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                    ->where('t.target_id', $fr->id)
+                    ->where('t.op_id', 1)
+                    ->orderBy('t.id', 'desc')
+                    ->value('so.op_key');
+                if ($lastOp === 'doc_file_rejected') {
+                    $hasRejected = true;
+                } elseif ($lastOp !== 'doc_file_accepted') {
+                    $allAccepted = false;
+                }
+            }
+
+            if ($hasRejected) {
+                $this->applyOrderStatus($doc, 'doc_trans_order_files_rejected', 'Dosya reddedildi');
+            } elseif ($allAccepted && ! empty($orderFileRows)) {
+                $this->applyOrderStatus($doc, 'doc_trans_order_transfer_sent', 'Dosyalar kabul edildi');
+            }
+        } catch (\Exception $e) {
+            // never break the file status flow because order status sync failed
+        }
+    }
+
+    /** Writes an order status transaction (op-trans-op-doc-order) without changing documents.status. */
+    private function applyOrderStatus($doc, $statusKey, $note)
+    {
+        $type = Sys_options::where('op_key', $statusKey)->first();
+        if (empty($type)) {
+            return;
+        }
+
+        // Do not rewrite the same status repeatedly.
+        $last = DB::table('transactions as t')
+            ->join('sys_options as so', 'so.id', '=', 't.type_id')
+            ->where('t.target_id', $doc->id)
+            ->where('so.group_key', 'op-trans-op-doc-order')
+            ->orderBy('t.id', 'desc')
+            ->value('so.op_key');
+        if ($last === $statusKey) {
+            return;
+        }
+
+        $log = UserLog::create([
+            'user_id' => auth('sanctum')->user()->id ?? 0,
+            'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+            'relation' => 'documents',
+            'relation_id' => $doc->id,
+            'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
+                ?? Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+            'description' => json_encode([
+                'after' => ['document' => ['op_key' => 'op-doc-order', 'qnid' => $doc->qnid]],
+                'desc' => 'Sipariş Durumu Güncellendi',
+                'note' => $note,
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
+
+        Transactions::create([
+            'op_id' => 0,
+            'type_id' => $type->id,
+            'log_id' => $log->id,
+            'target_id' => $doc->id,
+            'note' => $note ?? '-',
+            'description' => json_encode(['note' => $note], JSON_UNESCAPED_UNICODE),
+        ]);
+    }
+
+    /**
+     * Order System: send an order to transfer. Runs from the SAME order-detail save endpoint.
+     *
+     * @param  string  $orderQnid  order qnid
+     * @param  string  $mode  at_once | partial
+     * @param  array   $selectedItemQnids  order-item qnids to ship (partial only)
+     *
+     * @return array
+     */
+    public function processOrderTransfer($orderQnid, $mode, $selectedItemQnids = [])
+    {
+        $order = Documents::where('qnid', $orderQnid)->first();
+        if (empty($order)) {
+            return ['success' => false, 'msg' => 'Sipariş bulunamadı: '.$orderQnid];
+        }
+        $docType = Sys_options::where('id', $order->type_id)->first();
+        if (($docType->op_key ?? null) !== 'op-doc-order') {
+            return ['success' => false, 'msg' => 'Bu belge transfer edilemez.'];
+        }
+
+        // Collect the order form entities so we can carry them to the clone.
+        $detail = $this->getFormData($order->qnid);
+        $form = $detail['formFormat']['op-doc-order-form'] ?? [];
+        $entities = [];
+        foreach ($form as $connRow) {
+            foreach (($connRow['entities'] ?? []) as $k => $v) {
+                if (! isset($entities[$k])) {
+                    $entities[$k] = $v;
+                }
+            }
+        }
+
+        $baseNo = $entities['order_no'] ?? '';
+        $baseNo = preg_replace('/-\d+$/', '', (string) $baseNo);
+
+        if ($mode === 'partial') {
+            // Compute next EBELN-X suffix for this base order number.
+            $x = 1;
+            $clones = DB::select(
+                "SELECT sce.entity_value FROM sys_con_entities sce
+                 JOIN sys_con_ops sco ON sco.id = sce.conn_id
+                 JOIN documents d ON d.id = sco.main_id
+                 JOIN sys_options so ON so.id = d.type_id
+                 WHERE so.op_key = 'op-doc-order' AND sce.entity_tag = 'order_no'
+                   AND sce.entity_value LIKE ?",
+                [$baseNo.'-%']
+            );
+            foreach ($clones as $c) {
+                if (preg_match('/-(\d+)$/', (string) $c->entity_value, $m)) {
+                    $x = max($x, (int) $m[1] + 1);
+                }
+            }
+            $transferNo = $baseNo.'-'.$x;
+
+            // Build the clone payload (header + desc + imalatci carried from the order).
+            $cloneEntities = [
+                'order_no' => $transferNo,
+                'transfer_no' => $transferNo,
+                'spec_code' => $entities['spec_code'] ?? '',
+                'sys_code' => $entities['sys_code'] ?? '',
+                'buying_no' => $entities['buying_no'] ?? '',
+                'ctitle' => $entities['ctitle'] ?? '',
+                'created_at' => $entities['created_at'] ?? '',
+                'order_desc' => $entities['order_desc'] ?? '',
+                'imalatci_firma_adi' => $entities['imalatci_firma_adi'] ?? '',
+            ];
+            $clonePayload = [
+                'typeKey' => 'op-doc-order',
+                'parent_qnid' => $order->qnid,
+                'dynamicF' => [
+                    'op-doc-order-form**new-'.microtime(true).rand() => [
+                        'tag' => 'op-doc-order-form',
+                        'entities' => $cloneEntities,
+                    ],
+                ],
+            ];
+            $cloneRes = $this->registerContent(0, $clonePayload, []);
+            if (empty($cloneRes['id'])) {
+                return ['success' => false, 'msg' => 'Klon sipariş oluşturulamadı: '.($cloneRes['message'] ?? '')];
+            }
+            $clone = Documents::where('qnid', $cloneRes['qnid'])->first();
+
+            // Move this shipment's files from the original order to the clone so the
+            // admin checks exactly the files attached to this transfer.
+            $this->moveOrderFilesToDocument($order->id, $clone->id);
+
+            // Duplicate the selected items under the clone.
+            if (! empty($selectedItemQnids)) {
+                foreach ($selectedItemQnids as $itemQnid) {
+                    $this->duplicateOrderItem($itemQnid, $clone->id);
+                }
+            }
+
+            // Mark the original as partially shipped (old status unchanged, remembers parts sent).
+            $this->recordPartiallySent($order, $transferNo);
+
+            // The clone is the thing being sent for review.
+            $st = $this->setStatus($clone->qnid, 'doc_trans_order_transfer_sent', 'Transfer gönderildi (parçalı): '.$transferNo);
+            if (! ($st['success'] ?? false)) {
+                return ['success' => false, 'msg' => 'Klon durumu güncellenemedi: '.($st['msg'] ?? '')];
+            }
+
+            return [
+                'success' => true,
+                'transfer_no' => $transferNo,
+                'clone_qnid' => $clone->qnid,
+                'msg' => 'Parçalı transfer oluşturuldu: '.$transferNo,
+            ];
+        }
+
+        // At-once: the order itself is the transfer being sent.
+        $st = $this->setStatus($order->qnid, 'doc_trans_order_transfer_sent', 'Transfer gönderildi (tek seferde)');
+        if (! ($st['success'] ?? false)) {
+            return ['success' => false, 'msg' => 'Sipariş durumu güncellenemedi: '.($st['msg'] ?? '')];
+        }
+
+        return ['success' => true, 'msg' => 'Transfer gönderildi (tek seferde)'];
+    }
+
+    /** Relinks this order's file entity rows (and file rows) to the target document's form connection. */
+    private function moveOrderFilesToDocument($fromDocId, $toDocId)
+    {
+        $toConn = Sys_con_ops::where('main_id', $toDocId)
+            ->where('conn_id', 0)
+            ->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-form'))
+            ->first();
+        if (empty($toConn)) {
+            return;
+        }
+
+        $fileEntities = Sys_con_entities::where('table_tag', 'document_files')
+            ->whereIn('conn_id', function ($q) use ($fromDocId) {
+                $q->select('id')->from('sys_con_ops')->where('main_id', $fromDocId)->where('conn_id', 0);
+            })->get();
+
+        foreach ($fileEntities as $fe) {
+            // Update the document_files.relation_id to point at the clone.
+            if (is_numeric($fe->entity_value)) {
+                DB::table('document_files')->where('id', (int) $fe->entity_value)
+                    ->update(['relation_id' => $toDocId]);
+            }
+            // Relink the entity to the clone's form connection.
+            $fe->conn_id = $toConn->id;
+            $fe->save();
+        }
+    }
+
+    /** Duplicates a single order item under a new parent order id. */
+    private function duplicateOrderItem($itemQnid, $newParentId)
+    {
+        $item = Documents::where('qnid', $itemQnid)->first();
+        if (empty($item)) {
+            return;
+        }
+        $detail = $this->getFormData($item->qnid);
+        $form = $detail['formFormat']['op-doc-order-item-form'] ?? [];
+        $entities = [];
+        foreach ($form as $connRow) {
+            foreach (($connRow['entities'] ?? []) as $k => $v) {
+                if (! isset($entities[$k])) {
+                    $entities[$k] = $v;
+                }
+            }
+        }
+        unset($entities['qnid']);
+
+        $payload = [
+            'typeKey' => 'op-doc-order-item',
+            'parent_id' => $newParentId,
+            'dynamicF' => [
+                'op-doc-order-item-form**new-'.microtime(true).rand() => [
+                    'tag' => 'op-doc-order-item-form',
+                    'entities' => $entities,
+                ],
+            ],
+        ];
+        $this->registerContent(0, $payload, []);
+    }
+
+    /** Marks the original order as having shipped some parts, keeping its own status. */
+    private function recordPartiallySent($order, $transferNo)
+    {
+        $conn = Sys_con_ops::where('main_id', $order->id)
+            ->where('conn_id', 0)
+            ->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-form'))
+            ->first();
+        if (empty($conn)) {
+            return;
+        }
+        $entity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'partially_sent', 'table_tag' => 'sys_con_ops'])->first();
+        if (empty($entity)) {
+            $entity = new Sys_con_entities;
+            $entity->conn_id = $conn->id;
+            $entity->entity_tag = 'partially_sent';
+            $entity->table_tag = 'sys_con_ops';
+        }
+        $existing = json_decode((string) $entity->entity_value, true) ?: [];
+        $existing[] = $transferNo;
+        $entity->entity_value = json_encode(array_values(array_unique($existing)));
+        $entity->save();
+
+        $descEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'transfer_no', 'table_tag' => 'sys_con_ops'])->first();
+        if (empty($descEntity)) {
+            $descEntity = new Sys_con_entities;
+            $descEntity->conn_id = $conn->id;
+            $descEntity->entity_tag = 'transfer_no';
+            $descEntity->table_tag = 'sys_con_ops';
+        }
+        $descEntity->entity_value = $transferNo;
+        $descEntity->save();
+    }
+
+    /**
+     * Order System: reject & cancel a whole order. Soft-passes documents.status=0 and
+     * writes a terminal rejection transaction so the list/detail both reflect it.
+     */
+    public function cancelOrder($id, $note = null)
+    {
+        $document = Documents::where('qnid', $id)->first();
+        if (empty($document)) {
+            return ['success' => false, 'msg' => 'Sipariş bulunamadı: '.$id];
+        }
+        $docType = Sys_options::where('id', $document->type_id)->first();
+        if (! in_array($docType->op_key ?? null, ['op-doc-order', 'op-doc-transfer'])) {
+            return ['success' => false, 'msg' => 'Bu belge tipi iptal edilemez.'];
+        }
+        if ((int) $document->status === 0) {
+            return ['success' => false, 'msg' => 'Sipariş zaten iptal edilmiş.'];
+        }
+
+        try {
+            DB::beginTransaction();
+            $flipped = Documents::where('qnid', $id)->where('status', 1)->update(['status' => 0]);
+            if ($flipped === 0) {
+                DB::rollBack();
+                return ['success' => false, 'msg' => 'Sipariş zaten iptal edilmiş.'];
+            }
+
+            $statusKey = ($docType->op_key ?? null) === 'op-doc-transfer' ? 'doc_trans_transfer_rejected' : 'doc_trans_order_rejected';
+            $type = Sys_options::where('op_key', $statusKey)->first();
+            if (empty($type)) {
+                $type = Sys_options::where('op_key', 'doc_trans_order_rejected')->first();
+            }
+
+            $log = UserLog::create([
+                'user_id' => auth('sanctum')->user()->id ?? 0,
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                'relation' => 'documents',
+                'relation_id' => $document->id,
+                'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
+                    ?? Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+                'description' => json_encode([
+                    'after' => ['document' => ['op_key' => $docType->op_key, 'qnid' => $document->qnid]],
+                    'desc' => 'Sipariş İptal Edildi / Reddedildi',
+                    'note' => $note ?? '-',
+                ], JSON_UNESCAPED_UNICODE),
+            ]);
+            Transactions::create([
+                'op_id' => 0,
+                'type_id' => $type->id,
+                'log_id' => $log->id,
+                'target_id' => $document->id,
+                'note' => $note ?? '-',
+                'description' => json_encode(['note' => $note], JSON_UNESCAPED_UNICODE),
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return ['success' => false, 'msg' => $e->getMessage()];
+        }
+
+        return ['success' => true];
     }
 
     public function disableDocument($qnid)

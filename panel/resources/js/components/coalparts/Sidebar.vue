@@ -197,7 +197,7 @@ export default {
                         Operasyon
                     </div>
 
-                    <!-- Talep -->
+                    <!-- Siparişler (Order Management) -->
                     <div v-if="this.useAuthStore().permissions?.includes('per-05-01')"
                          data-kt-menu-trigger="click"
                          class="menu-item py-1 menu-row-main">
@@ -206,37 +206,32 @@ export default {
                                 <i class="ki-solid ki-briefcase fs-1"></i>
                             </span>
                             <div class="menu-content d-flex justify-content-between align-items-center w-100">
-                                <span class="menu-section ps-2 py-1 text-dark">Talep</span>
+                                <span class="menu-section ps-2 py-1 text-dark">Siparişler</span>
                                 <span class="menu-arrow"><i class="ki-outline ki-down fs-7"></i></span>
                             </div>
                         </span>
                         <div class="sub-menu hidden-menu">
-                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-05-02')">
-                                <router-link :to="{ name: 'RequestForm' }" class="menu-link sub-link">
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-05-01')">
+                                <router-link :to="{ name: 'OrderList' }" class="menu-link sub-link">
                                     <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
-                                    <span class="menu-title">Talep Oluştur</span>
+                                    <span class="menu-title">Sipariş Listesi</span>
                                 </router-link>
                             </div>
-                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-05-01')">
-                                <router-link :to="{ name: 'RequestList' }" class="menu-link sub-link">
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-05-02')">
+                                <router-link :to="{ name: 'OrderForm' }" class="menu-link sub-link">
                                     <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
-                                    <span class="menu-title">Talep Listesi</span>
+                                    <span class="menu-title">Sipariş Oluştur</span>
                                 </router-link>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Teklifler -->
-                    <div v-if="this.useAuthStore().permissions?.includes('per-08-01')"
-                         class="menu-item py-1 menu-row-main">
-                        <router-link :to="{ name: 'OList' }" class="menu-link main-menu px-3">
-                            <span class="menu-icon me-0">
-                                <i class="ki-solid ki-file-up fs-1"></i>
-                            </span>
-                            <div class="menu-content d-flex justify-content-between align-items-center w-100">
-                                <span class="menu-section ps-2 py-1 text-dark">Teklifler</span>
-                            </div>
-                        </router-link>
+                    <!-- Transferler removed: transfers are EBELN-X rows inside Sipariş Listesi, status shows Kalite Onayı/Dosyalar Kontrol -->
+                    <div v-if="false" class="menu-item py-1 menu-row-main"></div>
+
+                    <!-- Legacy Talep/Teklif hidden but keep route alive for compat -->
+                    <div v-if="false" class="menu-item py-1 menu-row-main">
+                        <span class="menu-link main-menu px-3"><span class="menu-section ps-2 py-1 text-dark">Legacy</span></span>
                     </div>
 
                     <!-- Dökümanlar -->

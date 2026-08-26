@@ -358,6 +358,9 @@ class Documents extends Model
                         
                         $where .= $sql;
                         break;
+                    case 'parent_id':
+                        $where .= " and i.parent_id = '".intval($f['value'])."' ";
+                        break;
                     case 'free':
                     case 'all':
                         $value = $f['value'];

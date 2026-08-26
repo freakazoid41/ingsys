@@ -61,6 +61,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     Route::post('/v1/trans/set-file-status',           [DocumentController::class, 'setFileStatus']);
     Route::post('/v1/trans/set-file-status-all',       [DocumentController::class, 'setFileStatusAll']);
     Route::post('/v1/trans/disable-document',          [DocumentController::class, 'disableDocument']);
+    Route::post('/v1/orders/cancel',                   [DocumentController::class, 'cancelOrder']);
 
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);

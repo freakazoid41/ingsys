@@ -44,6 +44,22 @@ if(!function_exists('checkPerm')){
                 'edit'   => 'per-08-02',
                 'read'   => 'per-08-01',
                 'status' => 'per-05-02',
+            ],
+            // Order Management System — reuse same perms (do not split per idea)
+            'op-doc-order' => [
+                'edit' => 'per-05-02',
+                'read' => 'per-05-01',
+                'status' => 'per-05-02',
+            ],
+            'op-doc-order-item' => [
+                'edit' => 'per-05-02',
+                'read' => 'per-05-01',
+                'status' => 'per-05-02',
+            ],
+            'op-doc-transfer' => [
+                'edit' => 'per-05-02',
+                'read' => 'per-05-01',
+                'status' => 'per-05-02',
             ]
         ];
         

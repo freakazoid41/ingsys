@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ $title ?? 'Kömür Tedarik Sistemi' }}</title>
+    <title>{{ $title ?? 'Tedarik Yönetim Sistemi' }}</title>
 </head>
 <body style="margin:0;padding:0;background:#eef2ff;color:#111827;font-family:Helvetica,Arial,sans-serif;">
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#eef2ff;padding:20px 0;">
@@ -35,8 +35,8 @@
 
 
                             @endphp
-                            <img src="{{ $logoSrc }}" alt="Kömür Tedarik Sistemi" width="140" style="display:block;margin:0 auto 18px;max-width:100%;height:auto;" />
-                            <h1 style="margin:0;font-size:24px;line-height:1.3;">{{ $header ?? $title ?? 'Kömür Tedarik Sistemi' }}</h1>
+                            <img src="{{ $logoSrc }}" alt="Tedarik Yönetim Sistemi" width="140" style="display:block;margin:0 auto 18px;max-width:100%;height:auto;" />
+                            <h1 style="margin:0;font-size:24px;line-height:1.3;">{{ $header ?? $title ?? 'Tedarik Yönetim Sistemi' }}</h1>
                         </td>
                     </tr>
                     <tr>
@@ -61,7 +61,7 @@
                     </tr>
                     <tr>
                         <td style="background:#f8fafc;padding:24px 32px;text-align:center;color:#64748b;font-size:13px;line-height:1.7;">
-                            <p style="margin:0;">{{ $footerText ?? 'Kömür Tedarik Sistemi tarafından gönderildi. ' }}</p>
+                            <p style="margin:0;">{{ $footerText ?? 'Tedarik Yönetim Sistemi tarafından gönderildi. ' }}</p>
                         </td>
                     </tr>
                 </table>

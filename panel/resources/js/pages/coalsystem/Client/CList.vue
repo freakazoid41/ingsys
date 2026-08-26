@@ -121,9 +121,14 @@
                 cardTitle.classList.add('client-card__title');
                 cardTitle.textContent = title;
 
+                const lifnrEl = document.createElement('div');
+                lifnrEl.classList.add('text-muted','fs-7');
+                lifnrEl.textContent = 'Cari Kodu: ' + (rowData.lifnr || '-');
+                lifnrEl.style.marginTop = '4px';
                 
                 headerLeft.appendChild(badge);
                 headerLeft.appendChild(cardTitle);
+                headerLeft.appendChild(lifnrEl);
                 
                 header.appendChild(headerLeft);
 
@@ -192,6 +197,11 @@
                         key   : 'clicode',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                    },{
+                        title : 'Cari Kodu',
+                        key   : 'lifnr',
+                        order : true,
+                        type  : 'string',
                     },{
                         title : '',
                         key   : 'id',

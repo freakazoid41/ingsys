@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
-    <title>Kömür Tedarik Sistemi</title>
+    <title>Tedarik Yönetim Sistemi</title>
     @vite(['public/coaltheme/css/theme.css', 'resources/js/coal-swal.js'])
 </head>
 <style>
@@ -46,7 +46,7 @@
                     <a href="" class="mb-7">
                         <img alt="Logo" src="/coaltheme/{{$GLOBALS['SYS_CODE']}}.svg" width="300px" />
                     </a>
-                    <h2 class="m-0">Kömür Tedarik Sistemi</h2>
+                    <h2 class="m-0">Tedarik Yönetim Sistemi</h2>
                 </div>
             </div>
             <div
