@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import Plib from '@/lib/pickle';
 
 export const useFormDataStore = defineStore('formdata', {
   state: () => {
