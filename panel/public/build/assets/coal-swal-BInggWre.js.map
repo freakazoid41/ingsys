@@ -1,0 +1,1 @@
+{"version":3,"file":"coal-swal-BInggWre.js","sources":["../../../resources/js/coal-swal.js"],"sourcesContent":["import Swal from 'sweetalert2';\nwindow.Swal = Swal;\n"],"names":["Swal"],"mappings":"sDACA,OAAO,KAAOA"}
