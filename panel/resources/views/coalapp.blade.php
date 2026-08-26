@@ -10,7 +10,6 @@
     <link rel="apple-touch-icon" href="{{ asset('img/icons/apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('/manifest.json') }}">
     <link rel="icon" type="image/x-icon" href="/public/css/favicon.ico">
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap">
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     @vite([
         'public/coaltheme/css/theme.css',
@@ -27,6 +26,8 @@
     <div id="app" class="d-flex flex-column flex-root">
         
     </div>
+    
+    
 </body>
 
 </html>
