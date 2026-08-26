@@ -38,7 +38,7 @@ class Transactions extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            $post->grp_code = session('grp_code') ?? 'op-apt-1';
+            $post->grp_code = $GLOBALS['SYS_CODE'] ?? 'CATES';
             // add other column as well
         });
 
@@ -57,7 +57,7 @@ class Transactions extends Model
                                 select amount from currencies where target_cur = cr.code) * 
                                 CAST(
                                     (CASE
-                                        when i.sign = 0 then '-' || i.amount
+                                        when i.sign = 0 then -i.amount
                                         else i.amount
                                     end) as float 
                                 )  as  sys_amount ",   
@@ -65,16 +65,16 @@ class Transactions extends Model
             'note'         => 'i.note',
             'created_at'   => 'i.created_at',
             'cur'          => 'cr.code  as  cur',
-            'trans_files'  => "(select json_group_array(
-                                            json_object(
+            'trans_files'  => "(select json_agg(
+                                            json_build_object(
                                                 'file',df.description
                                             )
                                         ) as data
                                     FROM document_files as df 
                                             inner join sys_options as sf on sf.id = df.type_id
                                         where df.relation_id = i.id and sf.op_key = 'op-doc-trans-file')  as  trans_files",
-            'conn_info'    => "(SELECT  json_group_array(
-                                            json_object(
+            'conn_info'    => "(SELECT  json_agg(
+                                            json_build_object(
                                                 'Key',se.entity_tag,
                                                 'Value' , se.entity_value
                                             )
@@ -91,8 +91,8 @@ class Transactions extends Model
                                                             end
                                                         )
                                             and d.id = i.rel_id)  as  conn_info",
-            'main_info'    => "(SELECT  json_group_array(
-                                            json_object(
+            'main_info'    => "(SELECT  json_agg(
+                                            json_build_object(
                                                 'Key',se.entity_tag,
                                                 'Value' , se.entity_value
                                             )

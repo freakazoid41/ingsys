@@ -1,0 +1,27 @@
+[
+    {
+        "parent_id": 0,
+        "title": "Tedarikçi Kayıt Başvurusu",
+        "group_key": "op-notif",
+        "op_key": "notif-00",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Tedarikçi bilgilerinde değişiklik",
+        "group_key": "op-notif",
+        "op_key": "notif-01",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Yeni teklif verildi",
+        "group_key": "op-notif",
+        "op_key": "notif-02",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Teklif revize edildi ",
+        "group_key": "op-notif",
+        "op_key": "notif-03",
+        "childs": []
+    }
+]

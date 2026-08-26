@@ -15,29 +15,20 @@ return new class extends Migration
     {
         Schema::create('user_logs', function (Blueprint $table) {
             $table->id();
-            $table->integer('sys_code')->default('0');
+            $table->text('sys_code')->default('-');
             $table->integer('user_id');
             $table->integer('type_id');
             $table->integer('relation_id')->default('0');
+            $table->string('ip');
             $table->text('relation')->default('-');;
             $table->text('description');
             $table->timestamps();
-
-            $table->index(['relation_id','relation'],'logindex_5');
-            $table->index(['user_id'],'logindex_1');
-            $table->index(['relation_id'],'logindex_2');
-            $table->index(['relation'],'logindex_4');
-            $table->index(['type_id'],'logindex_3');
         });
 
-        Schema::create('cron_logs', function (Blueprint $table) {
-            $table->id();
-            $table->integer('is_working')->default('0');
-            $table->text('title')->default('-');
-            $table->text('last_log')->default('-');
-            $table->timestamp('ended_at')->useCurrent();
-            $table->timestamps();
-        });
+        /*DB::statement("alter table user_logs 
+                            add target_id varchar generated always as (description::json ->'request'->>'target_id') stored");
+        DB::statement("alter table user_logs 
+                            add ref_id varchar generated always as (description::json ->'request'->>'ref_id') stored");*/
 
     }
 

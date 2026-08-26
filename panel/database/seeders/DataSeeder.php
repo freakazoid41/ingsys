@@ -13,7 +13,8 @@ class DataSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->seedFacilities();
+        //$this->seedFlats();
+        //$this->seedSafes();
     }
 
     private function seedFacilities(){

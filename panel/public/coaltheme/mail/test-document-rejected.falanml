@@ -1,0 +1,96 @@
+<table border="0" cellpadding="0" cellspacing="0" style="background: #ffffff 0% 0% no-repeat padding-box; border: 1px solid #E5E5E5;">
+    <tr>
+        <td class="center" style="text-align: center; ">
+            <img style="margin-bottom: 32px;padding-top: 20px;" align="center" width="180px" src="{*domain*}/system/mail/mail-logo-{*system*}.png" alt="" />
+            
+        </td>
+    </tr>
+    
+    <tr>
+        <td class="center" style="text-align: center; ">
+            <img style="margin-bottom: 32px;padding-top: 20px;" align="center" width="32" src="{*domain*}/system/mail/thumbs-down.png" alt="" />
+            
+        </td>
+    </tr>
+  
+    <tr>
+        <td align="center">
+            <span style="color: #4d4d4d; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: 300;">
+                Sayın
+                <span style="display: inline-block !important; text-align: center; color: #4d4d4d;font-family: 'Cabin', sans-serif; font-size: 22px; font-weight: bold;"><b>{*prs-title*}</b></span>
+            </span>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-left: 20px;padding-right: 20px;">
+            <p style="color: #4d4d4d; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: 300;text-align: center;margin-top: 16px;">
+                Yüklediğiniz {*doc-type*} reddedilmiştir. Ret nedeni aşağıda belirtilmiştir. Gerekli kriterler sağlandıktan sonra yeniden {*doc-type*} yükleyebilirsiniz.
+            </p>
+        </td>
+    </tr>
+    <tr>
+<td style="padding-left: 20px">
+    <ul style="padding: 0; list-style-type: none; border-radius: 10px;  margin-top: 32px; margin-bottom: 82px;">
+        <li style="float: left; color: #cbcbcb; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold;margin-right: 42px;">Sipariş No : <span style="letter-spacing: 1.7px; color: #4d4d4d;font-family: 'Cabin', sans-serif;">{*order-no*}</span></li>
+        <li style="float: left; color: #cbcbcb; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold;">İhale No : <span style="letter-spacing: 1.7px; color: #4d4d4d;font-family: 'Cabin', sans-serif;">{*buying-no*}</span></li>
+    </ul>
+</td>
+</tr>
+<tr style=" border-radius: 10px; display: block !important;">
+<td style="display: block; padding-left: 20px">
+        <table class="order">
+            <tr>
+                <th style="color: #cbcbcb; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold;">Malzeme İsmi</th>
+                <th style="color: #cbcbcb; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold;">Birimi</th>
+                <th style="color: #cbcbcb; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold;">Miktarı</th>
+            </tr>
+            <tr>
+                <td style="color: #4d4d4d; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold; line-height: 52px;">
+                {*prd-title*}
+                </td>
+                <td style="color: #4d4d4d; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold;">
+                    {*prd-unit*}
+                </td>
+                <td style="color: #4d4d4d; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold;">
+                    {*prd-quantity*}
+                </td>
+            </tr>
+            {*add-prd*}
+            <tr>
+                <td style="padding-left: 20px">
+                    <p style="color: #CBCBCB; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold;">
+                     Ret Notu
+                    </p>
+                    <p style="color: #4D4D4D; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: bold;  margin-bottom: 52px;padding-right: 20px;">
+                        {*trs-desc*}
+                    </p>
+                </td>
+            </tr>
+            
+        </table>
+</td>
+</tr>
+
+<tr>
+<td style=" text-align: center; margin-bottom: 32px;">
+    <!--<a style="background: #154B91 0% 0% no-repeat padding-box; border-radius: 12px; color: white; padding: 20px 40px;" href="{*domain*}/documents/{*file-path*}" class="button-mail" download="">
+        Dokümanı Görmek İçin Tıklayınız
+    </a>-->
+    <!--<h4>Dosya Ekte Gönderilmiştir.</h4>-->
+</td>
+</tr>
+<tr>
+<td style="padding-left: 20px;text-align:center;">
+    <p style="color: #989898; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: 300;  margin-top: 52px;padding-right: 20px;">
+        Aşağıdaki linkten sisteme ulaşıp siparişinizi inceleyebilirsiniz.
+    </p>
+</td>
+</tr>
+<tr>
+<td style="padding-left: 20px;padding-right: 20px;padding-bottom: 20px;text-align:center;">
+<a style="color: #154B91; font-size: 17px;font-family: 'Cabin', sans-serif; font-weight: 300; margin-top: 32px;text-allign:center;" href="{*domain*}">
+    {*domain*}
+    </a>
+</td>
+</tr>
+</table>

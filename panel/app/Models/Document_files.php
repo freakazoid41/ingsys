@@ -39,7 +39,7 @@ class Document_files extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            $post->grp_code = session('grp_code') ?? 'op-apt-1';
+            $post->grp_code = $GLOBALS['SYS_CODE'] ?? 'CATES';
             // add other column as well
         });
         
@@ -61,32 +61,66 @@ class Document_files extends Model
     static function tableList($obj){
         
         $columns = array(
-            'id'                => 'i.id',
+            'id'                => 'i.qnid  as  id',
             'file'              => 'i.description  as  file',
             'type_title'        => 'so.title  as  type_title',
             'type_key'          => 'so.op_key  as  type_key',
+            'file_type'         => 'sf.title  as  file_type',
+            'file_type_key'     => 'sf.op_key  as  file_type_key',
             'relation'          => 'i.relation',
-            'relation_detail'   => "CASE
-                                        WHEN i.relation = 'transactions'
-                                        THEN (select    json_object(
-                                                            'type',sot.title,
-                                                            'period',t.period) 
-                                                    from transactions as t
-                                                        inner join sys_options as sot on sot.id = t.type_id
-                                                        inner join documents as d on d.id = t.target_id
-
-                                                        where t.id = i.relation_id)
-                                    
-                                    END  as  relation_detail",
+            'relation_qnid'     => 'd.qnid  as  relation_qnid',
+            'relation_type'     => 'dt.op_key  as  relation_type',
+            'entity_tag'        => 'se.entity_tag  as  entity_tag',
+            'created_at'        => 'i.created_at   as  created_at',
+            'relation_detail'   => "(SELECT    json_agg(
+                                            json_build_object(
+                                                'Key',se1.entity_tag,
+                                                'Value' , se1.entity_value
+                                            )
+                                        )
+                                    FROM sys_con_entities as se1
+                                    where se1.conn_id = se.conn_id)  as  relation_detail",
+            
+            'old_versions'      => "(select     json_agg(
+                                                    json_build_object(
+                                                        'description',df2.description,
+                                                        'qnid'       ,df2.qnid,
+                                                        'created_at' , df2.created_at
+                                                    )
+                                                )
+                                    from sys_con_entities se2
+                                        inner join document_files as df2 on df2.id = se2.entity_value::int
+                                    where se2.entity_tag = se.entity_tag)  as  old_versions",
+            'last_status'       => "(select     json_build_object(
+                                                    'op_key',sot.op_key,
+                                                    'title' , sot.title,
+                                                    'name'  , p.name,
+                                                    'note' , t.description
+                                                ) 
+                                                    from transactions t 
+                                            
+                                                inner join sys_options sot on sot.id = t.type_id
+                                                inner join user_logs ul on ul.id = t.log_id
+                                                inner join users u on u.id = ul.user_id
+                                                inner join persons p on p.id = u.person_id
+                                            where t.target_id = i.id and op_id = 1 order by t.id desc limit 1)  as  last_status",
             
             
         );
 
         $limit = '';
         $order = '';
-        $join = "   inner join sys_options so on so.id = i.type_id ";
+        $join = "   inner join sys_options so on so.id = i.type_id 
+                    inner join sys_con_entities se on se.entity_value = i.id::text
+                    inner join documents as d on d.id = i.relation_id::int
+                    inner join sys_options as dt on dt.id = d.type_id
+                    inner join sys_options as sf on sf.op_key = 'op-'|| SPLIT_PART(se.entity_tag, '**', 1)";
         
-        $where  = " where i.description!='' and i.status = 1 and i.grp_code='".session('grp_code')."'"; 
+        $where  = " where i.description!='' and i.status = 1 "; //  and i.grp_code='".($GLOBALS['SYS_CODE'] ?? 'CATES')."'"; 
+        //all documents in document list are belong the clients so split company from clients
+        $where  .= " and d.grp_code='".($GLOBALS['SYS_CODE'] ?? 'CATES')."' and d.status = 1 ";
+
+        $where  .= " and sf.op_key not in ('op-offer_otherdocs_file') ";
         
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);
@@ -123,9 +157,9 @@ class Document_files extends Model
                                 if($i!=0) $where.=' or ';
                                 $column = explode('as  ',$columns[$k])[0];
                                 if($column === 'i.created_at'){
-                                    " ".$column." like '%" . $value . "%' " ;
+                                    " ".$column."::text ilike '%" . $value . "%' " ;
                                 }else{
-                                    $where.=' '.$column.' like'."'%" . $value . "%' ";
+                                    $where.=' '.$column.'::text ilike '."'%" . $value . "%' ";
                                 }
                                 
                                 $i++;
@@ -134,12 +168,12 @@ class Document_files extends Model
                         $where .= ' ) ';
                     break;
                     default:
-                        $column = explode('  as  ',$columns[$f['key']])[0];
+                        $column = explode('  as  ',$columns[$f['key']] ?? $columns['relation_detail'])[0];
                         if(trim($f['value']) != ''){
                             if($f['type'] != 'like'){
                                 $where.=" and ".$column." ='".$f['value']."' ";
                             }else{
-                                $where.=" and ".$column." like '%".$f['value']."%' ";
+                                $where.=" and ".$column."::text ilike '%".$f['value']."%' ";
                             }
                         }
                         break;
@@ -149,9 +183,8 @@ class Document_files extends Model
         //create query    
         $sql = 'select '.implode(",", array_values($columns)).'
                     from document_files as i '.$join.' ' . $where.$order.$limit ;
-       
         $result = DB::select($sql);
-       
+        
         //count query
         $sql = 'select count(*) as row from document_files as i '.$join.' '. $where;
         $total_count = DB::select($sql)[0];

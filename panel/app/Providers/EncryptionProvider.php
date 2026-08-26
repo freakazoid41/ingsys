@@ -29,26 +29,43 @@ class EncryptionProvider extends ServiceProvider
     {
         $json = json_decode(base64_decode($encryptedString), true);
 
-        try {
-            $salt = hex2bin($json["salt"]);
-            $iv = hex2bin($json["iv"]);
-        } catch (Exception $e) {
+        // eski format: base64(JSON{ciphertext, iv, salt, iterations})
+        if (is_array($json) && isset($json['salt'], $json['iv'], $json['ciphertext'])) {
+            try {
+                $salt = hex2bin($json["salt"]);
+                $iv = hex2bin($json["iv"]);
+            } catch (Exception $e) {
+                return null;
+            }
+
+            $cipherText = base64_decode($json['ciphertext']);
+
+            $iterations = intval(abs($json['iterations']));
+            if ($iterations <= 0) {
+                $iterations = 999;
+            }
+            $hashKey = hash_pbkdf2('sha512', $key, $salt, $iterations, 128);
+            unset($iterations, $json, $salt);
+
+            $decrypted= openssl_decrypt($cipherText , $this->encryptMethod, hex2bin($hashKey), OPENSSL_RAW_DATA, $iv);
+            unset($cipherText, $hashKey, $iv);
+
+            return $decrypted;
+        }
+
+        // kompakt format: base64url(salt[16] . iv[16] . ciphertext)
+        $bin = base64_decode(strtr($encryptedString, '-_', '+/'));
+        if ($bin === false || strlen($bin) <= 32) {
             return null;
         }
 
-        $cipherText = base64_decode($json['ciphertext']);
+        $salt       = substr($bin, 0, 16);
+        $iv         = substr($bin, 16, 16);
+        $cipherText = substr($bin, 32);
 
-        $iterations = intval(abs($json['iterations']));
-        if ($iterations <= 0) {
-            $iterations = 999;
-        }
-        $hashKey = hash_pbkdf2('sha512', $key, $salt, $iterations, 128);
-        unset($iterations, $json, $salt);
+        $hashKey = hash_pbkdf2('sha512', $key, $salt, 999, 128);
 
-        $decrypted= openssl_decrypt($cipherText , $this->encryptMethod, hex2bin($hashKey), OPENSSL_RAW_DATA, $iv);
-        unset($cipherText, $hashKey, $iv);
-
-        return $decrypted;
+        return openssl_decrypt($cipherText, $this->encryptMethod, hex2bin($hashKey), OPENSSL_RAW_DATA, $iv);
     }// decrypt
 
 
@@ -64,20 +81,15 @@ class EncryptionProvider extends ServiceProvider
     {
         $ivLength = openssl_cipher_iv_length($this->encryptMethod);
         $iv = openssl_random_pseudo_bytes($ivLength);
- 
-        $salt = openssl_random_pseudo_bytes(256);
-        $iterations = 999;
-        $hashKey = hash_pbkdf2('sha512', $key, $salt, $iterations, 128);
 
-        $encryptedString = openssl_encrypt($string, $this->encryptMethod, hex2bin($hashKey), OPENSSL_RAW_DATA, $iv);
+        $salt = openssl_random_pseudo_bytes(16);
+        $hashKey = hash_pbkdf2('sha512', $key, $salt, 999, 128);
 
-        $encryptedString = base64_encode($encryptedString);
+        $cipherText = openssl_encrypt($string, $this->encryptMethod, hex2bin($hashKey), OPENSSL_RAW_DATA, $iv);
         unset($hashKey);
 
-        $output = ['ciphertext' => $encryptedString, 'iv' => bin2hex($iv), 'salt' => bin2hex($salt), 'iterations' => $iterations];
-        unset($encryptedString, $iterations, $iv, $ivLength, $salt);
-
-        return base64_encode(json_encode($output));
+        // kompakt format: base64url(salt[16] . iv[16] . ciphertext) — URL-safe, JSON/hex şişmesi yok
+        return rtrim(strtr(base64_encode($salt . $iv . $cipherText), '+/', '-_'), '=');
     }// encrypt
 
 

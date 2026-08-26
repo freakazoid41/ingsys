@@ -1,0 +1,23 @@
+<table border="0" cellpadding="0" cellspacing="0" style="background: #ffffff 0% 0% no-repeat padding-box; border: 1px solid #e5e5e5;">
+    <tr>
+        <td class="center" style="text-align: center;">
+            <img style="margin-bottom: 32px; padding-top: 20px;" align="center" width="180px" src="{*domain*}/system/mail/mail-logo-{*system*}.png" alt="" />
+        </td>
+    </tr>
+    <tr>
+        <td align="center">
+            <span style="color: #4d4d4d; font-size: 17px; font-family: 'Cabin', sans-serif; font-weight: 300;">
+                Sayın
+                <span style="display: inline-block !important; text-align: center; color: #4d4d4d; font-family: 'Cabin', sans-serif; font-size: 22px; font-weight: bold;"><b>{*prs-title*}</b></span>
+            </span>
+        </td>
+    </tr>
+
+    <tr>
+        <td style="padding-left: 20px; padding-right: 20px;">
+            <p style="color: #4d4d4d; font-size: 17px; font-family: 'Cabin', sans-serif; font-weight: 300; text-align: center; margin-top: 32px; margin-bottom: 60px;">
+                {*order-no*} Numaralı Siparişinizin Durumu {*status*} olarak değiştirilmiştir.
+            </p>
+        </td>
+    </tr>
+</table>

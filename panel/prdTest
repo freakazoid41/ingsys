@@ -1,0 +1,3 @@
+!/usr/bin/bash
+php artisan mail:test kadir@kontent.com.tr --subject="Test" --body="Hello from CoalApp" --use-relay
+php artisan sms:test 5438826976 --message="Hello from CoalApp"

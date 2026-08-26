@@ -4,6 +4,7 @@ touch database/database.sqlite
 
 php artisan migrate:fresh
 php artisan db:seed --class="SysSeeder"
+php artisan db:seed --class="SysRoleTemplateSeeder"
 php artisan db:seed --class="UserSeeder"
 php artisan db:seed --class="DataSeeder"
 

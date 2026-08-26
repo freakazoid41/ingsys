@@ -1,12 +1,130 @@
 <?php
 use App\Providers\EncryptionProvider;
+use App\Services\PermissionService;
 use Illuminate\Support\Facades\Session;
 
 
 if(!function_exists('checkPerm')){
     function checkPerm($key){
-        //return true;
-        return session('sper-'.$key) !== null || (intval(auth('sanctum')->user()->person_id) == 0) ? true : false;
+        $user = auth()->user();
+        if(!$user){
+            return false;
+        }
+       
+        $permissionService = new PermissionService();
+        return $permissionService->has($user, $key);
+    }
+
+    function loadUserPermissionsToSession($user){
+        return (new PermissionService())->loadPermissionsToSession($user);
+    }
+
+    function ensurePermissionSessionFreshness(){
+        $user = auth()->user();
+        if(!$user){
+            return false;
+        }
+
+        return (new PermissionService())->ensureSessionFreshness($user);
+    }
+
+    function docPermCheck($type,$job){
+        $map = [
+            'op-doc-request' => [
+                'edit' => 'per-05-02',
+                'read' => 'per-05-01',
+                'status' => 'per-05-02',
+            ],
+            'op-doc-client' => [
+                'edit' => 'per-06-02',
+                'read' => 'per-06-01',
+                'status' => 'per-06-02',
+            ],
+            'op-doc-offer' => [
+                'edit'   => 'per-08-02',
+                'read'   => 'per-08-01',
+                'status' => 'per-05-02',
+            ]
+        ];
+        
+        
+        $tags = explode(',',$map[$type][$job] ?? '');
+        foreach($tags as $tag){
+            if(checkPerm($tag)){
+                return true;
+            }
+        }
+
+        return false;
+        
+        //return checkPerm($map[$type][$job] ?? null) ?? false;
+    }
+
+    /**
+     * Resolves the acting person's type. session('type_key') is only populated for stateful
+     * (SPA) requests — a plain token-authenticated call starts no session — so fall back to
+     * the authenticated principal instead of treating "unknown" as a role.
+     */
+    function currentPersonTypeKey(){
+        $sessionType = session('type_key');
+        if(!empty($sessionType)) return $sessionType;
+
+        $user = auth()->user();
+        if(!$user || empty($user->person_id)) return null;
+
+        return \Illuminate\Support\Facades\DB::table('persons')
+            ->join('sys_options','sys_options.id','=','persons.type_id')
+            ->where('persons.id',$user->person_id)
+            ->value('op_key');
+    }
+
+    /**
+     * Suppliers may only touch offers belonging to the companies bound to their session.
+     * The reseller-only scoping mirrors Documents::tableList, which applies the client filter
+     * for 'op-pert-reseller' sessions only — admins stay limited by their offer permission alone.
+     *
+     * Fails closed twice over: an undeterminable role is denied (never treated as admin), and
+     * a supplier with no bound company is denied.
+     */
+    function offerOwnershipCheck($qnid){
+        $typeKey = currentPersonTypeKey();
+
+        if($typeKey === 'op-pert-admin') return true;
+        if($typeKey !== 'op-pert-reseller') return false;
+
+        $clientList = session('currentStatus')['clientQnidList'] ?? [];
+        if(empty($clientList)) return false;
+
+        $form     = (new \App\Providers\DocumentServiceProvider())->getFormData($qnid);
+        $formRows = $form['formFormat']['op-doc-offer-form'] ?? [];
+
+        //getFormData has no ORDER BY, so cliid may sit on any of the form rows
+        $clientQnid = null;
+        foreach($formRows as $row){
+            if(!empty($row['entities']['cliid'])){
+                $clientQnid = $row['entities']['cliid'];
+                break;
+            }
+        }
+
+        return in_array($clientQnid, $clientList, true);
+    }
+
+    function refreshAllUserPermissions(){
+        // Invalidate permission cache for all users
+        // This forces next request to reload permissions
+        
+        $service = new PermissionService();
+        foreach (\Illuminate\Support\Facades\DB::table('users')->whereNotNull('person_id')->pluck('person_id') as $personId) {
+            $service->bumpUserPermissionVersion($personId);
+        }
+        
+        // Refresh current user immediately
+        if(auth()->user()){
+            loadUserPermissionsToSession(auth()->user());
+        }
+        
+        return true;
     }
 }
 

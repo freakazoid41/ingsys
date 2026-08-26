@@ -1,4 +1,6 @@
 <?php
+header_remove('X-Powered-By');
+header_remove('Server');
 
 use Illuminate\Http\Request;
 
@@ -6,6 +8,17 @@ ini_set('post_max_size','1024M');
 ini_set('upload_max_filesize','1024M');
 
 define('LARAVEL_START', microtime(true));
+
+
+
+$GLOBALS['SYS_CODE'] = 'CATES';
+if (strpos($_SERVER['HTTP_HOST'], 'yatagantermik') !== false) {
+    $GLOBALS['SYS_CODE'] = 'YATAGAN';
+    
+}
+
+$GLOBALS['CSP_ADDITIONAL_HOSTS'] = $_SERVER['HTTP_HOST'];
+
 
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {

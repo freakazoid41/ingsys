@@ -13,9 +13,12 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->integer('person_id');
+            $table->smallInteger('status')->nullable()->default(1);
+            $table->smallInteger('needs_refresh')->nullable()->default(false);
+            $table->integer('person_id')->nullable()->default(0);
             $table->string('grp_code',100)->nullable()->default('-');
             $table->string('name');
+            $table->string('role');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
@@ -24,7 +27,7 @@ return new class extends Migration
             $table->string('profile_photo_path', 2048)->nullable();
             $table->string('avatar')->nullable()->default('-');
             $table->string('bg_image')->nullable()->default('-');
-            $table->uuid('qnid')->nullable();
+            $table->text('qnid')->nullable();
             
             $table->timestamps();
         });

@@ -30,5 +30,27 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'recaptcha' => [
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
+        'secret' => env('RECAPTCHA_SECRET_KEY'),
+        'verify_url' => env('RECAPTCHA_VERIFY_URL', 'https://www.google.com/recaptcha/api/siteverify'),
+        'test_token' => env('RECAPTCHA_TEST_TOKEN'),
+        'min_score' => env('RECAPTCHA_MIN_SCORE', 0.5),
+    ],
 
+    'iletisimmakinesi' => [
+        // Test ortamlarında gerçek SMS yerine log'a yaz (MAIL_MAILER=log'un SMS karşılığı).
+        // Gerçek kişilerin numaralarına giden 2FA mesajlarını engeller.
+        // IS_TEST aynı zamanda CspMiddleware'de CSP başlığını kapatır — tek bir "test ortamı" bayrağı.
+        'log_only' => filter_var(env('IS_TEST', false), FILTER_VALIDATE_BOOLEAN),
+        'base_url' => env('ILETISIM_BASE_URL', 'https://live.iletisimmakinesi.com/api/UserGatewayWS/functions'),
+        'username' => env('ILETISIM_USERNAME'),
+        'password' => env('ILETISIM_PASSWORD'),
+        'api_key' => env('ILETISIM_API_KEY'),
+        'vendor_id' => env('ILETISIM_VENDOR_ID'),
+        'customer_code' => env('ILETISIM_CUSTOMER_CODE'),
+        'service_id' => env('ILETISIM_SERVICE_ID', '7'),
+        'originator_id' => env('ILETISIM_ORIGINATOR_ID'),
+        'client_id' => env('ILETISIM_CLIENT_ID'),
+    ],
 ];

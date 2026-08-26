@@ -46,6 +46,16 @@ return [
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN'),
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'stream' => [
+                'ssl' => [
+                    // WARNING: verification is disabled below — use only for development/testing
+                    'allow_self_signed' => true,
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                ],
+            ],
         ],
 
         'ses' => [
@@ -107,5 +117,17 @@ return [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Optional runtime flags
+    |--------------------------------------------------------------------------
+    |
+    | Use a relay transporter when sending mail. Controlled via the
+    | MAIL_USE_RELAY env variable. This is exposed here so it can be
+    | safely read via config() even when config is cached.
+    |
+    */
+    'use_relay' => env('MAIL_USE_RELAY', false),
 
 ];

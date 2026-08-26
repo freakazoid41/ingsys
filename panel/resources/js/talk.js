@@ -2,15 +2,19 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue'
 import { useAuthStore } from '@/stores/auth';
-import router from '@/router/talk';
+import { usePermissionDataStore } from '@/stores/permissiondata';
+import router from '@/router/index';
 import App from '@/layouts/App.vue';
-import '../css/talk.css';
+import '../css/app.css';
+import breadcrumbsPlugin from '@/plugins/breadcrumbs';
 //import axios from 'axios';
 import { i18nVue } from 'laravel-vue-i18n'; 
 
 
 
 const pinia = createPinia();
+const authStore = useAuthStore(pinia);
+const permissionDataStore = usePermissionDataStore(pinia);
 
 const app = createApp(App)
   .use(pinia)
@@ -22,11 +26,32 @@ const app = createApp(App)
     })
   .use(createHead())
   .use(router)
-  .mount('#app');
+  .use(breadcrumbsPlugin);
 
-useAuthStore().getData();
-useAuthStore().setData({
-  'type'  : 'admin',
+const initApp = async () => {
+  try {
+    await authStore.getPermissions();
+
+    await Promise.all([
+      permissionDataStore.fetchRoleTemplates(),
+      permissionDataStore.fetchRoleItems(),
+    ]);
+    //console.log(authStore.currentStatus)
+    if (authStore.typeKey == 'op-pert-reseller' && !authStore.currentStatus.canProceed) {
+      router.push('/coalpanel/client/form/'+authStore.currentStatus.clientQnid); // Redirect to a "no access" route
+    }
+  } catch (e) {
+    console.error('app init failed:', e);
+  }
+
+  authStore.startHeartbeat();
+  app.mount('#app');
+};
+
+initApp();
+
+authStore.setData({
+  type: 'admin',
 });
 /*const userStore = useAuthStore()
 userStore.attempt_user()

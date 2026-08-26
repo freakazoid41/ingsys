@@ -1,3 +1,5 @@
+import Swal from 'sweetalert2';
+
 export default class Plib {
     constructor() {
         // private property
@@ -40,8 +42,10 @@ export default class Plib {
     async request(rqs, file = null,formData = null) {
         //set fetch options
         const op = {
+            credentials: 'include',
             headers : {
                 'credentials': 'include',
+                'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN' : document.querySelector('meta[name="csrf-token"]').content,
                 ...(localStorage.getItem('token') !== null ? {
                     'Authorization' : 'Bearer '+ localStorage.getItem('token')
@@ -89,25 +93,78 @@ export default class Plib {
             return response.json();
         });*/
 
-        const rsp = await fetch(rqs.url, op).then(response => response.text()) // Parse the response as text
-        .then(text => {
-            try {
-                const data = JSON.parse(text); // Try to parse the response as JSON
+        // perform request and capture status + body text
+        const raw = await fetch(rqs.url, op);
+        const status = raw.status;
+        const text = await raw.text();
 
-                return data;
-                // The response was a JSON object
-                // Do your JSON handling here
-            } catch(err) {
-                Swal.fire({
-                    title : 'Hata !',
-                    html  : `<div>
-                                ${text}
-                            </div>`,
-                });
+        // If permission change detected (401 + message), attempt soft-refresh and retry once
+        let parsed = null;
+        try{ parsed = JSON.parse(text); }catch(e){ parsed = null; }
 
-                return false;
+        if(status === 401 && parsed && parsed.message === 'permission_changed'){
+            try{
+                // notify user we're refreshing permissions
+                Swal.fire({ toast: true, position: 'bottom', icon: 'info', title: 'Yetkileriniz Güncellendi ...', showConfirmButton: false, timer: 1500, timerProgressBar: true });
+
+                // call refresh-permissions endpoint to update session (middleware allows it)
+                const refreshRaw = await fetch('/api/v1/getpermissions', { credentials: 'include', headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN' : document.querySelector('meta[name="csrf-token"]').content,
+                    ...(localStorage.getItem('token') !== null ? { 'Authorization' : 'Bearer '+ localStorage.getItem('token') } : {})
+                }, method: 'GET' });
+
+                // if refresh failed, inform user
+                if(refreshRaw.status !== 200){
+                    Swal.fire({ toast: true, position: 'bottom', icon: 'error', title: 'Permission refresh failed — please login', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+                    try{ return parsed; }catch(_){ return false; }
+                }
+
+                // retry original request once
+                const retryRaw = await fetch(rqs.url, op);
+                const retryText = await retryRaw.text();
+                try{ 
+                    Swal.fire({ toast: true, position: 'bottom', icon: 'success', title: 'Permissions refreshed', showConfirmButton: false, timer: 1500, timerProgressBar: true });
+                    return JSON.parse(retryText);
+                }catch(err){
+                    Swal.fire({ title: 'Hata !', html: `<div>${retryText}</div>` });
+                    return false;
+                }
+
+            }catch(e){
+                // if refresh failed, show original message
+                Swal.fire({ toast: true, position: 'bottom', icon: 'error', title: 'Permission refresh error', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+                try{ return parsed; }catch(_){ return false; }
             }
+        }
+
+        if(status === 401 && parsed && parsed.message === 'force_logout'){
+            localStorage.removeItem('token');
+            Swal.fire({ 
+                icon: 'error', 
+                title: parsed.reason || 'Sistemden atıldınız. Lütfen yeniden giriş yapın.', 
+                showConfirmButton: false, 
+                timer: 3000, 
+                timerProgressBar: true,
+                willClose:() => {
+                    window.location.href = '/';
+                }
+            });
+            return parsed;
+        }
+
+        if(parsed !== null){
+            return parsed;
+        }
+
+        Swal.fire({
+            title : 'Hata !',
+            html  : `<div>
+                        ${text}
+                    </div>`,
         });
+
+        return false;
         //in this point check if api is send timeout command
         /*if (rsp.command !== undefined) {
                 switch (parseInt(rsp.command)) {
@@ -267,7 +324,16 @@ export default class Plib {
                 }
             } else {
 
-                if (elms[i].required && !elms[i].disabled && elms[i].multiple != true) {
+                // Ekranda olmayan alan zorunlu sayilmaz. Formlar bazi gruplari secime gore
+                // gizliyor (ornegin "Sadece Nakliye" secildiginde kalori/prim sartlari
+                // hidden = true oluyor) ama alanlar required kaliyordu; kullanici hicbir
+                // kirmizi alan gormeden "Eksik Alanlari Doldurmalisiniz" uyarisiyla
+                // bloklaniyordu. getClientRects(), display:none / hidden atalari da yakalar.
+                // Not: bu kontrol yalnizca DEGERI BOS olan alanlar icin calisir; dolu
+                // alanlarin degerleri gorunur olsun olmasin yukaridaki dalda toplaniyor.
+                const isRendered = elms[i].getClientRects().length > 0;
+
+                if (isRendered && elms[i].required && !elms[i].disabled && elms[i].multiple != true) {
 
                     //for nice select
                     if(elms[i].classList.contains('searchable-select')){

@@ -1,6 +1,13 @@
 <?php
 use App\Providers\EncryptionProvider;
 
+if(!function_exists('is_json')){
+    function is_json($string) {
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
+    }
+}
+
 if(!function_exists('signDocument')){
     function signDocument($path,$data,$ftrans = 'download',$fname = '-'){
         try{
@@ -69,6 +76,13 @@ if(!function_exists('signDocument')){
 
 if(!function_exists('decryptFile')){
     function decryptFile($doc,$ftrans = 'download' ){
+        //short link: document_files qnid (UUID) — resolve to stored encrypted description
+        if(preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $doc)){
+            $fileRow = \App\Models\Document_files::where('qnid', $doc)->first();
+            if(empty($fileRow)) abort(404);
+            $doc = $fileRow->description;
+        }
+
         $enc = new \App\Providers\EncryptionProvider();
         $path = storage_path('app/public') . '/documents/' . $enc->decrypt($doc);
         
@@ -446,6 +460,157 @@ if(!function_exists('parsePut')){
     }
 }
 
+if(!function_exists('tempUploadFile')){
+    /**
+     * Uploads a file to temporary storage and creates a pending document_files record.
+     * Returns: { success, reference_id, encrypted_name, original_name }
+     */
+    function tempUploadFile($file){
+        try{
+            if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['jpg','png','jpeg','pdf','xls','xlsx']) ){
+                $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
+                $rsp = Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
+                    'temp',
+                    $file,
+                    $filename
+                );
+
+                if(!$rsp){
+                    return ['success' => false, 'msg' => 'Dosya geçici alana yüklenemedi'];
+                }
+
+                $enc = new EncryptionProvider();
+                $encryptedName = $enc->encrypt($filename,'pickle');
+
+                // Create a pending document_files record
+                $fileType = \App\Models\Sys_options::where('op_key', 'form-file')->first();
+                $docFile = new \App\Models\Document_files();
+                $docFile->relation_id = 0;
+                $docFile->relation = 'temp';
+                $docFile->type_id = $fileType->id ?? 0;
+                $docFile->description = $encryptedName;
+                $docFile->status = 1;
+                $docFile->save();
+
+                return [
+                    'success' => true,
+                    'reference_id' => $docFile->id,
+                    'encrypted_name' => $encryptedName,
+                    'original_name' => $file->getClientOriginalName(),
+                ];
+            }else{
+                return [
+                    'msg' => 'Dosya geçersiz (maks 40MB, izin verilen: pdf, xls, xlsx, jpg, jpeg, png)',
+                    'success' => false
+                ];
+            }
+        }catch(\Exception $e){
+            return [
+                'msg' => $e->getMessage(),
+                'success' => false
+            ];
+        }
+    }
+}
+
+if(!function_exists('finalizeTempFile')){
+    /**
+     * Moves a temp-uploaded file to permanent documents storage and links it to a document.
+     * @param int $referenceId - document_files.id from temp upload
+     * @param int $documentId - documents.id to link to
+     * @param string $tag - sys_options op_key for file type (e.g. 'form-file')
+     * @return array { success, file_id }
+     */
+    function finalizeTempFile($referenceId, $documentId, $tag = 'form-file'){
+        try{
+            $docFile = \App\Models\Document_files::where('id', $referenceId)->where('relation', 'temp')->first();
+            if(!$docFile){
+                return ['success' => false, 'msg' => 'Geçici dosya bulunamadı: '.$referenceId];
+            }
+
+            $enc = new EncryptionProvider();
+            $encryptedName = $docFile->description;
+            $tempPath = storage_path('app/public/temp/') . $enc->decrypt($encryptedName);
+            $finalPath = storage_path('app/public/documents/') . $enc->decrypt($encryptedName);
+
+            if(!file_exists($tempPath)){
+                return ['success' => false, 'msg' => 'Geçici dosya disk üzerinde bulunamadı'];
+            }
+
+            // Move file from temp to documents
+            rename($tempPath, $finalPath);
+
+            // Update document_files record
+            $docFile->relation_id = $documentId;
+            $docFile->relation = 'documents';
+            $docFile->save();
+
+            // Create transaction log
+            $log = \App\Models\UserLog::create([
+                'user_id' => auth('sanctum')->user()->id,
+                'sys_code' => $GLOBALS['SYS_CODE'],
+                'relation' => 'documents',
+                'relation_id' => $documentId,
+                'type_id' => \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id ?? 0,
+                'description' => json_encode([
+                    'file_id' => $docFile->id,
+                    'desc' => 'Geçici dosya kalıcı alana taşındı',
+                ], JSON_UNESCAPED_UNICODE)
+            ]);
+
+            \App\Models\Transactions::create([
+                'op_id' => 1,
+                'type_id' => (\App\Models\Sys_options::where('op_key', 'doc_file_waiting')->first())->id ?? 0,
+                'log_id' => $log->id,
+                'target_id' => $docFile->id,
+                'description' => 'Kullanıcı Yeni Dosya Ekledi'
+            ]);
+
+            return [
+                'success' => true,
+                'file_id' => $docFile->id,
+            ];
+        }catch(\Exception $e){
+            return [
+                'success' => false,
+                'msg' => $e->getMessage()
+            ];
+        }
+    }
+}
+
+if(!function_exists('cleanupTempFiles')){
+    /**
+     * Removes temp files older than 24 hours. Call from cron.
+     */
+    function cleanupTempFiles(){
+        try{
+            $tempDir = storage_path('app/public/temp/');
+            if(!is_dir($tempDir)) return;
+
+            $files = glob($tempDir . '*');
+            $cutoff = time() - 86400; // 24 hours
+            $cleaned = 0;
+
+            foreach($files as $file){
+                if(is_file($file) && filemtime($file) < $cutoff){
+                    unlink($file);
+                    $cleaned++;
+                }
+            }
+
+            // Also clean orphaned document_files with relation='temp' older than 24h
+            \App\Models\Document_files::where('relation', 'temp')
+                ->where('created_at', '<', now()->subHours(24))
+                ->delete();
+
+            return ['success' => true, 'cleaned' => $cleaned];
+        }catch(\Exception $e){
+            return ['success' => false, 'msg' => $e->getMessage()];
+        }
+    }
+}
+
 if(!function_exists('uploadFile')){
     function slugify($text, string $divider = '-'){
         // replace non letter or digits by divider
@@ -544,24 +709,25 @@ if(!function_exists('uploadFile')){
 
            
             //add transaction to file
-            /*$log              = new \App\Models\User_logs();
-            $log->sys_code    = $GLOBALS['SYS_CODE'] == 'GDZ' ? '4000' : '5000';
-            $log->relation    = $reletion;
-            $log->relation_id = $reletion_id;
-            $log->user_id     = auth('sanctum')->user()->id;
-            $log->type_id      = \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id;
-            $log->description = json_encode(array(
-                'file_id' => $file->id,
+            $log              = \App\Models\UserLog::create([
+                'user_id'     => auth('sanctum')->user()->id,
+                'sys_code'    => $GLOBALS['SYS_CODE'],
+                'relation'    => $reletion,
+                'relation_id' => $reletion_id,
+                'type_id'     => \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id,
+                'description' => json_encode(array(
+                    'file_id' => $file->id,
                 'desc'    => $logMessage == '' ? $fileType->title.' Dosyası Sisteme Eklendi' : $logMessage,
-            ),JSON_UNESCAPED_UNICODE);
-            $log->save();*/
+                ),JSON_UNESCAPED_UNICODE)
+            ]);
+            
 
             \App\Models\Transactions::create([
                 'op_id'     => 1,
                 'type_id'   => (\App\Models\Sys_options::where('op_key' , 'doc_file_waiting')->first())->id,
-                'log_id'    => 0,//$log->id,
+                'log_id'    => $log->id,
                 'target_id' => $file->id,
-                'description' => 'Person Added New File'
+                'description' => 'Kullanıcı Yeni Dosya Ekledi'
             ]);
 
             if($rowId != 0){
@@ -575,7 +741,7 @@ if(!function_exists('uploadFile')){
                     'type_id'   => (\App\Models\Sys_options::where('op_key' , 'doc_file_refreshed')->first())->id,
                     'log_id'    => $log->id,
                     'target_id' => $fileOld->id,
-                    'description' => 'Person Replaced File'
+                    'description' => 'Kullanıcı Dosyayı Değiştirdi'
                 ]);
 
                 //copy all entities to new file
