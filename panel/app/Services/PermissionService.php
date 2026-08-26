@@ -40,10 +40,20 @@ class PermissionService
 
     public function cacheUserPermissions($personId, array $permissions): string
     {
-        $version = (string) time();
+        $version = $this->freshVersion();
         $this->getCache()->put($this->getUserPermissionCacheKey($personId), $permissions, now()->addDays(30));
         $this->getCache()->put($this->getUserPermissionVersionCacheKey($personId), $version, now()->addDays(30));
         return $version;
+    }
+
+    /**
+     * Microsecond-resolution version string so two bumps within the same second
+     * still produce distinct versions (time() collisions hid changes).
+     * Casting through int avoids scientific (E) notation on large floats.
+     */
+    private function freshVersion(): string
+    {
+        return (string)(int)(microtime(true) * 1_000_000);
     }
 
     public function getCachedUserPermissions($personId): array
@@ -81,7 +91,7 @@ class PermissionService
 
     public function bumpUserPermissionVersion($personId, $newCurrentStatus = null): string
     {
-        $version = (string) time();
+        $version = $this->freshVersion();
         $this->getCache()->put($this->getUserPermissionVersionCacheKey($personId), $version, now()->addDays(30));
         $this->getCache()->forget($this->getUserPermissionCacheKey($personId));
 

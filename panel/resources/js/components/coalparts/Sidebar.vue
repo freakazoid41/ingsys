@@ -163,7 +163,7 @@ export default {
 
             <!-- Search (3a) -->
             <div v-if="!isMini" class="aside-search mt-2 px-4 pb-2 flex-shrink-0" >
-                <div class="position-relative" v-if="useAuthStore().currentStatus.canProceed ||!(useAuthStore().typeKey == 'op-pert-reseller')">
+                <div class="position-relative" v-if="useAuthStore()?.currentStatus?.canProceed ||!(useAuthStore().typeKey == 'op-pert-reseller')">
                     <i class="ki-outline ki-magnifier fs-4 position-absolute top-50 start-0 ms-3 translate-middle-y text-muted"></i>
                     <input type="text"
                            class="form-control form-control-sm"
@@ -175,7 +175,7 @@ export default {
             <hr v-if="!isMini" class="aside-divider mx-4 my-2">
 
             <!-- Menü -->
-            <div class="aside-menu flex-grow-0 px-2 pb-3" id="kt_aside_menu_wrap" v-if="useAuthStore().currentStatus.canProceed ||!(useAuthStore().typeKey == 'op-pert-reseller')">
+            <div class="aside-menu flex-grow-0 px-2 pb-3" id="kt_aside_menu_wrap" v-if="useAuthStore().currentStatus?.canProceed ||!(useAuthStore().typeKey == 'op-pert-reseller')">
                 <div id="kt_aside_menu"
                      class="menu menu-column menu-title-gray-600 menu-state-primary menu-state-icon-primary menu-state-bullet-primary menu-icon-primary menu-arrow-primary fw-semibold fs-6"
                      data-kt-menu="true">

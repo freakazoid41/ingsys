@@ -139,6 +139,7 @@ export default class Plib {
         }
 
         if(status === 401 && parsed && parsed.message === 'force_logout'){
+            localStorage.removeItem('token');
             Swal.fire({ 
                 icon: 'error', 
                 title: parsed.reason || 'Sistemden atıldınız. Lütfen yeniden giriş yapın.', 
@@ -323,7 +324,16 @@ export default class Plib {
                 }
             } else {
 
-                if (elms[i].required && !elms[i].disabled && elms[i].multiple != true) {
+                // Ekranda olmayan alan zorunlu sayilmaz. Formlar bazi gruplari secime gore
+                // gizliyor (ornegin "Sadece Nakliye" secildiginde kalori/prim sartlari
+                // hidden = true oluyor) ama alanlar required kaliyordu; kullanici hicbir
+                // kirmizi alan gormeden "Eksik Alanlari Doldurmalisiniz" uyarisiyla
+                // bloklaniyordu. getClientRects(), display:none / hidden atalari da yakalar.
+                // Not: bu kontrol yalnizca DEGERI BOS olan alanlar icin calisir; dolu
+                // alanlarin degerleri gorunur olsun olmasin yukaridaki dalda toplaniyor.
+                const isRendered = elms[i].getClientRects().length > 0;
+
+                if (isRendered && elms[i].required && !elms[i].disabled && elms[i].multiple != true) {
 
                     //for nice select
                     if(elms[i].classList.contains('searchable-select')){

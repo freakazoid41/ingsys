@@ -84,6 +84,7 @@ class Document_files extends Model
             'old_versions'      => "(select     json_agg(
                                                     json_build_object(
                                                         'description',df2.description,
+                                                        'qnid'       ,df2.qnid,
                                                         'created_at' , df2.created_at
                                                     )
                                                 )
@@ -115,7 +116,9 @@ class Document_files extends Model
                     inner join sys_options as dt on dt.id = d.type_id
                     inner join sys_options as sf on sf.op_key = 'op-'|| SPLIT_PART(se.entity_tag, '**', 1)";
         
-        $where  = " where i.description!='' and i.status = 1 and i.grp_code='".($GLOBALS['SYS_CODE'] ?? 'CATES')."'"; 
+        $where  = " where i.description!='' and i.status = 1 "; //  and i.grp_code='".($GLOBALS['SYS_CODE'] ?? 'CATES')."'"; 
+        //all documents in document list are belong the clients so split company from clients
+        $where  .= " and d.grp_code='".($GLOBALS['SYS_CODE'] ?? 'CATES')."' and d.status = 1 ";
 
         $where  .= " and sf.op_key not in ('op-offer_otherdocs_file') ";
         
@@ -165,7 +168,7 @@ class Document_files extends Model
                         $where .= ' ) ';
                     break;
                     default:
-                        $column = explode('  as  ',$columns[$f['key']])[0];
+                        $column = explode('  as  ',$columns[$f['key']] ?? $columns['relation_detail'])[0];
                         if(trim($f['value']) != ''){
                             if($f['type'] != 'like'){
                                 $where.=" and ".$column." ='".$f['value']."' ";

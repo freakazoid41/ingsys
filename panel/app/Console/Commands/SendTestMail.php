@@ -44,7 +44,12 @@ class SendTestMail extends Command
         $result = $mailService->sendMail([
             'to' => $to,
             'subject' => $subject,
-            'body' => $body,
+            'html' => $mailService->renderHtmlMessage([
+                'title' => $subject,
+                'header' => $subject,
+                'content' => '<p>' . e($body) . '</p>',
+                'intro' => 'Test e-postası',
+            ]),
             'use_relay' => $useRelay,
         ]);
 

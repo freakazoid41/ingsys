@@ -33,7 +33,11 @@ class SmsService
         $this->originatorId = Config::get('services.iletisimmakinesi.originator_id');
         $this->clientId = Config::get('services.iletisimmakinesi.client_id');
 
-        $this->getToken();
+        //constructing the service must not touch the provider in log-only mode: getToken()
+        //authenticates against the live gateway, so merely instantiating would leak traffic
+        if (!Config::get('services.iletisimmakinesi.log_only')) {
+            $this->getToken();
+        }
     }
 
     protected function validateConfig(): void
@@ -234,6 +238,31 @@ class SmsService
     public function sendSms(string $to, string $message, ?string $originatorId = null, int $validityPeriod = 1440, ?string $clientId = null, ?NotificationLog $existingLog = null): array
     {
         $notificationLog = $existingLog ?? $this->createNotificationLog($to, $message, $originatorId, $validityPeriod, $clientId);
+
+        //log-only short-circuit must sit before getToken(): authenticating already hits the live
+        //gateway, so gating only the sendSMS call would still leak traffic to the provider
+        if (Config::get('services.iletisimmakinesi.log_only')) {
+            Log::info('SMS log-only mode: mesaj gönderilmedi', [
+                'to' => $to,
+                'message' => $message,
+            ]);
+
+            $notificationLog->update([
+                'status' => NotificationLog::STATUS_SENT,
+                'attempts' => ($notificationLog->attempts ?? 0) + 1,
+                'sent_at' => now(),
+                'last_attempt_at' => now(),
+                'error_message' => null,
+                'detail' => ['log_only' => true],
+            ]);
+
+            return [
+                'success' => true,
+                'log_only' => true,
+                'message' => 'SMS log-only modunda; gönderilmedi.',
+                'notification_log_id' => $notificationLog->id,
+            ];
+        }
 
         try {
             $token = $this->getToken();

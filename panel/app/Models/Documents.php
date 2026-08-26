@@ -39,7 +39,7 @@ class Documents extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            $post->grp_code = $GLOBALS['SYS_CODE'] ?? 'CATES';
+            if(!isset($post->grp_code))$post->grp_code = $GLOBALS['SYS_CODE'] ?? 'CATES';
             // add other column as well
         });
 
@@ -49,11 +49,17 @@ class Documents extends Model
         //her edetect document type for fowarding its coming with filters also regroup and clean filters
         $obj['filterKeys'] = [];
         $formType = null;
+        $withCancelled = false;
         foreach($obj['filter'] as $f){
             $obj['filterKeys'][$f['key']] = noInject(strip_tags($f['value']));
-            
+
             if($f['key'] == 'type' && !empty($f['value'])) {
                 $formType = $f['value'];
+            }
+
+            //opt-in flag, see the status predicate below
+            if($f['key'] == 'with-cancelled' && $f['value'] == '1') {
+                $withCancelled = true;
             }
         }
 
@@ -78,6 +84,9 @@ class Documents extends Model
                                 from transactions as t
                                     inner join sys_options so on so.id = t.type_id
                                 where target_id = i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1)  as  status",
+            //document activeness (documents.status) is a separate axis from the transaction status above.
+            //for offers 0 means "cancelled", for other document types it keeps its "passive" meaning.
+            'document_status' => 'i.status  as  document_status',
             'main_attr'    => 'i.id  as  main_attr', // default main_attr column for search and filter, this will be changed with filters if needed
             'addional'     => "'-'  as  addional" // this is for showing some additional info if needed like person name or something else, this will be changed with filters if needed
                         
@@ -91,7 +100,10 @@ class Documents extends Model
         
        
         //i.parent_type_id for free documents, if parent_type_id is 0, it means this document is not connected to any other table so it is a main document. if parent_type_id is not 0, it means this document is connected to another table like users or persons, so it is a sub document. we only want to list main documents in the table list, so we will add this condition to the where clause.
-        $where = " where i.status = '1' and i.parent_type_id = 0";   
+        //cancelled offers (documents.status = 0) are revealed only when the caller explicitly opts in, so
+        //dashboards, notification badges and every other document type keep their active-only behaviour.
+        $statusPredicate = ($withCancelled && $formType === 'op-doc-offer') ? "i.status in ('0','1')" : "i.status = '1'";
+        $where = " where ".$statusPredicate." and i.parent_type_id = 0";
        
 
        
@@ -146,16 +158,28 @@ class Documents extends Model
                 );
             }
         }
-
         //here we want to show some datas  for just spesific system
         switch($formType){
             case 'op-doc-request':
             case 'op-doc-offer':
-                $key = $GLOBALS['SYS_CODE'] == 'CATES' ? 'Çates' : 'Yatağan';
-                $where .= " and (
-                                main_attr.main_attr ilike '%{\"Key\" : \"target_type\", \"Value\" : \"$key\"}%' 
-                                or main_attr.main_attr ilike '%{\"Key\" : \"target_type\", \"Value\" : \"her ikisi\"}%'
-                            ) ";    
+                if(isset($GLOBALS['SYS_CODE']) &&  session('type_key') !== 'op-pert-admin'){
+                    //$key = $GLOBALS['SYS_CODE'] == 'CATES' ? 'Çates' : 'Yatağan';
+                    /*$where .= " and (
+                                    main_attr.main_attr ilike '%{\"Key\" : \"target_type\", \"Value\" : \"$key\"}%' 
+                                    or main_attr.main_attr ilike '%{\"Key\" : \"target_type\", \"Value\" : \"her ikisi\"}%'
+                                ) ";  */
+
+                    $where .= ' and (';
+                    
+                    if(isset($GLOBALS['SYS_CODE'])) $where .= " i.grp_code ilike '%".$GLOBALS['SYS_CODE']."%' ";
+
+                    if($formType == 'op-doc-request'){
+                        $where .= " or main_attr.main_attr ilike '%{\"Key\" : \"her_ikisi\", \"Value\" : \"1\"}%' ";
+                    }
+
+                    $where .= ' )';
+                }
+                 
             break;
             default:
                 if(isset($GLOBALS['SYS_CODE'])) $where .= " and i.grp_code ilike '%".$GLOBALS['SYS_CODE']."%'";
@@ -222,10 +246,17 @@ class Documents extends Model
                                     WHERE so3.conn_id = 0 
                                     AND sp3.op_key = 'op-doc-request-form'
                                     AND d1.qnid = (
+                                            -- Find request_id once per i (not per so)
                                             SELECT se1.entity_value
                                             FROM sys_con_entities AS se1
-                                            WHERE se1.conn_id = so.id 
+                                            WHERE se1.conn_id IN (
+                                                SELECT so_inner.id
+                                                FROM sys_con_ops AS so_inner
+                                                WHERE so_inner.main_id = i.id
+                                            )
                                             AND se1.entity_tag = 'request_id'
+                                            ORDER BY se1.id DESC          -- or whatever logic you prefer
+                                            LIMIT 1
                                     )
                                 ) request_attr ON true";
 
@@ -234,7 +265,7 @@ class Documents extends Model
             }
 
 
-
+            $expiredKeyReaded = false;
             foreach($obj['filter'] as $f){
                 
                 $nativeValue = noInject(strip_tags($f['value']));
@@ -242,10 +273,50 @@ class Documents extends Model
                 if(isset($f['value']) && $f['key'] !== 'transactions' ) $f['value'] = noInject(strip_tags($f['value']));
                 
                 switch($f['key']){
+                    case 'showExpired':
+                        if($expiredKeyReaded) break;
+                        if($f['value'] == 'false'){
+                            $where .= " and (
+                                            to_date(se.entity_value, 'DD/MM/YYYY') > current_date 
+                                            and se.entity_tag = 'contract_end_date'
+                                            and se.table_tag = 'sys_con_ops'
+                                        ) ";
+                        }
+                        $expiredKeyReaded = true;
+                        break;
+                    case 'today-ended':
+                        $where .= " and (
+                                            (
+                                               main_attr.main_attr like '%\"Key\" : \"contract_end_date\", \"Value\" : \"".date('d/m/Y')."\"%'
+                                            ) 
+                                        ) ";
+                        break;
+                    case 'is-rodevans':
+                            if($f['value'] == 'true'){
+                                $where .= " and (
+                                                se.entity_value = '1' 
+                                                and se.entity_tag = 'request_type'
+                                                and se.table_tag = 'sys_con_ops'
+                                            ) ";
+                            }else{
+                                $where .= " and (
+                                            (
+                                               main_attr.main_attr not like '%\"Key\" : \"request_type\", \"Value\" : \"1\"%'
+                                            ) 
+                                        ) ";
+                            }
+
+
+
+                        break;
                     case 'monthly':
                         $where .= " and i.created_at::text like '%".$f['value']."%'";
                         break;
                     case 'form-type':
+                        break;
+                    //already consumed by the status predicate above; must stay here so it never falls
+                    //through to the default branch, which would turn it into a main_attr filter.
+                    case 'with-cancelled':
                         break;
                     case 'attr':
                         $where .= " and (
@@ -291,14 +362,18 @@ class Documents extends Model
                     case 'all':
                         $value = $f['value'];
                         $where .= ' and (';
-                        //set columns   
+                        //set columns
                         $i = 0;
                         foreach($columns as $k=>$v){
+                            //document_status is an internal flag, not searchable text: every active
+                            //row holds '1', so including it would make a "1" search match everything
+                            if($k == 'document_status') continue;
+
                             if($i!=0) $where.=' or ';
                             $column = explode('as  ',$columns[$k])[0];
 
                             if($k == 'main_attr') $column = 'main_attr.main_attr';
-                            
+
                             $where .= " $column::text ilike '%$value%' ";
                             $i++;
                         }
@@ -323,6 +398,7 @@ class Documents extends Model
         //create query    
         $sql = 'select distinct '.implode(",", array_values($columns)).'
                     from documents as i '.$join.' ' . $where.$order.$limit ;
+        
         $result = DB::select($sql);
         
         //count query

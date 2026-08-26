@@ -69,14 +69,15 @@ export default {
         },
         coalSpecs() {
             return [
-                { key: 'coal_size',   label: 'Ebat' },
-                { key: 'coal_hgi',    label: 'HGİ' },
-                { key: 'coal_ucucu',  label: 'Uçucu Madde' },
+                { key: 'calory',      label: 'Kalori (AID)' },
+                { key: 'coal_size',   label: 'Ebat (%)' },
+                { key: 'coal_hgi',    label: 'HGİ (%)' },
+                { key: 'coal_ucucu',  label: 'Uçucu Madde (%)' },
                 { key: 'coal_type',   label: 'Cinsi' },
-                { key: 'calory',      label: 'Kalori' },
-                { key: 'humidity',    label: 'Nem' },
-                { key: 'ash_content', label: 'Kül Oranı' },
-                { key: 'sulfur',      label: 'Kükürt' },
+                
+                { key: 'humidity',    label: 'Nem (%)' },
+                { key: 'ash_content', label: 'Kül Oranı (%)' },
+                { key: 'sulfur',      label: 'Kükürt (%)' },
             ].filter(f => this.val(f.key) !== '—');
         },
         priceImpacts() {
@@ -89,11 +90,12 @@ export default {
         orderFields() {
             return [
                 { key: 'amount',              label: 'Miktar (Ton)' },
-                { key: 'payment_periods',     label: 'Hakediş Dönemleri' },
                 { key: 'payment_due',         label: 'Ödeme Vadesi' },
+                { key: 'payment_periods',     label: 'Hakediş Dönemleri' },
+                { key: 'payment_desc',        label: 'Hakediş Açıklama' },
                 { key: 'transfer_start_date', label: 'Sevkiyata Başlangıç' },
                 { key: 'transfer_end_date',   label: 'Sevkiyata Bitiş' },
-                { key: 'payment_desc',        label: 'Hakediş Açıklama' },
+                
                 { key: 'desc',                label: 'Ek Açıklama' },
             ].filter(f => this.val(f.key) !== '—');
         },

@@ -39,6 +39,10 @@ return [
     ],
 
     'iletisimmakinesi' => [
+        // Test ortamlarında gerçek SMS yerine log'a yaz (MAIL_MAILER=log'un SMS karşılığı).
+        // Gerçek kişilerin numaralarına giden 2FA mesajlarını engeller.
+        // IS_TEST aynı zamanda CspMiddleware'de CSP başlığını kapatır — tek bir "test ortamı" bayrağı.
+        'log_only' => filter_var(env('IS_TEST', false), FILTER_VALIDATE_BOOLEAN),
         'base_url' => env('ILETISIM_BASE_URL', 'https://live.iletisimmakinesi.com/api/UserGatewayWS/functions'),
         'username' => env('ILETISIM_USERNAME'),
         'password' => env('ILETISIM_PASSWORD'),

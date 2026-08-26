@@ -104,8 +104,8 @@ class ReportServiceProvider extends ServiceProvider
             case 'importantinfo':
                 return $this->dashboardImportantInfo();
             break;
-            case 'clienttopstatus':
-                return $this->dashboardClientTopStatus();
+            default:
+                abort(404, 'Unknown dashboard type: '.$type);
         }
     }
 
@@ -125,12 +125,13 @@ class ReportServiceProvider extends ServiceProvider
             ]
         ])['data'];
 
-        // get monthly offers
+        // get monthly offers (cancelled ones included, this is a historical total)
         $offers = \App\Models\Documents::tableList([
             'filter' => [
                 ['key' => 'monthly', 'type' => 'date','value' => $monthFilter],
                 ['key' => 'type', 'type' => '=','value' => 'op-doc-offer'],
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-offer-form'],
+                ['key' => 'with-cancelled', 'type' => '=','value' => '1'],
             ]
         ])['data'];
 
@@ -189,22 +190,21 @@ class ReportServiceProvider extends ServiceProvider
         ])['data'];
 
 
+        //cancelled offers belong in the historical total, so this query opts in
         $offers = \App\Models\Documents::tableList([
             'filter' => [
                 ['key' => 'monthly', 'type' => 'date','value' => '-'.date('m').'-'],
                 ['key' => 'type', 'type' => '=','value' => 'op-doc-offer'],
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-offer-form'],
+                ['key' => 'with-cancelled', 'type' => '=','value' => '1'],
             ]
         ])['data'];
-
-        
-
-
 
         $approvedOffer = [];
         $todaysOffer   = [];
         foreach ($offers as $row) {
-            if(strpos($row->status,'doc_trans_offer_approved') !== false){
+            //an offer cancelled after approval must stop counting as approved
+            if((int)($row->document_status ?? 1) !== 0 && strpos((string)$row->status,'doc_trans_offer_approved') !== false){
                 $approvedOffer[] = $row;
             }
             if(strpos($row->created_at,date('Y-m-d')) !== false){
@@ -244,8 +244,10 @@ class ReportServiceProvider extends ServiceProvider
         $filter = [
             ['key' => 'type', 'type' => '=','value' => 'op-doc-offer'],
             ['key' => 'form-type', 'type' => '=','value' => 'op-doc-offer-form'],
+            //the chart shows a dedicated "İptal Edildi" slice, so cancelled offers are fetched too
+            ['key' => 'with-cancelled', 'type' => '=','value' => '1'],
         ];
-        
+
         if($isMonthly === true) $filter[] = ['key' => 'monthly', 'type' => 'date','value' => '-'.date('m').'-'];
 
         $offers = \App\Models\Documents::tableList([
@@ -297,8 +299,22 @@ class ReportServiceProvider extends ServiceProvider
             }
         }
 
+        //cancellation is tracked on documents.status rather than as a transaction, so the group is
+        //synthesised here instead of coming from sys_options like the others
+        $groups['cancelled'] = [
+            'label' => 'İptal Edildi',
+            'value' => 0,
+            'color' => '#6c757d'
+        ];
+
         // Count offers per status key. status field can contain the op_key.
         foreach($offers as $row){
+            //cancellation overrides whatever the last transaction was
+            if((int)($row->document_status ?? 1) === 0){
+                $groups['cancelled']['value']++;
+                continue;
+            }
+
             $status = trim((string)($row->status ?? ''));
 
             // map empty or draft statuses to 'sended'

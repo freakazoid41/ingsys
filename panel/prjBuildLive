@@ -5,7 +5,7 @@ php artisan db:seed --class="SysSeeder"
 php artisan db:seed --class="SysRoleTemplateSeeder"
 php artisan db:seed --class="UserSeeder"
 php artisan db:seed --class="DataSeeder"
-php artisan currency:cron
+
 rm -r storage/app/public/documents/*
 
 #php artisan serve

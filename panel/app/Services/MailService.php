@@ -26,6 +26,9 @@ class MailService
             'subject' => 'required|string',
             'body' => 'nullable|string',
             'html' => 'nullable|string',
+            'from' => 'nullable',
+            'from_email' => 'nullable|email',
+            'from_name' => 'nullable|string',
             'attachments' => 'nullable|array',
         ]);
 
@@ -99,10 +102,54 @@ class MailService
                 // ignore if transport doesn't support stream options
             }
 
+            $fromConfigAddress = config('mail.from.address');
+            $fromConfigName = config('mail.from.name');
+
+            $providedFrom = $data['from'] ?? null;
+            $fromAddress = null;
+            $fromName = null;
+
+            if (is_array($providedFrom)) {
+                $fromAddress = $providedFrom['address'] ?? $providedFrom['email'] ?? null;
+                $fromName = $providedFrom['name'] ?? null;
+            } else {
+                $fromAddress = $providedFrom;
+                $fromName = $data['from_name'] ?? $data['fromName'] ?? null;
+            }
+
+            $fromAddress = trim((string) ($fromAddress ?? $data['from_email'] ?? $data['fromAddress'] ?? ''));
+            $fromName = trim((string) ($fromName ?? $data['from_name'] ?? $data['fromName'] ?? $fromConfigName));
+            $fromSource = 'payload';
+
+            if (empty($fromAddress) || !filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
+                $sysCode = trim((string) ($data['sys_code'] ?? $data['sysCode'] ?? $GLOBALS['SYS_CODE'] ?? ''));
+                $sysCodeKey = strtoupper($sysCode);
+                $sysCodeAddress = null;
+
+                if (!empty($sysCodeKey)) {
+                    $sysCodeAddress = env('MAIL_FROM_ADDRESS' . $sysCodeKey, null);
+                    if (!empty($sysCodeAddress) && !filter_var($sysCodeAddress, FILTER_VALIDATE_EMAIL)) {
+                        $sysCodeAddress = null;
+                    }
+                }
+
+                if (!empty($sysCodeAddress)) {
+                    $fromAddress = $sysCodeAddress;
+                    $fromSource = 'sysCode';
+                } else {
+                    $fromAddress = $fromConfigAddress;
+                    $fromSource = 'config';
+                }
+            }
+
             // Build used mail info for logging (mask password)
             $usedMailInfo = [
+                'from_source' => $fromSource,
                 'to' => $data['to'] ?? null,
                 'subject' => $data['subject'] ?? null,
+                'from_address' => $fromAddress,
+                'from_name' => $fromName,
+                'sys_code' => $data['sys_code'] ?? $data['sysCode'] ?? $GLOBALS['SYS_CODE'] ?? null,
                 'use_relay' => $useRelay,
                 'relay_host' => $relayHost ?? null,
                 'relay_port' => $relayPort ?? null,
@@ -110,15 +157,14 @@ class MailService
                 'relay_username' => $relayUsername ?? null,
                 'relay_password_masked' => $relayPassword ?? '***',
                 'attachments_count' => is_array($attachFiles) ? count($attachFiles) : 0,
-                
             ];
 
             Log::info('mail.send.attempt', $usedMailInfo);
 
-            $mailer = function ($message) use ($data, $attachFiles) {
+            $mailer = function ($message) use ($data, $attachFiles, $fromAddress, $fromName) {
                 $message->to($data['to']);
                 $message->subject($data['subject']);
-                $message->from(config('mail.from.address'), config('mail.from.name'));
+                $message->from($fromAddress, $fromName);
 
                 foreach ($attachFiles as $attachment) {
                     if (is_string($attachment) && file_exists($attachment)) {
@@ -209,6 +255,26 @@ class MailService
             'attempts' => 0,
             'last_attempt_at' => now(),
         ]);
+    }
+
+    public function renderHtmlMessage(array $data): string
+    {
+        $message = array_merge([
+            'title' => $data['title'] ?? $data['subject'] ?? 'Kömür Tedarik Sistemi',
+            'header' => $data['header'] ?? $data['title'] ?? $data['subject'] ?? 'Kömür Tedarik Sistemi',
+            'intro' => $data['intro'] ?? null,
+            'content' => $data['content'] ?? '',
+            'ctaUrl' => $data['ctaUrl'] ?? null,
+            'ctaText' => $data['ctaText'] ?? (!empty($data['ctaUrl'] ?? null) ? 'Devam Et' : null),
+            'subtext' => $data['subtext'] ?? null,
+            'footerText' => $data['footerText'] ?? null,
+        ], $data);
+
+        if (!isset($message['sysCode'])) {
+            $message['sysCode'] = $message['sys_code'] ?? $message['sysCode'] ?? $GLOBALS['SYS_CODE'] ?? '';
+        }
+
+        return view('emails.layout', $message)->render();
     }
 
     public function retryNotificationLog(NotificationLog $log): array

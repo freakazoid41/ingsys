@@ -1,4 +1,6 @@
 <?php
+header_remove('X-Powered-By');
+header_remove('Server');
 
 use Illuminate\Http\Request;
 

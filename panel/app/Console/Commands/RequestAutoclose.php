@@ -38,8 +38,8 @@ class RequestAutoclose extends Command
                 'filter' => [
                     ['key'=>'form-type','type'=>'=','value'=>'op-doc-request-form'],
                     ['key'=>'type','type'=>'=','value'=>'op-doc-request'],
-                    ['key'=>'main_attr','type'=>'like','value'=> 'contract_end_date'],
-                    ['key'=>'main_attr','type'=>'like','value'=> date('d/m/Y')]
+                    //['key'=>'main_attr','type'=>'like','value'=> 'contract_end_date'],
+                    ['key'=>'today-ended','type'=>'like','value'=> '{"Key" : "contract_end_date", "Value" : "'.date('d/m/Y').'"']
                 ]
             ])['data'];
 

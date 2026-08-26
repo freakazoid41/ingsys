@@ -7,6 +7,7 @@
     import monthSelectPlugin from 'flatpickr/dist/plugins/monthSelect/index.js';
     import { Turkish } from 'flatpickr/dist/l10n/tr.js';
     import TreeModal from '@/lib/treeModal.js';
+    import { generatePassword } from '@/lib/password';
     import VMasker  from 'vanilla-masker';
     import { wTrans } from 'laravel-vue-i18n';
      import { useRoute } from 'vue-router';
@@ -186,7 +187,11 @@
                         ]
                     },'op-doc-user-form'    : {
                         showRemoveButton : false,
-                        oncreated        : (id) => {},
+                        oncreated        : (id,row) => {
+                            if(this.permissionTree.getChecked().length == 0){
+                                row.querySelector('select[name="user_role"]').dispatchEvent(new Event('input'));
+                            }
+                        },
                         fields           : [
                             {
                                 class : ['btn','btn-outline','custom-button'],
@@ -195,35 +200,41 @@
                                 col : 4,
                                 value : 'Şifre Üret',
                                 label : ' ',
-                                oninput : (e) => {
+                                oninput : async (e) => {
                                     e.preventDefault();
-                                    
-                                    const generatePassword = (len = 8) => {
-                                        const lowers = 'abcdefghijklmnopqrstuvwxyzçğıöşü';
-                                        const uppers = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÇĞİÖŞÜ';
-                                        const digits = '0123456789';
-                                        const specials = '=!-@._*';
-                                        const all = lowers + uppers + digits + specials;
-
-                                        const rand = (s) => s.charAt(Math.floor(Math.random() * s.length));
-
-                                        const required = [
-                                            rand(lowers),
-                                            rand(uppers),
-                                            rand(digits),
-                                            rand(specials),
-                                        ];
-
-                                        const rest = Array.from({ length: Math.max(0, len - required.length) }, () => rand(all));
-                                        const password = [...required, ...rest].sort(() => Math.random() - 0.5).join('');
-
-                                        return password;
-                                    };
 
                                     const password = generatePassword(8);
-                                    document.querySelector('input[name="user_password"]').value = password;
-                                    document.querySelector('input[name="user_password_check"]').value = password;
-                                    this.plib.toast(this.Swal,'success','Yeni Şifre: '+password);
+                                    const main  = document.querySelector('input[name="user_password"]');
+                                    const check = document.querySelector('input[name="user_password_check"]');
+
+                                    main.value  = password;
+                                    check.value = password;
+
+                                    //DOM'a yazmak yetmiyor: kaydetme payload'i formData.dynamicF'ten
+                                    //okunuyor (UForm.vue), DOM'dan degil. Model guncellenmedigi icin
+                                    //uretilen parola backend'e hic gitmiyordu.
+                                    this.submitDynamicChanges(main);
+                                    this.submitDynamicChanges(check);
+
+                                    this.formData.passwordGenerated = true;
+
+                                    //Parola bu modalda BILEREK gosterilmiyor: kaydetme basarisiz
+                                    //olursa yonetici kopyaladigi parolanin calismadigini sonradan
+                                    //ogrenirdi - issue #8'in yazilma sebebi tam olarak buydu.
+                                    //Parola yalnizca kayit basariyla tamamlandiktan sonra gosterilir.
+                                    const confirmed = await Swal.fire({
+                                        icon  : 'info',
+                                        title : 'Şifre üretildi',
+                                        text  : 'Yeni şifre form alanlarına yazıldı. Form şimdi kaydedilsin mi? Kaydetme tamamlandığında şifreyi kopyalayabileceğiniz bir pencere açılacak.',
+                                        showCancelButton  : true,
+                                        confirmButtonText : 'Devam Et',
+                                        cancelButtonText  : 'İptal Et',
+                                        reverseButtons    : true,
+                                    });
+
+                                    //Iptal: kaydetme tetiklenmez. Uretilen parola alanlarda kalir,
+                                    //yonetici isterse diger alanlari duzenleyip normal akista kaydeder.
+                                    if(confirmed.isConfirmed) this.formCallback();
                                 }
                             },
                             {
@@ -290,17 +301,18 @@
                                         required : useAuthStore().permissions?.includes('per-04-02'),
                                         disabled : !useAuthStore().permissions?.includes('per-04-02'),
                                         label    : 'Rol',
+                                        triggerInputOnSetup : false,
                                         options  : [],
                                         setOptions: async () => {
                                             const store = this.usePermissionDataStore()
-                                            if (!store.roleList.length) await store.fetchRoleTemplates()
+                                            if (!store.roleList.length) await store.fetchRoleTemplates();
                                             return store.roleList.map(role => ({ text: role.name, value: role.op_key,data:role }))
                                         },
-                                        oninput  : (e) => {
+                                        oninput  : async (e) => {
                                             this.submitDynamicChanges(e.target);
                                             const selectedOption = e.target.options[e.target.selectedIndex];
                                             const permissionList = JSON.parse(selectedOption.dataset.info).permissions;
-                                            this.permissionTree.setChecked(permissionList);
+                                            await this.permissionTree.setChecked(permissionList);
                                        
                                         }
                                     },/*{
@@ -457,11 +469,13 @@
                     },'op-doc-request-form' : {
                         showRemoveButton : false,
                         oncreated       : (id) => {
-                            document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
+                            document.querySelector('input[name="fuel_price_impact_2"]')?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.style != undefined ?
+                                document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode.style.display = 'none'
+                            : null;
 
 
-                            document.querySelector("[data-tag*='calory_settings']").parentNode.parentNode.hidden = false;
-                            document.querySelector("[data-tag*='coal_specs']").parentNode.parentNode.hidden = false;
+                            document.querySelector("[data-tag*='calory_settings']")?.parentNode?.parentNode && (document.querySelector("[data-tag*='calory_settings']").parentNode.parentNode.hidden = false);
+                            document.querySelector("[data-tag*='coal_specs']")?.parentNode?.parentNode && (document.querySelector("[data-tag*='coal_specs']").parentNode.parentNode.hidden = false);
                         },
                         fields          : [
                             {
@@ -524,10 +538,10 @@
                                             {
                                                 text  : 'ÇATES',
                                                 value : 'ÇATES'
-                                            }, {
+                                            }/*, {
                                                 text  : 'Her İkisi',
                                                 value : 'Her İkisi'
-                                            }
+                                            }*/
                                         ],
                                         oninput  : (e) =>{
                                             const rtype = document.querySelector('input[name="request_type"]');
@@ -567,7 +581,7 @@
                                         ],
                                         oninput  : (e) =>{
                                             const elements = {
-                                                'priceRow' : document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode,
+                                                'priceRow' : document.querySelector('input[name="fuel_price_impact_2"]')?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode,
                                                 'calory_settings': document.querySelector("[data-tag*='calory_settings']")?.parentNode?.parentNode,
                                                 'coal_specs': document.querySelector("[data-tag*='coal_specs']")?.parentNode?.parentNode
                                             }
@@ -580,7 +594,6 @@
                                                     if(elements['coal_specs'])elements['coal_specs'].hidden = false;
                                                     break;
                                                 case 'Sadece Nakliye':
-                                                    console.log('sdas');
                                                     if(elements['priceRow'])elements['priceRow'].style.display = '';
 
 
@@ -630,6 +643,15 @@
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
                                 ]
+                            },{
+                                class    : ['form-control','mb-2','mb-md-0','form-item'],
+                                type     : 'switch',
+                                name     : 'her_ikisi',
+                                col      : 12,
+                                //required : true,
+                                label    : ' ',
+                                desc     : 'Talep Her İki Sistemdede Gözüksün',
+                                oninput  : (e) => this.submitDynamicChanges(e.target)
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
                                 type  : 'sub',
@@ -902,28 +924,8 @@
                                     }
 
 
-                                    const generatePassword = (len = 8) => {
-                                        const lowers = 'abcdefghijklmnopqrstuvwxyzçğıöşü';
-                                        const uppers = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÇĞİÖŞÜ';
-                                        const digits = '0123456789';
-                                        const specials = '=!-@._*';
-                                        const all = lowers + uppers + digits + specials;
-
-                                        const rand = (s) => s.charAt(Math.floor(Math.random() * s.length));
-
-                                        const required = [
-                                            rand(lowers),
-                                            rand(uppers),
-                                            rand(digits),
-                                            rand(specials),
-                                        ];
-
-                                        const rest = Array.from({ length: Math.max(0, len - required.length) }, () => rand(all));
-                                        const password = [...required, ...rest].sort(() => Math.random() - 0.5).join('');
-
-                                        return password;
-                                    };
-
+                                    //ortak uretici: Turkce karakter uretmiyor (form dogrulamasi
+                                    //yalnizca ASCII kabul ediyor) ve guvenli rastgelelik kullaniyor
                                     const password = generatePassword(8);
 
                                     Swal.fire({
@@ -1025,7 +1027,11 @@
                                         type  : 'text',
                                         name  : 'clicode',
                                         col      : 4,
-                                        required : true,
+                                        //kodu backend uretiyor (belgenin qnid'i); kimse elle
+                                        //yazamaz, bu yuzden zorunlu girdi de degil
+                                        required : false,
+                                        readOnly : true,
+                                        placeholder : 'Kayıt sonrasında otomatik atanacak',
                                         label : 'Firma Kodu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
@@ -1142,7 +1148,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
-                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_imza_file',
                                         required : true,
                                         label : ' ',
@@ -1163,7 +1169,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
-                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_vergi_file',
                                         required : true,
                                         label : ' ',
@@ -1184,7 +1190,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
-                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_odasicil_file',
                                         required : true,
                                         label : ' ',
@@ -1205,7 +1211,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
-                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_iban_file',
                                         required : true,
                                         label : ' ',
@@ -1235,7 +1241,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
-                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'cont_otherdocs_file',
                                         required : false,
                                         label : 'Belge Dosyası',
@@ -1248,12 +1254,14 @@
                     },'op-doc-offer-form' : {
                         showRemoveButton : false,
                         oncreated       : (id) => {
-                            document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
+                            document.querySelector('input[name="fuel_price_impact_2"]')?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.style != undefined ?
+                                document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode.style.display = 'none'
+                            : null;
 
                             
 
-                            document.querySelector("[data-tag*='calory_settings']").parentNode.parentNode.hidden = false;
-                            document.querySelector("[data-tag*='coal_specs']").parentNode.parentNode.hidden = false;
+                            document.querySelector("[data-tag*='calory_settings']")?.parentNode?.parentNode && (document.querySelector("[data-tag*='calory_settings']").parentNode.parentNode.hidden = false);
+                            document.querySelector("[data-tag*='coal_specs']")?.parentNode?.parentNode && (document.querySelector("[data-tag*='coal_specs']").parentNode.parentNode.hidden = false);
                         },
                         fields          : [
                             {
@@ -1379,7 +1387,7 @@
                                         ],
                                         oninput  : (e) =>{
                                             const elements = {
-                                                'priceRow' : document.querySelector('input[name="fuel_price_impact_2"]').parentNode.parentNode.parentNode.parentNode.parentNode,
+                                                'priceRow' : document.querySelector('input[name="fuel_price_impact_2"]')?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode,
                                                 'calory_settings': document.querySelector("[data-tag*='calory_settings']")?.parentNode?.parentNode,
                                                 'coal_specs': document.querySelector("[data-tag*='coal_specs']")?.parentNode?.parentNode
                                             }
@@ -1435,6 +1443,15 @@
                                         hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
                                         required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
                                         label : 'Teklif Bitiş Tarihi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'load_area',
+                                        col      : 4,
+                                        hidden : useNavigationStore().routeParams?.offer_type?.split('**')[0] == 'op-doc-offer-file',
+                                        required : useNavigationStore().routeParams?.offer_type?.split('**')[0] != 'op-doc-offer-file',
+                                        label : 'Ürün Yükleme Yeri',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -1745,7 +1762,7 @@
                                     {
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'file',
-                                        accept : '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
                                         name  : 'offer_otherdocs_file',
                                         required : false,
                                         label : 'Belge Dosyası',
@@ -1854,8 +1871,43 @@
 
                 return hesaplananKontrol === controlDigit;*/
             },
-            formCallback() {
-                if(this.savecallback) return this.savecallback(this.formData);
+            async formCallback() {
+                if(!this.savecallback) return false;
+
+                // wait for any in-flight temp uploads before building the save payload
+                const pending = Object.values(this.formData.files || {}).filter(f => f && f.uploading && f.promise);
+                if(pending.length){
+                    await Promise.all(pending.map(f => f.promise));
+                }
+
+                // retry failed temp uploads once before giving up
+                const failed = Object.values(this.formData.files || {}).some(f => f && f.error);
+                if(failed){
+                    await this.retryFailedUploads();
+                }
+
+                if(Object.values(this.formData.files || {}).some(f => f && f.error)){
+                    this.plib.toast(this.Swal, 'error', 'Bazı dosyalar yüklenemedi. Lütfen dosyaları yeniden seçin.');
+                    return false;
+                }
+
+                return this.savecallback(this.formData);
+            },
+            async retryFailedUploads() {
+                const failedKeys = Object.keys(this.formData.files || {}).filter(key => {
+                    const item = this.formData.files[key];
+                    return item && item.error && item.file;
+                });
+
+                await Promise.all(failedKeys.map(async key => {
+                    const item = this.formData.files[key];
+                    try {
+                        const ref = await this.uploadTempFile(item.file);
+                        this.formData.files[key] = { uploading: false, reference: ref };
+                    } catch (err) {
+                        console.error('Retry failed for', key, err);
+                    }
+                }));
             },
             submitDynamicChanges(el,isDatalist = false,datalistKey = null){
 
@@ -1881,7 +1933,19 @@
         
                 switch (el.type) {
                     case 'file':
-                        this.formData.files[tag+'**dynamicFile**'+el.dataset.fileId+'**'+rowId+'*-*'+name] = el.files[0];
+                        if(el.files && el.files[0]){
+                            const fileKey = tag+'**dynamicFile**'+el.dataset.fileId+'**'+rowId+'*-*'+name;
+                            // Store uploading state
+                            this.formData.files[fileKey] = { uploading: true, file: el.files[0], promise: null };
+                            // Upload immediately to temp storage
+                            this.formData.files[fileKey].promise = this.uploadTempFile(el.files[0]).then(ref => {
+                                this.formData.files[fileKey] = { uploading: false, reference: ref };
+                            }).catch(err => {
+                                console.error('Temp upload failed:', err);
+                                this.formData.files[fileKey] = { uploading: false, error: true };
+                                this.plib.toast(this.Swal, 'error', 'Dosya yüklenemedi: ' + (err.msg || 'Bilinmeyen hata'));
+                            });
+                        }
                         break;
                     default:
                         this.formData.dynamicF[tag+'**'+rowId].entities[name] = value;
@@ -1893,7 +1957,19 @@
                         break;
                 }
             },
-
+            async uploadTempFile(file) {
+                const fd = new FormData();
+                fd.append('file', file);
+                const rsp = await this.plib.request({
+                    url: '/api/v1/temp-upload',
+                    method: 'POST'
+                }, null, fd);
+                if(rsp && rsp.success){
+                    return rsp;
+                }else{
+                    throw new Error(rsp?.msg || 'Yükleme başarısız');
+                }
+            },
             async buildDynamicFForm(tag,dynamicId = 'new-'+(new Date).getTime(),data = {},selector = null){
                 const form   = this.forms[tag];
                 const rowId    = dynamicId;
@@ -2036,7 +2112,7 @@
                                 
                             const sizeFeedback = document.createElement('div');
                             sizeFeedback.classList.add('m-1');
-                            sizeFeedback.innerHTML = 'Max. Boyut : 40 MB ve Dosya Tipi : .pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png olmalıdır.';
+                            sizeFeedback.innerHTML = 'Max. Boyut : 40 MB ve Dosya Tipi : .pdf, .xls, .xlsx, .jpg, .jpeg, .png olmalıdır.';
                             sizeFeedback.style.display = 'block';
                             iDiv.parentNode.appendChild(sizeFeedback);
 
@@ -2070,7 +2146,7 @@
                                 showB.classList.add('input-group-text','rmv-btn-form');
                                 showB.innerHTML = '<i class="ki-outline ki-magnifier fs-4"></i>';
                                 showB.onclick   = (e) => {
-                                    window.open('/order-file/'+fileData?.description);
+                                    window.open('/order-file/'+(fileData?.qnid ?? fileData?.description));
                                 };
                                 iDiv.prepend(showB);
                                 /*const small = document.createElement('a');
@@ -2251,12 +2327,12 @@
                         }
                         iDiv.appendChild(input);
                         if(data?.entities?.[attr.name] !== undefined){
-                            input.dispatchEvent(new Event('input'));
+                            if(attr?.triggerInputOnSetup === undefined || attr?.triggerInputOnSetup == true) input.dispatchEvent(new Event('input'));
                         } 
 
                         
                         //NiceSelect.bind(input, attr?.isSearchable ? {searchable : true} : {});
-
+                        
                         return iDiv;
                     };
                     
@@ -2441,6 +2517,7 @@
                                 if(data?.entities){
                                     for(let key in data?.entities) {
                                         if(key.includes('**'+fitem.group_key) && !this.keyLock.includes(fitem.group_key+'-'+key.split('**')[2].split('-')[0]+'-row')){
+                                            
                                             await addElements(key.split('**')[2]);
                                             hasData = true;
                                         } 
@@ -2471,7 +2548,7 @@
                                 addElements();
                             }*/
                             
-                            if(fitem.type == 'sub') addElements();
+                            if(fitem.type == 'sub') await addElements();
                             itemRow.appendChild(inputDiv);
                             if(fitem.hidden == true) itemRow.style.display = 'none';
                             
@@ -2610,7 +2687,6 @@
                             inputDiv = document.createElement('div');
                             inputDiv.classList.add('col-lg-'+fitem?.col,'d-flex','align-items-center');
                             itemRow.appendChild(inputDiv);
-                            
                             this.permissionTree = TreeModal.render({
                                 target: inputDiv,
                                 items: fitem?.list,
@@ -2625,7 +2701,7 @@
 
                             break;
                         case 'select':
-                            itemRow.appendChild(createSelect(fitem));
+                            itemRow.appendChild(await createSelect(fitem));
                             inLabel.classList.add('input-label');
                             break;
                         case 'switch':
@@ -2749,10 +2825,9 @@
                 }
 
                 target.appendChild(row);
-
+                
                 //for section seperation
                 if(form?.isFoldable) target.appendChild(document.createElement('hr'));
-
                 form.oncreated(rowId,row);
             },
             buildClientTable(target,clickEvent){

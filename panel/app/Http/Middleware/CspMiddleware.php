@@ -58,6 +58,8 @@ class CspMiddleware
        
         $response = $next($request);
         if(!env('IS_TEST')) $response->headers->set('Content-Security-Policy', $policy);
+        $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
+        
 
         // Add nonce to style and script tags
         if ($response instanceof \Illuminate\Http\Response && $response->getContent()) {

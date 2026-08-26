@@ -21,6 +21,7 @@ export default class Page {
             //here make validation for password and password check
             const password = document.getElementById('password');
             const passwordCheck = document.getElementById('password-check');
+            const email    = document.getElementById('email');
 
             if(password.value !== passwordCheck.value || (this.plib.checkInputs('password',password) === false)){
                 document.getElementById('err-password').style.display = 'block';
@@ -30,24 +31,35 @@ export default class Page {
                 document.getElementById('err-password').style.display = 'none !important';
             }
 
-
-
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if(!emailRegex.test(email.value)){
+                document.getElementById('err-email').style.display = 'block';
+                submitButton.innerHTML = 'Kayıt Ol';
+                return false;
+            }else{
+                document.getElementById('err-email').style.display = 'none !important';
+            }
 
             form.submit();
-            
-            /*await this.plib.transaction('login','login',formData).then(rsp=>{
-                if(rsp.success){
-                    localStorage.setItem('token',rsp.token);
-                    
-                    window.location.href = '/admin';
-                    Swal.close();
-                }else{
-                    Swal.fire({
-                        icon  : 'error',
-                        title : 'Kullanıcı Bulunamadı !!'
-                    });
+        });
+
+        const passwordToggles = document.querySelectorAll('.password-toggle');
+        passwordToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const targetId = toggle.dataset.target;
+                const input = document.getElementById(targetId);
+                if (!input) return;
+
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+
+                const eyeOpen = toggle.querySelector('.eye-open');
+                const eyeClosed = toggle.querySelector('.eye-closed');
+                if (eyeOpen && eyeClosed) {
+                    eyeOpen.style.display = show ? 'none' : 'inline';
+                    eyeClosed.style.display = show ? 'inline' : 'none';
                 }
-            });*/
+            });
         });
 
         const phoneInput = document.getElementById('phone');

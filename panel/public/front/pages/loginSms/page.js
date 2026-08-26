@@ -10,15 +10,19 @@ export default class Page {
   countDown() {
     const target = document.getElementById('countdown');
 
-    let i = 0;
-    const limit = 120;
-    target.innerHTML = limit;
-    const intr = setInterval(() => {
-      i++;
-      target.innerHTML = limit - i;
+    this.countdownLimit = 120;
+    this.elapsedSeconds = 0;
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
+    target.innerHTML = this.countdownLimit;
 
-      if (i == limit) {
-        clearInterval(intr);
+    this.countdownInterval = setInterval(() => {
+      this.elapsedSeconds++;
+      target.innerHTML = this.countdownLimit - this.elapsedSeconds;
+
+      if (this.elapsedSeconds >= this.countdownLimit) {
+        clearInterval(this.countdownInterval);
         document.querySelectorAll('.send-code').forEach(el => el.value = '*');
         Swal.fire({
           title: "Uyarı !",
@@ -34,6 +38,39 @@ export default class Page {
     }, 1000);
   }
 
+  resetCountDown() {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
+    this.countDown();
+  }
+
+  setResendCooldown(seconds) {
+    const resendButton = document.getElementById('btn-send-code');
+    if (!resendButton) {
+      return;
+    }
+
+    let remaining = Math.max(0, Math.floor(seconds));
+    resendButton.disabled = true;
+    resendButton.textContent = `Tekrar Gönder (${remaining}s)`;
+
+    if (this.resendInterval) {
+      clearInterval(this.resendInterval);
+    }
+
+    this.resendInterval = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(this.resendInterval);
+        resendButton.disabled = false;
+        resendButton.textContent = 'Tekrar Gönder';
+      } else {
+        resendButton.textContent = `Tekrar Gönder (${remaining}s)`;
+      }
+    }, 1000);
+  }
+
   pageEvents() {
 
     //listen code steps
@@ -41,10 +78,16 @@ export default class Page {
     inps.forEach(el =>{
       el.addEventListener('keydown' , e => {
         if (e.key === 'Backspace') {
+          e.preventDefault();
           const step = parseInt(e.target.dataset.step);
           const prev = document.querySelector('.send-code[data-step="' + (step - 1) + '"]');
 
-          if (prev !== null) prev.focus();
+          if (e.target.value === '' && prev !== null) {
+            prev.value = '';
+            prev.focus();
+          } else {
+            e.target.value = '';
+          }
         }
       });
 
@@ -88,6 +131,87 @@ export default class Page {
         document.getElementById('login-form').submit();
       }
     });
+
+    const resendButton = document.getElementById('btn-send-code');
+    if (resendButton) {
+      resendButton.addEventListener('click', async () => {
+        resendButton.disabled = true;
+        resendButton.textContent = 'Gönderiliyor...';
+        const csrfToken = document.querySelector('input[name="_token"]')?.value;
+
+        try {
+          const response = await fetch('/api/auth/resend-code', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': csrfToken,
+            },
+            body: JSON.stringify({}),
+          });
+
+          const payload = await response.json();
+          if (payload.success) {
+            Swal.mixin({
+              toast: true,
+              position: "top-end",
+              showConfirmButton: false,
+              timer: 3000,
+              timerProgressBar: true,
+              didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+              }
+            }).fire({
+              icon: "success",
+              title: payload.message || 'Kod yeniden gönderildi.'
+            });
+            console.log('Başarılı', payload.message || 'Kod yeniden gönderildi.', 'success');
+            this.resetCountDown();
+            this.setResendCooldown(payload.retry_after || 60);
+          } else {
+            Swal.mixin({
+              toast: true,
+              position: "top-end",
+              showConfirmButton: false,
+              timer: 3000,
+              timerProgressBar: true,
+              didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+              }
+            }).fire({
+              icon: "error",
+              title: payload.message || 'Kod yeniden gönderilemedi.'
+            });
+            console.log('Hata', payload.message || 'Kod yeniden gönderilemedi.', 'error');
+            if (payload.retry_after) {
+              this.setResendCooldown(payload.retry_after);
+            } else {
+              resendButton.disabled = false;
+              resendButton.textContent = 'Tekrar Gönder';
+            }
+          }
+        } catch (err) {
+          Swal.mixin({
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.onmouseenter = Swal.stopTimer;
+              toast.onmouseleave = Swal.resumeTimer;
+            }
+          }).fire({
+            icon: "error",
+            title: err.message || 'İşlem sırasında hata oluştu.'
+          });
+          console.log('Hata', err.message || 'İşlem sırasında hata oluştu.', 'error');
+          resendButton.disabled = false;
+          resendButton.textContent = 'Tekrar Gönder';
+        }
+      });
+    }
   }
   
 }

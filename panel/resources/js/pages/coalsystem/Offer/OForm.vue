@@ -11,6 +11,8 @@
     import Form from '@/components/coalparts/Form.vue';
     import OfferSummary from '@/components/Offer/OfferSummary.vue';
     import OfferLogTimeline from '@/components/Offer/OfferLogTimeline.vue';
+    //named import only — this component already exposes an "offerStatus" data property
+    import { isOfferCancelled } from '@/lib/offerStatus';
 
 
     export default {
@@ -102,17 +104,20 @@
                         });
                     }
                 }
-
-                //set ready data do store for update transactions (form component will catch that)
-                this.formDataStore.setData(response?.data?.formFormat,(this.id == undefined) ? {
+                const readyData = {
                     request_id      : this.navigationStore.routeParams?.request_id,
                     offer_type      : this.navigationStore.routeParams?.offer_type,
                     target_type     : requestData?.target_type ?? this.navigationStore.routeParams?.request?.target_type,
                     cliid           : this.authStore.currentStatus.clientQnid,
                     clititle        : this.authStore.currentStatus.clientTitle,
                     payment_desc    : requestData?.payment_desc ?? this.navigationStore.routeParams?.request?.payment_desc,
-                    payment_periods : requestData?.payment_periods ?? this.navigationStore.routeParams?.request?.payment_periods
-                } : {});
+                    payment_periods : requestData?.payment_periods ?? this.navigationStore.routeParams?.request?.payment_periods,
+                    unload_area     : requestData?.unload_area ?? this.navigationStore.routeParams?.request?.unload_area,
+                };
+                //set ready data do store for update transactions (form component will catch that)
+                this.formDataStore.setData(response?.data?.formFormat,(this.id == undefined) ? readyData : {});
+
+                console.log(readyData.unload_area);
                 
                 if(response?.data?.document?.status != undefined){
                     this.statusList = this.parseStatusItems(response.data.document.status);
@@ -123,17 +128,23 @@
                 });*/
 
 
+                //a cancelled offer is terminal: viewable, but never editable and never re-transitioned
+                this.cancelled = isOfferCancelled(response?.data?.document);
+
                 const editableStatuses = ['doc_trans_offer_revision','doc_trans_created','doc_trans_offer_draft'];
-                this.editable = this.id !== undefined && editableStatuses.includes(this.currentOfferStatusKey()) && this.authStore.permissions?.includes('per-08-02') && this.authStore.typeKey === 'op-pert-reseller';
+                this.editable = !this.cancelled && this.id !== undefined && editableStatuses.includes(this.currentOfferStatusKey()) && this.authStore.permissions?.includes('per-08-02') && this.authStore.typeKey === 'op-pert-reseller';
 
                 if(this.id === undefined || this.id === ''){
                     this.editable = true;
                 }
 
-                //here if is admin user set offer status to inspecting
+                //here if is admin user set offer status to inspecting.
+                //skipped for cancelled offers, otherwise merely opening one would be rejected by
+                //the backend terminal-state guard on every visit.
                 if(
-                    this.authStore.permissions?.includes('per-08-02') && 
-                    this.authStore.typeKey !== 'op-pert-reseller' && 
+                    !this.cancelled &&
+                    this.authStore.permissions?.includes('per-08-02') &&
+                    this.authStore.typeKey !== 'op-pert-reseller' &&
                     ['doc_trans_created','doc_trans_offer_draft','doc_trans_offer_revised'].includes(this.currentOfferStatusKey())
                 ){
                     const note     = 'Yönetici İncelemeye Başladı';
@@ -148,10 +159,12 @@
                 }
                
                 this.loadForm = true;
+
                 await this.loadOfferVersionHistory();
 
                 setTimeout(() => {
                     this.navigationStore.toggle(false);
+                    if(readyData.unload_area !== '') document.querySelector('input[name="unload_area"]').readOnly = true;
                 }, 500);
                 
             });
@@ -162,6 +175,7 @@
             const route = useRoute();
             return {
                 editable        : true,
+                cancelled       : false,
                 loadForm        : false,
                 plib            : new Plib(),
                 authStore       : useAuthStore(),
@@ -198,6 +212,14 @@
                         rawList = [];
                     }
                 }
+
+                const getTimestamp = (item) => {
+                    const value = item.created_at ?? item.date ?? item.updated_at ?? item.time ?? '';
+                    const parsed = Date.parse(String(value));
+                    return Number.isNaN(parsed) ? 0 : parsed;
+                };
+
+                rawList.sort((a, b) => getTimestamp(b) - getTimestamp(a));
 
                 return rawList.map(item => {
                     const note = this.parseStatusNote(item.note ?? item.description ?? item.detail ?? '');
@@ -283,7 +305,6 @@
                             }
                             return rsp.success;
                         } catch (error) {
-                            console.log(error)
                             Swal.showValidationMessage(`
                                 Request failed: ${error}
                             `);
@@ -383,7 +404,12 @@
                         envelope.append('data',JSON.stringify(this.formData));
                     //register files
                     for(let key in this.formData.files){
-                        envelope.append(key,this.formData.files[key]);
+                        const fileItem = this.formData.files[key];
+                        if(fileItem && !fileItem.uploading && fileItem.reference){
+                            envelope.append(key, JSON.stringify(fileItem.reference));
+                        } else if(fileItem && fileItem.file) {
+                            envelope.append(key, fileItem.file);
+                        }
                     }
                     await this.plib.request({
                         url      : '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),
@@ -398,7 +424,6 @@
                     }, 300);
 
                 }else{
-                    console.log(rsp);
                     this.navigationStore.toggle(false);
                     this.plib.toast(this.Swal,'info','Eksik Alanları Doldurmalısınız..',() => {});
                 }
@@ -410,8 +435,10 @@
 </script>
 
 <template>
-    <!-- Admin or supplier view mode: read-only summary -->
-    <template v-if="loadForm && (authStore.typeKey !== 'op-pert-reseller' || isViewMode)">
+    <!-- Admin, supplier view mode, or any cancelled offer: read-only summary.
+         A cancelled offer must never reach the editable branch below, otherwise a supplier
+         opening it without ?view=1 would see enabled inputs and a save button. -->
+    <template v-if="loadForm && (authStore.typeKey !== 'op-pert-reseller' || isViewMode || cancelled)">
         <OfferSummary
             :editable = "editable"
             :onEditable="() => { 
@@ -464,7 +491,7 @@
                         <span class="os-section-title">Teklif Durum Geçmişi</span>
                     </div>
                     <div class="card-body p-4">
-                        <template v-for="(item, index) in [...statusList].reverse()" :key="index">
+                        <template v-for="(item, index) in statusList" :key="index">
                             <div class="os-status-item">
                                 <div class="os-status-dot" :class="index === 0 ? 'os-status-dot--active' : ''"></div>
                                 <div class="os-status-body">

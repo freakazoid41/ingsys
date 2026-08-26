@@ -19,6 +19,7 @@ use App\Providers\EmailServiceProvider;
 use App\Models\UserLog;
 use App\Models\ActiveSession;
 use App\Services\PermissionService;
+use App\Models\SysRoleTemplate;
 
 class PersonsServiceProvider extends ServiceProvider
 {
@@ -193,6 +194,14 @@ class PersonsServiceProvider extends ServiceProvider
                 if($u){
                     $u->role = $user['role'];
                     $u->save();
+                }
+            }
+
+            //if no explicit permissions were sent, populate them from the assigned role template
+            if(empty($permissions) && !empty($user['role'])){
+                $roleTemplate = SysRoleTemplate::where('op_key', $user['role'])->first();
+                if($roleTemplate && is_array($roleTemplate->permissions)){
+                    $permissions = $roleTemplate->permissions;
                 }
             }
             

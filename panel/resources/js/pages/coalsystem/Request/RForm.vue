@@ -92,7 +92,12 @@
                         envelope.append('data',JSON.stringify(this.formData));
                     //register files
                     for(let key in this.formData.files){
-                        envelope.append(key,this.formData.files[key]);
+                        const fileItem = this.formData.files[key];
+                        if(fileItem && !fileItem.uploading && fileItem.reference){
+                            envelope.append(key, JSON.stringify(fileItem.reference));
+                        } else if(fileItem && fileItem.file) {
+                            envelope.append(key, fileItem.file);
+                        }
                     }
                     const response = await this.plib.request({
                         url      : '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),

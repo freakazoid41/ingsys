@@ -63,7 +63,7 @@
                                 <span class="w-125px text-gray-500 fw-semibold fs-7">Kullanıcı Bilgileriniz</span>
                             </div>
                             <div class="fv-row mb-8">
-                                <input required type="text" id="email" placeholder="Kullancı Adı" value="" name="email" autocomplete="off"
+                                <input required type="email" id="email" placeholder="Kullancı E-Posta Adresi" value="" name="email" autocomplete="off"
                                     class="form-control bg-transparent login-item" />
                             </div>
 
@@ -73,7 +73,7 @@
                                         class="path1"></span><span class="path2"></span></i>
 
                                 <div class="d-flex flex-column">
-                                    <h5 class="mb-1 text-danger">Lütfen kullanıcı adı alanını doldurunuz</h5>
+                                    <h5 class="mb-1 text-danger">Lütfen geçerli bir mail adresi giriniz.</h5>
                                 </div>
                             </div>
                             <div class="fv-row mb-8">
@@ -91,12 +91,32 @@
                             </div>
 
                             <div class="fv-row mb-8">
-                                <input required type="password" id="password" value="" placeholder="Şifre" name="password" autocomplete="off"
-                                    class="form-control bg-transparent login-item" />
+                                <div class="input-group">
+                                    <input required type="password" id="password" value="" placeholder="Şifre" name="password" autocomplete="off"
+                                        class="form-control bg-transparent login-item pe-10" />
+                                    <span class="input-group-text password-toggle bg-transparent border-start-0" style="cursor: pointer;" data-target="password">
+                                        <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                            <path d="M12 5c-7 0-11 6-11 7s4 7 11 7 11-6 11-7-4-7-11-7zm0 12c-3.9 0-7-2.8-7-5s3.1-5 7-5 7 2.8 7 5-3.1 5-7 5zm0-8.5c-1.9 0-3.5 1.6-3.5 3.5S10.1 15.5 12 15.5 15.5 13.9 15.5 12 13.9 8.5 12 8.5z"/>
+                                        </svg>
+                                        <svg class="eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="display:none;">
+                                            <path d="M12 5c-7 0-11 6-11 7 1.3 2.2 3.3 4.3 6.3 5.5l-2.4 2.4 1.4 1.4 16-16-1.4-1.4-3.1 3.1C16.1 7.1 14.1 6 12 6c-4.1 0-7.6 2.5-9 6 1.1 2.2 3 4.1 5.4 5.1l-1.4 1.4C2.6 16.8 1 14.2 1 12c0-1.6.7-3.3 2.2-5 1.8-1.9 4.6-3 7.8-3 2 0 4 .5 5.7 1.4l-1.5 1.5C14.6 5.5 13.3 5 12 5zm9.7 4.7c-.4-.7-.9-1.4-1.6-2L8.8 18.1c.7.4 1.5.7 2.3.7 4.1 0 7.6-2.5 9-6-0.1-.3-0.3-0.8-0.4-1.1z"/>
+                                        </svg>
+                                    </span>
+                                </div>
                             </div>
                             <div class="fv-row mb-8">
-                                <input required type="password" id="password-check" value="" placeholder="Şifre Tekrar" name="password" autocomplete="off"
-                                    class="form-control bg-transparent login-item" />
+                                <div class="input-group">
+                                    <input required type="password" id="password-check" value="" placeholder="Şifre Tekrar" name="password" autocomplete="off"
+                                        class="form-control bg-transparent login-item pe-10" />
+                                    <span class="input-group-text password-toggle bg-transparent border-start-0" style="cursor: pointer;" data-target="password-check">
+                                        <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                            <path d="M12 5c-7 0-11 6-11 7s4 7 11 7 11-6 11-7-4-7-11-7zm0 12c-3.9 0-7-2.8-7-5s3.1-5 7-5 7 2.8 7 5-3.1 5-7 5zm0-8.5c-1.9 0-3.5 1.6-3.5 3.5S10.1 15.5 12 15.5 15.5 13.9 15.5 12 13.9 8.5 12 8.5z"/>
+                                        </svg>
+                                        <svg class="eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="display:none;">
+                                            <path d="M12 5c-7 0-11 6-11 7 1.3 2.2 3.3 4.3 6.3 5.5l-2.4 2.4 1.4 1.4 16-16-1.4-1.4-3.1 3.1C16.1 7.1 14.1 6 12 6c-4.1 0-7.6 2.5-9 6 1.1 2.2 3 4.1 5.4 5.1l-1.4 1.4C2.6 16.8 1 14.2 1 12c0-1.6.7-3.3 2.2-5 1.8-1.9 4.6-3 7.8-3 2 0 4 .5 5.7 1.4l-1.5 1.5C14.6 5.5 13.3 5 12 5zm9.7 4.7c-.4-.7-.9-1.4-1.6-2L8.8 18.1c.7.4 1.5.7 2.3.7 4.1 0 7.6-2.5 9-6-0.1-.3-0.3-0.8-0.4-1.1z"/>
+                                        </svg>
+                                    </span>
+                                </div>
                             </div>
                             
                             @php $recaptchaSiteKey = config('services.recaptcha.site_key') ?: env('RECAPTCHA_SITE_KEY'); @endphp

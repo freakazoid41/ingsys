@@ -138,7 +138,7 @@
                         li.classList.add('list-group-item','p-1');
                         const a = document.createElement('a');
                         a.classList.add('text-decoration-none','d-flex','align-items-center','justify-content-center');
-                        a.href = '/order-file/'+version.description;
+                        a.href = '/order-file/'+(version.qnid ?? version.description);
                         a.target = '_blank';
                         a.innerHTML = (i == 0 ? '<i class="ki-outline fs-2 ki-arrow-right" style="color:tomato"></i>' : '') + dayjs(version.created_at).format('DD/MM/YYYY HH:mm');
                         li.appendChild(a);
@@ -267,7 +267,7 @@
                 openBtn.classList.add('document-card__action-btn');
                 openBtn.type = 'button';
                 openBtn.innerHTML = '<i class="ki-outline ki-eye"></i> Aç';
-                openBtn.onclick = () => window.open('/order-file/'+rowData?.file, '_blank');
+                openBtn.onclick = () => window.open('/order-file/'+(rowData?.id ?? rowData?.file), '_blank');
                 footer.appendChild(openBtn);
 
                 if (this.useAuthStore().permissions?.includes('per-07')) {
@@ -286,6 +286,43 @@
                         }
                     };
                     footer.appendChild(viewFormBtn);
+
+                    const disableBtn = document.createElement('button');
+                    disableBtn.classList.add('document-card__action-btn');
+                    disableBtn.type = 'button';
+                    disableBtn.innerHTML = '<i class="ki-outline ki-trash"></i> Devre Dışı';
+                    disableBtn.onclick = () => {
+                        Swal.fire({
+                            title: 'Emin misiniz?',
+                            text: 'Dosya sistemde kalmaya devam edecek ama deaktif edilecek bu sayede listede görünmeyecek!',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#3085d6',
+                            confirmButtonText: 'Evet, devre dışı bırak',
+                            cancelButtonText: 'İptal'
+                        }).then(async (result) => {
+                            if(result.isConfirmed){
+                                const envelope = new FormData();
+                                envelope.append('id', rowData.id);
+                                try {
+                                    const rsp = await this.plib.request({
+                                        url      : '/api/v1/trans/disable-document',
+                                        method   : 'POST',
+                                    },null,envelope);
+                                    if(rsp.success){
+                                        this.table.removeRow(rowData.id);
+                                        this.plib.toast(this.Swal,'success','Dosya devre dışı bırakıldı');
+                                    }else{
+                                        Swal.fire('Hata', rsp.message || 'İşlem başarısız', 'error');
+                                    }
+                                } catch (error) {
+                                    Swal.fire('Hata', 'Bir hata oluştu', 'error');
+                                }
+                            }
+                        });
+                    };
+                    footer.appendChild(disableBtn);
                 }
 
                 card.appendChild(footer);
@@ -305,6 +342,7 @@
                         title : 'Belge Başlık',
                         key   : 'file_type',
                         order : true,
+                        width : '300px',
                         type  : 'string', // if column is string then make type string
                         
                     },{
@@ -345,6 +383,7 @@
                         title : 'Güncel Durum',
                         key   : 'last_status',
                         order : false,
+                        width : '250px',
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
                             const  btn    = document.createElement('button');
@@ -452,6 +491,7 @@
                         order : false,
                         colAlign : 'center',
                         headAlign : 'center',
+                        width : '200px',
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
                             const span = document.createElement('span');
@@ -470,7 +510,7 @@
                             btn.classList.add('btn','btn-secondary','me-1','d-flex','justify-content-center','align-items-center','flex-row');
                             btn.innerHTML = '<i class="ki-outline ki-eye text-gray-900 fs-2" role="img"></i>';
                             btn.onclick   = () => {
-                                window.open('/order-file/'+rowData?.file);
+                                window.open('/order-file/'+(rowData?.id ?? rowData?.file));
                             }
                             span.appendChild(btn);
 
@@ -491,9 +531,42 @@
                             }
                             span.appendChild(btn);
 
-                          
+                            btn = document.createElement('button');
+                            btn.classList.add('btn','btn-danger','me-1','d-flex','justify-content-center','align-items-center','flex-row');
+                            btn.innerHTML = '<i class="ki-outline ki-trash text-white fs-2" role="img"></i>';
+                            btn.onclick   = () => {
+                                Swal.fire({
+                                    title: 'Emin misiniz?',
+                                    text: 'Bu dosya devre dışı bırakılacak!',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#d33',
+                                    cancelButtonColor: '#3085d6',
+                                    confirmButtonText: 'Evet, devre dışı bırak',
+                                    cancelButtonText: 'İptal'
+                                }).then(async (result) => {
+                                    if(result.isConfirmed){
+                                        const envelope = new FormData();
+                                        envelope.append('id', rowData.id);
+                                        try {
+                                            const rsp = await this.plib.request({
+                                                url      : '/api/v1/trans/disable-document',
+                                                method   : 'POST',
+                                            },null,envelope);
+                                            if(rsp.success){
+                                                this.table.removeRow(rowData.id);
+                                                this.plib.toast(this.Swal,'success','Dosya devre dışı bırakıldı');
+                                            }else{
+                                                Swal.fire('Hata', rsp.message || 'İşlem başarısız', 'error');
+                                            }
+                                        } catch (error) {
+                                            Swal.fire('Hata', 'Bir hata oluştu', 'error');
+                                        }
+                                    }
+                                });
+                            }
+                            //span.appendChild(btn);
 
-                           
                             return this.useAuthStore().permissions?.includes('per-07') ? span : '';
                         }
                     }
@@ -511,7 +584,21 @@
                     height    : tableHeight,
                     type      : 'ajax',
                     columnSearch : true, // true - false for opening and closig
-                    paginationType : 'number',// scroll - number (number for default)
+                    paginationType : 'scroll',// scroll - number (number for default)
+                    // grouping configuration
+                    groupBy : 'relation_detail', // group by file type (PDF, DOCX, etc.)
+                    groupFormatter : (groupValue, rowCount) => {
+                        const values = {};
+                        const data = JSON.parse(groupValue);
+                        data.forEach(item => {
+                            values[item.Key] = item.Value;
+                        });
+
+
+
+                        return `${values.title} — ${rowCount} belge`;
+                    },
+                    groupToggleCallback : null,
                     ajax:{
                         url:'/api/v1/table/document_files',
                         data:{
@@ -610,9 +697,47 @@
     border-radius: 0.375rem;
 }
 
-    :deep(.pickletable td:first-child),
+    :deep(.pickletable tr:not(.table-group-header) td:first-child),
     :deep(.pickletable th:first-child){
         display: none;
+    }
+
+    /* GROUP STYLING */
+    :deep(.table-group-header td) {
+        background: linear-gradient(90deg, #f0f5ff 0%, #f8faff 100%) !important;
+        border-left: 4px solid #154b91 !important;
+        border-top: 1px solid #d1deff !important;
+        border-bottom: 1px solid #d1deff !important;
+        padding: 10px 18px !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        color: #154b91 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.02em !important;
+        overflow: visible !important;
+    }
+
+    :deep(.table-group-header:hover td) {
+        background: linear-gradient(90deg, #e4edff 0%, #eef4ff 100%) !important;
+    }
+
+    :deep(.group-toggle-icon) {
+        display: inline-block !important;
+        margin-right: 8px !important;
+        font-size: 16px !important;
+        font-style: normal !important;
+        color: #154b91 !important;
+        transition: transform 0.2s ease !important;
+        vertical-align: middle !important;
+    }
+
+    :deep(.group-title-text) {
+        vertical-align: middle !important;
+    }
+
+    :deep(tbody tr[data-group][data-collapsed="true"]) {
+        display: none !important;
     }
 
     :deep(.document-card) {
@@ -763,13 +888,15 @@
             display: none !important;
         }
 
-        :deep(.pickletable td:first-child),
-        :deep(.pickletable th:first-child){
-            display: unset !important;
+        :deep(.pickletable tr:not(.table-group-header) td:first-child),
+        :deep(.pickletable tr:not(.table-group-header) th:first-child){
+            display: table-cell !important;
+            width: 100% !important;
+            max-width: 100% !important;
         }
 
-        :deep(.pickletable td:not(:first-child)),
-        :deep(.pickletable th:not(:first-child)){
+        :deep(.pickletable tr:not(.table-group-header) td:not(:first-child)),
+        :deep(.pickletable tr:not(.table-group-header) th:not(:first-child)){
             display: none !important;
         }
 
@@ -779,7 +906,9 @@
         }
 
         :deep(.pickletable table) {
-            min-width: 700px;
+            table-layout: auto !important;
+            min-width: unset !important;
+            width: 100% !important;
         }
 
         :deep(.pickletable th),

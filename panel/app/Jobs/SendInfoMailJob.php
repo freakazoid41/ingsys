@@ -17,12 +17,14 @@ class SendInfoMailJob implements ShouldQueue
     public $email;
     public $header;
     public $body;
+    public $sysCode;
 
-    public function __construct($email, $header, $body)
+    public function __construct($email, $header, $body, $sysCode = null)
     {
         $this->email = $email;
         $this->header = $header;
         $this->body = $body;
+        $this->sysCode = $sysCode ?? $GLOBALS['SYS_CODE'] ?? null;
     }
 
     public function handle()
@@ -36,13 +38,19 @@ class SendInfoMailJob implements ShouldQueue
             }
 
             $subject = $this->header;
-            $html = $this->body;
-
             $mailService = new MailService();
+            $html = $mailService->renderHtmlMessage([
+                'title' => $subject,
+                'header' => $subject,
+                'content' => $this->body,
+                'intro' => null,
+            ]);
+
             $result = $mailService->sendMail([
                 'to' => $this->email,
                 'subject' => $subject,
                 'html' => $html,
+                'sys_code' => $this->sysCode,
             ]);
 
             if (empty($result['success'])) {

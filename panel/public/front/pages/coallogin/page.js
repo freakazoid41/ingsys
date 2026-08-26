@@ -82,6 +82,7 @@ export default class Page {
                                 showConfirmButton : false,
                                 showCloseButton   : true,
                                 icon  : 'success',
+                                heightAuto: false ,
                                 title : rsp.message,
                                 willClose : () => {
                                     window.location.reload();
@@ -90,6 +91,7 @@ export default class Page {
                         }else{
                             Swal.fire({
                                 icon  : 'error',
+                                heightAuto: false ,
                                 title : rsp.message,
                                 willClose : () => {
                                     window.location.reload();

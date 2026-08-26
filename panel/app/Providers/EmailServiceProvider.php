@@ -20,7 +20,8 @@ class EmailServiceProvider extends ServiceProvider
             SendNotificationMailJob::dispatch([
                 'type' => 'register',
                 'email' => $email,
-                'phone' => $phone
+                'phone' => $phone,
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? null,
             ])->onQueue('default');
             Log::info('sendregisterMails dispatched successfully', ['email' => $email, 'phone' => $phone]);
         }catch(\Throwable $e){
@@ -31,6 +32,7 @@ class EmailServiceProvider extends ServiceProvider
     public function sendOfferGiven($offerData){
         try{
             if(!isset($offerData['type']))  $offerData['type'] = 'offerGiven';
+            $offerData['sys_code'] = $offerData['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? null;
             SendNotificationMailJob::dispatch($offerData)->onQueue('default');
             Log::info('sendOfferGiven dispatched successfully', ['offer' => $offerData]);
         }catch(\Throwable $e){
@@ -41,6 +43,7 @@ class EmailServiceProvider extends ServiceProvider
     public function sendOfferStatus($offerData){
         try{
             $offerData['type'] = 'offerStatus';
+            $offerData['sys_code'] = $offerData['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? null;
             SendNotificationMailJob::dispatch($offerData)->onQueue('default');
             Log::info('sendOfferStatus dispatched successfully', ['offer' => $offerData]);
         }catch(\Throwable $e){
@@ -53,6 +56,7 @@ class EmailServiceProvider extends ServiceProvider
             SendNotificationMailJob::dispatch([
                 'email' => $email,
                 'type' => 'activation',
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? null,
             ])->onQueue('default');
             Log::info('sendapproveMails dispatched successfully', ['email' => $email]);
         }catch(\Throwable $e){
@@ -67,6 +71,7 @@ class EmailServiceProvider extends ServiceProvider
                 'type' => 'clientUpdate',
                 'client' => $clientData,
                 'contacts' => $clientContactList,
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? null,
             ])->onQueue('default');
             Log::info('sendclientUpdateMails dispatched successfully', ['client' => $clientData, 'contacts' => $clientContactList]);
         }catch(\Throwable $e){
@@ -76,6 +81,7 @@ class EmailServiceProvider extends ServiceProvider
 
     public function sendClientFileStatus($payload){
         try{
+            $payload['sys_code'] = $payload['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? null;
             SendNotificationMailJob::dispatch($payload)->onQueue('default');
             Log::info('sendclientFileStatusMails dispatched successfully', ['payload' => $payload]);
         }catch(\Throwable $e){
@@ -85,7 +91,7 @@ class EmailServiceProvider extends ServiceProvider
 
     public function sendresetMail($email, $password){
         try{
-            SendResetMailJob::dispatch($email, $password)->onQueue('default');
+            SendResetMailJob::dispatch($email, $password, $GLOBALS['SYS_CODE'] ?? null)->onQueue('default');
             Log::info('sendresetMail dispatched successfully', ['email' => $email, 'password' => $password]);
         }catch(\Throwable $e){
             Log::error('sendresetMail dispatch failed', ['exception' => $e, 'email' => $email, 'password' => $password]);
@@ -95,7 +101,7 @@ class EmailServiceProvider extends ServiceProvider
 
     public function sendinfoMail($email, $header, $body){
         try{
-            SendInfoMailJob::dispatch($email, $header, $body)->onQueue('default');
+            SendInfoMailJob::dispatch($email, $header, $body, $GLOBALS['SYS_CODE'] ?? null)->onQueue('default');
             Log::info('sendinfoMail dispatched successfully', ['email' => $email, 'header' => $header, 'body' => $body]);
         }catch(\Throwable $e){
             Log::error('sendinfoMail dispatch failed', ['exception' => $e, 'email' => $email, 'header' => $header, 'body' => $body]);

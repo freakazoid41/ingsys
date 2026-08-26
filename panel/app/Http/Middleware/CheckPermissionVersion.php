@@ -39,14 +39,27 @@ class CheckPermissionVersion
 
 
         if ($active && $active->force_logout) {
-            $reson = $active->force_logout_reason;
+            $reason = $active->force_logout_reason;
+
+            try {
+                if ($active->token_id) {
+                    $user->tokens()->where('id', $active->token_id)->delete();
+                }
+            } catch (\Throwable $e) {}
+
+            try {
+                auth('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            } catch (\Throwable $e) {}
+
             $active->delete();
 
             if ($request->ajax()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'force_logout',
-                    'reason' => $reson ?? 'Oturumunuz sistem tarafından sonlandırıldı. Lütfen tekrar giriş yapın.',
+                    'reason' => $reason ?? 'Oturumunuz sistem tarafından sonlandırıldı. Lütfen tekrar giriş yapın.',
                 ], 401);
             }
 

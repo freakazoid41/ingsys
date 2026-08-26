@@ -296,17 +296,21 @@ export default {
 
             if (this.callback && this.status != 'loading') {
                 this.status = 'loading';
-                //document.querySelector('.fab-wrapper').hidden = true;
-                await this.callback();
-                if (this.type === 'options') {
-                    document.getElementById('fabCheckbox').click();
+                try {
+                    //document.querySelector('.fab-wrapper').hidden = true;
+                    await this.callback();
+                    // #fabCheckbox yalnizca 'leftIcon' duzeninde var; 'bar' duzeninde
+                    // kapatilacak bir menu yok, o yuzden optional chaining.
+                    if (this.type === 'options') {
+                        document.getElementById('fabCheckbox')?.click();
+                    }
+                } finally {
+                    // status 'loading'de kalirsa bu ve diger iki handler bir daha hic
+                    // calismaz (hepsi status != 'loading' ile korunuyor) -> form kilitlenir.
+                    setTimeout(() => {
+                        this.status = 'await';
+                    }, 500);
                 }
-
-                //console.log(rsp)
-                setTimeout(() => {
-                    this.status = 'await';
-                }, 500);
-
             }
         },
         async executeReject() {
@@ -319,17 +323,16 @@ export default {
 
             if (this.rejectcallback && this.status != 'loading') {
                 this.status = 'loading';
-                //document.querySelector('.fab-wrapper').hidden = true;
-                await this.rejectcallback('reject');
-                if (this.type === 'options') {
-                    document.getElementById('fabCheckbox').click();
+                try {
+                    await this.rejectcallback('reject');
+                    if (this.type === 'options') {
+                        document.getElementById('fabCheckbox')?.click();
+                    }
+                } finally {
+                    setTimeout(() => {
+                        this.status = 'await';
+                    }, 500);
                 }
-
-                //console.log(rsp)
-                setTimeout(() => {
-                    this.status = 'await';
-                }, 500);
-
             }
         },
         executeCancel() {
@@ -344,17 +347,16 @@ export default {
 
             if (this.acceptcallback && this.status != 'loading') {
                 this.status = 'loading';
-                //document.querySelector('.fab-wrapper').hidden = true;
-                await this.acceptcallback('accept');
-                if (this.type === 'options') {
-                    document.getElementById('fabCheckbox').click();
+                try {
+                    await this.acceptcallback('accept');
+                    if (this.type === 'options') {
+                        document.getElementById('fabCheckbox')?.click();
+                    }
+                } finally {
+                    setTimeout(() => {
+                        this.status = 'await';
+                    }, 500);
                 }
-
-                //console.log(rsp)
-                setTimeout(() => {
-                    this.status = 'await';
-                }, 500);
-
             }
         }
     }

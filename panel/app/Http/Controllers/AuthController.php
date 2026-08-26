@@ -204,7 +204,6 @@ class AuthController extends Controller
 
     public function loginUser(Request $request){
         try {
-
             $request->session()->flush();
             //validate request sended parameters
             $validateUser = Validator::make($request->all(),[
@@ -307,63 +306,14 @@ class AuthController extends Controller
             
             
 
-            //$token = $user->createToken("API TOKEN")->plainTextToken;
+            $token = $request->input('_token');
+            $sendResult = $this->generateAndSendTwoFactorCode($user, $person, $token);
 
-            //return redirect()->route('login')->with('login-success', $token);
-            //$firstLogin = isset(auth('sanctum')->user()->id) ? count(UserLog::where('user_id',auth('sanctum')->user()->id)->get()) > 0 : false;
-                
-            //return to sms code page after sending sms code
-            $code = rand(100000,999999);
-            if($user->email == env('DEV_ADMIN')) $code = '111111';
-            //create code file for later checking
-            \Illuminate\Support\Facades\Storage::disk('local')->put($request->all()['_token'].'-'.$user->person_id.'-login'.'.txt', $code);
-            session(['login_person' => $user->person_id.'-login']);
-            session(['token' => $request->all()['_token']]);
-            session(['login_type' => 'normal']);
-
-            
-            $smsService = new SmsService();
-            $mailService = new MailService();
-
-            
-            //here send mail and sms all contacts
-            $contacts = json_decode($person->contacts ?? '[]');
-            foreach($contacts as $c){
-                if(strpos($c->Key, 'contmail*') !== false){
-                    $response = $mailService->sendMail([
-                        'to' => $c->Value,
-                        'subject' => 'Doğrulama Kodu',
-                        'body' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
-                    ]);
-                }
-
-                if(strpos($c->Key, 'contphone*') !== false){
-                    $smsResult = $smsService->sendSms(
-                        $c->Value,
-                        'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
-                    );
-                }
-
+            if (empty($sendResult['success'])) {
+                return redirect()->route('login')->with('login-error', 'SMS gönderiminde hata oluştu: ' . ($sendResult['message'] ?? ''));
             }
 
-            if(empty($contacts)){
-                $response = $mailService->sendMail([
-                    'to' =>  $user->email,
-                    'subject' => 'Doğrulama Kodu',
-                    'body' => 'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
-                ]);
-
-                if($user->email == env('DEV_ADMIN')) $smsResult = $smsService->sendSms(
-                    '5438826976',
-                    'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
-                );
-            }
-
-            if (empty($response['success'])) {
-                return redirect()->route('login')->with('login-error', 'SMS gönderiminde hata oluştu: ' . ($response['message'] ?? '')); 
-            }
-
-            return redirect()->route('login-sms')->with('login-code', ($_SERVER['HTTP_HOST'] === 'localhost:8000' ? $code : ''));
+            return redirect()->route('login-sms')->with('login-code', ($_SERVER['HTTP_HOST'] === 'localhost:8000' ? ($sendResult['debug_code'] ?? '') : ''));
             
 
         } catch (\Throwable $e) {
@@ -401,8 +351,8 @@ class AuthController extends Controller
            
             // 120 saniyeden eski kodları reddet
             if($lastModified !== null){
-                $elapsedSeconds = Carbon::now()->diffInSeconds(Carbon::createFromTimestamp($lastModified));
-                if((intval($elapsedSeconds)*-1) > 120){
+                $elapsedSeconds = Carbon::createFromTimestamp($lastModified)->diffInSeconds(Carbon::now());
+                if($elapsedSeconds > 120){
                     \Illuminate\Support\Facades\Storage::disk('local')->delete($fileKey.'.txt');
                     return redirect()->route($loginRoute)->with('sms-fail','SMS kodu süresi doldu. Lütfen tekrar isteyin.');
                 }
@@ -434,7 +384,7 @@ class AuthController extends Controller
                     //session(['spec_code' => implode(',',$codes)]);
                     session(['ptitle'    => $person->name.' '.$person->surname]);
                     session(['type_key'  => $personType->op_key]);
-                    
+                    session(['2f_success' => true]);
                     //if its client account
                     session(['currentStatus' => (new PersonsServiceProvider())->clientPermInfo($person->qnid,$personType->op_key)]);
 
@@ -477,6 +427,26 @@ class AuthController extends Controller
                         'desc' => ($person->name ?? '-').' Kullanıcısı sisteme giriş yaptı',
                     ),JSON_UNESCAPED_UNICODE)
                 ]);
+
+                // Clean up stale force_logout records for this user before creating new session
+                try{
+                    ActiveSession::where('user_id', $user->id)
+                        ->where('force_logout', true)
+                        ->where('force_logout_at', '<', Carbon::now()->subDay())
+                        ->delete();
+                }catch(\Throwable $e){
+                    // do not block login on cleanup failure
+                }
+
+                // Force logout all existing sessions for this user (single-session enforcement)
+                try{
+                    (new \App\Services\PermissionService())->forceLogoutPerson(
+                        $user->person_id,
+                        'Bu hesaba başka bir cihazdan giriş yapıldı.'
+                    );
+                }catch(\Throwable $e){
+                    // do not block login on force-logout failure
+                }
 
                 $token = $user->createToken("API TOKEN")->plainTextToken;
 
@@ -526,6 +496,181 @@ class AuthController extends Controller
         return redirect()->route($loginRoute)->with('sms-fail','Girilen Kod Yanlıştır.');
     }
 
+    protected function generateAndSendTwoFactorCode(User $user, $person, string $token, bool $isResend = false): array
+    {
+        if (session('resend_token') !== $token) {
+            session([
+                'resend_token' => $token,
+                'resend_count' => 0,
+                'resend_last_at' => null,
+            ]);
+        }
+
+        $code = $user->email == env('DEV_ADMIN') ? '111111' : (string) rand(100000, 999999);
+        $fileKey = $token.'-'.$user->person_id.'-login';
+
+        \Illuminate\Support\Facades\Storage::disk('local')->delete($fileKey.'.txt');
+        \Illuminate\Support\Facades\Storage::disk('local')->put($fileKey.'.txt', $code);
+        session(['login_person' => $user->person_id.'-login']);
+        session(['token' => $token]);
+        session(['login_type' => 'normal']);
+
+        $mailService = new MailService();
+        $smsService = new SmsService();
+
+        $sentAny = false;
+        $errors = [];
+        $contacts = json_decode($person->contacts ?? '[]', true);
+        $contacts = is_array($contacts) ? $contacts : [];
+
+        foreach ($contacts as $contact) {
+            $key = is_array($contact) ? ($contact['Key'] ?? $contact['key'] ?? null) : null;
+            $value = is_array($contact) ? ($contact['Value'] ?? $contact['value'] ?? null) : null;
+            if (empty($key) || empty($value)) {
+                continue;
+            }
+
+            if (strpos($key, 'contmail*') !== false) {
+                $response = $mailService->sendMail([
+                    'to' => $value,
+                    'subject' => 'Doğrulama Kodu',
+                    'sysCode' => $GLOBALS['SYS_CODE'] ?? '',
+                    'html' => $mailService->renderHtmlMessage([
+                        'sysCode' => $GLOBALS['SYS_CODE'] ?? '',
+                        'title' => 'Doğrulama Kodu',
+                        'header' => 'Doğrulama Kodu',
+                        'content' => '<p>Kömür Tedarik Sistemi doğrulama kodu: <strong>' . e($code) . '</strong></p>',
+                        'intro' => 'Lütfen bu kodu kimseyle paylaşmayınız.',
+                    ]),
+                ]);
+
+                if (!empty($response['success'])) {
+                    $sentAny = true;
+                } else {
+                    $errors[] = 'Mail gönderimi başarısız: ' . ($response['message'] ?? implode(', ', $response['errors'] ?? []));
+                }
+            }
+
+            if (strpos($key, 'contphone*') !== false) {
+                try {
+                    $smsResult = $smsService->sendSms(
+                        $value,
+                        'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                    );
+                    if (!empty($smsResult['success'])) {
+                        $sentAny = true;
+                    } else {
+                        $errors[] = 'SMS gönderimi başarısız: ' . ($smsResult['message'] ?? '');
+                    }
+                } catch (\Throwable $e) {
+                    $errors[] = 'SMS gönderimi sırasında hata oluştu: ' . $e->getMessage();
+                }
+            }
+        }
+
+        if (!$sentAny) {
+            $response = $mailService->sendMail([
+                'to' => $user->email,
+                'subject' => 'Doğrulama Kodu',
+                'html' => $mailService->renderHtmlMessage([
+                    'title' => 'Doğrulama Kodu',
+                    'header' => 'Doğrulama Kodu',
+                    'content' => '<p>Kömür Tedarik Sistemi doğrulama kodu: <strong>' . e($code) . '</strong></p>',
+                    'intro' => 'Lütfen bu kodu kimseyle paylaşmayınız.',
+                ]),
+            ]);
+
+            if (!empty($response['success'])) {
+                $sentAny = true;
+            } else {
+                $errors[] = 'Yedek mail gönderimi başarısız: ' . ($response['message'] ?? implode(', ', $response['errors'] ?? []));
+            }
+        }
+
+        if (!$sentAny && $user->email == env('DEV_ADMIN')) {
+            try {
+                $smsResult = $smsService->sendSms(
+                    '5438826976',
+                    'Kömür Tedarik Sistemi doğrulama kodu: ' . $code,
+                );
+                if (!empty($smsResult['success'])) {
+                    $sentAny = true;
+                } else {
+                    $errors[] = 'Yedek admin SMS gönderimi başarısız: ' . ($smsResult['message'] ?? '');
+                }
+            } catch (\Throwable $e) {
+                $errors[] = 'Yedek admin SMS gönderimi sırasında hata oluştu: ' . $e->getMessage();
+            }
+        }
+
+        if ($sentAny) {
+            $sessionData = ['resend_last_at' => Carbon::now()->timestamp];
+            if ($isResend) {
+                $sessionData['resend_count'] = session('resend_count', 0) + 1;
+            }
+            session($sessionData);
+        }
+
+        return [
+            'success' => $sentAny,
+            'message' => $sentAny ? 'Doğrulama kodu başarılı şekilde gönderildi.' : 'Doğrulama kodu gönderilemedi. ' . implode(' | ', $errors),
+            'errors' => $errors,
+            'debug_code' => ($_SERVER['HTTP_HOST'] === 'localhost:8000' ? $code : null),
+        ];
+    }
+
+    public function resendCode(Request $request)
+    {
+        try {
+            $token = session('token');
+            $loginPerson = session('login_person');
+            if (empty($token) || empty($loginPerson)) {
+                return response()->json(['success' => false, 'message' => 'Yeniden gönderme işlemi için oturum bilgisi bulunamadı.'], 400);
+            }
+
+            $personId = explode('-', $loginPerson)[0] ?? null;
+            if (empty($personId)) {
+                return response()->json(['success' => false, 'message' => 'Geçerli kullanıcı bilgisi bulunamadı.'], 400);
+            }
+
+            $resendCount = session('resend_count', 0);
+            if ($resendCount >= 2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'En fazla 2 kere tekrar isteyebilirsiniz.',
+                    'retry_after' => 0,
+                ], 429);
+            }
+
+            $lastSent = session('resend_last_at');
+            if (!empty($lastSent)) {
+                $elapsedSeconds = Carbon::createFromTimestamp($lastSent)->diffInSeconds(Carbon::now());
+                if ($elapsedSeconds < 60) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tekrar kod göndermek için 60 saniye bekleyin.',
+                        'retry_after' => 60 - $elapsedSeconds,
+                    ], 429);
+                }
+            }
+
+            $user = User::where('person_id', $personId)->first();
+            if (empty($user)) {
+                return response()->json(['success' => false, 'message' => 'Kullanıcı bulunamadı.'], 404);
+            }
+
+            $person = (new PersonsServiceProvider())->getPerson(null, null, true, $user->person_id)['person'][0] ?? [];
+            if (empty($person)) {
+                return response()->json(['success' => false, 'message' => 'Kullanıcı kişisi yüklenemedi.'], 500);
+            }
+
+            $sendResult = $this->generateAndSendTwoFactorCode($user, $person, $token, true);
+            return response()->json($sendResult, $sendResult['success'] ? 200 : 500);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function sendMail(Request $request){
         $req = $request->all();
         //first find record for email
@@ -534,36 +679,28 @@ class AuthController extends Controller
        
             $key = bin2hex(random_bytes(10));
             \Illuminate\Support\Facades\Storage::disk('local')->put($key.'-refreshmail'.'.txt', $user->email);
-            
 
-            //get main template
-            $temp = file_get_contents(public_path('coaltheme/mail/template.falanml'), true);
-            //now find status template from database
-            $status = file_get_contents(public_path('coaltheme/mail/forgot-pass.falanml'), true);
-
-            $temp = str_replace("{*template*}", $status, $temp);
-            
-            //now fill template
-            
-            //find person
             $person = (new PersonsServiceProvider())->getPerson(null,null,true,$user->person_id)['person'][0] ?? [];
-            //$person = Persons::where('id',$user->person_id)->first();
-           
-           
 
-            //now fill the keys
-            $temp = str_replace("{*prs-title*}", $person->name, $temp);
-            //set domain
-            $temp = str_replace("{*domain*}", 'https://'.$request->getHttpHost(), $temp);
-            //$temp = str_replace("{*system*}", $GLOBALS['SYS_CODE'] == 'GDZ' ? 'gdz' : 'adm', $temp);
-            //set link
-            $temp = str_replace("{*pass-url*}", $request->getHttpHost().'/auth/passwordreset/'.$key, $temp);
-
+            $resetUrl = $request->getSchemeAndHttpHost() . '/auth/passwordreset/' . $key;
             $mailService = new MailService();
+            $html = $mailService->renderHtmlMessage([
+                'sysCode' => $GLOBALS['SYS_CODE'] ?? '',
+                'title' => 'Şifre Değiştirme',
+                'header' => 'Şifre Değiştirme',
+                'intro' => 'Şifrenizi sıfırlamak için aşağıdaki linke tıklayın.',
+                'content' => '<p>Merhaba ' . e($person->name ?? 'Kullanıcı') . ',</p>' .
+                             '<p>Şifre sıfırlama isteğiniz alındı. Aşağıdaki butona tıklayarak yeni şifrenizi oluşturabilirsiniz.</p>',
+                'ctaUrl' => $resetUrl,
+                'ctaText' => 'Şifreyi Sıfırla',
+                'footerText' => 'Bu e-posta otomatik olarak gönderilmiştir. Eğer bu isteği siz yapmadıysanız lütfen bu mesajı dikkate almayınız.',
+            ]);
+
             $mailResponse = $mailService->sendMail([
                 'to' => $user->email,
                 'subject' => 'Şifre Değiştirme',
-                'html' => $temp,
+                'html' => $html,
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? '',
             ]);
 
             if ($mailResponse['success']) {
@@ -611,7 +748,7 @@ class AuthController extends Controller
                 //send sms here then redirect to code check screen
                 $user   = User::where('email',\Illuminate\Support\Facades\Storage::get($code.'-refreshmail.txt'))->first();
 
-                if(empty($user)) redirect()->route('login');
+                if(empty($user)) return redirect()->route('login');
 
                 $person = Persons::where(['id' => $user->person_id/* , 'sys_code' => ($GLOBALS['SYS_CODE'] == 'GDZ' ? '4000' : '5000')*/])->first();
                 //remove file
@@ -630,18 +767,12 @@ class AuthController extends Controller
                 \Illuminate\Support\Facades\Storage::disk('local')->put($code.'-refreshmailsms'.'.txt', $user->email);
                 //for sms Company
                 
+                $sendResult = $this->generateAndSendTwoFactorCode($user, $person, $code);
 
-                $mailService = new MailService();
-                $response = $mailService->sendMail([
-                    'to' =>  $user->email,
-                    'subject' => 'Doğrulama Kodu',
-                    'body' => 'Kömür Tedarik Sistemi şifre sıfırlama kodu: ' . $smsCode,
-                ]);
+                if (empty($sendResult['success'])) {
+                    return redirect()->route('login')->with('login-error', 'Sms gönderiminde hata oluştu: ' . ($sendResult['message'] ?? '')); }
 
-                if (empty($response['success'])) {
-                    return redirect()->route('login')->with('login-error', 'Sms gönderiminde hata oluştu: ' . ($response['message'] ?? '')); }
-
-                return redirect()->route('login-sms')->with('login-code', ($_SERVER['HTTP_HOST'] === 'localhost:8000' ? $smsCode : ''));
+                return redirect()->route('login-sms')->with('login-code', ($_SERVER['HTTP_HOST'] === 'localhost:8000' ? ($sendResult['debug_code'] ?? '') : ''));
             }
             
             return redirect()->route('login');
@@ -698,7 +829,7 @@ class AuthController extends Controller
 
         //here if in current status can response is false we need to check from raw db data
         $data = session('currentStatus');
-        if($data['canResponse'] == false){
+        if(empty($data) || ($data['canResponse'] ?? true) == false){
             //set updated status
             session(['currentStatus' => (new PersonsServiceProvider())->clientPermInfo(session('person_id'), session('type_key'))]);
             //this is because cache reasons.If client is approved we cannot always detect all connected users to that client it's not necessary so we just checking for client approve awaiting users

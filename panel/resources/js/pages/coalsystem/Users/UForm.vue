@@ -129,6 +129,46 @@
         },
         methods: {
             
+            /**
+             * Kaydetme basarili olduktan sonra uretilen parolayi gosterir.
+             * Zamanlayici yok: yonetici kopyalayip kendisi kapatir.
+             */
+            async showGeneratedPassword(password){
+                //Kopyala kendi dugmemiz: SweetAlert'in cancel dugmesini kullansaydik
+                //tiklama modali kapatirdi ve bunu engellemek olay yayilimiyla ugrasmayi gerektirirdi
+                await Swal.fire({
+                    icon  : 'success',
+                    title : 'Kullanıcı kaydedildi',
+                    html  : `<p class="mb-3">Üretilen parola aşağıdadır. Kapatmadan önce kopyalayın —
+                                bu ekran kapandıktan sonra parola bir daha gösterilmeyecektir.</p>
+                             <input id="generatedPassword" class="form-control text-center fs-4 fw-bold"
+                                    value="${password}" readonly>
+                             <button id="copyPasswordBtn" type="button" class="btn btn-secondary mt-3">
+                                <i class="ki-outline ki-copy fs-3 me-1"></i> Kopyala
+                             </button>
+                             <small id="copyFeedback" class="text-success d-block mt-2" style="visibility:hidden;">Kopyalandı</small>`,
+                    confirmButtonText : 'Kapat',
+                    allowOutsideClick : false,
+                    allowEscapeKey    : false,
+                    didOpen : () => {
+                        const field    = document.getElementById('generatedPassword');
+                        const feedback = document.getElementById('copyFeedback');
+
+                        document.getElementById('copyPasswordBtn').addEventListener('click', async () => {
+                            try {
+                                await navigator.clipboard.writeText(password);
+                            } catch (err) {
+                                //clipboard API yalnizca guvenli baglamda calisir; degilse secimle kopyala
+                                field.select();
+                                document.execCommand('copy');
+                            }
+
+                            field.select();
+                            feedback.style.visibility = 'visible';
+                        });
+                    },
+                });
+            },
             async submitForm(formData){
                 this.formData = formData;
                 this.navigationStore.toggle(true);
@@ -185,22 +225,50 @@
                         envelope.append('alldata',JSON.stringify(this.formData));
                     //register files
                     for(let key in this.formData.files){
-                        envelope.append(key,this.formData.files[key]);
+                        const fileItem = this.formData.files[key];
+                        if(fileItem && !fileItem.uploading && fileItem.reference){
+                            envelope.append(key, JSON.stringify(fileItem.reference));
+                        } else if(fileItem && fileItem.file) {
+                            envelope.append(key, fileItem.file);
+                        }
                     }
-                    await this.plib.request({
+                    const rsp = await this.plib.request({
                         url      : '/api/v1/users'+(this.id !== undefined ? '/'+this.id : ''),
                         method   : this.id !== undefined ? 'PUT' : 'POST',
                     },null,envelope);
 
-                    setTimeout(() => {
+                    //backend basarisiz olsa bile basari mesaji gosterilip listeye
+                    //yonlendiriliyordu; yonetici sifreyi degistirdim saniyordu
+                    if(!rsp?.success){
                         this.navigationStore.toggle(false);
-                        this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
-                            if(this.authStore.permissions?.includes('per-04-01')){
-                                this.$router.push({ name: 'UList' });
-                            }else{
-                                window.location.reload();
-                            }
-                        });
+                        this.plib.toast(
+                            this.Swal,
+                            'error',
+                            rsp?.msg ?? rsp?.data?.message ?? 'Kullanıcı kaydedilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.'
+                        );
+                        return;
+                    }
+
+                    this.navigationStore.toggle(false);
+
+                    const goOn = () => {
+                        if(this.authStore.permissions?.includes('per-04-01')){
+                            this.$router.push({ name: 'UList' });
+                        }else{
+                            window.location.reload();
+                        }
+                    };
+
+                    //parola yalnizca uretici kullanildiysa gosteriliyor; elle yazilmissa
+                    //yonetici zaten biliyor
+                    if(this.formData.passwordGenerated && fields?.user_password){
+                        await this.showGeneratedPassword(fields.user_password);
+                        goOn();
+                        return;
+                    }
+
+                    setTimeout(() => {
+                        this.plib.toast(this.Swal,'success','İşlem Tamamlandı',goOn);
                     }, 300);
 
                 }else{

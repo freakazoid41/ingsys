@@ -23,6 +23,9 @@ class SendNotificationMailJob implements ShouldQueue
     public function __construct($payload = [])
     {
         $this->payload = $payload;
+        if (empty($this->payload['sys_code']) && isset($GLOBALS['SYS_CODE'])) {
+            $this->payload['sys_code'] = $GLOBALS['SYS_CODE'];
+        }
     }
 
     public function handle()
@@ -99,12 +102,27 @@ class SendNotificationMailJob implements ShouldQueue
         ]);
     }
 
+    protected function renderEmailHtml(string $subject, string $content, array $options = []): string
+    {
+        $mailService = new MailService();
+
+        return $mailService->renderHtmlMessage(array_merge([
+            'subject' => $subject,
+            'title' => $subject,
+            'header' => $subject,
+            'intro' => null,
+            'content' => $content,
+            'footerText' => 'Kömür Tedarik Sistemi tarafından gönderildi.',
+            'sysCode' => $options['sysCode'] ?? $options['sys_code'] ?? $this->payload['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? '',
+        ], $options));
+    }
+
     //here we are finding the users who have permission for receving the client register notification and send mail to them
     public function clientRegister(array $payload)
     {
-        $this->log('info', 'Client Register Triggered', $this->payload);   
+        $this->log('info', 'Client Register Triggered', $this->payload);
         $subject = 'Yeni Müşteri Kaydı';
-        $html = "Yeni bir müşteri kaydı gerçekleşti. Müşteri Mail: {$payload['email']}, Müşteri Telefon: {$payload['phone']}";
+        $html = $this->renderEmailHtml($subject, '<p>Yeni bir müşteri kaydı gerçekleşti.</p><p><strong>Müşteri Mail:</strong> ' . e($payload['email'] ?? '-') . '</p><p><strong>Müşteri Telefon:</strong> ' . e($payload['phone'] ?? '-') . '</p>');
         //after that we need to inform system users who permitted
         $this->informSystemUsers($subject, $html, 'notif-00');
         
@@ -122,23 +140,11 @@ class SendNotificationMailJob implements ShouldQueue
         $this->log('info', 'Client Offer Given Triggered', $this->payload);   
         $subject = 'Yeni Teklif Verildi';
         $offer['req_no'] = $offer['req_no'] ?? '-';
-        $html = "Yeni bir teklif verilmiştir. 
-                <br> Müşteri: {$offer['clititle']}
-                <br> Talep kodu : {$offer['request_id']}
-                <br> Teklif kodu : {$offer['req_no']}
-                <br> Teklif Türü : {$offer['offer_type']}";
+        $html = $this->renderEmailHtml($subject, '<p>Yeni bir teklif verilmiştir.</p><p><strong>Müşteri:</strong> ' . e($offer['clititle'] ?? '-') . '</p><p><strong>Talep kodu:</strong> ' . e($offer['request_id'] ?? '-') . '</p><p><strong>Teklif kodu:</strong> ' . e($offer['req_no'] ?? '-') . '</p><p><strong>Teklif Türü:</strong> ' . e($offer['offer_type'] ?? '-') . '</p>');
 
         if($isUpdate){
             $subject = 'Teklif Revize Edildi';
-            $html = "<h2>Bir teklif revize edilmiştir</h2>. 
-                    <br> Müşteri: {$offer['clititle']}
-                    <br> Talep kodu : {$offer['request_id']}
-                    <br> Teklif kodu : {$offer['qnid']}
-                    <br> Teklif Türü : {$offer['offer_type']}
-                    <br>
-                    <h2>Revize Edilen Alanlar : </h2>";
-
-            $html .= $this->buildOfferRevisionHtml($payload);
+            $html = $this->renderEmailHtml($subject, '<p>Bir teklif revize edilmiştir.</p><p><strong>Müşteri:</strong> ' . e($offer['clititle'] ?? '-') . '</p><p><strong>Talep kodu:</strong> ' . e($offer['request_id'] ?? '-') . '</p><p><strong>Teklif kodu:</strong> ' . e($offer['qnid'] ?? '-') . '</p><p><strong>Teklif Türü:</strong> ' . e($offer['offer_type'] ?? '-') . '</p><h2>Revize Edilen Alanlar:</h2>' . $this->buildOfferRevisionHtml($payload));
         }
 
         //here also add addional files about offer if exist in payload
@@ -298,15 +304,22 @@ class SendNotificationMailJob implements ShouldQueue
     //here we are sending mail to user who awaiting activation
     public function clientActivation(array $payload)
     {
-        $this->log('info', 'Client Activation Triggered', $this->payload);   
+        $this->log('info', 'Client Activation Triggered', $this->payload);
         $subject = 'Hesap Aktivasyonu';
-        $html = "Kömür Tedarik Sistemi hesap aktivasyonunun gerçekleşmiştir.Giriş bilgileriniz ile sisteme giriş yapabilirsiniz. Kullanıcı Mail: {$payload['email']}";
-        
+        //this path renders the view directly instead of going through
+        //MailService::renderHtmlMessage, so the tenant code has to be threaded in by hand
+        $html = view('emails.verify-email', [
+            'name' => $payload['name'] ?? 'Müşteri',
+            'ctaUrl' => $payload['verify_url'] ?? config('app.url'),
+            'sysCode' => $this->payload['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? '',
+        ])->render();
+
         $mailService = new MailService();
         $result = $mailService->sendMail([
             'to' => $payload['email'] ?? null,
             'subject' => $subject,
             'html' => $html,
+            'sys_code' => $this->payload['sys_code'] ?? null,
         ]);
         $this->log('info', 'Sending notification email to user', ['email' => $payload['email'] ?? null]);
         $this->log('info', 'SendNotificationMailJob completed', $this->payload);
@@ -315,9 +328,9 @@ class SendNotificationMailJob implements ShouldQueue
     //here we are finding the users who have permission for receving the client form update notification permission and send mail to them
     public function clientChanged(array $payload)
     {
-        $this->log('info', 'Client Changed Triggered', $this->payload);   
+        $this->log('info', 'Client Changed Triggered', $this->payload);
         $subject = 'Müşteri Bilgi Güncellemesi';
-        $html = "Müşteri bilgilerinde bir güncelleme gerçekleşti. Müşteri Ünvan: {$payload['client']['title']}, Müşteri Kod:{$payload['client']['clicode']}";
+        $html = $this->renderEmailHtml($subject, '<p>Müşteri bilgilerinde bir güncelleme gerçekleşti.</p><p><strong>Müşteri Ünvan:</strong> ' . e($payload['client']['title'] ?? '-') . '</p><p><strong>Müşteri Kod:</strong> ' . e($payload['client']['clicode'] ?? '-') . '</p>');
 
         //first send mail to client contacts
         foreach ($payload['contacts'] as $key => $value) {
@@ -329,6 +342,7 @@ class SendNotificationMailJob implements ShouldQueue
                     'to' => $value ?? null,
                     'subject' => $subject,
                     'html' => $html,
+                    'sys_code' => $this->payload['sys_code'] ?? null,
                 ]);
                 $this->log('info', 'Sending notification email to user', ['name' => $payload['client']['title'], 'email' => $value ?? null]);
             }
@@ -361,15 +375,15 @@ class SendNotificationMailJob implements ShouldQueue
                 $contacts = json_decode($person->contacts ?? '[]', true);
                 $mailService = new MailService();
                 $template = [
-                    'to' => $contact['Value'] ?? null,
+                    'to' => null,
                     'subject' => $subject,
                     'html' => $html,
                     'attachments' => $attachments,
+                    'sys_code' => $this->payload['sys_code'] ?? null,
                 ];
                 foreach($contacts as $contact){
                     if(strpos($contact['Key'] ?? '', 'contmail') !== false){
                         //send mail to this contact
-                        
                         $template['to']= $contact['Value'] ?? null;
                         $result = $mailService->sendMail($template);
                         $this->log('info', 'Sending notification email to user', ['name' => $user['name'], 'email' => $contact['Value'] ?? null]);
@@ -383,21 +397,21 @@ class SendNotificationMailJob implements ShouldQueue
                 }
 
                 //here send also its email
-                $template['to']= $person->email ?? null;
-                $this->log('info', 'Sending notification email to user', ['name' => $user['name'], 'email' => $person->email ?? null]);
-                $result = $mailService->sendMail($template);
-                $this->log('info', 'Email Result', $result);
-
-                
+                if($template['to'] === null && strpos($person->email ?? '', '@') !== false){
+                    $template['to'] = $person->email ?? null;
+                    $this->log('info', 'Sending notification email to user', ['name' => $user['name'], 'email' => $person->email ?? null]);
+                    $result = $mailService->sendMail($template);
+                    $this->log('info', 'Email Result', $result);
+                }
             }
         }
     }
 
     public function clientFileStatus(array $payload)
     {
-        $this->log('info', 'Client Changed Triggered', $this->payload);   
+        $this->log('info', 'Client File Status Triggered', $this->payload);
         $subject = 'Müşteri Dosya Durum Güncellemesi';
-        $html = "Müşteri dosya durumlarında güncelleme gerçekleşti. <br>Müşteri Ünvan: {$payload['title']} <br>Müşteri Kod:{$payload['clicode']}<br> Dosya: {$payload['fileTitle']} <br> Yeni Durum: {$payload['status']} <br> Not: {$payload['note']}";
+        $html = $this->renderEmailHtml($subject, '<p>Müşteri dosya durumlarında güncelleme gerçekleşti.</p><p><strong>Müşteri Ünvan:</strong> ' . e($payload['title'] ?? '-') . '</p><p><strong>Müşteri Kod:</strong> ' . e($payload['clicode'] ?? '-') . '</p><p><strong>Dosya:</strong> ' . e($payload['fileTitle'] ?? '-') . '</p><p><strong>Yeni Durum:</strong> ' . e($payload['status'] ?? '-') . '</p><p><strong>Not:</strong> ' . e($payload['note'] ?? '-') . '</p>');
 
         //first send mail to client contacts
         foreach ($payload['contacts'] as $key => $value) {
@@ -409,6 +423,7 @@ class SendNotificationMailJob implements ShouldQueue
                     'to' => $value ?? null,
                     'subject' => $subject,
                     'html' => $html,
+                    'sys_code' => $this->payload['sys_code'] ?? null,
                 ]);
                 $this->log('info', 'Sending notification email to user', ['name' => $payload['title'], 'email' => $value ?? null]);
             }
@@ -458,14 +473,9 @@ class SendNotificationMailJob implements ShouldQueue
         }
 
 
-        $this->log('info', 'Client Offer Status Triggered', $this->payload);   
+        $this->log('info', 'Client Offer Status Triggered', $this->payload);
         $subject = 'Teklif Durum Değişikliği';
-        $html = "Teklifinizin durumunda değişiklik yapılmıştır. 
-                <br> Müşteri     : {$payload['clititle']}
-                <br> Talep kodu  : {$payload['request_id']}
-                <br> Teklif kodu : {$payload['qnid']}
-                <br> Teklif Türü : {$payload['offer_type']}
-                <br> Teklif Durumu : {$payload['offer_status']}";
+        $html = $this->renderEmailHtml($subject, '<p>Teklifinizin durumunda değişiklik yapılmıştır.</p><p><strong>Müşteri:</strong> ' . e($payload['clititle'] ?? '-') . '</p><p><strong>Talep kodu:</strong> ' . e($payload['request_id'] ?? '-') . '</p><p><strong>Teklif kodu:</strong> ' . e($payload['qnid'] ?? '-') . '</p><p><strong>Teklif Türü:</strong> ' . e($payload['offer_type'] ?? '-') . '</p><p><strong>Teklif Durumu:</strong> ' . e($payload['offer_status'] ?? '-') . '</p>');
 
         //first send mail to client contacts
         foreach ($payload['contacts'] as $key => $value) {
@@ -477,6 +487,7 @@ class SendNotificationMailJob implements ShouldQueue
                     'to' => $value ?? null,
                     'subject' => $subject,
                     'html' => $html,
+                    'sys_code' => $this->payload['sys_code'] ?? null,
                 ]);
                 $this->log('info', 'Sending notification email to user', ['name' => $payload['clititle'], 'email' => $value ?? null]);
             }

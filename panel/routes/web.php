@@ -28,7 +28,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
         
 
         $coalAuth = function (){
-            if(session('type_key') !== null){
+            if(session('type_key') !== null && session('2f_success') !== null){
                 return view('coalapp',['type' => session('type_key') == 'op-pert-admin' ? 'admin' : 'client']);
                 /*switch(session('type_key')){
                     case 'op-pert-admin':

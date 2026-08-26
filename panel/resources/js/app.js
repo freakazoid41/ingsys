@@ -50,6 +50,7 @@ const initApp = async () => {
     console.error('app init failed:', e);
   }
 
+  authStore.startHeartbeat();
   app.mount('#app');
 };
 

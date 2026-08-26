@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <title>Kömür Tedarik Sistemi</title>
-    @vite(['public/coaltheme/css/theme.css'])
-
+    @vite(['public/coaltheme/css/theme.css', 'resources/js/coal-swal.js'])
 </head>
 <style>
     a{
@@ -103,7 +102,7 @@
                         <div class="text-center" style="font-size:50px" id="countdown">
                             25
                         </div>
-                        <div hidden class="text-center fw-semibold fs-5">
+                        <div class="text-center fw-semibold fs-5">
                             <span class="text-muted me-1">Mesaj gelmedi mi?</span>
                             <a href="javascript:;" id="btn-send-code" class="link-primary fs-5 me-1">Tekrar Gönder</a>
                         </div>

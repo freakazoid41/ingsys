@@ -1,6 +1,7 @@
 
 <script>
 import dayjs from 'dayjs';
+import { isOfferCancelled } from '@/lib/offerStatus';
 
 const SECTIONS = [
     { title: 'Genel Bilgiler', fields: [
@@ -9,19 +10,20 @@ const SECTIONS = [
         { key: 'offer_type',         label: 'Teklif Tipi', format: 'offer_type' },
         { key: 'target_type',        label: 'Santral' },
         { key: 'order_radius',       label: 'Sipariş Kapsamı' },
+        { key: 'unload_area',        label: 'Boşaltma Yeri' },
         { key: 'contract_start_date',label: 'Teklif Başlangıç' },
         { key: 'contract_end_date',  label: 'Teklif Bitiş' },
-        { key: 'unload_area',        label: 'Boşaltma Yeri' },
+        
     ]},
     { title: 'Kömür Özellikleri', fields: [
-        { key: 'coal_size',          label: 'Ebat' },
-        { key: 'coal_hgi',           label: 'HGİ' },
-        { key: 'coal_ucucu',         label: 'Uçucu Madde' },
-        { key: 'coal_type',          label: 'Cinsi' },
-        { key: 'calory',             label: 'Kalori' },
-        { key: 'humidity',           label: 'Nem' },
-        { key: 'ash_content',        label: 'Kül Oranı' },
-        { key: 'sulfur',             label: 'Kükürt' },
+        { key: 'coal_size',   label: 'Ebat (%)' },
+        { key: 'coal_hgi',    label: 'HGİ (%)' },
+        { key: 'coal_ucucu',  label: 'Uçucu Madde (%)' },
+        { key: 'coal_type',   label: 'Cinsi' },
+        { key: 'calory',      label: 'Kalori (AID)' },
+        { key: 'humidity',    label: 'Nem (%)' },
+        { key: 'ash_content', label: 'Kül Oranı (%)' },
+        { key: 'sulfur',      label: 'Kükürt (%)' },
     ]},
     { title: 'Kalori Aralığına Göre Birim Fiyat', isCalory: true },
     { title: 'Fiyat Etki Oranları', fields: [
@@ -29,7 +31,7 @@ const SECTIONS = [
         { key: 'tiufe_price_impact', label: 'TÜFE Etki' },
         { key: 'fuel_price_impact_2',label: 'Akaryakıt Etki %2' },
     ]},
-    { title: 'Diğer Bilgiler', fields: [
+    { title: 'Sipariş ve Ödeme Bilgileri', fields: [
         { key: 'amount',             label: 'Miktar' },
         { key: 'payment_periods',    label: 'Hakediş Dönemleri' },
         { key: 'payment_due',        label: 'Ödeme Vadesi' },
@@ -59,6 +61,11 @@ export default {
     setup() { return { dayjs }; },
     data() { return { sections: SECTIONS }; },
     computed: {
+        //a cancelled offer stays readable but offers no actions, and its badge overrides
+        //whatever the last transaction was
+        cancelled() {
+            return isOfferCancelled(this.document);
+        },
         entitiesToRender() {
             return this.previewEntities && Object.keys(this.previewEntities).length ? this.previewEntities : this.entities;
         },
@@ -105,8 +112,8 @@ export default {
             }
         },
         offerDocLink(file) {
-            if (!file?.description) return null;
-            return `/order-file/${file.description}`;
+            if (!file?.qnid && !file?.description) return null;
+            return `/order-file/${file.qnid ?? file.description}`;
         },
         groupOfferDocs(entities) {
             const groups = {};
@@ -198,10 +205,10 @@ export default {
                         </option>
                     </select>
                 </div>
-                <button v-if="editable" class="os-btn os-btn-ghost" @click="onEditable && onEditable()">
+                <button v-if="editable && !cancelled" class="os-btn os-btn-ghost" @click="onEditable && onEditable()">
                     <i class="ki-outline ki-file-down fs-4"></i> Düzenle
                 </button>
-                <template v-if="!hideActions">
+                <template v-if="!hideActions && !cancelled">
                     <button class="os-btn os-btn-warning" @click="onRequestRevision && onRequestRevision()">
                         <i class="ki-outline ki-arrows-circle fs-4"></i> Revize Talep Et
                     </button>
@@ -212,9 +219,10 @@ export default {
                         <i class="ki-outline ki-cross-circle fs-4"></i> Reddet
                     </button>
                 </template>
-                <div class="ms-auto d-flex align-items-center gap-2" v-if="statusList.length">
+                <div class="ms-auto d-flex align-items-center gap-2" v-if="cancelled || statusList.length">
                     <span class="os-field-label mb-0" style="white-space:nowrap;">Mevcut Durum:</span>
-                    <span class="os-current-badge" :class="statusBadgeClass(statusList[statusList.length - 1])">{{ statusList[statusList.length - 1].title }}</span>
+                    <span v-if="cancelled" class="os-current-badge badge-danger">İptal Edildi</span>
+                    <span v-else class="os-current-badge" :class="statusBadgeClass(statusList[statusList.length - 1])">{{ statusList[statusList.length - 1].title }}</span>
                 </div>
             </div>
         </div>

@@ -47,7 +47,7 @@ class UserLog extends Model
             'name'               => 'p.name',
             'email'              => 'u.email',
             'role'               => 'srt.name  as  role',
-            'created_at'         => 'i.created_at',
+            'created_at'         => "((i.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Istanbul')::timestamp without time zone)  as  created_at",
             'ip'                 => 'i.ip',
             'relation_id'        => 'i.relation_id',
             'relation'           => 'i.relation',

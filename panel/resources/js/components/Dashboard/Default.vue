@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 import PickleTable from 'pickletable';
 import 'pickletable/assets/style.css';
 import Plib from '@/lib/pickle';
+import { isOfferCancelled, WITH_CANCELLED_FILTER } from '@/lib/offerStatus';
 import Swal from 'sweetalert2';
 export default {
   setup() {
@@ -270,7 +271,14 @@ export default {
                   const  btn    = document.createElement('button');
                   btn.classList.add('btn','d-flex','align-items-center');
 
-                  
+                  //cancellation overrides whatever the last transaction was
+                  if(isOfferCancelled(rowData)){
+                      btn.classList.add('btn-danger');
+                      btn.type = 'button';
+                      btn.innerHTML = '<i class="ki-outline ki-cross-circle fs-2 me-3"></i> İptal Edildi';
+                      return btn;
+                  }
+
                   let icon  = '<i class="ph ph-timer fs-2 me-3"></i>';
                   switch(key?.[0]){
                       case 'doc_trans_offer_draft':
@@ -306,8 +314,8 @@ export default {
                                   <div class="row m-5 justify-content-center">
                                       <button class="btn btn-warning mb-5 doc-status" data-key="doc_trans_offer_review"    type="button">İnceleniyor</button>
                                       <button class="btn btn-info mb-5 doc-status" data-key="doc_trans_offer_revision"  type="button">Revizyon Talebi</button>
-                                      <button class="btn btn-danger mb-5 doc-status"  data-key="doc_trans_offer_rejected"  type="button">Reddedildi</button>
-                                      <button class="btn btn-success mb-5 doc-status"  data-key="doc_trans_offer_accepted"  type="button">Kabul Edildi</button>
+                                       <button class="btn btn-danger mb-5 doc-status"  data-key="doc_trans_offer_rejected"  type="button">Reddedildi</button>
+                                       <button class="btn btn-success mb-5 doc-status"  data-key="doc_trans_offer_approved"  type="button">Kabul Edildi</button>
                                   </div>`,
                           willOpen : async () => {
                               Swal.showValidationMessage(key?.[2]);
@@ -370,7 +378,9 @@ export default {
           key   : 'type',
           type  : '=',
           value : 'op-doc-offer'
-        }
+        },
+        //cancelled offers stay on the board, shown as "İptal Edildi"
+        WITH_CANCELLED_FILTER
       ]
 
       this.offerTable = new PickleTable({

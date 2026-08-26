@@ -10,7 +10,7 @@
     import VMasker  from 'vanilla-masker';
     import { Datepicker } from 'vanillajs-datepicker';
     import tr from '/node_modules/vanillajs-datepicker/js/i18n/locales/tr.js';
-
+    import dayjs from 'dayjs';
 
     export default {
         breadcrumbs: {
@@ -87,6 +87,27 @@
             },
             exportTable(){
                 this.plib.openTab('POST', '/api/v1/export/requests', this.table.currentFilter,'_blank');
+            },
+            toggleExpired(){
+                
+                this.showExpired = document.getElementById('showExpiredSwitch').checked;
+
+                const filter = [];
+                if(this.showExpired){
+                    filter.push({
+                        key   : 'showExpired', // column key
+                        type  : '=', // filtering type ('like','<','>')
+                        value : 'true'//wanted column value
+                    })
+                }else{
+                    filter.push({
+                        key   : 'showExpired', // column key
+                        type  : '=', // filtering type ('like','<','>')
+                        value : 'false'//wanted column value
+                    })
+                }
+                this.table.setFilter(filter);
+
             },
             formatRequestCard(rowData,columnData){
                 const isMobile = window.innerWidth < 768;
@@ -320,6 +341,9 @@
                         key   : 'target_type',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData) => {
+                            return rowData.her_ikisi && rowData.her_ikisi == 1 ? 'Her İki Sistem' : (rowData.target_type ?? '-');
+                        }
                     },{
                         title : 'Sipariş Kapsamı',
                         key   : 'order_radius',
@@ -576,6 +600,10 @@
                             key   : 'type',
                             type  : '=',
                             value : 'op-doc-request'
+                        },{
+                            key   : 'showExpired', // column key
+                            type  : '=', // filtering type ('like','<','>')
+                            value : document.getElementById('showExpiredSwitch').checked ? 'true' : 'false'//wanted column value
                         }
                     ],
                     nextPageIcon : '<i class="ki-outline ki-arrow-right"></i>',
@@ -592,6 +620,15 @@
                         });
                         //data['cont_name'] = (data['cont_name'] ?? []).join(' , ');
                         //data.status = JSON.parse(data.status).OpTitle;
+
+                        /*if(new Date(data['contract_end_date'].split('/').reverse().join('-')) <= new Date()){
+                            elm.classList.add('past-due');
+                            if(!this.showExpired) {
+                                elm.style.display = 'none';
+                            }
+                        }*/
+
+
                         return data;
                     },
                 });
@@ -620,6 +657,12 @@
                 <button type="button" class="rlist-btn rlist-btn-ghost" @click="exportTable">
                     <i class="ki-outline ki-exit-down fs-5"></i> Excel
                 </button>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="showExpiredSwitch" @change="toggleExpired">
+                    <label class="form-check-label" for="showExpiredSwitch">
+                        Vakti Geçen İhaleleri Göster
+                    </label>
+                </div>
             </div>
             <!-- Toolbar -->
             <div class="rlist-toolbar">

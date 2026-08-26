@@ -122,7 +122,9 @@ class ExportController extends Controller
                 $data = (array)\App\Models\Documents::tableList([
                     'filter' => array_merge($filter,[
                         ['key'=>'form-type','type'=>'=','value'=>'op-doc-offer-form'],
-                        ['key'=>'type','type'=>'=','value'=>'op-doc-offer']
+                        ['key'=>'type','type'=>'=','value'=>'op-doc-offer'],
+                        //cancelled offers are part of the historical export
+                        ['key'=>'with-cancelled','type'=>'=','value'=>'1']
                     ])
                 ])['data'];
 
@@ -136,18 +138,22 @@ class ExportController extends Controller
                 $rowCallback = function ($row, $key, $label, $rowIndex, $columnIndex) {
                     $row = (array) $row;
                    
+                    //offers can be sparse (drafts, cancelled ones), so every branch tolerates missing keys
                     switch($key){
                         case 'offer_type':
-                            return explode('**', $row[$key])[1] ?? '';
+                            return explode('**', (string)($row[$key] ?? ''))[1] ?? '';
                         break;
                         case 'status':
+                            //cancellation overrides whatever the last transaction was
+                            if((int)($row['document_status'] ?? 1) === 0) return 'İptal Edildi';
+
                             if(empty($row[$key]) || strpos($row[$key], 'doc_trans_offer_draft') !== false) return 'Taslak';
-                            
-                            return explode('**', $row[$key])[1];
+
+                            return explode('**', $row[$key])[1] ?? '';
                             break;
                         case 'date':
                         case 'created_at':
-                            return \Carbon\Carbon::parse($row[$key])->format('d.m.Y');
+                            return empty($row[$key]) ? '' : \Carbon\Carbon::parse($row[$key])->format('d.m.Y');
                     }
 
                     return $row[$key] ?? '';
@@ -335,6 +341,11 @@ class ExportController extends Controller
             $latestStatus = $lastItem['op_title'] ?? $lastItem['title'] ?? $lastItem['note'] ?? '';
         }
 
+        //cancellation overrides whatever the last transaction was
+        if((int)($document->document_status ?? 1) === 0) {
+            $latestStatus = 'İptal Edildi';
+        }
+
         $data = [
             'document'     => $document,
             'form'         => $formData,
@@ -375,6 +386,11 @@ class ExportController extends Controller
             $latestStatus = $lastItem['op_title'] ?? $lastItem['title'] ?? $lastItem['note'] ?? '';
         }
 
+        //cancellation overrides whatever the last transaction was
+        if ((int)($document->document_status ?? 1) === 0) {
+            $latestStatus = 'İptal Edildi';
+        }
+
         $data = [
             'document' => $document,
             'form' => $formData,
@@ -391,7 +407,8 @@ class ExportController extends Controller
 
         // generate PDF content
         //if offer is not file-based, generate PDF from view. If it is file-based, just download files
-        if(strpos($formData['offer_type'],'op-doc-offer-file') === false) {
+        //offer_type is absent on sparse offers (drafts, cancelled ones)
+        if(strpos((string)($formData['offer_type'] ?? ''),'op-doc-offer-file') === false) {
             $pdf = PDF::loadView('exports.offer', $data)->setPaper('a4', 'portrait');
             $pdfContent = $pdf->output();
 

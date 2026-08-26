@@ -5,6 +5,8 @@
     import PickleTable from 'pickletable';
     import 'pickletable/assets/style.css';
     import Plib from '@/lib/pickle';
+    import { offerStatus, WITH_CANCELLED_FILTER } from '@/lib/offerStatus';
+    import { attachTooltip, hideTooltip } from '@/lib/tooltip';
     import { wTrans } from 'laravel-vue-i18n';
     import Swal from 'sweetalert2';
     import VMasker  from 'vanilla-masker';
@@ -124,6 +126,99 @@
                     }
                 });
             },
+            /**
+             * Cancelling keeps the offer and its files; it only flips the document to
+             * "İptal Edildi" so it stays visible in the lists as a cancelled record.
+             */
+            async cancelOffer(rowData){
+                const confirm = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Teklifi İptal Et',
+                    text: 'Teklif iptal edilecek ve bir daha düzenlenemeyecek. Kayıt listelerde "İptal Edildi" olarak görünmeye devam eder. Onaylıyor musunuz?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, iptal et',
+                    cancelButtonText: 'Vazgeç',
+                    reverseButtons: true,
+                });
+                if (!confirm.isConfirmed) return;
+
+                const offerId = rowData.qnid ?? rowData.id;
+                this.navigationStore.toggle(true);
+
+                const envelope = new FormData();
+                envelope.append('id', offerId);
+                envelope.append('note', 'Teklif iptal edildi.');
+
+                try {
+                    const rsp = await this.plib.request({
+                        url    : '/api/v1/trans/cancel-offer',
+                        method : 'POST',
+                    }, null, envelope);
+
+                    if (rsp?.success) {
+                        //updateRow only repaints columns whose header key is in the payload, and
+                        //document_status has no column of its own — refetch so the badge and the
+                        //row actions are rebuilt from the server state.
+                        await this.table.getData();
+                        //satırlar yeniden çizildiği için hover'daki eleman yok oluyor,
+                        //mouseleave hiç tetiklenmeden tooltip ekranda kalabilir
+                        hideTooltip();
+                        this.plib.toast(this.Swal,'success','Teklif iptal edildi.');
+                    } else {
+                        this.plib.toast(this.Swal,'error',rsp?.msg ?? 'Teklif iptal edilemedi.');
+                    }
+                } catch (e) {
+                    //getData() has no internal catch; without this the overlay would never clear
+                    this.plib.toast(this.Swal,'error','Teklif iptal edildi ancak liste yenilenemedi. Sayfayı yenileyin.');
+                } finally {
+                    setTimeout(() => {
+                        this.navigationStore.toggle(false);
+                    }, 300);
+                }
+            },
+            /**
+             * Yanlışlıkla iptal edilen teklifi geri açar (#16). Durum değişmez;
+             * teklif iptalden önceki durumuna döner.
+             */
+            async reopenOffer(rowData){
+                const confirm = await Swal.fire({
+                    icon: 'question',
+                    title: 'Teklifi Geri Aç',
+                    text: 'Teklif iptal edilmeden önceki durumuna geri dönecek. Onaylıyor musunuz?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, geri aç',
+                    cancelButtonText: 'Vazgeç',
+                    reverseButtons: true,
+                });
+                if (!confirm.isConfirmed) return;
+
+                const offerId = rowData.qnid ?? rowData.id;
+                this.navigationStore.toggle(true);
+
+                const envelope = new FormData();
+                envelope.append('id', offerId);
+
+                try {
+                    const rsp = await this.plib.request({
+                        url    : '/api/v1/trans/reopen-offer',
+                        method : 'POST',
+                    }, null, envelope);
+
+                    if (rsp?.success) {
+                        await this.table.getData();
+                        hideTooltip();
+                        this.plib.toast(this.Swal,'success','Teklif geri açıldı.');
+                    } else {
+                        this.plib.toast(this.Swal,'error',rsp?.msg ?? 'Teklif geri açılamadı.');
+                    }
+                } catch (e) {
+                    this.plib.toast(this.Swal,'error','Teklif geri açıldı ancak liste yenilenemedi. Sayfayı yenileyin.');
+                } finally {
+                    setTimeout(() => {
+                        this.navigationStore.toggle(false);
+                    }, 300);
+                }
+            },
             formatOfferCard(rowData,columnData){
                 const data = JSON.parse(rowData.addional ?? '{}');
                 let request = '-';
@@ -135,8 +230,8 @@
                 }
 
                 const offerTypeLabel = String(rowData.offer_type ?? '').split('**')[1] || rowData.offer_type || '-';
-                const statusParts = String(rowData.status ?? '').split('**');
-                const statusLabel = statusParts[1] || 'Teklif Gönderildi';
+                const offerState = offerStatus(rowData);
+                const statusLabel = offerState.label;
 
                 const cardItems = [
                     { label: 'Belge Tarihi', value: rowData.date ?? '-' },
@@ -172,7 +267,9 @@
                 const statusBadge = document.createElement('span');
                 statusBadge.classList.add('offer-card__status');
                 statusBadge.textContent = statusLabel;
+                if (offerState.terminal) statusBadge.classList.add('offer-card__status--cancelled');
 
+                //#16: yönetici iptal edilmiş teklifin durumunu da değiştirebilir; bu onu geri getirir
                 if (this.authStore.permissions?.includes('per-05-02')) {
                     statusBadge.classList.add('offer-card__status--clickable');
                     statusBadge.title = 'Durum değiştir';
@@ -221,9 +318,19 @@
                 editBtn.classList.add('offer-card__action-btn');
                 editBtn.type = 'button';
                 editBtn.innerHTML = '<i class="ki-outline ki-pencil"></i> Düzenle';
+                editBtn.disabled = offerState.terminal;
                 editBtn.onclick = () => {
+                    if (offerState.terminal) {
+                        Swal.fire({
+                            text : 'İptal edilmiş teklif düzenlenemez.',
+                            icon : 'warning',
+                            showCloseButton : true,
+                            showConfirmButton : false,
+                        });
+                        return;
+                    }
+
                     let key = rowData.status?.split('**');
-                    console.log(key)
                     if (key == undefined) key = ['doc_trans_created'];
                     if (key?.[0] != 'doc_trans_offer_revision' && key?.[0] != 'doc_trans_created' && key?.[0] != 'doc_trans_offer_draft' && !this.authStore.permissions?.includes('per-05-02')) {
                         Swal.fire({
@@ -243,40 +350,22 @@
                 };
                 footer.appendChild(editBtn);
 
+                //aktif teklif iptal edilebilir, iptal edilmiş olan geri açılabilir (#16)
                 if (this.authStore.permissions?.includes('per-08-02')) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.classList.add('offer-card__action-btn','offer-card__action-btn--danger');
-                    removeBtn.type = 'button';
-                    removeBtn.innerHTML = '<i class="ki-outline ki-trash"></i> Sil';
-                    removeBtn.onclick = async () => {
-                        const confirm = await Swal.fire({
-                            icon: 'warning',
-                            title: 'Teklifi Sil',
-                            text: 'Bu işlem oluşturulan teklifi tamamen silecek. İşlemi gerçekleştirmek istediğinize emin misiniz?',
-                            showCancelButton: true,
-                            confirmButtonText: 'Evet, sil',
-                            cancelButtonText: 'Vazgeç',
-                            reverseButtons: true,
-                        });
-                        if (!confirm.isConfirmed) return;
+                    const actBtn = document.createElement('button');
+                    actBtn.classList.add('offer-card__action-btn');
+                    actBtn.type = 'button';
 
-                        const deleteId = rowData.qnid ?? rowData.id;
-                        this.navigationStore.toggle(true);
-                        const rsp = await this.plib.request({
-                            url      : '/api/v1/document/' + deleteId,
-                            method   : 'DELETE',
-                        }, null);
+                    if (offerState.terminal) {
+                        actBtn.innerHTML = '<i class="ki-outline ki-arrows-circle"></i> Geri Aç';
+                        actBtn.onclick = () => this.reopenOffer(rowData);
+                    } else {
+                        actBtn.classList.add('offer-card__action-btn--danger');
+                        actBtn.innerHTML = '<i class="ki-outline ki-cross-circle"></i> İptal Et';
+                        actBtn.onclick = () => this.cancelOffer(rowData);
+                    }
 
-                        if (rsp?.success !== false) {
-                            this.table.deleteRow(deleteId);
-                        } else {
-                            this.plib.toast(this.Swal,'error',rsp.msg);
-                        }
-                        setTimeout(() => {
-                            this.navigationStore.toggle(false);
-                        }, 300);
-                    };
-                    footer.appendChild(removeBtn);
+                    footer.appendChild(actBtn);
                 }
 
                 card.appendChild(header);
@@ -338,13 +427,13 @@
                                     spn.innerHTML = data[key]?.Value ?? '-';
                                     const viewBtn = document.createElement('button');
                                     viewBtn.classList.add('btn','ms-2','btn-secondary','action-icon-btn','me-1');
-                                    viewBtn.title = 'Detay';
+                                    viewBtn.title = 'Talep detayına git';
                                     viewBtn.innerHTML = '<i class="ki-outline ki-eye fs-2"></i>';
                                     viewBtn.onclick = () => {
                                         this.$router.push({ name: 'RequestForm', params: { id: rowData.request_id } });
                                     };
+                                    attachTooltip(viewBtn);
 
-                                    
                                     spn.appendChild(viewBtn);
 
 
@@ -377,32 +466,21 @@
                         width : '250px',
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
-                            const key = rowData.status?.split('**');
+                            const state = offerStatus(rowData);
                             const btn = document.createElement('button');
                             btn.type  = 'button';
-                            btn.classList.add('status-pill');
+                            btn.classList.add('status-pill','status-pill--'+state.variant);
+                            btn.textContent = state.label;
 
-                            switch(key?.[0]){
-                                case 'doc_trans_offer_approved':
-                                    btn.classList.add('status-pill--success');
-                                    break;
-                                case 'doc_trans_offer_rejected':
-                                    btn.classList.add('status-pill--danger');
-                                    break;
-                                case 'doc_trans_offer_revision':
-                                case 'doc_trans_offer_revised':
-                                case 'doc_trans_offer_review':
-                                    btn.classList.add('status-pill--warning');
-                                    break;
-                                default:
-                                    btn.classList.add('status-pill--secondary');
-                                    break;
+                            //#16: iptal artık terminal değil — yönetici iptal edilmiş teklifin
+                            //durumunu değiştirebilir, bu işlem teklifi geri getirir
+                            const canChangeStatus = this.authStore.permissions?.includes('per-05-02');
+                            btn.onclick = () => canChangeStatus ? this.openStatusChangeModal(rowData) : {};
+
+                            if (canChangeStatus) {
+                                attachTooltip(btn, state.terminal ? 'Durum seçerek teklifi geri aç' : 'Durum değiştir');
                             }
-                            btn.textContent = key?.[1] ?? 'Teklif Gönderildi';
-                            //here we are looking request form permissions
-                            btn.onclick = () => this.authStore.permissions?.includes('per-05-02') ? this.openStatusChangeModal(rowData) : {};
 
-                            
                             return btn;
                         }
                     },{
@@ -424,13 +502,30 @@
                                 this.navigationStore.setRouteParams({ offer_type: rowData.offer_type });
                                 this.$router.push({ name: 'OForm', params: { id: rowData.id }, query: { view: '1' } });
                             };
+                            attachTooltip(viewBtn);
                             span.appendChild(viewBtn);
+
+                            const rowState = offerStatus(rowData);
 
                             let btn = document.createElement('button');
                             btn.classList.add('btn','btn-secondary','action-icon-btn','me-1');
                             btn.title = 'Düzenle';
                             btn.innerHTML = '<i class="ki-outline ki-pencil fs-2"></i>';
+                            btn.disabled  = rowState.terminal;
+                            //devre dışıyken sebebini tooltip söylesin, yoksa kullanıcı neden
+                            //tıklayamadığını anlamıyor
+                            attachTooltip(btn, rowState.terminal ? 'İptal edilmiş teklif düzenlenemez' : 'Düzenle');
                             btn.onclick   = () =>{
+                                if(rowState.terminal){
+                                    Swal.fire({
+                                        text : 'İptal edilmiş teklif düzenlenemez.',
+                                        icon : 'warning',
+                                        showCloseButton : true,
+                                        showConfirmButton : false,
+                                    });
+                                    return;
+                                }
+
                                 let key = rowData.status?.split('**');
                                 if(key == undefined) key = ['doc_trans_created'];
 
@@ -497,39 +592,23 @@
                                 span.appendChild(btn);
                             }*/
                             if (this.authStore.permissions?.includes('per-08-02')) {
-                                const del = document.createElement('button');
-                                del.classList.add('btn','btn-secondary','action-icon-btn','action-icon-btn--danger','me-1');
-                                del.title = 'Sil';
-                                del.innerHTML = '<i class="ki-outline ki-trash fs-2"></i>';
-                                del.onclick = async () => {
-                                    const confirm = await Swal.fire({
-                                        icon: 'warning',
-                                        title: 'Teklifi Sil',
-                                        text: 'Bu işlem oluşturulan teklifi tamamen silecektir. İşlemi gerçekleştirmek istediğinize emin misiniz?',
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Evet, sil',
-                                        cancelButtonText: 'Vazgeç',
-                                        reverseButtons: true,
-                                    });
-                                    if (!confirm.isConfirmed) return;
+                                const act = document.createElement('button');
+                                act.classList.add('btn','btn-secondary','action-icon-btn','me-1');
 
-                                    const deleteId = rowData.qnid ?? rowData.id;
-                                    this.navigationStore.toggle(true);
-                                    const rsp = await this.plib.request({
-                                        url      : '/api/v1/document/' + deleteId,
-                                        method   : 'DELETE',
-                                    }, null);
+                                if (rowState.terminal) {
+                                    //#16: yanlışlıkla iptal edilen teklif geri açılabilir
+                                    act.title = 'Geri Aç';
+                                    act.innerHTML = '<i class="ki-outline ki-arrows-circle fs-2"></i>';
+                                    act.onclick = () => this.reopenOffer(rowData);
+                                } else {
+                                    act.classList.add('action-icon-btn--danger');
+                                    act.title = 'İptal Et';
+                                    act.innerHTML = '<i class="ki-outline ki-cross-circle fs-2"></i>';
+                                    act.onclick = () => this.cancelOffer(rowData);
+                                }
 
-                                    if (rsp?.success !== false) {
-                                        this.table.deleteRow(deleteId);
-                                    } else {
-                                        this.plib.toast(this.Swal,'error',rsp.msg);
-                                    }
-                                    setTimeout(() => {
-                                        this.navigationStore.toggle(false);
-                                    }, 300);
-                                };
-                                span.appendChild(del);
+                                attachTooltip(act);
+                                span.appendChild(act);
                             }
 
                             return span;
@@ -561,7 +640,9 @@
                             key   : 'type',
                             type  : '=',
                             value : 'op-doc-offer'
-                        }
+                        },
+                        //cancelled offers stay in this list, shown as "İptal Edildi"
+                        WITH_CANCELLED_FILTER
                     ],
                     nextPageIcon : '<i class="ki-outline ki-arrow-right"></i>',
                     prevPageIcon : '<i class="ki-outline ki-arrow-left"></i>',
@@ -845,6 +926,11 @@
     font-size: 0.78rem;
     font-weight: 700;
     white-space: nowrap;
+}
+
+:deep(.offer-card__status--cancelled) {
+    background: rgba(220, 38, 38, .10);
+    color: #dc2626;
 }
 
 :deep(.offer-card__status--clickable) {

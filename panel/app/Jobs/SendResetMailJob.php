@@ -16,11 +16,13 @@ class SendResetMailJob implements ShouldQueue
 
     public $email;
     public $password;
+    public $sysCode;
 
-    public function __construct($email, $password = null)
+    public function __construct($email, $password = null, $sysCode = null)
     {
         $this->email = $email;
         $this->password = $password;
+        $this->sysCode = $sysCode ?? $GLOBALS['SYS_CODE'] ?? null;
     }
 
     public function handle()
@@ -34,19 +36,25 @@ class SendResetMailJob implements ShouldQueue
             }
 
             $subject = 'Şifreniz Sıfırlandı';
-            $html = '<p>Merhaba,</p><p>Şifreniz sistem tarafından sıfırlandı.</p>';
+            $content = '<p>Merhaba,</p><p>Şifreniz sistem tarafından sıfırlandı.</p>';
 
             if (!empty($this->password)) {
-                $html .= '<p>Yeni şifreniz: <strong>' . e($this->password) . '</strong></p>';
+                $content .= '<p>Yeni şifreniz: <strong>' . e($this->password) . '</strong></p>';
             }
 
-            $html .= '<p>Lütfen giriş yaptıktan sonra şifrenizi değiştirin.</p>';
+            $content .= '<p>Lütfen giriş yaptıktan sonra şifrenizi değiştirin.</p>';
 
             $mailService = new MailService();
             $result = $mailService->sendMail([
                 'to' => $this->email,
                 'subject' => $subject,
-                'html' => $html,
+                'html' => $mailService->renderHtmlMessage([
+                    'title' => $subject,
+                    'header' => $subject,
+                    'content' => $content,
+                    'intro' => 'Şifre sıfırlama işleminiz tamamlanmıştır.',
+                ]),
+                'sys_code' => $this->sysCode,
             ]);
 
             if (empty($result['success'])) {

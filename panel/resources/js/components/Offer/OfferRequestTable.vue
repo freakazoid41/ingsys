@@ -6,6 +6,7 @@
     import 'pickletable/assets/style.css';
     import Plib from '@/lib/pickle';
     import Swal from 'sweetalert2';
+    import { isOfferCancelled, WITH_CANCELLED_FILTER } from '@/lib/offerStatus';
     export default {
         props: {
             requestId: {
@@ -72,6 +73,15 @@
                             const btn = document.createElement('button');
                             btn.classList.add('btn', 'd-flex', 'align-items-center');
                             let icon = '<i class="ki-outline ki-timer fs-2 me-2"></i>';
+
+                            //cancellation overrides the transaction status and blocks the status modal
+                            if (isOfferCancelled(rowData)) {
+                                btn.classList.add('btn-danger');
+                                btn.type = 'button';
+                                btn.innerHTML = '<i class="ki-outline ki-cross-circle fs-2 me-2"></i> İptal Edildi';
+                                return btn;
+                            }
+
                             switch (key?.[0]) {
                                 case 'doc_trans_offer_approved':
                                     icon = '<i class="ki-outline ki-check fs-2 me-2"></i>';
@@ -103,7 +113,7 @@
                                                <button class="btn btn-warning mb-5 doc-status" data-key="doc_trans_offer_review" type="button">İnceleniyor</button>
                                                <button class="btn btn-info mb-5 doc-status" data-key="doc_trans_offer_revision" type="button">Revizyon Talebi</button>
                                                <button class="btn btn-danger mb-5 doc-status" data-key="doc_trans_offer_rejected" type="button">Reddedildi</button>
-                                               <button class="btn btn-success mb-5 doc-status" data-key="doc_trans_offer_accepted" type="button">Kabul Edildi</button>
+                                               <button class="btn btn-success mb-5 doc-status" data-key="doc_trans_offer_approved" type="button">Kabul Edildi</button>
                                            </div>`,
                                     willOpen: async () => {
                                         Swal.showValidationMessage(key?.[2]);
@@ -158,7 +168,13 @@
                             editBtn.classList.add('btn', 'btn-secondary', 'action-icon-btn');
                             editBtn.title = 'Düzenle';
                             editBtn.innerHTML = '<i class="ki-outline ki-pencil fs-2"></i>';
+                            editBtn.disabled = isOfferCancelled(rowData);
                             editBtn.onclick = () => {
+                                if (isOfferCancelled(rowData)) {
+                                    Swal.fire({ text: 'İptal edilmiş teklif düzenlenemez.', icon: 'warning', showCloseButton: true, showConfirmButton: false });
+                                    return;
+                                }
+
                                 const key = rowData.status?.split('**');
                                 const statusKey = key?.[0] ?? 'doc_trans_offer_sended';
                                 const editableStatuses = ['doc_trans_offer_revision', 'doc_trans_created', 'doc_trans_offer_draft'];
@@ -191,6 +207,8 @@
                         { key: 'form-type',   type: '=',    value: 'op-doc-offer-form' },
                         { key: 'type',        type: '=',    value: 'op-doc-offer'      },
                         { key: 'request_id',  type: 'like', value: this.requestId      },
+                        //cancelled offers remain listed under the request, marked as cancelled
+                        WITH_CANCELLED_FILTER,
                     ],
                     nextPageIcon: '<i class="ki-outline ki-arrow-right" style="color:inherit"></i>',
                     prevPageIcon: '<i class="ki-outline ki-arrow-left" style="color:inherit"></i>',

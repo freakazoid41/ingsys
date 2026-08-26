@@ -141,13 +141,30 @@
                         envelope.append('data',JSON.stringify(this.formData));
                     //register files
                     for(let key in this.formData.files){
-                        envelope.append(key,this.formData.files[key]);
+                        const fileItem = this.formData.files[key];
+                        if(fileItem && !fileItem.uploading && fileItem.reference){
+                            envelope.append(key, JSON.stringify(fileItem.reference));
+                        } else if(fileItem && fileItem.file) {
+                            envelope.append(key, fileItem.file);
+                        }
                     }
-                    await this.plib.request({
+                    const rsp = await this.plib.request({
                         url      : '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),
                         method   : this.id !== undefined ? 'PUT' : 'POST',
                     },null,envelope);
-                    
+
+                    //backend transaction'i rollback etse bile eskiden basari toast'i cikip
+                    //listeye yonlendiriliyordu; kullanici kaydettim saniyordu ama kayit yoktu
+                    if(!rsp?.success){
+                        this.navigationStore.toggle(false);
+                        this.plib.toast(
+                            this.Swal,
+                            'error',
+                            rsp?.msg ?? rsp?.data?.message ?? 'Kayıt oluşturulamadı. Lütfen bilgileri kontrol edip tekrar deneyin.'
+                        );
+                        return;
+                    }
+
                     //trigger auth store because some clients needs to refresh some permissions
                     if(this.authStore.typeKey === 'op-pert-reseller' ){
                         await this.authStore.getPermissions();
@@ -155,7 +172,7 @@
 
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
-                        
+
                         this.plib.toast(this.Swal,'success','İşlem Tamamlandı',() => {
                             this.$router.push({ name: 'CList' });
                         });
@@ -177,6 +194,8 @@
         Firma bilgileriniz henüz doldurulmamıştır. İşlem yapabilmek için lütfen aşağıdaki formu doldurunuz.
     </div>
    
-    <Form formtypes="op-doc-client-form" :fabtype="/*authStore.typeKey !== 'op-pert-reseller' ? 'options' : 'saveBtn'*/'saveBtn'" v-if="loadForm" :savecallback="submitForm" :rejectcallback="submitStatus" :acceptcallback="submitStatus" />
+    <!-- 'options' yöneticiye "Bütün Belgeleri Onayla/Reddet" düğmelerini açar (submitStatus →
+         /v1/trans/set-file-status-all). Kaydet düğmesi her iki modda da görünür. -->
+    <Form formtypes="op-doc-client-form" :fabtype="authStore.typeKey !== 'op-pert-reseller' ? 'options' : 'saveBtn'" v-if="loadForm" :savecallback="submitForm" :rejectcallback="submitStatus" :acceptcallback="submitStatus" />
     
 </template>

@@ -5,13 +5,59 @@ namespace Tests\Unit;
 use Tests\TestCase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Dotenv\Dotenv;
 use App\Services\SmsService;
 
 class SmsServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
+    /**
+     * The mail side of 2FA is neutralised with MAIL_MAILER=log. This is its SMS counterpart:
+     * with the flag on, no request may reach the live gateway — not even the token call.
+     */
+    public function test_log_only_mode_sends_no_request_to_the_gateway()
+    {
+        Config::set('services.iletisimmakinesi.log_only', true);
+        Config::set('services.iletisimmakinesi.base_url', 'https://mock.test/api/UserGatewayWS/functions');
+
+        Http::fake();
+
+        $result = (new SmsService)->sendSms('5438826976', 'Doğrulama kodu: 111111');
+
+        Http::assertNothingSent();
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['log_only'] ?? false);
+        $this->assertDatabaseHas('notification_logs', [
+            'id' => $result['notification_log_id'],
+            'status' => \App\Models\NotificationLog::STATUS_SENT,
+        ]);
+    }
+
+    public function test_live_mode_still_reaches_the_gateway()
+    {
+        Config::set('services.iletisimmakinesi.log_only', false);
+        Config::set('services.iletisimmakinesi.base_url', 'https://mock.test/api/UserGatewayWS/functions');
+        Config::set('services.iletisimmakinesi.originator_id', '1');
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/authenticate')) {
+                return Http::response(['token' => 'FAKE-TOKEN'], 200);
+            }
+
+            return Http::response('<HERMES_RESPONSE><STATUS><CODE>0</CODE><DESC>ok</DESC></STATUS></HERMES_RESPONSE>', 200, ['Content-Type' => 'application/xml']);
+        });
+
+        (new SmsService)->sendSms('5438826976', 'canlı mod');
+
+        Http::assertSentCount(2);
+    }
+
     public function test_it_sends_sms_with_valid_phone_number()
     {
+        // gateway akisini test ediyoruz; ortamin IS_TEST degerine bagli kalmamali
+        Config::set('services.iletisimmakinesi.log_only', false);
         // configure a mock base url so SmsService builds predictable endpoints
         Config::set('services.iletisimmakinesi.base_url', 'https://mock.test/api/UserGatewayWS/functions');
         Config::set('services.iletisimmakinesi.username', 'user');
