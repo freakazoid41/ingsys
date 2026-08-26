@@ -19,7 +19,7 @@
 | **Permissions** | 19 `per-00..08` | **NOT split — reuse `per-05-01/02` for orders, `per-07-01/02` Dökümanlar, `per-06-01/02` Cari**. `PermissionHelpers.php:31` map has `op-doc-order/order-item/transfer → per-05-01/02`. No `per-09`. |
 | **Frontend** `router/index.js:24` | 17 routes | **`/coalpanel/orders` OrderList, `/orders/form/:id` OrderForm** (legacy `/request` + `/offer` kept hidden). Transfer routes kept but menu hidden. |
 | **Sidebar** `Sidebar.vue:200` | Talep/Teklifler | **Siparişler only (Sipariş Listesi + Oluştur)** + `Dökümanlar` + `Firma` + `Yönetim`. Transferler hidden `v-if=false`. |
-| **Build** | — | `app-DDU2gImt.js 889k` — `npm run build` after every Form.vue/router/Sidebar/OForm/OList/OrderItemTable edit. |
+| **Build** | — | `app-PqfQufQN.js` — `npm run build` after every Form.vue/router/Sidebar/OForm/OList/OrderItemTable edit. |
 
 ## 2. Data Model — CRITICAL (Master’s rules)
 
