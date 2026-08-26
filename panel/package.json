@@ -22,10 +22,7 @@
         "@unhead/vue": "^1.11.18",
         "apexcharts": "^5.3.5",
         "chart.js": "^4.4.9",
-<<<<<<< HEAD
-=======
         "dayjs": "^1.11.20",
->>>>>>> coalSYS
         "flatpickr": "^4.6.13",
         "fullcalendar": "^6.1.17",
         "imask": "^7.6.1",
