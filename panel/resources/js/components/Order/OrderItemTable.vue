@@ -18,6 +18,9 @@ export default {
         containerId(){ return 'order-item-table-'+this.orderId+this.containerSuffix; }
     },
     emits: ['select'],
+    mounted(){
+        this.resolveAndBuild();
+    },
     methods:{
         getSelected(){
             return Object.keys(this.selected).filter(k => this.selected[k]);

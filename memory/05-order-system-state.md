@@ -85,8 +85,8 @@ SAP sends flat items: [{BUKRS,LIFNR,EBELN,EBELP,MATNR,TXZ01,MENGE,MEINS,BEDAT,SU
 | `DocumentController.php` PUT | order save reads `transfer_mode`/`selected_items` from payload → calls `processOrderTransfer` |
 | `DocumentController.php` | **NEW `cancelOrder`** controller + route `POST /v1/orders/cancel` |
 | `Form.vue` | + `readonlyFields` prop (forces readOnly/disabled on named fields for order locking) |
-| `OrderItemTable.vue` | + `selectable` prop + checkbox column + `@select` emit (partial item selection) |
-| `OForm.vue` | transfer card: at_once/partial radio + item checkboxes on partial; `canSend` gates (created/files_rejected); `readonlyFields` lock on sent; cancel button |
+| `OrderItemTable.vue` | + `selectable` prop + checkbox column + `@select` emit (partial item selection) + **FIXED: added `mounted()` calling `resolveAndBuild()` (was never called, table never rendered)** |
+| `OForm.vue` | **Items table ALWAYS visible** (removed `!(canSend && transferMode==='partial')` guard); transfer card: at_once/partial radio + item checkboxes on partial; `canSend` gates (created/files_rejected); `readonlyFields` lock on sent; cancel button |
 | `OList.vue` | + `İptal Et` button per row calling `/v1/orders/cancel`; `files_rejected` → red pill |
 
 ## 6. What Still PENDING / Coal

@@ -144,7 +144,7 @@
                         <input type="radio" value="partial" v-model="transferMode"> Parçalı (Seçili Kalemler)
                     </label>
                 </div>
-                <div v-if="transferMode === 'partial'" class="mt-3">
+                <div class="mt-3">
                     <OrderItemTable v-if="loadForm" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" selectable containerSuffix="-sel" @select="onItemsSelected" />
                 </div>
             </div>
@@ -161,8 +161,6 @@
         </div>
 
         <Form formtypes="op-doc-order-form" v-if="loadForm" savebtntitle="Kaydet" :readonlyFields="readonlyFields" :savecallback="submitForm" />
-        <div class="mt-8" v-if="id && loadForm && !(canSend && transferMode === 'partial')">
-            <OrderItemTable :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" />
-        </div>
+        
     </div>
 </template>
