@@ -754,8 +754,9 @@ class DocumentServiceProvider extends ServiceProvider
             if (in_array($documentType->op_key ?? null, ['op-doc-order','op-doc-transfer'])) {
                 $allowed = [
                     'doc_trans_order_created' => ['doc_trans_order_transfer_sent'],
-                    'doc_trans_order_transfer_sent' => ['doc_trans_order_approved','doc_trans_order_rejected'],
-                    'doc_trans_order_files_rejected' => ['doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected'],
+                    'doc_trans_order_transfer_sent' => ['doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected'],
+                    'doc_trans_order_ready_for_shipment' => ['doc_trans_order_approved','doc_trans_order_rejected'],
+                    'doc_trans_order_files_rejected' => ['doc_trans_order_ready_for_shipment','doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected'],
                     'doc_trans_transfer_created' => ['doc_trans_transfer_sent'],
                     'doc_trans_transfer_sent' => ['doc_trans_transfer_approved','doc_trans_transfer_rejected'],
                 ];
@@ -975,10 +976,18 @@ class DocumentServiceProvider extends ServiceProvider
                 return;
             }
 
-            // Walk up the parent chain: item files belong to items whose parent is the order.
+            // Resolve the nearest order. A clone is itself an order, even though it
+            // keeps the original order as its parent for traceability.
             $doc = Documents::where('id', $conn->main_id)->first();
-            while ($doc && (int) $doc->parent_id > 0) {
-                $doc = Documents::where('id', $doc->parent_id)->first();
+            $docTypeKey = $doc
+                ? Sys_options::where('id', $doc->type_id)->value('op_key')
+                : null;
+            while ($doc && ! in_array($docTypeKey, ['op-doc-order', 'op-doc-transfer']) && (int) $doc->parent_id > 0) {
+                $parent = Documents::where('id', $doc->parent_id)->first();
+                $doc = $parent;
+                $docTypeKey = $doc
+                    ? Sys_options::where('id', $doc->type_id)->value('op_key')
+                    : null;
             }
             if (empty($doc)) {
                 return;
@@ -989,9 +998,9 @@ class DocumentServiceProvider extends ServiceProvider
                 return;
             }
 
-            // Collect all active files that belong to this order, including its items.
+            // Collect active files on this order and its direct order items only.
             $orderFileRows = DB::select(
-                "SELECT df.id FROM document_files df
+                "SELECT df.id, sce.entity_tag, d.id AS doc_id FROM document_files df
                  JOIN sys_con_entities sce ON sce.entity_value = df.id::text AND sce.table_tag = 'document_files'
                  JOIN sys_con_ops sco ON sco.id = sce.conn_id
                  JOIN documents d ON d.id = sco.main_id
@@ -1003,6 +1012,28 @@ class DocumentServiceProvider extends ServiceProvider
             if (empty($orderFileRows)) {
                 return;
             }
+
+            // The order-level upload fields are single slots. Some older replacement
+            // records can remain active without a replaced_id link, so only the newest
+            // active file in each slot participates in the order status calculation.
+            $latestOrderSlotFiles = [];
+            $filteredFileRows = [];
+            foreach ($orderFileRows as $fileRow) {
+                $parts = explode('**', (string) ($fileRow->entity_tag ?? ''));
+                $slotKey = ($fileRow->doc_id == $doc->id && in_array($parts[1] ?? null, ['transfer_kabul', 'transfer_cins']))
+                    ? $fileRow->doc_id.'|'.$parts[0].'|'.$parts[1]
+                    : null;
+
+                if ($slotKey !== null) {
+                    if (! isset($latestOrderSlotFiles[$slotKey]) || $fileRow->id > $latestOrderSlotFiles[$slotKey]->id) {
+                        $latestOrderSlotFiles[$slotKey] = $fileRow;
+                    }
+                    continue;
+                }
+
+                $filteredFileRows[] = $fileRow;
+            }
+            $orderFileRows = array_merge($filteredFileRows, array_values($latestOrderSlotFiles));
 
             $hasRejected = false;
             $allAccepted = true;
@@ -1023,7 +1054,7 @@ class DocumentServiceProvider extends ServiceProvider
             if ($hasRejected) {
                 $this->applyOrderStatus($doc, 'doc_trans_order_files_rejected', 'Dosya reddedildi');
             } elseif ($allAccepted && ! empty($orderFileRows)) {
-                $this->applyOrderStatus($doc, 'doc_trans_order_transfer_sent', 'Dosyalar kabul edildi');
+                $this->applyOrderStatus($doc, 'doc_trans_order_ready_for_shipment', 'Tüm aktif dosyalar kabul edildi');
             }
         } catch (\Exception $e) {
             // never break the file status flow because order status sync failed
@@ -1159,10 +1190,20 @@ class DocumentServiceProvider extends ServiceProvider
             // admin checks exactly the files attached to this transfer.
             $this->moveOrderFilesToDocument($order->id, $clone->id);
 
-            // Duplicate the selected items under the clone.
+            // Duplicate the selected items under the clone, including their files.
             if (! empty($selectedItemQnids)) {
                 foreach ($selectedItemQnids as $itemQnid) {
-                    $this->duplicateOrderItem($itemQnid, $clone->id);
+                    $cloneItem = $this->duplicateOrderItem($itemQnid, $clone->id);
+                    if ($cloneItem) {
+                        $sourceItem = Documents::where('qnid', $itemQnid)->first();
+                        if ($sourceItem) {
+                            $this->moveOrderFilesToDocument(
+                                $sourceItem->id,
+                                $cloneItem->id,
+                                'op-doc-order-item-form'
+                            );
+                        }
+                    }
                 }
             }
 
@@ -1192,12 +1233,12 @@ class DocumentServiceProvider extends ServiceProvider
         return ['success' => true, 'msg' => 'Transfer gönderildi (tek seferde)'];
     }
 
-    /** Relinks this order's file entity rows (and file rows) to the target document's form connection. */
-    private function moveOrderFilesToDocument($fromDocId, $toDocId)
+    /** Relinks a document's file entity rows and file rows to another document. */
+    private function moveOrderFilesToDocument($fromDocId, $toDocId, $formKey = 'op-doc-order-form')
     {
         $toConn = Sys_con_ops::where('main_id', $toDocId)
             ->where('conn_id', 0)
-            ->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-form'))
+            ->whereHas('type', fn ($q) => $q->where('op_key', $formKey))
             ->first();
         if (empty($toConn)) {
             return;
@@ -1225,7 +1266,7 @@ class DocumentServiceProvider extends ServiceProvider
     {
         $item = Documents::where('qnid', $itemQnid)->first();
         if (empty($item)) {
-            return;
+            return null;
         }
         $detail = $this->getFormData($item->qnid);
         $form = $detail['formFormat']['op-doc-order-item-form'] ?? [];
@@ -1249,7 +1290,11 @@ class DocumentServiceProvider extends ServiceProvider
                 ],
             ],
         ];
-        $this->registerContent(0, $payload, []);
+        $result = $this->registerContent(0, $payload, []);
+
+        return ! empty($result['qnid'])
+            ? Documents::where('qnid', $result['qnid'])->first()
+            : null;
     }
 
     /** Marks the original order as having shipped some parts, keeping its own status. */

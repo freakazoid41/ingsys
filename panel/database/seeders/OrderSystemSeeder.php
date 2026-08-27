@@ -24,6 +24,7 @@ class OrderSystemSeeder extends Seeder
             // Order lifecycle: created -> transfer_sent (client) -> admin review -> approved/rejected
             ['op_key'=>'doc_trans_order_created', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sipariş Oluşturuldu', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'doc_trans_order_transfer_sent', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Transfer Gönderildi', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'doc_trans_order_ready_for_shipment', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sipariş Sevke Hazır', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'doc_trans_order_approved', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sipariş Onaylandı', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'doc_trans_order_rejected', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sipariş Reddedildi', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'doc_trans_order_files_rejected', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Reddedilen Dosyalar Mevcut', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
