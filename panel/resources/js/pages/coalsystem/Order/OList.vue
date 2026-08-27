@@ -134,34 +134,51 @@
                             btn.style.padding='6px 14px';
                             btn.style.borderRadius='8px';
                             btn.style.fontSize='0.82rem';
-                            btn.style.fontWeight='700';
-                            btn.style.whiteSpace='nowrap';
-                            btn.style.cursor='pointer';
-                            btn.style.border='1px solid transparent';
-                            // screenshot: green Kalite Onayı Verildi, orange Dosyalar Kontrol Ediliyor
-                            if(label.includes('Kalite Onayı') || opKey==='doc_trans_transfer_approved' || opKey==='doc_trans_order_approved'){
-                                btn.style.background='#22c55e';
-                                btn.style.color='#fff';
-                                btn.style.borderColor='#16a34a';
+                             btn.style.fontWeight='700';
+                             btn.style.whiteSpace='nowrap';
+                             btn.style.cursor='pointer';
+                             btn.style.border='1px solid transparent';
+                             if(opKey==='doc_trans_order_ready_for_shipment' || label.includes('Sipariş Sevke Hazır')){
+                                 btn.style.background='#facc15';
+                                 btn.style.color='#713f12';
+                                 btn.style.borderColor='#eab308';
+                             } else if(label.includes('Kalite Onayı') || opKey==='doc_trans_transfer_approved' || opKey==='doc_trans_order_approved'){
+                                 btn.style.background='#22c55e';
+                                 btn.style.color='#fff';
+                                 btn.style.borderColor='#16a34a';
                             } else if(label.includes('Kontrol Ediliyor') || opKey==='doc_trans_transfer_sent' || opKey==='doc_trans_order_transfer_sent' || opKey==='doc_file_waiting'){
                                 btn.style.background='#f97316';
                                 btn.style.color='#fff';
                                 btn.style.borderColor='#ea580c';
                             } else if(opKey.includes('rejected')){
                                 btn.style.background='#ef4444'; btn.style.color='#fff';
-                            } else {
-                                btn.style.background='#e2e8f0'; btn.style.color='#475569'; btn.style.borderColor='#cbd5e1';
-                            }
-                            btn.title='Durum değiştir';
+                             } else {
+                                 btn.style.background='#e2e8f0'; btn.style.color='#475569'; btn.style.borderColor='#cbd5e1';
+                             }
+                             const statusIcons={
+                                 doc_trans_order_created:'fa-file-circle-plus',
+                                 doc_trans_order_transfer_sent:'fa-magnifying-glass',
+                                 doc_trans_order_ready_for_shipment:'fa-truck-fast',
+                                 doc_trans_order_approved:'fa-circle-check',
+                                 doc_trans_order_rejected:'fa-circle-xmark',
+                                 doc_trans_order_files_rejected:'fa-file-circle-xmark',
+                                 doc_file_waiting:'fa-hourglass-half',
+                             };
+                             const icon=document.createElement('i');
+                             icon.className=`fa-solid ${statusIcons[opKey]||''}`;
+                             icon.style.marginRight='7px';
+                             if(statusIcons[opKey]) btn.prepend(icon);
+                             btn.title='Durum değiştir';
                             btn.onclick=()=>{
                                 Swal.fire({
                                     title:'Durum Değiştir',
-                                    showConfirmButton:false, showCloseButton:true,
-                                    html:`<div class="d-flex flex-column gap-2 p-2">
-                                        <button class="btn btn-success doc-status" data-key="doc_trans_transfer_approved" style="background:#22c55e;border:none;">Kalite Onayı Verildi</button>
-                                        <button class="btn doc-status" data-key="doc_trans_transfer_sent" style="background:#f97316;color:#fff;border:none;">Dosyalar Kontrol Ediliyor</button>
-                                        <button class="btn btn-danger doc-status" data-key="doc_trans_transfer_rejected">Reddedildi</button>
-                                    </div>`,
+                                     showConfirmButton:false, showCloseButton:true,
+                                     html:`<div class="d-flex flex-column gap-2 p-2">
+                                         <button class="btn btn-success doc-status" data-key="doc_trans_transfer_approved" style="background:#22c55e;border:none;"><i class="fa-solid fa-circle-check me-2"></i>Kalite Onayı Verildi</button>
+                                         <button class="btn doc-status" data-key="doc_trans_order_ready_for_shipment" style="background:#facc15;color:#713f12;border:none;"><i class="fa-solid fa-truck-fast me-2"></i>Sipariş Sevke Hazır</button>
+                                         <button class="btn doc-status" data-key="doc_trans_transfer_sent" style="background:#f97316;color:#fff;border:none;"><i class="fa-solid fa-magnifying-glass me-2"></i>Dosyalar Kontrol Ediliyor</button>
+                                         <button class="btn btn-danger doc-status" data-key="doc_trans_transfer_rejected"><i class="fa-solid fa-circle-xmark me-2"></i>Reddedildi</button>
+                                     </div>`,
                                     willOpen:()=>{
                                         document.querySelectorAll('.doc-status').forEach(b=>b.addEventListener('click', async e=>{
                                             const fd=new FormData(); fd.append('id',row.id); fd.append('op_key',e.target.dataset.key); fd.append('note','Durum güncellendi');

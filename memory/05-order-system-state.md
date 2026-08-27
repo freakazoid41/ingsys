@@ -48,9 +48,9 @@ SAP sends flat items: [{BUKRS,LIFNR,EBELN,EBELP,MATNR,TXZ01,MENGE,MEINS,BEDAT,SU
 → at_once → order status created→transfer_sent (Dosyalar Kontrol Ediliyor orange)
 → partial → backend clones op-doc-order transfer_no=EBELN-X (duplicates selected items under clone parent_id, moves order files and selected item files to the clone) → clone→transfer_sent; original stays (records partially_sent JSON + transfer_no entity)
 → admin rejects a file → order auto-flips to files_rejected (Reddedilen Dosyalar Mevcut red) via syncOrderStatusFromFiles; all active files accepted → Sipariş Sevke Hazır
-→ admin approves → transfer_sent→approved (Kalite Onayı Verildi green), rejected→terminal red; cancel whole order via /v1/orders/cancel (list İptal Et or detail)
+→ admin approves → ready_for_shipment→approved (Kalite Onayı Verildi green), rejected→terminal red; cancel whole order via /v1/orders/cancel (list İptal Et or detail)
 → files: transfer_kabul/transfer_cins on order + item_test/item_images on item → doc_file_waiting → Dökümanlar tab approve/reject (per-07-02)
-→ rejected file renew: client re-uploads in order detail (files stay editable even when locked), re-saves with a transfer mode → files_rejected→transfer_sent
+→ rejected file renew: client re-uploads in order detail (files stay editable even when locked), re-saves with a transfer mode → files_rejected→transfer_sent; after all active current files are accepted → ready_for_shipment
 ```
 
 ## 5. Files Changed (key)
@@ -68,15 +68,15 @@ SAP sends flat items: [{BUKRS,LIFNR,EBELN,EBELP,MATNR,TXZ01,MENGE,MEINS,BEDAT,SU
 | `panel/resources/js/components/coalparts/Form.vue:2651` | textarea case respects `fitem.rows` (order_desc→3) |
 | `panel/resources/js/components/Order/OrderItemTable.vue` | NEW — order detail items table (resolve qnid→id, `parent_id` filter, Ürün Kodu/Adı/Miktar) |
 | `panel/resources/js/pages/coalsystem/Order/OForm.vue` | imports `OrderItemTable`, items table ALWAYS at top, transfer selection above when canSend, `readonlyFields` lock on sent, cancel button |
-| `panel/resources/js/pages/coalsystem/Order/OList.vue:192,217` | `Detay` button (was Aksiyon), `initialFilter op-doc-order` shows ALL orders (never hide), **uses `order_no` first** (not `transfer_no`) |
+| `panel/resources/js/pages/coalsystem/Order/OList.vue:192,217` | `Detay` button (was Aksiyon), `initialFilter op-doc-order` shows ALL orders (never hide), **uses `order_no` first** (not `transfer_no`), `Sipariş Sevke Hazır` uses a yellow badge with truck icon |
 | `panel/resources/js/pages/coalsystem/Client/CList.vue:195` | `Cari Kodu` column + mobile card |
 | `panel/resources/js/components/coalparts/Sidebar.vue:229` | Transferler hidden `v-if=false` |
 | `panel/resources/js/components/coalparts/Form.vue:2995` | textarea `readonlyFields` support (readOnly + disabled + opacity) |
-| `OrderSystemSeeder.php` | + `doc_trans_order_files_rejected` (Reddedilen Dosyalar Mevcut) in `op-trans-op-doc-order` |
+| `OrderSystemSeeder.php` | + `doc_trans_order_files_rejected` and `doc_trans_order_ready_for_shipment` (`Sipariş Sevke Hazır`) in `op-trans-op-doc-order` |
 | `DocumentServiceProvider.php:932` | `documentFileStatus` now calls `syncOrderStatusFromFiles` after each file status change |
-| `DocumentServiceProvider.php:966` | **`syncOrderStatusFromFiles`** — walks file→conn→doc, finds nearest order (not root), any rejected → order `files_rejected`, all active → `transfer_sent` |
+| `DocumentServiceProvider.php:966` | **`syncOrderStatusFromFiles`** — resolves nearest order without climbing above a clone, moves with clone item ownership, any current rejected → `files_rejected`, all current active files accepted → `ready_for_shipment`; ignores older active rejected order-slot replacements |
 | `DocumentServiceProvider.php:1034` | **`applyOrderStatus`** — writes order status transaction (op-trans-op-doc-order) w/o touching documents.status |
-| `DocumentServiceProvider.php` | **`processOrderTransfer($orderQnid,$mode,$selectedItems)`** — at_once sets order transfer_sent; partial clones EBELN-X + `moveOrderFilesToDocument` + `duplicateOrderItem` + `recordPartiallySent`, sets clone transfer_sent |
+| `DocumentServiceProvider.php` | **`processOrderTransfer($orderQnid,$mode,$selectedItems)`** — at_once sets order transfer_sent; partial clones EBELN-X + moves order and selected item files + duplicates items + `recordPartiallySent`, sets clone transfer_sent |
 | `DocumentServiceProvider.php` | **`cancelOrder($id)`** — soft status=0 + terminal rejected transaction for order/transfer |
 | `Sys_con_ops.php` | added `type()` belongsTo relation (for whereHas lookup) |
 | `DocumentController.php` PUT | order save reads `transfer_mode`/`selected_items` from payload → calls `processOrderTransfer` |
