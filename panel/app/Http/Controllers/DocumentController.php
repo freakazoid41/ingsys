@@ -89,9 +89,9 @@ class DocumentController extends Controller
                 // uploads — they never appear in $request->files. Merge them back so
                 // registerContent() can finalize the pending temp files.
                 $files = $request->files->all();
-                foreach ($request->all() as $key => $value) {
-                    if (strpos($key, 'dynamicFile') !== false && is_string($value)) {
-                        $files[$key] = $value;
+                foreach ($request->all() as $fkey => $value) {
+                    if (strpos($fkey, 'dynamicFile') !== false && is_string($value)) {
+                        $files[$fkey] = $value;
                     }
                 }
                 $res = (new DocumentServiceProvider())->registerContent(0,$req,$files);
@@ -150,10 +150,13 @@ class DocumentController extends Controller
                 }
 
                 // temp-upload references arrive as plain multipart string fields; merge them
-                // into $files so registerContent() can finalize the pending temp files
-                foreach ($data as $key => $value) {
-                    if (strpos($key, 'dynamicFile') !== false && is_string($value)) {
-                        $files[$key] = $value;
+                // into $files so registerContent() can finalize the pending temp files.
+                // NB: do NOT reuse $key as the loop variable — $key holds the resolved document
+                // type (op-doc-order / op-doc-offer / ...) and is needed below for the transfer
+                // and offer-revision logic. Overwriting it silently kills those branches.
+                foreach ($data as $fkey => $value) {
+                    if (strpos($fkey, 'dynamicFile') !== false && is_string($value)) {
+                        $files[$fkey] = $value;
                     }
                 }
 

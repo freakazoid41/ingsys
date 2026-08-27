@@ -192,4 +192,5 @@ Supplier read-only vs admin edit branch is common (see `RForm.vue:150`).
 - **`her_ikisi` switch** — documents with `her_ikisi=1` bypass `grp_code` filter (shown to both tenants), handled in `Documents::tableList`
 - **`permission_version` cache store `file`** → deleting `permissions.user.*` keys doesn't affect DB cache store, `refreshAllUserPermissions` is buggy — after role changes, users must relogin if heartbeat fails
 - **Sys_code DOM read** → `Header/Sidebar/Dashboard` read `input[name=SYS_CODE].value` — if blade snippet removed, they crash. Inject via `coalapp.blade.php` hidden input.
+- **`$key` clobbering in DocumentController PUT** → `foreach ($data as $key => $value)` overwrites `$key` (set from `getFormData` as `op-doc-order`). Use `$fkey` as loop variable. Fixes transfer/offer/client logic after the loop. (`DocumentController.php:154`)
 

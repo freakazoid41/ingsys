@@ -132,31 +132,54 @@
 </script>
 <template>
     <div style="padding-bottom: 100px;">
-        <div class="card mb-6" v-if="id && canSend">
-            <div class="card-body">
-                <h4 class="mb-3" style="font-weight:800;color:#0f172a;">Transfer Gönder</h4>
-                <p class="text-muted fs-7 mb-3">Transfer türünü seçin ve kaydedin. Parçalı seçerseniz gönderilecek kalemleri işaretleyin.</p>
-                <div class="d-flex gap-5 mb-3">
-                    <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-                        <input type="radio" value="at_once" v-model="transferMode"> Tek Seferde (Tüm Sipariş)
+        <div class="card mb-6" v-if="id && loadForm" style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02);">
+            <div v-if="canSend" style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-bottom:1px solid #bfdbfe;padding:16px 20px;">
+                <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:#3b82f6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0;box-shadow:0 2px 6px rgba(59,130,246,0.3);">
+                        <i class="ki-outline ki-send"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0 0 2px;font-size:0.95rem;font-weight:700;color:#0f172a;">Transfer Gönder</h4>
+                        <p style="margin:0;font-size:0.78rem;color:#64748b;line-height:1.4;">Transfer türünü seçin ve kaydedin. Parçalı seçerseniz gönderilecek kalemleri işaretleyin.</p>
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;">
+                    <label class="transfer-mode-option" :class="{ active: transferMode === 'at_once' }" style="flex:1;display:flex;align-items:center;gap:12px;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all 0.2s;background:#fff;">
+                        <input type="radio" value="at_once" v-model="transferMode" class="d-none">
+                        <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:center;color:#3b82f6;font-size:14px;flex-shrink:0;">
+                            <i class="ki-outline ki-direct-right"></i>
+                        </div>
+                        <div><div style="font-weight:700;font-size:0.85rem;color:#0f172a;">Tek Seferde</div><div style="font-size:0.72rem;color:#94a3b8;">Tüm sipariş gönderilir</div></div>
                     </label>
-                    <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-                        <input type="radio" value="partial" v-model="transferMode"> Parçalı (Seçili Kalemler)
+                    <label class="transfer-mode-option" :class="{ active: transferMode === 'partial' }" style="flex:1;display:flex;align-items:center;gap:12px;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all 0.2s;background:#fff;">
+                        <input type="radio" value="partial" v-model="transferMode" class="d-none">
+                        <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;color:#d97706;font-size:14px;flex-shrink:0;">
+                            <i class="ki-outline ki-slice"></i>
+                        </div>
+                        <div><div style="font-weight:700;font-size:0.85rem;color:#0f172a;">Parçalı</div><div style="font-size:0.72rem;color:#94a3b8;">Seçili kalemler gönderilir</div></div>
                     </label>
                 </div>
-                <div class="mt-3">
-                    <OrderItemTable v-if="loadForm" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" selectable containerSuffix="-sel" @select="onItemsSelected" />
-                </div>
+            </div>
+            <div style="background:#fff;padding:0;">
+                <OrderItemTable :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :selectable="canSend && transferMode==='partial'" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" />
             </div>
         </div>
 
-        <div class="card mb-6" v-if="id && isLocked">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="badge bg-warning text-dark mb-2">Sipariş kilitli</span>
-                    <p class="mb-0 text-muted fs-7">Sipariş transfer için gönderildi. Açıklama ve imalatçı bilgileri kilitlendi; dosyalar yine de güncellenebilir.</p>
+        <div class="locked-card mb-6" v-if="id && isLocked">
+            <div class="locked-card-body">
+                <div class="locked-card-left">
+                    <div class="locked-card-icon">
+                        <i class="ki-outline ki-lock"></i>
+                    </div>
+                    <div>
+                        <div class="locked-card-badge">Sipariş Kilitli</div>
+                        <p class="locked-card-text">Açıklama ve imalatçı bilgileri kilitlendi; dosyalar yine de güncellenebilir.</p>
+                    </div>
                 </div>
-                <button class="btn btn-danger" @click="cancelOrder" v-if="authStore.permissions?.includes('per-05-02')"><i class="ki-outline ki-trash"></i> İptal Et</button>
+                <button class="locked-cancel-btn" @click="cancelOrder" v-if="authStore.permissions?.includes('per-05-02')">
+                    <i class="ki-outline ki-trash"></i>
+                    <span>İptal Et</span>
+                </button>
             </div>
         </div>
 
@@ -164,3 +187,78 @@
         
     </div>
 </template>
+<style scoped>
+.transfer-mode-option:hover {
+    border-color: #93c5fd !important;
+    background: #f8fafc !important;
+}
+.transfer-mode-option.active {
+    border-color: #3b82f6 !important;
+    background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%) !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.locked-card {
+    border: 1px solid #fef3c7;
+    border-radius: 14px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+.locked-card-body {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+.locked-card-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.locked-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #f59e0b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 17px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(245,158,11,0.3);
+}
+.locked-card-badge {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: #92400e;
+    margin-bottom: 2px;
+}
+.locked-card-text {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #a16207;
+    line-height: 1.4;
+}
+.locked-cancel-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #fff;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.locked-cancel-btn:hover {
+    background: #fef2f2;
+    border-color: #f87171;
+    box-shadow: 0 1px 4px rgba(220,38,38,0.15);
+}
+</style>

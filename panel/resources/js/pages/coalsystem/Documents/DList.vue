@@ -133,6 +133,8 @@
                 let oldVersions = [];
                 try { oldVersions = JSON.parse(rowData?.old_versions ?? '[]') || []; } catch(e){ oldVersions = []; }
                 if(oldVersions.length){
+                    oldVersions.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
                     oldVersions.forEach((version, i) => {
                         const li = document.createElement('li');
                         li.classList.add('list-group-item','p-1');

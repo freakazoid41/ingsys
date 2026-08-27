@@ -241,8 +241,10 @@
                             const attrs = JSON.parse(data.main_attr||'[]');
                             attrs.forEach(el=>{ data[el['Key']]=el['Value']; });
                         }catch(e){}
-                        // fallbacks for display
-                        data.transfer_no = data['transfer_no'] || data['order_no'] || data['EBELN'] || data['transfer_no'] || '-';
+                        // fallbacks for display — order_no is always the correct display number
+                        // (main order = base EBELN, clone = EBELN-X). transfer_no on main order
+                        // is metadata set by recordPartiallySent and should NOT be displayed.
+                        data.transfer_no = data['order_no'] || data['EBELN'] || data['transfer_no'] || '-';
                         data.ctitle = data['ctitle'] || data['MCOD1'] || data['clititle'] || data['spec_code'] || '-';
                         data.buying_no = data['buying_no'] || data['SUBMI'] || '-';
                         // Sipariş Tarih: BEDAT or transfer creation entity
@@ -271,74 +273,172 @@
     }
 </script>
 <template>
-    <div class="card" style="border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-        <div class="card-header" style="background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-            <h3 class="card-title" style="font-size:1.1rem;font-weight:800;color:#0f172a;margin:0;">Sipariş Listesi</h3>
-            <div class="d-flex gap-2 align-items-center flex-wrap">
-                <div class="position-relative">
-                    <i class="ki-outline ki-magnifier position-absolute top-50 start-0 ms-3 translate-middle-y text-muted"></i>
-                    <input id="mainSearch" class="form-control ps-10" placeholder="Sipariş ara..." style="height:38px;width:260px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+    <div class="order-list-card">
+        <div class="order-list-header">
+            <div class="order-list-header-left">
+                <div class="order-list-icon">
+                    <i class="ki-outline ki-document"></i>
                 </div>
-                <button class="btn btn-primary" @click="searchTable" style="height:38px;border-radius:8px;background:#154b91;border:none;">Ara</button>
-                <button class="btn btn-light" @click="resetSearch" style="height:38px;border-radius:8px;">Sıfırla</button>
-                <button class="btn btn-light" @click="exportTable" style="height:38px;border-radius:8px;"><i class="ki-outline ki-exit-down"></i> Excel</button>
-                <button class="btn btn-light" style="height:38px;border-radius:8px;"><i class="ki-outline ki-filter"></i> Filtreler</button>
-                <button class="btn btn-light" style="height:38px;border-radius:8px;"><i class="ki-outline ki-setting-2"></i> Detaylı Filtre</button>
+                <h3 class="order-list-title">Sipariş Listesi</h3>
+            </div>
+            <div class="order-list-actions">
+                <div class="order-search-wrap">
+                    <i class="ki-outline ki-magnifier order-search-icon"></i>
+                    <input id="mainSearch" class="order-search-input" placeholder="Sipariş ara..." @keyup.enter="searchTable">
+                </div>
+                <button class="order-btn order-btn-primary" @click="searchTable">Ara</button>
+                <button class="order-btn order-btn-ghost" @click="resetSearch">Sıfırla</button>
+                <button class="order-btn order-btn-ghost" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel</button>
             </div>
         </div>
-        <div class="card-body p-0" style="background:#f8fafc;">
+        <div class="order-list-body">
             <div id="div_table"></div>
         </div>
     </div>
 </template>
 <style scoped>
+.order-list-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+}
+.order-list-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.order-list-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.order-list-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    font-size: 17px;
+}
+.order-list-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+.order-list-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.order-search-wrap {
+    position: relative;
+}
+.order-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 15px;
+    pointer-events: none;
+}
+.order-search-input {
+    height: 38px;
+    width: 240px;
+    padding: 0 12px 0 36px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.84rem;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.order-search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.order-search-input::placeholder { color: #94a3b8; }
+.order-btn {
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    border: none;
+    white-space: nowrap;
+}
+.order-btn-primary {
+    background: #3b82f6;
+    color: #fff;
+}
+.order-btn-primary:hover { background: #2563eb; box-shadow: 0 2px 6px rgba(59,130,246,0.3); }
+.order-btn-ghost {
+    background: #fff;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+.order-btn-ghost:hover { background: #f8fafc; border-color: #cbd5e1; }
+.order-list-body {
+    background: #fff;
+    min-height: 120px;
+}
 :deep(.pickletable table){
-    border-collapse:separate !important;
-    border-spacing:0 8px !important;
-    background:#f8fafc !important;
-    padding: 8px 12px !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100%;
 }
 :deep(.pickletable thead th){
-    background:#f8fafc !important;
-    color:#64748b !important;
-    font-size:0.78rem !important;
-    font-weight:600 !important;
-    text-transform:none !important;
-    border:none !important;
-    padding:10px 12px !important;
+    background: #f8fafc !important;
+    color: #64748b !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    padding: 11px 16px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-top: none !important;
 }
 :deep(.pickletable tbody tr){
-    background:#fff !important;
-    border:1px solid #e2e8f0 !important;
-    border-radius:10px !important;
-    box-shadow:0 1px 2px rgba(0,0,0,0.04) !important;
-    overflow:hidden;
+    background: #fff !important;
+    transition: all 0.15s ease !important;
 }
 :deep(.pickletable tbody tr:hover){
-    background:#fff !important;
-    box-shadow:0 2px 6px rgba(0,0,0,0.08) !important;
+    background: #f8fafc !important;
 }
 :deep(.pickletable tbody td){
-    border:none !important;
-    padding:14px 12px !important;
-    font-size:0.88rem !important;
-    vertical-align:middle !important;
-    border-top:1px solid #e2e8f0 !important;
-    border-bottom:1px solid #e2e8f0 !important;
+    padding: 13px 16px !important;
+    font-size: 0.86rem !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    vertical-align: middle !important;
 }
-:deep(.pickletable tbody td:first-child){
-    border-left:1px solid #e2e8f0 !important;
-    border-top-left-radius:10px !important;
-    border-bottom-left-radius:10px !important;
-}
-:deep(.pickletable tbody td:last-child){
-    border-right:1px solid #e2e8f0 !important;
-    border-top-right-radius:10px !important;
-    border-bottom-right-radius:10px !important;
+:deep(.pickletable tbody tr:last-child td){
+    border-bottom: none !important;
 }
 :deep(.pickletable .divPagination){
-    background:#fff !important;
-    border-top:1px solid #e2e8f0 !important;
-    padding:12px !important;
+    background: #fff !important;
+    border-top: 1px solid #f1f5f9 !important;
+    padding: 10px 16px !important;
 }
 </style>

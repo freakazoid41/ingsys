@@ -3003,6 +3003,12 @@
                             else if(fitem.name === 'order_desc') input.rows = 3;
                             input.classList.add(...fitem.class);
                             if(fitem?.required !== undefined) input.required = fitem.required;
+                            if(this.readonlyFields.includes(fitem.name)){
+                                input.readOnly = true;
+                                input.disabled = true;
+                                input.style.opacity = '0.6';
+                                input.style.cursor = 'not-allowed';
+                            }
 
                         
                             if(fitem?.hidden) input.hidden = fitem.hidden;
