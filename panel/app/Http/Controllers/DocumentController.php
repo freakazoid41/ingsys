@@ -169,7 +169,8 @@ class DocumentController extends Controller
                 $transferMode = $decoded['transfer_mode'] ?? null;
                 if ($key == 'op-doc-order' && in_array($transferMode, ['at_once', 'partial'])) {
                     $selectedItems = $decoded['selected_items'] ?? [];
-                    $transferRes = (new DocumentServiceProvider())->processOrderTransfer($request->id, $transferMode, $selectedItems);
+                    $itemSerials = $decoded['item_serials'] ?? [];
+                    $transferRes = (new DocumentServiceProvider())->processOrderTransfer($request->id, $transferMode, $selectedItems, $itemSerials);
                     if (! empty($transferRes['transfer_no'])) {
                         $res['transfer_no'] = $transferRes['transfer_no'];
                         $res['clone_qnid'] = $transferRes['clone_qnid'] ?? null;

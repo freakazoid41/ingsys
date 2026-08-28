@@ -1125,7 +1125,7 @@ class DocumentServiceProvider extends ServiceProvider
      *
      * @return array
      */
-    public function processOrderTransfer($orderQnid, $mode, $selectedItemQnids = [])
+    public function processOrderTransfer($orderQnid, $mode, $selectedItems = [], $itemSerials = [])
     {
         $order = Documents::where('qnid', $orderQnid)->first();
         if (empty($order)) {
@@ -1209,11 +1209,24 @@ class DocumentServiceProvider extends ServiceProvider
             // admin checks exactly the files attached to this transfer.
             $this->moveOrderFilesToDocument($order->id, $clone->id);
 
-            // Duplicate the selected items under the clone, including their files.
-            if (! empty($selectedItemQnids)) {
-                foreach ($selectedItemQnids as $itemQnid) {
-                    $cloneItem = $this->duplicateOrderItem($itemQnid, $clone->id);
+            // Duplicate the selected items under the clone, with split amounts and quantity decrement.
+            if (! empty($selectedItems)) {
+                foreach ($selectedItems as $item) {
+                    $itemQnid = is_array($item) ? ($item['qnid'] ?? '') : $item;
+                    $splitAmount = is_array($item) ? (float) ($item['amount'] ?? 0) : 0;
+                    $serials = is_array($item) ? ($item['serials'] ?? []) : [];
+                    if (empty($itemQnid) || $splitAmount <= 0) continue;
+
+                    $cloneItem = $this->duplicateOrderItem($itemQnid, $clone->id, $splitAmount);
                     if ($cloneItem) {
+                        // Decrement original item's quantity
+                        $this->decrementItemQuantity($itemQnid, $splitAmount);
+
+                        // Create serial entries if provided
+                        if (! empty($serials)) {
+                            $this->createSerialEntries($cloneItem->id, $serials);
+                        }
+
                         $sourceItem = Documents::where('qnid', $itemQnid)->first();
                         if ($sourceItem) {
                             $this->moveOrderFilesToDocument(
@@ -1247,6 +1260,19 @@ class DocumentServiceProvider extends ServiceProvider
         }
 
         // At-once: the order itself is the transfer being sent.
+        // Process serials for all items if provided.
+        if (! empty($itemSerials)) {
+            foreach ($itemSerials as $itemSerial) {
+                $itemQnid = $itemSerial['qnid'] ?? '';
+                $serials = $itemSerial['serials'] ?? [];
+                if (empty($itemQnid) || empty($serials)) continue;
+                $itemDoc = Documents::where('qnid', $itemQnid)->first();
+                if ($itemDoc) {
+                    $this->createSerialEntries($itemDoc->id, $serials);
+                }
+            }
+        }
+
         $st = $this->setStatus($order->qnid, 'doc_trans_order_transfer_sent', 'Transfer gönderildi (tek seferde)');
         if (! ($st['success'] ?? false)) {
             return ['success' => false, 'msg' => 'Sipariş durumu güncellenemedi: '.($st['msg'] ?? '')];
@@ -1320,8 +1346,8 @@ class DocumentServiceProvider extends ServiceProvider
         }
     }
 
-    /** Duplicates a single order item under a new parent order id. */
-    private function duplicateOrderItem($itemQnid, $newParentId)
+    /** Duplicates a single order item under a new parent order id, with optional split amount. */
+    private function duplicateOrderItem($itemQnid, $newParentId, $splitAmount = 0)
     {
         $item = Documents::where('qnid', $itemQnid)->first();
         if (empty($item)) {
@@ -1338,6 +1364,15 @@ class DocumentServiceProvider extends ServiceProvider
             }
         }
         unset($entities['qnid']);
+
+        // If split amount provided, override quantity and store split metadata
+        if ($splitAmount > 0) {
+            $unit = $entities['unit'] ?? 'ST';
+            $entities['quantity'] = $unit === 'ST' ? (string) (int) $splitAmount : (string) $splitAmount;
+            $entities['split_from_qnid'] = $itemQnid;
+            $entities['split_amount'] = (string) $splitAmount;
+            $entities['original_quantity'] = (string) $splitAmount;
+        }
 
         $payload = [
             'typeKey' => 'op-doc-order-item',
@@ -1387,6 +1422,173 @@ class DocumentServiceProvider extends ServiceProvider
         }
         $descEntity->entity_value = $transferNo;
         $descEntity->save();
+    }
+
+    /**
+     * Decrements an order item's quantity by the given split amount.
+     * On first split, stores original_quantity for history.
+     */
+    private function decrementItemQuantity($itemQnid, $splitAmount)
+    {
+        $item = Documents::where('qnid', $itemQnid)->first();
+        if (empty($item)) return;
+
+        $conn = Sys_con_ops::where('main_id', $item->id)
+            ->where('conn_id', 0)
+            ->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-item-form'))
+            ->first();
+        if (empty($conn)) return;
+
+        // Get current quantity and unit
+        $qtyEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'quantity', 'table_tag' => 'sys_con_ops'])->first();
+        if (empty($qtyEntity)) return;
+
+        $currentQty = (float) $qtyEntity->entity_value;
+        $newQty = $currentQty - $splitAmount;
+
+        // Store original_quantity on first split (before decrementing)
+        $this->storeOriginalQuantity($conn->id, $currentQty);
+
+        // Validate: can't go below 0
+        if ($newQty < 0) $newQty = 0;
+
+        // Get unit for type enforcement
+        $unitEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'unit', 'table_tag' => 'sys_con_ops'])->first();
+        $unit = $unitEntity->entity_value ?? 'ST';
+
+        // ST = integer, KG/M = float
+        $qtyEntity->entity_value = $unit === 'ST' ? (string) (int) $newQty : (string) round($newQty, 2);
+        $qtyEntity->save();
+    }
+
+    /**
+     * Stores the original quantity of an item before its first split.
+     * Only writes if original_quantity doesn't already exist.
+     */
+    private function storeOriginalQuantity($connId, $originalQty)
+    {
+        $existing = Sys_con_entities::where([
+            'conn_id' => $connId,
+            'entity_tag' => 'original_quantity',
+            'table_tag' => 'sys_con_ops'
+        ])->first();
+
+        if (empty($existing)) {
+            Sys_con_entities::create([
+                'conn_id' => $connId,
+                'entity_tag' => 'original_quantity',
+                'entity_value' => (string) $originalQty,
+                'table_tag' => 'sys_con_ops',
+            ]);
+        }
+    }
+
+    /**
+     * Creates serial number documents parented to an order item.
+     * Each serial is its own Documents record with EAV entities.
+     */
+    private function createSerialEntries(int $parentItemId, array $serials): void
+    {
+        $serialTypeId = Sys_options::where('op_key', 'op-doc-order-serial')->first()?->id;
+        $serialFormTypeId = Sys_options::where('op_key', 'op-doc-order-serial-form')->first()?->id;
+        $formMainId = Sys_options::where('op_key', 'form-main')->first()?->id;
+
+        if (empty($serialTypeId) || empty($serialFormTypeId)) {
+            return;
+        }
+
+        // Mark parent item as having serials
+        $this->setHasSerialsFlag($parentItemId);
+
+        foreach ($serials as $serial) {
+            $serialNo = trim($serial['serial_no'] ?? '-');
+            $productionDate = trim($serial['production_date'] ?? '');
+            $quantity = (float) ($serial['quantity'] ?? 0);
+            $unit = trim($serial['unit'] ?? 'ST');
+
+            if ($quantity <= 0) continue;
+
+            // Create serial document
+            $doc = new Documents();
+            $doc->type_id = $serialTypeId;
+            $doc->person_id = 'system';
+            $doc->parent_id = $parentItemId;
+            $doc->save();
+
+            // Birth transaction
+            $birthType = Sys_options::where('op_key', 'doc_trans_created')->first();
+            if ($birthType) {
+                $logTypeId = Sys_options::where('op_key', 'log-order-update')->first()?->id ?? 0;
+                $userId = DB::table('users')->where('status', 1)->first()?->id ?? 0;
+                $log = UserLog::create([
+                    'user_id' => $userId,
+                    'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                    'relation' => 'documents',
+                    'relation_id' => $doc->id,
+                    'type_id' => $logTypeId,
+                    'description' => json_encode(['desc' => 'Seri Numarası Oluşturuldu']),
+                ]);
+                Transactions::create([
+                    'op_id' => 0,
+                    'type_id' => $birthType->id,
+                    'log_id' => $log->id,
+                    'target_id' => $doc->id,
+                    'description' => 'Seri Numarası Oluşturuldu',
+                ]);
+            }
+
+            // EAV entities
+            $conn = new Sys_con_ops();
+            $conn->main_id = $doc->id;
+            $conn->conn_id = 0;
+            $conn->type_id = $serialFormTypeId;
+            $conn->sub_type_id = $formMainId;
+            $conn->save();
+
+            $entities = [
+                'serial_no' => $serialNo,
+                'production_date' => $productionDate,
+                'quantity' => $unit === 'ST' ? (string) (int) $quantity : (string) $quantity,
+                'unit' => $unit,
+            ];
+
+            foreach ($entities as $tag => $value) {
+                Sys_con_entities::create([
+                    'conn_id' => $conn->id,
+                    'entity_tag' => $tag,
+                    'entity_value' => (string) $value,
+                    'table_tag' => 'sys_con_ops',
+                ]);
+            }
+        }
+    }
+
+    /** Sets the has_serials flag on an order item's EAV. */
+    private function setHasSerialsFlag(int $itemId): void
+    {
+        $conn = Sys_con_ops::where('main_id', $itemId)
+            ->where('conn_id', 0)
+            ->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-item-form'))
+            ->first();
+        if (empty($conn)) return;
+
+        $entity = Sys_con_entities::where([
+            'conn_id' => $conn->id,
+            'entity_tag' => 'has_serials',
+            'table_tag' => 'sys_con_ops'
+        ])->first();
+
+        if (empty($entity)) {
+            Sys_con_entities::create([
+                'conn_id' => $conn->id,
+                'entity_tag' => 'has_serials',
+                'entity_value' => '1',
+                'table_tag' => 'sys_con_ops',
+            ]);
+        } else {
+            $entity->entity_value = '1';
+            $entity->save();
+        }
     }
 
     /**

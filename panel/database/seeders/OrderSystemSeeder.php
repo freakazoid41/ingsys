@@ -13,11 +13,13 @@ class OrderSystemSeeder extends Seeder
             // ---- Document Types ----
             ['op_key'=>'op-doc-order', 'group_key'=>'op-doc', 'title'=>'Sipariş', 'ttitle'=>'-', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'op-doc-order-item', 'group_key'=>'op-doc', 'title'=>'Sipariş Kalemi', 'ttitle'=>'-', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'op-doc-order-serial', 'group_key'=>'op-doc', 'title'=>'Seri Numarası', 'ttitle'=>'-', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'op-doc-transfer', 'group_key'=>'op-doc', 'title'=>'Transfer', 'ttitle'=>'-', 'ctitle'=>'type_id', 'parent_id'=>0],
 
             // ---- Forms ----
             ['op_key'=>'op-doc-order-form', 'group_key'=>'op-doc-forms', 'title'=>'Sipariş Formu', 'ttitle'=>'Documents', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'op-doc-order-item-form', 'group_key'=>'op-doc-forms', 'title'=>'Sipariş Kalem Formu', 'ttitle'=>'Documents', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'op-doc-order-serial-form', 'group_key'=>'op-doc-forms', 'title'=>'Seri Formu', 'ttitle'=>'Documents', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'op-doc-transfer-form', 'group_key'=>'op-doc-forms', 'title'=>'Transfer Formu', 'ttitle'=>'Documents', 'ctitle'=>'type_id', 'parent_id'=>0],
 
             // ---- Order/Transfer status machine (op-trans-op-doc-order, op-trans-op-doc-transfer) ----

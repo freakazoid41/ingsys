@@ -49,6 +49,7 @@
                 rawData: {},
                 transferMode: 'at_once',
                 selectedItems: [],
+                allItemSerials: [],
             };
         },
         computed: {
@@ -78,6 +79,22 @@
                 if(this.isFilesLocked) fields.push('transfer_kabul_file','transfer_cins_file');
                 return fields;
             },
+            isCloneOrder(){
+                const orderNo = this.orderEntities?.order_no || '';
+                return /\-\d+$/.test(orderNo);
+            },
+            parentOrderNo(){
+                const orderNo = this.orderEntities?.order_no || '';
+                return this.isCloneOrder ? orderNo.replace(/\-\d+$/, '') : null;
+            },
+            orderEntities(){
+                const form = this.rawData?.formFormat?.['op-doc-order-form'] || this.formDataStore?.rawData?.formFormat?.['op-doc-order-form'] || {};
+                for (const connId in form) {
+                    const entities = form[connId]?.entities;
+                    if (entities && entities.order_no) return entities;
+                }
+                return {};
+            },
         },
         methods: {
             async submitForm(formData){
@@ -93,7 +110,38 @@
                             this.plib.toast(this.Swal,'info','Parçalı transfer için en az bir kalem seçmelisiniz.',()=>{});
                             return;
                         }
+                        const invalid = this.selectedItems.find(i => !i.amount || i.amount <= 0);
+                        if(invalid){
+                            this.navigationStore.toggle(false);
+                            this.plib.toast(this.Swal,'info','Her kalem için geçerli bir bölme miktarı girmelisiniz.',()=>{});
+                            return;
+                        }
+                        // Validate serials
+                        for(const item of this.selectedItems){
+                            if(!item.serials || !item.serials.length) continue;
+                            for(const s of item.serials){
+                                if(!s.production_date){
+                                    this.navigationStore.toggle(false);
+                                    this.plib.toast(this.Swal,'info','Tüm seri numaraları için üretim tarihi girmelisiniz.',()=>{});
+                                    return;
+                                }
+                            }
+                        }
                         this.formData.selected_items = this.selectedItems;
+                    }
+                    // At_once mode: pass serials for all items
+                    if(this.transferMode === 'at_once' && this.allItemSerials.length){
+                        // Validate serial dates
+                        for(const item of this.allItemSerials){
+                            for(const s of item.serials){
+                                if(!s.production_date){
+                                    this.navigationStore.toggle(false);
+                                    this.plib.toast(this.Swal,'info','Tüm seri numaraları için üretim tarihi girmelisiniz.',()=>{});
+                                    return;
+                                }
+                            }
+                        }
+                        this.formData.item_serials = this.allItemSerials;
                     }
                 }
 
@@ -128,6 +176,9 @@
             onItemsSelected(items){
                 this.selectedItems = items;
             },
+            onItemSerials(serials){
+                this.allItemSerials = serials;
+            },
             async cancelOrder(){
                 const conf = await this.Swal.fire({
                     title:'Siparişi İptal Et',
@@ -140,6 +191,38 @@
                 this.plib.toast(this.Swal, rsp.success?'success':'error', rsp.msg||'İşlem Tamamlandı',()=>{
                     if(rsp.success) this.$router.push({name:'OrderList'});
                 });
+            },
+            async navigateToParentOrder(){
+                if(!this.parentOrderNo) return;
+                try{
+                    const fd = new FormData();
+                    fd.append('tableReq', JSON.stringify({
+                        filter: [
+                            { key:'form-type', type:'=', value:'op-doc-order-form' },
+                            { key:'type', type:'=', value:'op-doc-order' },
+                            { key:'all', type:'=', value: this.parentOrderNo }
+                        ],
+                        scale: { page: 1, limit: 5 },
+                        order: { key: 'id', style: 'asc' }
+                    }));
+                    const rsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
+                    const rows = rsp?.data?.data || rsp?.data || [];
+                    const list = Array.isArray(rows) ? rows : (rows?.data || []);
+                    const match = list.find(r => {
+                        try {
+                            const attrs = JSON.parse(r.main_attr || '[]');
+                            const orderNo = attrs.find(a => a.Key === 'order_no');
+                            return orderNo && orderNo.Value === this.parentOrderNo;
+                        } catch(e) { return false; }
+                    });
+                    if(match){
+                        this.$router.push({name:'OrderForm', params:{id: match.id}});
+                    } else {
+                        this.plib.toast(this.Swal, 'info', 'Orijinal sipariş bulunamadı: ' + this.parentOrderNo);
+                    }
+                } catch(e) {
+                    console.error('navigateToParentOrder failed', e);
+                }
             }
         }
     }
@@ -147,35 +230,53 @@
 <template>
     <div style="padding-bottom: 100px;">
         <div class="card mb-6" v-if="id && loadForm" style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02);">
-            <div v-if="canSend" style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-bottom:1px solid #bfdbfe;padding:16px 20px;">
-                <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
-                    <div style="width:36px;height:36px;border-radius:10px;background:#3b82f6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0;box-shadow:0 2px 6px rgba(59,130,246,0.3);">
+            <div v-if="canSend" style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-bottom:1px solid #bfdbfe;padding:20px 24px;">
+                <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:16px;">
+                    <div style="width:42px;height:42px;border-radius:12px;background:#3b82f6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;flex-shrink:0;box-shadow:0 2px 6px rgba(59,130,246,0.3);">
                         <i class="ki-outline ki-send"></i>
                     </div>
                     <div>
-                        <h4 style="margin:0 0 2px;font-size:0.95rem;font-weight:700;color:#0f172a;">Transfer Gönder</h4>
-                        <p style="margin:0;font-size:0.78rem;color:#64748b;line-height:1.4;">Transfer türünü seçin ve kaydedin. Parçalı seçerseniz gönderilecek kalemleri işaretleyin.</p>
+                        <h4 style="margin:0 0 4px;font-size:1.08rem;font-weight:700;color:#0f172a;">Transfer Gönder</h4>
+                        <p style="margin:0;font-size:0.88rem;color:#64748b;line-height:1.5;">Transfer türünü seçin ve kaydedin. Parçalı seçerseniz gönderilecek kalemleri işaretleyin.</p>
                     </div>
                 </div>
-                <div style="display:flex;gap:12px;">
-                    <label class="transfer-mode-option" :class="{ active: transferMode === 'at_once' }" style="flex:1;display:flex;align-items:center;gap:12px;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all 0.2s;background:#fff;">
+                <div style="display:flex;gap:14px;">
+                    <label class="transfer-mode-option" :class="{ active: transferMode === 'at_once' }" style="flex:1;display:flex;align-items:center;gap:14px;padding:14px 18px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all 0.2s;background:#fff;">
                         <input type="radio" value="at_once" v-model="transferMode" class="d-none">
-                        <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:center;color:#3b82f6;font-size:14px;flex-shrink:0;">
+                        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:center;color:#3b82f6;font-size:17px;flex-shrink:0;">
                             <i class="ki-outline ki-direct-right"></i>
                         </div>
-                        <div><div style="font-weight:700;font-size:0.85rem;color:#0f172a;">Tek Seferde</div><div style="font-size:0.72rem;color:#94a3b8;">Tüm sipariş gönderilir</div></div>
+                        <div><div style="font-weight:700;font-size:0.95rem;color:#0f172a;">Tek Seferde</div><div style="font-size:0.82rem;color:#94a3b8;">Tüm sipariş gönderilir</div></div>
                     </label>
-                    <label class="transfer-mode-option" :class="{ active: transferMode === 'partial' }" style="flex:1;display:flex;align-items:center;gap:12px;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all 0.2s;background:#fff;">
+                    <label class="transfer-mode-option" :class="{ active: transferMode === 'partial' }" style="flex:1;display:flex;align-items:center;gap:14px;padding:14px 18px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all 0.2s;background:#fff;">
                         <input type="radio" value="partial" v-model="transferMode" class="d-none">
-                        <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;color:#d97706;font-size:14px;flex-shrink:0;">
+                        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;color:#d97706;font-size:17px;flex-shrink:0;">
                             <i class="ki-outline ki-slice"></i>
                         </div>
-                        <div><div style="font-weight:700;font-size:0.85rem;color:#0f172a;">Parçalı</div><div style="font-size:0.72rem;color:#94a3b8;">Seçili kalemler gönderilir</div></div>
+                        <div><div style="font-weight:700;font-size:0.95rem;color:#0f172a;">Parçalı</div><div style="font-size:0.82rem;color:#94a3b8;">Seçili kalemler gönderilir</div></div>
                     </label>
                 </div>
             </div>
             <div style="background:#fff;padding:0;">
-                <OrderItemTable :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :selectable="canSend && transferMode==='partial'" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" />
+                <OrderItemTable :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" />
+            </div>
+        </div>
+
+        <div class="clone-origin-card mb-6" v-if="id && loadForm && isCloneOrder">
+            <div class="clone-origin-body">
+                <div class="clone-origin-left">
+                    <div class="clone-origin-icon">
+                        <i class="ki-outline ki-arrow-top-right"></i>
+                    </div>
+                    <div>
+                        <div class="clone-origin-label">Kaynak Sipariş</div>
+                        <div class="clone-origin-value">{{ parentOrderNo }}</div>
+                    </div>
+                </div>
+                <button class="clone-origin-btn" @click="navigateToParentOrder">
+                    <i class="ki-outline ki-arrow-right"></i>
+                    <span>Orijinal Siparişe Git</span>
+                </button>
             </div>
         </div>
 
@@ -219,6 +320,67 @@
     </div>
 </template>
 <style scoped>
+.clone-origin-card {
+    border: 1px solid #e0e7ff;
+    border-radius: 14px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+}
+.clone-origin-body {
+    padding: 18px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+.clone-origin-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.clone-origin-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: #6366f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.clone-origin-label {
+    font-size: 0.85rem;
+    color: #6366f1;
+    margin-bottom: 2px;
+}
+.clone-origin-value {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #312e81;
+}
+.clone-origin-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 20px;
+    background: #fff;
+    color: #4f46e5;
+    border: 1px solid #c7d2fe;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.90rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.clone-origin-btn:hover {
+    background: #eef2ff;
+    border-color: #a5b4fc;
+    box-shadow: 0 1px 4px rgba(79,70,229,0.15);
+}
 .transfer-mode-option:hover {
     border-color: #93c5fd !important;
     background: #f8fafc !important;
@@ -235,7 +397,7 @@
     background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
 }
 .locked-card-body {
-    padding: 16px 20px;
+    padding: 18px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -247,41 +409,41 @@
     gap: 14px;
 }
 .locked-card-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     background: #f59e0b;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 17px;
+    font-size: 20px;
     flex-shrink: 0;
     box-shadow: 0 2px 6px rgba(245,158,11,0.3);
 }
 .locked-card-badge {
     font-weight: 700;
-    font-size: 0.88rem;
+    font-size: 0.95rem;
     color: #92400e;
     margin-bottom: 2px;
 }
 .locked-card-text {
     margin: 0;
-    font-size: 0.78rem;
+    font-size: 0.85rem;
     color: #a16207;
     line-height: 1.4;
 }
 .locked-cancel-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: 7px;
+    padding: 10px 20px;
     background: #fff;
     color: #dc2626;
     border: 1px solid #fecaca;
     border-radius: 10px;
     font-weight: 600;
-    font-size: 0.82rem;
+    font-size: 0.90rem;
     cursor: pointer;
     transition: all 0.15s ease;
     white-space: nowrap;
@@ -299,7 +461,7 @@
     background: #fff;
 }
 .transfer-info-body {
-    padding: 14px 20px;
+    padding: 18px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -308,17 +470,17 @@
 .transfer-info-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
 }
 .transfer-info-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 15px;
+    font-size: 18px;
     flex-shrink: 0;
 }
 .transfer-info-icon.icon-at-once {
@@ -330,19 +492,19 @@
     color: #d97706;
 }
 .transfer-info-label {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: #94a3b8;
-    margin-bottom: 1px;
+    margin-bottom: 2px;
 }
 .transfer-info-value {
     font-weight: 700;
-    font-size: 0.88rem;
+    font-size: 1.0rem;
     color: #0f172a;
 }
 .transfer-info-badge {
-    padding: 5px 12px;
+    padding: 7px 16px;
     border-radius: 8px;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 600;
     white-space: nowrap;
 }

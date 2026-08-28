@@ -53,18 +53,53 @@
                         title: 'Sipariş No',
                         key: 'transfer_no',
                         order: true,
-                        width: '140px',
+                        width: '180px',
                         type: 'string',
                         columnFormatter: (elm,row)=>{
                             const v = row.transfer_no || row.order_no || row.EBELN || row.id?.substring(0,12) || '-';
-                            const span=document.createElement('span');
-                            span.textContent=v;
-                            span.style.fontWeight='700';
-                            span.style.color='#0f172a';
-                            span.title=v;
-                            span.style.cursor='pointer';
-                            span.onclick=()=> this.$router.push({name:'OrderForm', params:{id:row.id}});
-                            return span;
+                            const isClone = /\-\d+$/.test(v);
+                            const baseNo = isClone ? v.replace(/\-\d+$/, '') : null;
+
+                            const wrap = document.createElement('div');
+                            wrap.style.display = 'flex';
+                            wrap.style.flexDirection = 'column';
+                            wrap.style.gap = '2px';
+
+                            const span = document.createElement('span');
+                            span.textContent = v;
+                            span.style.fontWeight = '700';
+                            span.style.color = '#0f172a';
+                            span.title = v;
+                            span.style.cursor = 'pointer';
+                            span.onclick = () => this.$router.push({name:'OrderForm', params:{id:row.id}});
+
+                            if(isClone && baseNo){
+                                const link = document.createElement('a');
+                                link.textContent = baseNo + "'den ayrıldı";
+                                link.style.fontSize = '0.70rem';
+                                link.style.color = '#3b82f6';
+                                link.style.textDecoration = 'none';
+                                link.style.fontWeight = '500';
+                                link.style.cursor = 'pointer';
+                                link.style.display = 'inline-flex';
+                                link.style.alignItems = 'center';
+                                link.style.gap = '3px';
+                                const icon = document.createElement('i');
+                                icon.className = 'ki-outline ki-arrow-top-right';
+                                icon.style.fontSize = '10px';
+                                link.prepend(icon);
+                                link.onmouseenter = () => link.style.textDecoration = 'underline';
+                                link.onmouseleave = () => link.style.textDecoration = 'none';
+                                link.onclick = (e) => {
+                                    e.stopPropagation();
+                                    this.findAndNavigateToOrder(baseNo);
+                                };
+                                wrap.appendChild(span);
+                                wrap.appendChild(link);
+                            } else {
+                                wrap.appendChild(span);
+                            }
+                            return wrap;
                         }
                     },
                     {
@@ -285,6 +320,37 @@
                 this.plib.toast(this.Swal, rsp.success?'success':'error', rsp.msg||'İşlem Tamamlandı',()=>{
                     if(rsp.success) window.location.reload();
                 });
+            },
+            async findAndNavigateToOrder(baseNo){
+                try{
+                    const fd = new FormData();
+                    fd.append('tableReq', JSON.stringify({
+                        filter: [
+                            { key:'form-type', type:'=', value:'op-doc-order-form' },
+                            { key:'type', type:'=', value:'op-doc-order' },
+                            { key:'all', type:'=', value: baseNo }
+                        ],
+                        scale: { page: 1, limit: 5 },
+                        order: { key: 'id', style: 'asc' }
+                    }));
+                    const rsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
+                    const rows = rsp?.data?.data || rsp?.data || [];
+                    const list = Array.isArray(rows) ? rows : (rows?.data || []);
+                    const match = list.find(r => {
+                        try {
+                            const attrs = JSON.parse(r.main_attr || '[]');
+                            const orderNo = attrs.find(a => a.Key === 'order_no');
+                            return orderNo && orderNo.Value === baseNo;
+                        } catch(e) { return false; }
+                    });
+                    if(match){
+                        this.$router.push({name:'OrderForm', params:{id: match.id}});
+                    } else {
+                        this.plib.toast(this.Swal, 'info', 'Orijinal sipariş bulunamadı: ' + baseNo);
+                    }
+                } catch(e) {
+                    console.error('findAndNavigateToOrder failed', e);
+                }
             }
         }
     }
