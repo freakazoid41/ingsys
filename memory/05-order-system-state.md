@@ -29,12 +29,24 @@
 3. **SAP sends ONLY order items** (flat rows, no headers). Our cron **groups by `EBELN` → creates main `op-doc-order` ourselves** (header fields from first row: `BUKRS→sys_code, LIFNR→spec_code, EBELN→order_no, SUBMI→buying_no, MCOD1→ctitle, BEDAT→created_at`), **then adds each row as `op-doc-order-item`** (`MATNR**EBELP→prod_code, TXZ01→title, MENGE→quantity, MEINS→unit`). Prices `NETPR/WEMNG` no longer stored in form/table but SAP may still send (keep out of UI).
 4. **Partial split → clone** as new `op-doc-order` `transfer_no = EBELN-X` (`X` increment). Clone only exists if partially split, NOT auto for every order.
 
-## 3. Current Live Test Data (`panel` `tedarikNewApp` 2026-08-27)
+## 3. Current Live Test Data (`panel` `tedarikNewApp` 2026-08-28)
 
-**Order 83** `3510001793` `qnid e0aa1b22-1111-4faf-9d99-111111111111` id 83 `op-doc-order` `spec_code 0000300181 → PANORAMA` `buying_no IH20205008` `sys_code 4000` `ctitle PANORAMA TEKSTİL` `created_at 2020-04-17` status `doc_trans_order_created (Sipariş Oluşturuldu)` — 6 SAP fields only, NO desc/imalatci/files (clean baseline).
-* **Item 1** id=84 `prod_code 20.6.1.005**00120` Premium Kömür Tip A 2400.000 ST
-* **Item 2** id=85 `prod_code 20.6.1.008**00240` Premium Kömür Tip B 1800.500 ST
-* **Clients 3** `op-doc-client` + `lifnr`: `PANORAMA TEKSTİL 0000300181`, `HASÇELİK KABLO 0000300182`, `HES HACILAR ELEKTRİK 0000300183`
+**3 orders fresh from SAP grouping:**
+
+| # | EBELN | id | Müşteri | LIFNR | BUKRS | Items | Tarih | Status |
+|---|-------|----|---------|-------|-------|-------|-------|--------|
+| 1 | 3510001793 | 114 | PANORAMA TEKSTİL | 0000300181 | 4000 | 2 | 17/04/2020 | `doc_trans_order_created` |
+| 2 | 3510002100 | 117 | HASÇELİK KABLO | 0000300182 | 4000 | 3 | 01/06/2020 | `doc_trans_order_created` |
+| 3 | 3510003500 | 121 | HES HACILAR ELEKTRİK | 0000300183 | 5000 | 4 | 15/09/2020 | `doc_trans_order_created` |
+
+**Items:**
+* Order 114: id=115 `20.6.1.005**00010` Premium Kömür Tip A 2400 ST, id=116 `20.6.1.008**00020` Premium Kömür Tip B 1800.5 ST
+* Order 117: id=118 `10.2.3.010**00010` Standart Kömür Tip C 5000 ST, id=119 `10.2.3.015**00020` Premium Kok Tip D 3200 ST, id=120 `10.2.3.020**00030` Kül Düşük Tip E 1500 ST
+* Order 121: id=122 `30.1.1.001**00010` Yüksek Kalorili Kömür 8000 ST, id=123 `30.1.1.002**00020` Orta Kalorili Kömür 6000 ST, id=124 `30.1.1.003**00030` Düşük Kül Kömür 4500 ST, id=125 `30.1.1.004**00040` Special Blend F 2000 ST
+
+**Clients 3** `op-doc-client` + `lifnr`: PANORAMA 0000300181, HASÇELİK 0000300182, HES HACILAR 0000300183
+
+**Refresh data:** run `php artisan tinker` with SAP grouping script (see §4 flow)
 
 ## 4. How Data Flows Now (SAP grouping, per Master)
 
@@ -110,7 +122,7 @@ cd panel && php artisan migrate:status # 23 done
 cd panel && npm run build # after Form.vue/router/Sidebar/OForm/OList/OrderItemTable edit
 php artisan serve --host=127.0.0.1 --port=8000 # http://127.0.0.1:8000/ → Tedarik Yönetim Sistemi
 # login kadir / Kadir412. / 111111 → /coalpanel/orders
-# fresh data: php /tmp/fresh_order_2items.php
+# fresh SAP data: cd panel && php artisan tinker (run SAP grouping script, see §4)
 ```
 
 ## 9. Known Bugs / Debt

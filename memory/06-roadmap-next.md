@@ -26,7 +26,7 @@ We can unblock data without UI (STILL PENDING):
    ```
    Reuse your exact mapping from `idea:2`. Add `grp_code = BUKRS` via `target_type` entity if you want tenant filtering.
 2. **Cron:** `panel/app/Console/Kernel.php` schedule `orders:sync` daily (like `request:autoclose 01:00`), or manual `php artisan orders:sync`. Later replace dummy with real SAP HTTP (you said later `SAP cron will save orders to our db`).
-3. **Verify:** `php artisan tinker` created `3510001793` already — dummy endpoint will do same but bulk.
+3. **Verify:** 3 fresh SAP orders exist (3510001793/3510002100/3510003500, 9 items total). Refresh via artisan tinker SAP grouping script (see `memory/05 §4`).
 
 **I can build this now without your design — just say "dummy ingest".**
 
@@ -44,7 +44,7 @@ We can unblock data without UI (STILL PENDING):
 - **Security:** Same coal debt: `DEV_ADMIN 111111`, `resetusercradentals` public, `CSRF off`, `DocumentHelpers decryptFile IDOR`, `pickle hardcoded` — kill later if this goes public.
 - **Old containers:** `B2X` still exists exited on same `5431` host port — keep stopped; starting it will clash with `tedarikNewApp`. Remove if you're done with coal data: `docker rm B2X`.
 - **Memory:** This `memory/` is your session brain — keep `00..06` up to date; `panel/docs/` 11 files are stale coal docs, don't trust blindly.
-- **File replacement:** Original mechanic is STABLE. Do NOT change `registerContent` file entity matching or `old_versions` SQL without Master's explicit approval.
+- **File replacement:** **FIXED 2026-08-28.** Both `addFileToDb` and `finalizeTempFile` now create version chains. Full docs: `panel/docs/file-replacement-fix.md`. Do NOT change without Master's approval.
 
 ## 4. How Future LLM Should Resume
 

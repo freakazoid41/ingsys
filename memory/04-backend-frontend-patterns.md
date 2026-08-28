@@ -85,7 +85,7 @@ Export mirrors list: `POST /v1/export/{model}/{type?}` → `ExportController@ind
 - `uploadFile`: 42MB, whitelist `jpg/png/jpeg/pdf/xls/xlsx`, `time()+random+slugify` → `storage/app/public/documents/`, encrypt filename `encrypt(name)` (AES-128-CBC PBKDF2, base64url `salt:iv:ciphertext`), `Document_files(description=encrypted, status=1, qnid, relation)`
 - `GET /order-file/{qnid|encrypted}` → `decryptFile`: qnid? lookup `document_files.qnid : decrypt(blob)` → serve with mime (IDOR — no authz)
 - `POST /v1/temp-upload` → `tempUploadFile` → `{reference_id, reference}` for staged upload before doc exists
-- Versioning: same `entity_tag` new file → old `status=0, replaced_id=newId`
+- Versioning: same `entity_tag` new file → old `status=0, replaced_id=newId`. **Both paths version correctly now:** `addFileToDb` (traditional) and `finalizeTempFile` (temp upload) both deactivate old, create new record, chain, copy entities, log `doc_file_refreshed`. See `panel/docs/file-replacement-fix.md`.
 
 ### 2.7 Notifications & Jobs
 `EmailServiceProvider.php:112` thin wrapper: `sendregisterMails|sendapproveMails|sendresetMail|sendOfferGiven|sendOfferStatus|sendClientChanged|sendClientFileStatus` → dispatches `SendNotificationMailJob|SendResetMailJob` (ShouldQueue `database`) → `MailService::sendMail` (relay override `MailService:52-84`, TLS verify off, `NotificationLog pending→sent|error`) + optionally `SmsService::sendSms` → `SMSGatewayWS`. Recipient resolved via `PersonsServiceProvider::getNotificationUsers(opKey)` (JSON-contains `notif-*`).

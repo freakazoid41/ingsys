@@ -11,7 +11,7 @@
 |-------|-------|-----------|-------|
 | **EAV Engine** | `DocumentServiceProvider`, `PersonsServiceProvider`, `sys_options`, `documents`, `sys_con_ops/entities` | ✅ 100% generic | Zero coal knowledge |
 | **Auth & RBAC** | `AuthController`, `PermissionService`, `CheckPermissionVersion`, `ActiveSession`, `RoleTemplateService`, `sys_role_templates`+`permission_catalogs` | ✅ generic | Just rename roles/permissions |
-| **File Service** | `DocumentHelpers`, `EncryptionProvider`, `document_files`, `/order-file`, `temp-upload` | ✅ generic | 42MB, encrypted, versioned |
+| **File Service** | `DocumentHelpers`, `EncryptionProvider`, `document_files`, `/order-file`, `temp-upload` | ✅ generic | 42MB, encrypted, versioned (both upload paths) |
 | **Notifications** | `EmailServiceProvider`, `MailService`, `SmsService`, `notification_logs`, Jobs | ✅ generic | recipient = `notif-*` groups |
 | **Dashboard/Export** | `ReportServiceProvider`, `ExportService`+`ExportController` | ⚠️ semi-generic | Queries are coal-specific, pattern reusable |
 | **Frontend Shell** | `pickle.js`, `stores/*`, `layouts/CoalPanel`, `router`, `Form.vue` (engine), `AppFab`, `Sidebar`, `Header` | ✅ generic | Skin/theme is swappable |
