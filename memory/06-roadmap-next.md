@@ -7,56 +7,90 @@
 ### Option A: Front Panel Design Arrives → Build Client Flow (Recommended)
 You drop Figma/HTML for `front panel (new)` — we build:
 
-1. **Route & Layout:** New `FrontPanel.vue` (client skin, no coal), `router/index.js` → `/front/orders` + `/front/orders/:id` + `/front/transfers` (client view). Separate from `/coalpanel` admin shell (`panel/resources/views/coalapp.blade.php` → two blades or host-based like `public/index.php:11` SYS_CODE). Auth reuses `persons/users` + `2FA` (`AuthController.php:873`), but `typeKey=op-pert-reseller` session `canProceed/canResponse` already works (`PersonsServiceProvider.php:566`).
-2. **Order Detail Client View** (`idea.md:2-9`): **backend already handles this** — order header (readOnly) + item table + `order_desc` + `imalatci_firma_adi` + `transfer_kabul`/`transfer_cins` files, and SAVE triggers `processOrderTransfer` (`at_once`/`partial` + `selected_items`). The front panel skin just needs to render these and call the same `PUT /v1/document/{id}` endpoint with `transfer_mode` + `selected_items`.
-3. **File upload wiring:** Reuse `Form.vue` schemas `op-doc-order-form` but render in front panel style. Ensure `pickle.js:824` `temp-upload` → `finalizeTempFile` → `document_files` → `doc_file_waiting`.
-4. **Rejected files:** client sees `files_rejected` status + can re-upload (only `files_rejected` keeps files editable; `ready_for_shipment`/`transfer_sent` are FULL lock incl. files, `OForm.vue:63` `isFilesLocked`) + re-save → `transfer_sent`.
+1. **Route & Layout:** New `FrontPanel.vue` (client skin, no coal), `router/index.js` → `/front/orders` + `/front/orders/:id` + `/front/transfers` (client view). Separate from `/coalpanel` admin shell.
+2. **Order Detail Client View:** **backend already handles this** — order header (readOnly) + item table + `order_desc` + `imalatci_firma_adi` + `transfer_kabul`/`transfer_cins` files, and SAVE triggers `processOrderTransfer` (`at_once`/`partial` + `selected_items` + `item_serials`).
+3. **Serial entry in front panel:** Must support same serial flow — KG/M required, ST optional (< 300), flatpickr month picker.
+4. **File upload wiring:** Reuse `Form.vue` schemas + `pickle.js` temp-upload.
+5. **Rejected files:** client sees `files_rejected` + can re-upload + re-save → `transfer_sent`.
 
-**You need to give:** HTML/CSS or Figma, and whether front panel uses same `coalapp.blade.php` or new blade, and host (e.g. `tedarik.aydemenerji.com.tr` vs `komurtedarik.*`).
+**You need to give:** HTML/CSS or Figma, blade choice, host.
 
-### Option B: No Design Yet → Build SAP Dummy Ingest + Cron Now
-We can unblock data without UI (STILL PENDING):
+### Option B: No Design Yet → Dashboard Rebuild
+1. Replace coal `topstats/monthlyoffers` with order queries
+2. Header bell for order notifications
+3. Build report cards (pending transfers, awaiting files, approved today)
 
-1. **Create `panel/app/Console/Commands/SyncOrdersCommand.php` + `panel/routes/api.php` `POST /api/v1/orders/dummy-ingest` (admin only `per-05-02`):**
-   ```php
-   // payload = your SAP array: [{BUKRS, LIFNR, EBELN, EBELP, MCOD1, MATNR, TXZ01, MENGE, MEINS, BEDAT, SUBMI, NETPR, WEMNG}, ...]
-   // group by EBELN → one Documents op-doc-order (order_no=trim EBELN, buying_no=SUBMI object?'-', spec_code=LIFNR keep zeros as string, sys_code=BUKRS, ctitle=MCOD1, created_at=BEDAT)
-   // each row → Documents op-doc-order-item parent_id=order.id, prod_code=trim MATNR**trim EBELP, title=TXZ01, quantity=MENGE, unit=MEINS, deal_price=NETPR??'0', received_price=WEMNG??'0', met_code=-1 etc.
-   // idempotent: EBELN is natural key → find existing via EAV order_no entity, upsert via registerContent with id.
-   ```
-   Reuse your exact mapping from `idea:2`. Add `grp_code = BUKRS` via `target_type` entity if you want tenant filtering.
-2. **Cron:** `panel/app/Console/Kernel.php` schedule `orders:sync` daily (like `request:autoclose 01:00`), or manual `php artisan orders:sync`. Later replace dummy with real SAP HTTP (you said later `SAP cron will save orders to our db`).
-3. **Verify:** 3 fresh SAP orders exist (3510001793/3510002100/3510003500, 9 items total). Refresh via artisan tinker SAP grouping script (see `memory/05 §4`).
+### Option C: Skin It
+Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done, but SVGs still CATES/YATAGAN).
 
-**I can build this now without your design — just say "dummy ingest".**
+## 2. Recently Completed (2026-08-28)
 
-## 2. After Client Flow, Then Admin Ruling
+### ✅ Quantity Types & Split System
+- `OrderItemTable.vue`: inline split inputs, quantity type awareness (ST=int, KG/M=float)
+- `DocumentServiceProvider`: `decrementItemQuantity`, `storeOriginalQuantity`, `duplicateOrderItem` with `$splitAmount`
+- EAV entities: `original_quantity`, `split_from_qnid`, `split_amount`
+- Row display: `~~2400~~ → 1900 ST` strikethrough before/after
 
-1. **Dökümanlar file approve flow** (`idea.md:10-11`): **DONE** — admin at `/coalpanel/documents` has `set-file-status` (`Kabul Edildi`/`Reddet`) per file (`DocumentController.php` `per-07-02`). Now wired: rejecting a file auto-flips the parent order to `doc_trans_order_files_rejected` (`syncOrderStatusFromFiles`); accepting all flips it back to `transfer_sent`. Filter tabs per file type (`transfer_kabul/transfer_cins/item_test/item_images`) still could be added.
-2. **Transfer approve / reject whole order** (`idea.md:12`): Admin approves via `POST /api/v1/trans/set-status` `doc_trans_order_approved` (green) or rejects via `POST /v1/orders/cancel` (terminal `rejected`, list `İptal Et` or detail button). File-rejected order stays `files_rejected` until client re-uploads + re-sends → `transfer_sent`.
-3. **Dashboard rebuild** (`panel/app/Providers/ReportServiceProvider.php:80`): **STILL PENDING** — Replace coal `topstats/monthlyoffers` with order queries: `pending transfers (doc_trans_order_transfer_sent), awaiting file approvals (doc_file_waiting count), files_rejected, approved today, etc.` + `Header.vue` bell `GET /api/v1/notifications` (extend `getAdminNotifications` for `op-doc-order`).
-4. **Skin:** Replace `Kömür Tedarik` branding → Order System (logo `SYS_CODE.svg`, `coalapp.blade.php` title, `coaltheme` css). Keep `public/index.php:11` multi-tenant if you still need `YATAGAN/CATES` via host, or hardcode.
+### ✅ Serial Number & Production Date System
+- New doc type: `op-doc-order-serial` (parent_id=item.id)
+- Entities: `serial_no`, `production_date` (YYYY-MM-01), `quantity`, `unit`
+- Rules: KG/M required (at least 1, default `-`), ST < 300 optional (checkbox), ST >= 300 no serial
+- Flatpickr month picker (Turkish locale, monthSelect plugin)
+- Both at_once and partial modes supported
+- Serial UI: collapse button, scrollable per-item, summary badge on main row
+- Existing serial display: collapsible read-only section (purple bg, disabled inputs), **collapsed by default**
+- `fetchSerialsForItems()` loads serials for items with `has_serials=1`
+- `serialViewCollapsed` state (separate from `serialCollapsed` for entry UI)
+- `formatSerialDate()`: `YYYY-MM-01` → `MM.YYYY` display
 
-## 3. Tech Debt To Fix When You Have Time
+### ✅ Clone Order Link
+- `OList.vue`: "den ayrıldı" link on clone orders
+- `OForm.vue`: "Kaynak Sipariş" banner with navigation
 
-- **Parent link:** `DocumentServiceProvider.php:86` now supports `parent_id/parent_qnid` but `Documents::tableList:102` still `where parent_type_id=0` → all items remain visible; if you later want true hierarchy (hide children from main lists), add `filter parent_id` param.
-- **File type UX:** `Form.vue` shows `Max. Boyut: 40 MB` hardcoded — keep, but ensure server `uploadFile` 42MB matches.
-- **Security:** Same coal debt: `DEV_ADMIN 111111`, `resetusercradentals` public, `CSRF off`, `DocumentHelpers decryptFile IDOR`, `pickle hardcoded` — kill later if this goes public.
-- **Old containers:** `B2X` still exists exited on same `5431` host port — keep stopped; starting it will clash with `tedarikNewApp`. Remove if you're done with coal data: `docker rm B2X`.
-- **Memory:** This `memory/` is your session brain — keep `00..06` up to date; `panel/docs/` 11 files are stale coal docs, don't trust blindly.
-- **File replacement:** **FIXED 2026-08-28.** Both `addFileToDb` and `finalizeTempFile` now create version chains. Full docs: `panel/docs/file-replacement-fix.md`. Do NOT change without Master's approval.
+### ✅ UI Improvements
+- Font sizes bumped across OrderItemTable + OForm (row padding 14px 18px, min-height 64px, code 0.92rem, title 0.95rem, qty 0.88rem)
+- Transfer card, locked card, clone origin card all enlarged
+
+## 2.5 Recently Completed (2026-08-29)
+
+### ✅ Orders are SAP-only
+- Removed "Sipariş Oluştur" from Sidebar — orders come from SAP only
+- `OForm` no-id redirects to `OrderList` (no blank create form)
+
+### ✅ CSP fix
+- `CspMiddleware` + `'unsafe-eval'` in `script-src` (sweetalert2 needs `new Function()` to parse Swal HTML input values)
+- Local `IS_TEST=true` disables CSP header; matters for production
+
+### ✅ Perf / code-quality pass (no mechanic/validation changes)
+- OrderItemTable: flatpickr init only new inputs, 150ms serial debounce, `itemsMap` O(1) lookup, `quantityChanged` helper, single-pass cleanup, `min="1"`
+- OForm: cached `parsedStatus`, shared `orderFormEntities`, async mounted, `Object.entries`, removed dead `wTrans`
+- OList: `_attrsParsed` guard, CSS ellipsis, cleaned dead setup returns
+- Full details in `memory/05 §6`
+
+## 3. Tech Debt
+
+- **Parent link:** `Documents::tableList:102` still `where parent_type_id=0` — items visible in main lists
+- **Security:** `DEV_ADMIN 111111`, `resetusercradentals` public, `CSRF off`, `decryptFile IDOR`, `pickle hardcoded`
+- **Old containers:** `B2X` still exists stopped on `5431`
+- **File replacement:** FIXED, do NOT change without approval
+- **`syncOrderStatusFromFiles`** — only fires from `documentFileStatus`, not from `registerContent`
 
 ## 4. How Future LLM Should Resume
 
-1. Read `memory/00-core-overview.md` + `05-order-system-state.md` (current snapshot) + `06-roadmap-next.md` (this file) + `idea.md` + `01-form-engine.md`.
+1. Read `memory/00-core-overview.md` + `05-order-system-state.md` (current snapshot) + `06-roadmap-next.md` (this file) + `01-form-engine.md`.
 2. Check `docker ps -a | grep tedarikNewApp`, `panel/.env: DB_DATABASE`, `php artisan migrate:status`.
-3. The admin transfer flow (at_once/partial clone, files_rejected, cancel) is **already built** — verify `POST /api/v1/orders/cancel` route + `doc_trans_order_files_rejected` status exist. If front design given, build the **client front-panel skin** (`Option A`) calling the same `PUT /v1/document/{id}` with `transfer_mode`/`selected_items`; else offer `Option B` dummy ingest.
-4. After any `Form.vue` or `router/index.js` or `Sidebar.vue`/`OForm.vue`/`OList.vue`/`OrderItemTable.vue` edit → `npm run build` in `panel/` → `php artisan serve --host=127.0.0.1 --port=8000` → test `kadir@kontent.com.tr / Kadir412. / 111111`.
-5. Always update `memory/05` after major change, so next session doesn't hallucinate.
+3. Key methods in `DocumentServiceProvider.php`:
+   - `processOrderTransfer($qnid, $mode, $selectedItems, $itemSerials)` — handles both partial clone + at_once serials
+   - `duplicateOrderItem($itemQnid, $newParentId, $splitAmount)` — clone with qty override
+   - `decrementItemQuantity($itemQnid, $splitAmount)` — reduce original qty
+   - `createSerialEntries($itemId, $serials)` — create serial docs
+   - `setHasSerialsFlag($itemId)` — mark item has serials
+4. After any `Form.vue`/`router`/`Sidebar`/`OForm`/`OList`/`OrderItemTable.vue` edit → `npm run build` in `panel/` → test.
+5. Always update `memory/05` after major change.
 
 ## 5. Decision Tree For Master
 
-- **"Front design ready" → build the client front-panel skin** (route + layout + order detail calling the already-built transfer/clone backend: at_once/partial radio + item checkboxes + desc/imalatci/2 files → `PUT /v1/document/{id}`)
-- **"Dummy first, design later" → build `POST /api/v1/orders/dummy-ingest` + cron that handles your exact SAP payload mapping, bulk upsert, parent linking** (STILL PENDING)
-- **"Dashboard first" → rebuild `ReportServiceProvider.php` order stats + Header bell** (STILL PENDING)
-- **"Skin it" → rebrand coal → tedarik (logo, title, theme)**
+- **"Front design ready" → build client front-panel skin**
+- **"Dashboard" → rebuild ReportServiceProvider order stats**
+- **"Skin it" → rebrand coal → tedarik**
+- **"New doc type" → follow `memory/03-app-factory-guide.md` pattern (sys_options + Form.vue + pages + permissions)**

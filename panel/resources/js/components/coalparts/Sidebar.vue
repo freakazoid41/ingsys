@@ -217,12 +217,6 @@ export default {
                                     <span class="menu-title">Sipariş Listesi</span>
                                 </router-link>
                             </div>
-                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-05-02')">
-                                <router-link :to="{ name: 'OrderForm' }" class="menu-link sub-link">
-                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
-                                    <span class="menu-title">Sipariş Oluştur</span>
-                                </router-link>
-                            </div>
                         </div>
                     </div>
 

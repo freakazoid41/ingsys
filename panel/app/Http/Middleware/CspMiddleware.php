@@ -45,7 +45,9 @@ class CspMiddleware
 
         $csp = [
             "frame-src 'self' www.google.com",
-            "script-src 'nonce-$nonce' " . implode(' ', array_map(function ($h) { return $h === 'self' ? "'self'" : $h; }, $scriptHosts)),
+            // 'unsafe-eval' is required by sweetalert2 which uses new Function() to parse
+            // form input values in Swal HTML. Keep it scoped to script-src only.
+            "script-src 'nonce-$nonce' 'unsafe-eval' " . implode(' ', array_map(function ($h) { return $h === 'self' ? "'self'" : $h; }, $scriptHosts)),
             "font-src " . implode(' ', array_map(function ($h) { return $h === 'self' ? "'self'" : $h; }, $fontHosts)),
             "style-src " . implode(' ', array_map(function ($h) { return $h === 'self' ? "'self'" : $h; }, $styleHosts)),
             // explicit style-src-elem to cover modern browsers

@@ -4,7 +4,6 @@
     import PickleTable from 'pickletable';
     import 'pickletable/assets/style.css';
     import Plib from '@/lib/pickle';
-    import { wTrans } from 'laravel-vue-i18n';
     import Swal from 'sweetalert2';
 
     export default {
@@ -12,7 +11,7 @@
             list: [ { title: 'Siparişler', path: '/coalpanel/orders' } ],
             title: 'Sipariş Listesi'
         },
-        setup() { return { useNavigationStore, useAuthStore, PickleTable, Plib, wTrans, Swal } },
+        setup() { return { useNavigationStore, useAuthStore, Swal } },
         mounted(){
             this.navigationStore.toggle(true);
             this.buildTable();
@@ -110,9 +109,15 @@
                         columnFormatter: (elm,row)=>{
                             const v = row.ctitle || row.MCOD1 || row.spec_code || row.clititle || '-';
                             const span=document.createElement('span');
-                            span.textContent=v.length>20? v.substring(0,20)+'…':v;
+                            span.textContent=v;
                             span.title=v;
                             span.style.color='#334155';
+                            span.style.display='inline-block';
+                            span.style.maxWidth='180px';
+                            span.style.overflow='hidden';
+                            span.style.textOverflow='ellipsis';
+                            span.style.whiteSpace='nowrap';
+                            span.style.verticalAlign='middle';
                             return span;
                         }
                     },
@@ -155,7 +160,7 @@
                         title: 'Durum',
                         key: 'status',
                         order: true,
-                        width: '190px',
+                        width: '220px',
                         type: 'string',
                         columnFormatter: (elm,row)=>{
                             const parts = String(row.status||'').split('**');
@@ -169,51 +174,56 @@
                             btn.style.padding='6px 14px';
                             btn.style.borderRadius='8px';
                             btn.style.fontSize='0.82rem';
-                             btn.style.fontWeight='700';
-                             btn.style.whiteSpace='nowrap';
-                             btn.style.cursor='pointer';
-                             btn.style.border='1px solid transparent';
-                             if(opKey==='doc_trans_order_ready_for_shipment' || label.includes('Sipariş Sevke Hazır')){
-                                 btn.style.background='#facc15';
-                                 btn.style.color='#713f12';
-                                 btn.style.borderColor='#eab308';
-                             } else if(label.includes('Kalite Onayı') || opKey==='doc_trans_transfer_approved' || opKey==='doc_trans_order_approved'){
-                                 btn.style.background='#22c55e';
-                                 btn.style.color='#fff';
-                                 btn.style.borderColor='#16a34a';
+                            btn.style.fontWeight='700';
+                            btn.style.whiteSpace='nowrap';
+                            btn.style.cursor='pointer';
+                            btn.style.border='1px solid transparent';
+                            btn.style.gap='6px';
+                            if(opKey==='doc_trans_order_ready_for_shipment' || label.includes('Sipariş Sevke Hazır')){
+                                btn.style.background='#fef3c7';
+                                btn.style.color='#92400e';
+                                btn.style.borderColor='#fcd34d';
+                            } else if(label.includes('Kalite Onayı') || opKey==='doc_trans_transfer_approved' || opKey==='doc_trans_order_approved'){
+                                btn.style.background='#dcfce7';
+                                btn.style.color='#166534';
+                                btn.style.borderColor='#86efac';
                             } else if(label.includes('Kontrol Ediliyor') || opKey==='doc_trans_transfer_sent' || opKey==='doc_trans_order_transfer_sent' || opKey==='doc_file_waiting'){
-                                btn.style.background='#f97316';
-                                btn.style.color='#fff';
-                                btn.style.borderColor='#ea580c';
+                                btn.style.background='#ffedd5';
+                                btn.style.color='#9a3412';
+                                btn.style.borderColor='#fdba74';
                             } else if(opKey.includes('rejected')){
-                                btn.style.background='#ef4444'; btn.style.color='#fff';
-                             } else {
-                                 btn.style.background='#e2e8f0'; btn.style.color='#475569'; btn.style.borderColor='#cbd5e1';
-                             }
-                             const statusIcons={
-                                 doc_trans_order_created:'fa-file-circle-plus',
-                                 doc_trans_order_transfer_sent:'fa-magnifying-glass',
-                                 doc_trans_order_ready_for_shipment:'fa-truck-fast',
-                                 doc_trans_order_approved:'fa-circle-check',
-                                 doc_trans_order_rejected:'fa-circle-xmark',
-                                 doc_trans_order_files_rejected:'fa-file-circle-xmark',
-                                 doc_file_waiting:'fa-hourglass-half',
-                             };
-                             const icon=document.createElement('i');
-                             icon.className=`fa-solid ${statusIcons[opKey]||''}`;
-                             icon.style.marginRight='7px';
-                             if(statusIcons[opKey]) btn.prepend(icon);
-                             btn.title='Durum değiştir';
+                                btn.style.background='#fee2e2';
+                                btn.style.color='#991b1b';
+                                btn.style.borderColor='#fca5a5';
+                            } else {
+                                btn.style.background='#f1f5f9';
+                                btn.style.color='#475569';
+                                btn.style.borderColor='#e2e8f0';
+                            }
+                            const statusIcons={
+                                doc_trans_order_created:'ki-outline ki-file-added',
+                                doc_trans_order_transfer_sent:'ki-outline ki-magnifier',
+                                doc_trans_order_ready_for_shipment:'ki-outline ki-truck',
+                                doc_trans_order_approved:'ki-outline ki-check-circle',
+                                doc_trans_order_rejected:'ki-outline ki-cross-circle',
+                                doc_trans_order_files_rejected:'ki-outline ki-file-danger',
+                                doc_file_waiting:'ki-outline ki-hourglass',
+                            };
+                            const icon=document.createElement('i');
+                            icon.className=statusIcons[opKey]||'';
+                            icon.style.fontSize='14px';
+                            if(statusIcons[opKey]) btn.prepend(icon);
+                            btn.title='Durum değiştir';
                             btn.onclick=()=>{
                                 Swal.fire({
                                     title:'Durum Değiştir',
-                                     showConfirmButton:false, showCloseButton:true,
-                                     html:`<div class="d-flex flex-column gap-2 p-2">
-                                         <button class="btn btn-success doc-status" data-key="doc_trans_transfer_approved" style="background:#22c55e;border:none;"><i class="fa-solid fa-circle-check me-2"></i>Kalite Onayı Verildi</button>
-                                         <button class="btn doc-status" data-key="doc_trans_order_ready_for_shipment" style="background:#facc15;color:#713f12;border:none;"><i class="fa-solid fa-truck-fast me-2"></i>Sipariş Sevke Hazır</button>
-                                         <button class="btn doc-status" data-key="doc_trans_transfer_sent" style="background:#f97316;color:#fff;border:none;"><i class="fa-solid fa-magnifying-glass me-2"></i>Dosyalar Kontrol Ediliyor</button>
-                                         <button class="btn btn-danger doc-status" data-key="doc_trans_transfer_rejected"><i class="fa-solid fa-circle-xmark me-2"></i>Reddedildi</button>
-                                     </div>`,
+                                    showConfirmButton:false, showCloseButton:true,
+                                    html:`<div class="d-flex flex-column gap-2 p-2">
+                                        <button class="btn btn-success doc-status" data-key="doc_trans_transfer_approved" style="background:#22c55e;border:none;"><i class="ki-outline ki-check-circle me-2"></i>Kalite Onayı Verildi</button>
+                                        <button class="btn doc-status" data-key="doc_trans_order_ready_for_shipment" style="background:#facc15;color:#713f12;border:none;"><i class="ki-outline ki-truck me-2"></i>Sipariş Sevke Hazır</button>
+                                        <button class="btn doc-status" data-key="doc_trans_transfer_sent" style="background:#f97316;color:#fff;border:none;"><i class="ki-outline ki-magnifier me-2"></i>Dosyalar Kontrol Ediliyor</button>
+                                        <button class="btn btn-danger doc-status" data-key="doc_trans_transfer_rejected"><i class="ki-outline ki-cross-circle me-2"></i>Reddedildi</button>
+                                    </div>`,
                                     willOpen:()=>{
                                         document.querySelectorAll('.doc-status').forEach(b=>b.addEventListener('click', async e=>{
                                             const fd=new FormData(); fd.append('id',row.id); fd.append('op_key',e.target.dataset.key); fd.append('note','Durum güncellendi');
@@ -289,10 +299,14 @@
                     ],
                     nextPageIcon:'<i class="ki-outline ki-arrow-right"></i>', prevPageIcon:'<i class="ki-outline ki-arrow-left"></i>',
                     rowFormatter:(elm,data)=>{
-                        try{
-                            const attrs = JSON.parse(data.main_attr||'[]');
-                            attrs.forEach(el=>{ data[el['Key']]=el['Value']; });
-                        }catch(e){}
+                        // Parse main_attr entities once per row (guard against re-parse)
+                        if(!data._attrsParsed){
+                            try{
+                                const attrs = JSON.parse(data.main_attr||'[]');
+                                attrs.forEach(el=>{ data[el['Key']]=el['Value']; });
+                            }catch(e){}
+                            data._attrsParsed = true;
+                        }
                         // fallbacks for display — order_no is always the correct display number
                         // (main order = base EBELN, clone = EBELN-X). transfer_no on main order
                         // is metadata set by recordPartiallySent and should NOT be displayed.

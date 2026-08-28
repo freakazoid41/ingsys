@@ -14,6 +14,7 @@ export default {
         orderNumericId: { type: Number, required: false },
         selectable: { type: Boolean, default: false },
         atOnceMode: { type: Boolean, default: false },
+        highlightQnid: { type: String, default: null },
         containerSuffix: { type: String, default: '' }
     },
     data(){
@@ -25,6 +26,7 @@ export default {
             serials: {},
             serialEnabled: {},
             serialCollapsed: {},
+            serialViewCollapsed: {},
             items: [],
             loading: true,
             error: null,
@@ -34,13 +36,15 @@ export default {
     computed:{
         hasItems(){ return this.items.length > 0; },
         selectedCount(){ return Object.keys(this.selected).filter(k => this.selected[k]).length; },
+        itemsMap(){ return new Map(this.items.map(i => [i.id, i])); },
         allValid(){
+            // Validate partial mode (selected items)
             for(const key in this.selected){
                 if(!this.selected[key]) continue;
-                const item = this.items.find(i => i.id === key);
+                const item = this.itemsMap.get(key);
                 if(!item) continue;
                 const amt = parseFloat(this.splitAmounts[key]);
-                if(isNaN(amt) || amt <= 0) return false;
+                if(isNaN(amt) || amt < 1) return false;
                 const qty = parseFloat(item.quantity);
                 if(amt > qty) return false;
                 if(item.unit === 'ST' && !Number.isInteger(amt)) return false;
@@ -52,16 +56,37 @@ export default {
                         if(!s.production_date) return false;
                     }
                 }
-                // Validate serials for KG/M — required, at least 1
+                // Validate serials for KG/M — required, sum must equal split amount
                 if(item.unit !== 'ST'){
                     const sers = this.serials[key] || [];
                     if(sers.length === 0) return false;
                     let sum = 0;
                     for(const s of sers){
-                        if(!s.production_date || parseFloat(s.quantity) <= 0) return false;
-                        sum += parseFloat(s.quantity) || 0;
+                        if(!s.production_date) return false;
+                        const sq = parseFloat(s.quantity);
+                        if(isNaN(sq) || sq <= 0) return false;
+                        sum += sq;
                     }
                     if(Math.abs(sum - amt) > 0.01) return false;
+                }
+            }
+            // Validate at_once mode (all items with serials)
+            if(this.atOnceMode){
+                for(const item of this.items){
+                    const unit = item.unit || 'ST';
+                    if(unit === 'ST') continue; // ST validated by checkbox
+                    const qty = parseFloat(item.quantity) || 0;
+                    if(qty <= 0) continue;
+                    const sers = this.serials[item.id] || [];
+                    if(sers.length === 0) return false;
+                    let sum = 0;
+                    for(const s of sers){
+                        if(!s.production_date) return false;
+                        const sq = parseFloat(s.quantity);
+                        if(isNaN(sq) || sq <= 0) return false;
+                        sum += sq;
+                    }
+                    if(Math.abs(sum - qty) > 0.01) return false;
                 }
             }
             return true;
@@ -83,6 +108,25 @@ export default {
                 this.ensureAtOnceSerials();
             }
         },
+        highlightQnid(newVal){
+            // Remove old highlight from previous element
+            if(this._lastHighlightEl){
+                this._lastHighlightEl.style.borderColor = '';
+                this._lastHighlightEl = null;
+            }
+            if(!newVal) return;
+            this.$nextTick(()=>{
+                const wrap = this.$el.querySelector(`[data-item-qnid="${newVal}"]`);
+                if(wrap){
+                    const row = wrap.querySelector('.oic-row');
+                    if(row){
+                        row.style.borderColor = '#ef4444';
+                        this._lastHighlightEl = row;
+                        row.scrollIntoView({ behavior:'smooth', block:'center' });
+                    }
+                }
+            });
+        },
         selectable(){
             if(!this.selectable){
                 this.selected = {};
@@ -102,7 +146,8 @@ export default {
         serials: {
             deep: true,
             handler(){
-                this.notifySelect();
+                clearTimeout(this._serialsDebounce);
+                this._serialsDebounce = setTimeout(()=> this.notifySelect(), 150);
             }
         }
     },
@@ -182,7 +227,7 @@ export default {
         rebuildSerials(){
             for(const key in this.selected){
                 if(!this.selected[key]) continue;
-                const item = this.items.find(i => i.id === key);
+                const item = this.itemsMap.get(key);
                 if(!item) continue;
                 const unit = item.unit || 'ST';
                 const amt = parseFloat(this.splitAmounts[key]) || 0;
@@ -203,15 +248,13 @@ export default {
                     this.serials[key] = [];
                 }
             }
-            // Clean up
+            // Clean up in single pass
             for(const key in this.serials){
-                if(!this.selected[key]) delete this.serials[key];
-            }
-            for(const key in this.serialEnabled){
-                if(!this.selected[key]) delete this.serialEnabled[key];
-            }
-            for(const key in this.serialCollapsed){
-                if(!this.selected[key]) delete this.serialCollapsed[key];
+                if(!this.selected[key]) {
+                    delete this.serials[key];
+                    delete this.serialEnabled[key];
+                    delete this.serialCollapsed[key];
+                }
             }
         },
         addSerialRow(item){
@@ -232,14 +275,13 @@ export default {
             if(this.serials[key]) this.serials[key].splice(idx, 1);
             this.serials = { ...this.serials };
         },
-        // Initialize flatpickr month picker on all .oic-fp-month elements
+        // Initialize flatpickr month picker on new .oic-fp-month elements only
         initFlatpickr(){
-            // Destroy old instances first
-            this.destroyFlatpickr();
             this.$nextTick(()=>{
-                const inputs = this.$el.querySelectorAll('.oic-fp-month:not(.flatpickr-input)');
+                const inputs = this.$el.querySelectorAll('.oic-fp-month:not(.fp-initialized)');
                 inputs.forEach(input => {
-                    const serialKey = input.dataset.serialKey; // "itemId-index"
+                    const serialKey = input.dataset.serialKey;
+                    if(!serialKey) return;
                     const parts = serialKey.split('-');
                     const idx = parseInt(parts.pop());
                     const itemId = parts.join('-');
@@ -259,6 +301,7 @@ export default {
                         }
                     });
                     this.fpInstances.push(fp);
+                    input.classList.add('fp-initialized');
                 });
             });
         },
@@ -271,6 +314,9 @@ export default {
             const qty = parseFloat(item.quantity) || 0;
             const amt = parseFloat(this.splitAmounts[item.id]) || 0;
             return Math.max(0, qty - amt);
+        },
+        quantityChanged(row){
+            return row.original_quantity && parseFloat(row.original_quantity) !== parseFloat(row.quantity);
         },
         getSerialSum(item){
             const sers = this.serials[item.id] || [];
@@ -293,13 +339,31 @@ export default {
         isCollapsed(item){
             return !!this.serialCollapsed[item.id];
         },
+        isViewCollapsed(item){
+            // Default collapsed
+            return this.serialViewCollapsed[item.id] !== false;
+        },
+        toggleViewCollapse(item){
+            const key = item.id;
+            this.serialViewCollapsed[key] = !this.isViewCollapsed(item);
+            this.serialViewCollapsed = { ...this.serialViewCollapsed };
+        },
+        formatSerialDate(val){
+            if(!val) return '-';
+            // YYYY-MM-01 → MM.YYYY
+            const parts = val.split('-');
+            if(parts.length >= 2) return parts[1] + '.' + parts[0];
+            // MM.YYYY already
+            if(val.includes('.')) return val;
+            return val;
+        },
         getSelected(){
             const result = [];
             // Partial mode: emit selected items with split amounts + serials
             for(const key in this.selected){
                 if(!this.selected[key]) continue;
                 const amt = parseFloat(this.splitAmounts[key]) || 0;
-                const item = this.items.find(i => i.id === key);
+                const item = this.itemsMap.get(key);
                 const itemSerials = (this.serials[key] || []).map(s => ({
                     serial_no: s.serial_no || '-',
                     production_date: s.production_date || '',
@@ -322,7 +386,7 @@ export default {
                     quantity: parseFloat(s.quantity) || 0,
                     unit: s.unit || item.unit || 'ST'
                 }));
-                result.push({ qnid: item.id, serials: itemSerials });
+                result.push({ qnid: item.id, quantity: parseFloat(item.quantity) || 0, unit: item.unit || 'ST', serials: itemSerials });
             }
             return result;
         },
@@ -334,8 +398,8 @@ export default {
             const val = event.target.value;
             const numVal = parseFloat(val);
             const qty = parseFloat(row.quantity) || 0;
-            if(isNaN(numVal) || numVal < 0){
-                this.splitAmounts[row.id] = 0;
+            if(isNaN(numVal) || numVal < 1){
+                this.splitAmounts[row.id] = '';
             } else if(numVal > qty){
                 this.splitAmounts[row.id] = qty;
             } else {
@@ -349,7 +413,7 @@ export default {
             else val = Math.round(val * 100) / 100;
             const qty = parseFloat(row.quantity) || 0;
             if(val > qty) val = qty;
-            if(val < 0) val = 0;
+            if(val < 1) val = 1;
             this.splitAmounts[row.id] = val;
             event.target.value = val;
         },
@@ -392,6 +456,8 @@ export default {
                     <div><div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;font-weight:600;">Kaynak Kalem</div><div style="font-weight:600;color:#0f172a;font-size:0.95rem;word-break:break-all;">${splitFrom}</div></div>
                 </div>`;
             }
+
+            // Serial data - removed from modal, shown in collapsible row section
 
             Swal.fire({
                 title: row.title || 'Kalem',
@@ -461,14 +527,51 @@ export default {
                         split_amount: r['split_amount']||null,
                         split_from_qnid: r['split_from_qnid']||null,
                         has_serials: r['has_serials']||'0',
+                        serials: [],
                         _raw: r
                     };
                 });
+                // Fetch serials for items that have them
+                await this.fetchSerialsForItems();
             }catch(e){
                 this.error = 'Kalemler yüklenemedi';
             }finally{
                 this.loading = false;
                 if(this.atOnceMode) this.ensureAtOnceSerials();
+            }
+        },
+        async fetchSerialsForItems(){
+            for(const item of this.items){
+                if(item.has_serials !== '1') continue;
+                try{
+                    const payload = {
+                        filter: [
+                            { key:'form-type', type:'=', value:'op-doc-order-serial-form' },
+                            { key:'type', type:'=', value:'op-doc-order-serial' },
+                            { key:'parent_id', type:'=', value: String(item.raw_id) },
+                        ],
+                        scale: { page: 1, limit: 300 },
+                        order: { key: 'id', style: 'asc' }
+                    };
+                    const fd = new FormData();
+                    fd.append('tableReq', JSON.stringify(payload));
+                    const rsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
+                    const raw = rsp?.data || rsp?.data?.data || [];
+                    const rows = Array.isArray(raw) ? raw : (rsp?.data || []);
+                    const list = rsp?.data ? rsp.data : rows;
+                    const actualRows = Array.isArray(list) ? list : (list?.data || []);
+                    item.serials = (Array.isArray(actualRows) ? actualRows : []).map(r=>{
+                        try{ JSON.parse(r.main_attr||'[]').forEach(el=> r[el['Key']]=el['Value']); }catch(e){}
+                        return {
+                            serial_no: r['serial_no']||'-',
+                            production_date: r['production_date']||'',
+                            quantity: r['quantity']||'-',
+                            unit: r['unit']||'',
+                        };
+                    });
+                }catch(e){
+                    console.error('fetchSerials failed for item', item.id, e);
+                }
             }
         }
     }
@@ -509,7 +612,7 @@ export default {
             </div>
             <div v-else class="oic-list-wrap">
                 <div class="oic-list">
-                    <div v-for="(row, idx) in items" :key="row.id" class="oic-row-wrap">
+                    <div v-for="(row, idx) in items" :key="row.id" class="oic-row-wrap" :data-item-qnid="row.id">
                         <!-- Main row -->
                         <div class="oic-row" :class="{ 'oic-selected': isSelected(row), 'oic-selectable': selectable }" @click="toggleCard(row)">
                             <div class="oic-idx">{{ idx + 1 }}</div>
@@ -521,7 +624,7 @@ export default {
                                 <span class="oic-code-text" :title="row.prod_code">{{ row.prod_code }}</span>
                             </div>
                             <div class="oic-title" :title="row.title">{{ row.title }}</div>
-                            <span class="oic-qty" v-if="row.original_quantity && parseFloat(row.original_quantity) !== parseFloat(row.quantity)">
+                            <span class="oic-qty" v-if="quantityChanged(row)">
                                 <strong style="text-decoration:line-through;color:#94a3b8;font-weight:500;">{{ row.original_quantity }}</strong>
                                 <i class="ki-outline ki-arrow-right" style="font-size:11px;color:#94a3b8;margin:0 2px;"></i>
                                 <strong>{{ row.quantity }}</strong>
@@ -541,8 +644,36 @@ export default {
                             </button>
                         </div>
 
+                        <!-- Existing serial data (collapsible, read-only) -->
+                        <div v-if="row.serials && row.serials.length > 0" class="oic-serial-view" @click.stop>
+                            <div class="oic-serial-view-header" @click="toggleViewCollapse(row)">
+                                <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
+                                <span>Seri Numaraları ({{ row.serials.length }} adet)</span>
+                                <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                    {{ isViewCollapsed(row) ? 'Genişlet' : 'Daralt' }}
+                                    <i :class="isViewCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
+                                </span>
+                            </div>
+                            <div v-show="!isViewCollapsed(row)" class="oic-serial-scroll">
+                                <div class="oic-serial-view-table">
+                                    <div class="oic-serial-view-row oic-serial-view-header-row">
+                                        <span style="flex:0 0 40px;text-align:center;">#</span>
+                                        <span style="flex:1;">Seri No</span>
+                                        <span style="flex:1;">Malzeme Üretim Tarihi</span>
+                                        <span style="flex:0 0 100px;text-align:right;">Miktar</span>
+                                    </div>
+                                    <div v-for="(ser, si) in row.serials" :key="si" class="oic-serial-view-row">
+                                        <span class="oic-serial-view-idx">{{ si + 1 }}</span>
+                                        <input type="text" class="oic-serial-view-input" :value="ser.serial_no" disabled />
+                                        <input type="text" class="oic-serial-view-input" :value="formatSerialDate(ser.production_date)" disabled />
+                                        <span class="oic-serial-view-qty">{{ ser.quantity }} {{ ser.unit }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- At-once serial entry for each item -->
-                        <div v-if="atOnceMode && needsSerialsAtOnce(row)" class="oic-split-bar" @click.stop style="border-color:#e0e7ff;background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);">
+                        <div v-if="atOnceMode && needsSerialsAtOnce(row)" class="oic-atonce-bar" @click.stop>
                             <div class="oic-serial-section" style="border-top:none;padding-top:0;">
                                 <!-- ST: serial checkbox -->
                                 <div v-if="row.unit === 'ST'" class="oic-serial-toggle" style="padding:10px 0;">
@@ -555,7 +686,7 @@ export default {
 
                                 <!-- ST serial rows (when enabled) -->
                                 <div v-if="row.unit === 'ST' && needsSerials(row)">
-                                    <div class="oic-serial-header">
+                                    <div class="oic-serial-header mt-2">
                                         <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
                                         <span>Ürün Seri Numaralarını Giriniz. (Toplam: {{ row.quantity }} {{ row.unit }})</span>
                                     </div>
@@ -579,9 +710,13 @@ export default {
 
                                 <!-- KG/M serial rows (always required) -->
                                 <div v-if="row.unit !== 'ST'">
-                                    <div class="oic-serial-header">
-                                        <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
+                                    <div class="oic-serial-header mt-2">
+                                        <i class="ki-outline ki-hash" style="font-size:13px;color:#64748b;"></i>
                                         <span>Ürün parti Numaralarını Giriniz. (Toplam: {{ row.quantity }} {{ row.unit }})</span>
+                                        <button class="oic-serial-add" @click="addSerialRow(row)" style="margin-left:auto;">
+                                            <i class="ki-outline ki-plus" style="font-size:13px;"></i>
+                                            <span>Satır Ekle</span>
+                                        </button>
                                     </div>
                                     <div class="oic-serial-scroll">
                                         <div class="oic-serial-table">
@@ -596,17 +731,14 @@ export default {
                                                 <span class="oic-serial-table-idx">{{ si + 1 }}</span>
                                                 <input type="text" class="oic-serial-table-input" v-model="ser.serial_no" placeholder="-" />
                                                 <input type="text" class="oic-fp-month" :data-serial-key="row.id + '-' + si" :data-value="ser.production_date_display" readonly placeholder="AA.YYYY" />
-                                                <input type="number" class="oic-serial-table-input oic-serial-table-qty" v-model.number="ser.quantity" :step="0.01" min="0" :placeholder="row.unit" />
+                                                <input type="number" class="oic-serial-table-input oic-serial-table-qty" v-model.number="ser.quantity" :step="0.01" min="1" :placeholder="row.unit" />
                                                 <button v-if="(serials[row.id] || []).length > 1" class="oic-serial-remove" @click="removeSerialRow(row, si)" title="Sil">
                                                     <i class="ki-outline ki-cross" style="font-size:12px;"></i>
                                                 </button>
                                                 <span v-else style="width:28px;flex-shrink:0;"></span>
                                             </div>
                                         </div>
-                                        <button class="oic-serial-add" @click="addSerialRow(row)">
-                                            <i class="ki-outline ki-plus" style="font-size:13px;"></i>
-                                            <span>Satır Ekle</span>
-                                        </button>
+                                        <div class="oic-serial-hint-inline">Seri numarası sayısının gönderilecek miktara eşit olmasına dikkat ediniz!</div>
                                     </div>
                                 </div>
                             </div>
@@ -684,7 +816,7 @@ export default {
                                             <span class="oic-serial-table-idx">{{ si + 1 }}</span>
                                             <input type="text" class="oic-serial-table-input" v-model="ser.serial_no" placeholder="-" />
                                             <input type="text" class="oic-fp-month" :data-serial-key="row.id + '-' + si" :data-value="ser.production_date_display" readonly placeholder="AA.YYYY" />
-                                            <input type="number" class="oic-serial-table-input oic-serial-table-qty" v-model.number="ser.quantity" :step="0.01" min="0" :placeholder="row.unit" />
+                                            <input type="number" class="oic-serial-table-input oic-serial-table-qty" v-model.number="ser.quantity" :step="0.01" min="1" :placeholder="row.unit" />
                                             <button v-if="(serials[row.id] || []).length > 1" class="oic-serial-remove" @click="removeSerialRow(row, si)" title="Sil">
                                                 <i class="ki-outline ki-cross" style="font-size:12px;"></i>
                                             </button>
@@ -722,7 +854,7 @@ export default {
 .oic-list::-webkit-scrollbar-thumb:hover { background:#94a3b8; }
 .oic-list--loading { max-height:480px; overflow:hidden; padding:14px; display:flex; flex-direction:column; gap:10px; }
 .oic-row-wrap { display:flex; flex-direction:column; gap:0; }
-.oic-row { display:flex; align-items:center; gap:12px; padding:14px 18px; border:1px solid #e2e8f0; border-radius:12px; background:#fff; transition:all 0.15s ease; min-height:64px; }
+.oic-row { display:flex; align-items:center; gap:12px; padding:14px 18px; margin-bottom: 2px !important; border:1px solid #e2e8f0; border-radius:12px; background:#fff; transition:all 0.15s ease; min-height:64px; }
 .oic-row:hover { border-color:#cbd5e1; background:#f8fafc; }
 .oic-row.oic-selectable { cursor:pointer; }
 .oic-row.oic-selected { border-color:#3b82f6; border-bottom-left-radius:0; border-bottom-right-radius:0; background:linear-gradient(135deg,#eff6ff 0%,#f0f9ff 100%); }
@@ -742,6 +874,9 @@ export default {
 
 /* Split bar */
 .oic-split-bar { display:flex; flex-direction:column; gap:0; background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%); border:1px solid #fde68a; border-top:none; border-bottom-left-radius:12px; border-bottom-right-radius:12px; margin-top:-1px; }
+
+/* At-once serial bar */
+.oic-atonce-bar { display:flex; flex-direction:column; gap:0; background:#f8fafc; border:1px solid #e2e8f0; border-top:none; border-bottom-left-radius:12px; border-bottom-right-radius:12px; margin-top:-1px; }
 .oic-split-row { display:flex; align-items:center; gap:12px; padding:12px 18px; }
 .oic-split-label { display:flex; align-items:center; gap:5px; font-size:0.88rem; font-weight:600; color:#92400e; flex-shrink:0; }
 .oic-split-input { width:100px; padding:7px 10px; border:1.5px solid #fbbf24; border-radius:8px; font-size:0.92rem; font-weight:700; color:#92400e; background:#fff; outline:none; -moz-appearance:textfield; }
@@ -752,35 +887,36 @@ export default {
 .oic-split-remaining strong { font-weight:800; color:#78350f; }
 
 /* Serial section */
-.oic-serial-section { border-top:1px solid #fde68a; padding:14px 18px; }
-.oic-serial-header { display:flex; align-items:center; gap:7px; font-size:0.85rem; font-weight:600; color:#4338ca; margin-bottom:12px; }
-.oic-serial-grid { display:flex; flex-direction:column; gap:8px; }
-.oic-serial-row { display:flex; align-items:flex-end; gap:10px; }
-.oic-serial-field { display:flex; flex-direction:column; gap:3px; flex:1; }
-.oic-serial-field label { font-size:0.74rem; font-weight:600; color:#6366f1; }
-.oic-serial-input { padding:7px 10px; border:1.5px solid #c7d2fe; border-radius:8px; font-size:0.88rem; color:#1e1b4b; background:#fff; outline:none; }
-.oic-serial-input:focus { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,0.12); }
-.oic-serial-input::placeholder { color:#a5b4fc; }
-.oic-serial-qty { padding:7px 10px; font-size:0.82rem; font-weight:700; color:#4338ca; background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; flex-shrink:0; text-align:center; min-width:60px; }
+.oic-serial-section { border-top:1px solid #e2e8f0; padding:14px 18px; }
+.oic-serial-header { display:flex; align-items:center; gap:8px; font-size:0.88rem; font-weight:600; color:#334155; margin-bottom:12px; }
+.oic-serial-grid { display:flex; flex-direction:column; gap:10px; }
+.oic-serial-row { display:flex; align-items:flex-end; gap:12px; }
+.oic-serial-field { display:flex; flex-direction:column; gap:4px; flex:1; }
+.oic-serial-field label { font-size:0.76rem; font-weight:600; color:#64748b; }
+.oic-serial-input { padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; color:#0f172a; background:#fff; outline:none; transition:border-color 0.15s; }
+.oic-serial-input:focus { border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,0.1); }
+.oic-serial-input::placeholder { color:#94a3b8; }
+.oic-serial-qty { padding:8px 12px; font-size:0.82rem; font-weight:700; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; flex-shrink:0; text-align:center; min-width:65px; }
 
 /* KG/M serial table */
-.oic-serial-table { border:1px solid #e0e7ff; border-radius:10px; overflow:hidden; background:#fff; margin-bottom:8px; }
-.oic-serial-table-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#eef2ff; border-bottom:1px solid #e0e7ff; }
-.oic-serial-table-header span { font-size:0.74rem; font-weight:600; color:#4338ca; text-transform:uppercase; }
-.oic-serial-table-row { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid #f1f5f9; }
+.oic-serial-table { border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; background:#fff; }
+.oic-serial-table-header { display:flex; align-items:center; gap:8px; padding:10px 14px; background:#f8fafc; border-bottom:1px solid #e2e8f0; }
+.oic-serial-table-header span { font-size:0.72rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; }
+.oic-serial-table-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid #f1f5f9; }
 .oic-serial-table-row:last-child { border-bottom:none; }
-.oic-serial-table-idx { width:28px; height:28px; border-radius:7px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:0.74rem; font-weight:700; color:#64748b; flex-shrink:0; }
-.oic-serial-table-input { flex:1; padding:6px 8px; border:1px solid #e0e7ff; border-radius:6px; font-size:0.85rem; color:#1e1b4b; background:#fff; outline:none; }
-.oic-serial-table-input:focus { border-color:#6366f1; }
-.oic-serial-table-input::placeholder { color:#a5b4fc; }
-.oic-serial-table-qty { flex:0 0 100px; -moz-appearance:textfield; }
+.oic-serial-table-row:hover { background:#f8fafc; }
+.oic-serial-table-idx { width:30px; height:30px; border-radius:8px; background:#f1f5f9; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; font-size:0.76rem; font-weight:700; color:#64748b; flex-shrink:0; }
+.oic-serial-table-input { flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; color:#0f172a; background:#fff; outline:none; transition:border-color 0.15s; }
+.oic-serial-table-input:focus { border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,0.1); }
+.oic-serial-table-input::placeholder { color:#94a3b8; }
+.oic-serial-table-qty { flex:0 0 110px; -moz-appearance:textfield; text-align:right; }
 .oic-serial-table-qty::-webkit-outer-spin-button, .oic-serial-table-qty::-webkit-inner-spin-button { -webkit-appearance:none; }
-.oic-serial-remove { width:28px; height:28px; border-radius:6px; border:1px solid #fecaca; background:#fff; color:#dc2626; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.15s; }
-.oic-serial-remove:hover { background:#fef2f2; border-color:#f87171; }
-.oic-serial-add { display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border:1.5px dashed #6366f1; border-radius:8px; background:transparent; color:#4f46e5; font-size:0.82rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
-.oic-serial-add:hover { background:#eef2ff; border-color:#4f46e5; }
-.oic-serial-hint { border-top:1px solid #fde68a; padding:10px 18px; display:flex; align-items:center; gap:7px; font-size:0.82rem; color:#94a3b8; }
-.oic-serial-hint-inline { margin-top:8px; font-size:0.78rem; color:#94a3b8; font-style:italic; }
+.oic-serial-remove { width:30px; height:30px; border-radius:8px; border:1px solid #e2e8f0; background:#fff; color:#94a3b8; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.15s; }
+.oic-serial-remove:hover { background:#fef2f2; border-color:#fecaca; color:#dc2626; }
+.oic-serial-add { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:1px dashed #cbd5e1; border-radius:8px; background:transparent; color:#64748b; font-size:0.84rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.oic-serial-add:hover { background:#f8fafc; border-color:#94a3b8; color:#334155; }
+.oic-serial-hint { border-top:1px solid #e2e8f0; padding:10px 18px; display:flex; align-items:center; gap:7px; font-size:0.82rem; color:#94a3b8; }
+.oic-serial-hint-inline { margin-top:12px; padding:8px 12px; font-size:0.78rem; color:#94a3b8; font-style:italic; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; }
 
 /* Per-item scrollable serial area */
 .oic-serial-scroll { max-height:320px; overflow-y:auto; padding-right:4px; }
@@ -790,7 +926,19 @@ export default {
 .oic-serial-scroll::-webkit-scrollbar-thumb:hover { background:#818cf8; }
 
 /* Serial summary badge on main row */
-.oic-serial-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; background:#eef2ff; border:1px solid #c7d2fe; border-radius:6px; font-size:0.74rem; font-weight:600; color:#4338ca; flex-shrink:0; white-space:nowrap; }
+.oic-serial-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; font-size:0.74rem; font-weight:600; color:#475569; flex-shrink:0; white-space:nowrap; }
+
+/* Serial view (read-only, collapsible) */
+.oic-serial-view { background:#f8fafc; border:1px solid #e2e8f0; border-top:none; border-bottom-left-radius:12px; border-bottom-right-radius:12px; }
+.oic-serial-view-header { display:flex; align-items:center; gap:7px; padding:10px 18px; cursor:pointer; font-size:0.85rem; font-weight:600; color:#475569; }
+.oic-serial-view-table { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; background:#fff; margin:0 14px 14px; }
+.oic-serial-view-header-row { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f8fafc; border-bottom:1px solid #e2e8f0; }
+.oic-serial-view-header-row span { font-size:0.72rem; font-weight:600; color:#64748b; text-transform:uppercase; }
+.oic-serial-view-row { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid #f1f5f9; }
+.oic-serial-view-row:last-child { border-bottom:none; }
+.oic-serial-view-idx { width:28px; height:28px; border-radius:7px; background:#f1f5f9; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; font-size:0.74rem; font-weight:700; color:#64748b; flex-shrink:0; }
+.oic-serial-view-input { flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:0.85rem; color:#64748b; background:#f8fafc; cursor:not-allowed; }
+.oic-serial-view-qty { flex:0 0 100px; text-align:right; font-size:0.85rem; font-weight:600; color:#0f172a; }
 
 /* Toggle checkbox */
 .oic-serial-toggle { border-top:1px solid #fde68a; padding:10px 18px; }
@@ -798,10 +946,10 @@ export default {
 .oic-toggle-cb { display:none; }
 .oic-toggle-switch { width:40px; height:22px; border-radius:11px; background:#cbd5e1; position:relative; transition:all 0.2s; flex-shrink:0; }
 .oic-toggle-switch::after { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:all 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.15); }
-.oic-toggle-cb:checked + .oic-toggle-switch { background:#6366f1; }
+.oic-toggle-cb:checked + .oic-toggle-switch { background:#3b82f6; }
 .oic-toggle-cb:checked + .oic-toggle-switch::after { left:21px; }
-.oic-toggle-text { font-size:0.88rem; font-weight:600; color:#1e1b4b; }
-.oic-toggle-text em { color:#6366f1; font-style:normal; }
+.oic-toggle-text { font-size:0.88rem; font-weight:600; color:#0f172a; }
+.oic-toggle-text em { color:#3b82f6; font-style:normal; }
 
 /* Flatpickr month picker */
 .oic-fp-month { width:100%; padding:6px 10px; border:1px solid #e0e7ff; border-radius:6px; font-size:0.88rem; font-weight:700; color:#1e1b4b; background:#fff; min-height:34px; cursor:pointer; }

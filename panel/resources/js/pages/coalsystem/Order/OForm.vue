@@ -1,5 +1,4 @@
 <script>
-    import { wTrans } from 'laravel-vue-i18n';
     import Plib from '@/lib/pickle';
     import { useRoute } from 'vue-router'
     import { useNavigationStore } from '@/stores/navigation'
@@ -16,26 +15,25 @@
         },
         components: { Form, OrderItemTable },
         setup() {
-            return { useNavigationStore, useFormDataStore, Plib, Swal, useRoute, useAuthStore, wTrans }
+            return { useNavigationStore, useFormDataStore, Plib, Swal, useRoute, useAuthStore }
         },
-        mounted(){
+        async mounted(){
             this.navigationStore.toggle(true);
-            const checkData = async () => {
-                if(this.id !== undefined && this.id !== ''){
-                    const rsp = await this.plib.request({ url:'/api/v1/document/'+this.id, method:'GET' },null);
-                    return rsp;
-                }else{
-                    return { success : false }
-                }
+            // Orders come from SAP — form requires a document id. No id = redirect to list.
+            if(this.id === undefined || this.id === ''){
+                this.$router.replace({ name: 'OrderList' });
+                return;
             }
-            checkData().then(response => {
-                this.navigationStore.toggle(true);
-                this.formDataStore.setData(response?.data?.formFormat);
-                this.formDataStore.rawData = response?.data || {};
-                this.rawData = response?.data || {};
-                this.loadForm = true;
-                setTimeout(() => this.navigationStore.toggle(false), 400);
-            });
+            const response = await this.plib.request({ url:'/api/v1/document/'+this.id, method:'GET' },null);
+            this.navigationStore.toggle(true);
+            this.formDataStore.setData(response?.data?.formFormat);
+            this.formDataStore.rawData = response?.data || {};
+            this.rawData = response?.data || {};
+            try {
+                this.parsedStatus = JSON.parse(this.rawData?.document?.status || '[]');
+            } catch(e) { this.parsedStatus = []; }
+            this.loadForm = true;
+            setTimeout(() => this.navigationStore.toggle(false), 400);
         },
         data() {
             const route = useRoute();
@@ -47,30 +45,24 @@
                 authStore: useAuthStore(),
                 id: route?.params?.id !== '' ? route?.params?.id : undefined,
                 rawData: {},
+                parsedStatus: [],
                 transferMode: 'at_once',
                 selectedItems: [],
                 allItemSerials: [],
+                highlightItemQnid: null,
             };
         },
         computed: {
             orderStatus(){
-                let st = this.rawData?.document?.status || this.formDataStore?.rawData?.document?.status || '[]';
-                try {
-                    const arr = JSON.parse(st);
-                    if(Array.isArray(arr) && arr.length) return arr[arr.length-1].op_key || '';
-                } catch(e){}
+                if(Array.isArray(this.parsedStatus) && this.parsedStatus.length) return this.parsedStatus[this.parsedStatus.length-1].op_key || '';
                 return '';
             },
             lockedStatuses(){ return ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected']; },
             isLocked(){ return this.id && this.lockedStatuses.includes(this.orderStatus); },
             canSend(){ return this.id && this.orderStatus === 'doc_trans_order_created'; },
             storedTransferMode(){
-                const form = this.rawData?.formFormat?.['op-doc-order-form'] || this.formDataStore?.rawData?.formFormat?.['op-doc-order-form'] || {};
-                for (const connId in form) {
-                    const mode = form[connId]?.entities?.transfer_mode;
-                    if (mode) return mode;
-                }
-                return '';
+                const entities = this.orderFormEntities;
+                return entities.transfer_mode || '';
             },
             isFilesLocked(){ return this.id && ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected'].includes(this.orderStatus); },
             readonlyFields(){
@@ -88,69 +80,96 @@
                 return this.isCloneOrder ? orderNo.replace(/\-\d+$/, '') : null;
             },
             orderEntities(){
+                return this.orderFormEntities;
+            },
+            orderFormEntities(){
                 const form = this.rawData?.formFormat?.['op-doc-order-form'] || this.formDataStore?.rawData?.formFormat?.['op-doc-order-form'] || {};
                 for (const connId in form) {
                     const entities = form[connId]?.entities;
-                    if (entities && entities.order_no) return entities;
+                    if (entities && (entities.order_no || entities.transfer_mode)) return entities;
                 }
                 return {};
             },
         },
         methods: {
+            validatePartial(){
+                if(!this.selectedItems.length){
+                    this.plib.toast(this.Swal,'info','Parçalı transfer için en az bir kalem seçmelisiniz.',()=>{});
+                    return false;
+                }
+                const invalid = this.selectedItems.find(i => !i.amount || i.amount <= 0);
+                if(invalid){
+                    this.plib.toast(this.Swal,'info','Her kalem için geçerli bir bölme miktarı girmelisiniz.',()=>{});
+                    return false;
+                }
+                for(const item of this.selectedItems){
+                    if(!item.serials || !item.serials.length) continue;
+                    for(const s of item.serials){
+                        if(!s.production_date){
+                            this.plib.toast(this.Swal,'info','Tüm seri numaraları için üretim tarihi girmelisiniz.',()=>{});
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            },
+            validateAtOnceSerials(){
+                for(const item of this.allItemSerials){
+                    if(item.unit === 'ST') continue;
+                    let sum = 0;
+                    for(const s of item.serials){
+                        if(!s.production_date){
+                            this.highlightItemQnid = null;
+                            this.$nextTick(()=>{ this.highlightItemQnid = item.qnid; });
+                            this.plib.toast(this.Swal,'info','Tüm seri numaraları için üretim tarihi girmelisiniz.',()=>{});
+                            return false;
+                        }
+                        const sq = parseFloat(s.quantity);
+                        if(isNaN(sq) || sq <= 0){
+                            this.highlightItemQnid = null;
+                            this.$nextTick(()=>{ this.highlightItemQnid = item.qnid; });
+                            this.plib.toast(this.Swal,'info','Her seri miktarı sıfırdan büyük olmalıdır.',()=>{});
+                            return false;
+                        }
+                        sum += sq;
+                    }
+                    if(Math.abs(sum - item.quantity) > 0.01){
+                        this.highlightItemQnid = null;
+                        this.$nextTick(()=>{ this.highlightItemQnid = item.qnid; });
+                        this.plib.toast(this.Swal,'info', item.unit + ' toplamı ' + item.quantity + ' olmalıdır. Şu an: ' + sum.toFixed(2),()=>{});
+                        return false;
+                    }
+                }
+                return true;
+            },
+            buildTransferPayload(){
+                if(!this.canSend || !this.transferMode) return;
+                this.formData.transfer_mode = this.transferMode;
+                if(this.transferMode === 'partial'){
+                    if(!this.validatePartial()) return false;
+                    this.formData.selected_items = this.selectedItems;
+                }
+                if(this.transferMode === 'at_once' && this.allItemSerials.length){
+                    if(!this.validateAtOnceSerials()) return false;
+                    this.formData.item_serials = this.allItemSerials;
+                }
+                return true;
+            },
             async submitForm(formData){
                 this.formData = formData;
                 this.navigationStore.toggle(true);
                 this.formData.typeKey = 'op-doc-order';
 
-                if(this.canSend && this.transferMode){
-                    this.formData.transfer_mode = this.transferMode;
-                    if(this.transferMode === 'partial'){
-                        if(!this.selectedItems.length){
-                            this.navigationStore.toggle(false);
-                            this.plib.toast(this.Swal,'info','Parçalı transfer için en az bir kalem seçmelisiniz.',()=>{});
-                            return;
-                        }
-                        const invalid = this.selectedItems.find(i => !i.amount || i.amount <= 0);
-                        if(invalid){
-                            this.navigationStore.toggle(false);
-                            this.plib.toast(this.Swal,'info','Her kalem için geçerli bir bölme miktarı girmelisiniz.',()=>{});
-                            return;
-                        }
-                        // Validate serials
-                        for(const item of this.selectedItems){
-                            if(!item.serials || !item.serials.length) continue;
-                            for(const s of item.serials){
-                                if(!s.production_date){
-                                    this.navigationStore.toggle(false);
-                                    this.plib.toast(this.Swal,'info','Tüm seri numaraları için üretim tarihi girmelisiniz.',()=>{});
-                                    return;
-                                }
-                            }
-                        }
-                        this.formData.selected_items = this.selectedItems;
-                    }
-                    // At_once mode: pass serials for all items
-                    if(this.transferMode === 'at_once' && this.allItemSerials.length){
-                        // Validate serial dates
-                        for(const item of this.allItemSerials){
-                            for(const s of item.serials){
-                                if(!s.production_date){
-                                    this.navigationStore.toggle(false);
-                                    this.plib.toast(this.Swal,'info','Tüm seri numaraları için üretim tarihi girmelisiniz.',()=>{});
-                                    return;
-                                }
-                            }
-                        }
-                        this.formData.item_serials = this.allItemSerials;
-                    }
+                if(this.buildTransferPayload() === false){
+                    this.navigationStore.toggle(false);
+                    return;
                 }
 
                 const rsp = this.plib.checkForm('.form-item');
                 if(rsp.valid){
                     const envelope = new FormData();
                     envelope.append('data', JSON.stringify(this.formData));
-                    for(let key in this.formData.files){
-                        const fileItem = this.formData.files[key];
+                    for(const [key, fileItem] of Object.entries(this.formData.files || {})){
                         if(fileItem && !fileItem.uploading && fileItem.reference){
                             envelope.append(key, JSON.stringify(fileItem.reference));
                         } else if(fileItem && fileItem.file) {
@@ -258,7 +277,7 @@
                 </div>
             </div>
             <div style="background:#fff;padding:0;">
-                <OrderItemTable :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" />
+                <OrderItemTable :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" />
             </div>
         </div>
 
