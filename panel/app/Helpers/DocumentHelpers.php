@@ -516,12 +516,17 @@ if(!function_exists('tempUploadFile')){
 if(!function_exists('finalizeTempFile')){
     /**
      * Moves a temp-uploaded file to permanent documents storage and links it to a document.
-     * @param int $referenceId - document_files.id from temp upload
+     * Handles replacement: if an existing file is being replaced, deactivates the old one,
+     * creates a new document_files record, chains via replaced_id, copies entities, and
+     * logs doc_file_refreshed — mirroring addFileToDb replacement behavior.
+     *
+     * @param int $referenceId - document_files.id from temp upload (relation='temp')
      * @param int $documentId - documents.id to link to
      * @param string $tag - sys_options op_key for file type (e.g. 'form-file')
+     * @param int $existingFileId - document_files.id of the file being replaced (0 = first upload)
      * @return array { success, file_id }
      */
-    function finalizeTempFile($referenceId, $documentId, $tag = 'form-file'){
+    function finalizeTempFile($referenceId, $documentId, $tag = 'form-file', $existingFileId = 0){
         try{
             $docFile = \App\Models\Document_files::where('id', $referenceId)->where('relation', 'temp')->first();
             if(!$docFile){
@@ -546,12 +551,65 @@ if(!function_exists('finalizeTempFile')){
             // Move file from temp to documents
             rename($tempPath, $finalPath);
 
-            // Update document_files record
+            // --- REPLACEMENT: old file exists → mirror addFileToDb behavior ---
+            if($existingFileId > 0){
+                $fileOld = \App\Models\Document_files::where('id', $existingFileId)->first();
+                if($fileOld){
+                    // Deactivate old file and chain
+                    $fileOld->status = 0;
+                    $fileOld->replaced_id = $docFile->id;
+                    $fileOld->save();
+
+                    // Promote temp record to permanent
+                    $docFile->relation_id = $documentId;
+                    $docFile->relation = 'documents';
+                    $docFile->save();
+
+                    // Log replacement (doc_file_refreshed, NOT doc_file_waiting)
+                    $log = \App\Models\UserLog::create([
+                        'user_id' => auth('sanctum')->user()->id,
+                        'sys_code' => $GLOBALS['SYS_CODE'],
+                        'relation' => 'documents',
+                        'relation_id' => $documentId,
+                        'type_id' => \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id ?? 0,
+                        'description' => json_encode([
+                            'file_id' => $docFile->id,
+                            'old_file_id' => $fileOld->id,
+                            'desc' => 'Geçici dosya ile değiştirildi',
+                        ], JSON_UNESCAPED_UNICODE)
+                    ]);
+
+                    \App\Models\Transactions::create([
+                        'op_id' => 1,
+                        'type_id' => (\App\Models\Sys_options::where('op_key', 'doc_file_refreshed')->first())->id ?? 0,
+                        'log_id' => $log->id,
+                        'target_id' => $docFile->id,
+                        'description' => 'Kullanıcı Dosyayı Değiştirdi (geçici yükleme)'
+                    ]);
+
+                    // Copy entities from old file to new file
+                    $entities = \App\Models\Sys_con_entities::where(['conn_id' => $fileOld->id, 'table_tag' => 'document_files'])->get();
+                    foreach($entities as $e){
+                        $entity = new \App\Models\Sys_con_entities();
+                        $entity->table_tag = 'document_files';
+                        $entity->conn_id = $docFile->id;
+                        $entity->entity_value = $e->entity_value;
+                        $entity->entity_tag = $e->entity_tag;
+                        $entity->save();
+                    }
+
+                    return [
+                        'success' => true,
+                        'file_id' => $docFile->id,
+                    ];
+                }
+            }
+
+            // --- FIRST UPLOAD: no existing file → original behavior ---
             $docFile->relation_id = $documentId;
             $docFile->relation = 'documents';
             $docFile->save();
 
-            // Create transaction log
             $log = \App\Models\UserLog::create([
                 'user_id' => auth('sanctum')->user()->id,
                 'sys_code' => $GLOBALS['SYS_CODE'],

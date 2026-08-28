@@ -158,7 +158,7 @@ Flow (DB transaction):
 5. Process `removedData`: soft-delete `Document_files(status=0)` + delete `Sys_con_entities`
 6. Commit → `getFormData(qnid)` for `after` → `UserLog create (before/after JSON, type log-tender-update)` → return `{success, id, data: document, qnid, detail: getFormData}`
 
-File replacement versioning: same `entity_tag` new `File` → old `Document_files.status=0 + replaced_id` chain.
+File replacement versioning: same `entity_tag` new `File` → old `Document_files.status=0 + replaced_id` chain. **Both paths now version correctly:** `addFileToDb` (traditional) and `finalizeTempFile` (temp upload) both deactivate old, create new record, chain via `replaced_id`, copy entities, log `doc_file_refreshed`. See `panel/docs/file-replacement-fix.md`.
 
 ### 3.2 Persons mirror — `PersonsServiceProvider::setPerson($id, $data, $files, $fileGroup, $allData)`
 `panel/app/Providers/PersonsServiceProvider.php:73-316`

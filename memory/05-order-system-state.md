@@ -80,6 +80,8 @@ SAP sends flat items: [{BUKRS,LIFNR,EBELN,EBELP,MATNR,TXZ01,MENGE,MEINS,BEDAT,SU
 | `DocumentController.php` PUT | order save reads `transfer_mode`/`selected_items` from payload → calls `processOrderTransfer` |
 | `DocumentController.php` | **`cancelOrder`** controller + route `POST /v1/orders/cancel` |
 | `DocumentController.php:154` | **FIXED `$key` clobbering** — `foreach ($data as $fkey => $value)` (was `$key`, broke transfer/offer/client logic on PUT) |
+| `DocumentHelpers.php:529` | **FIXED file replacement** — `finalizeTempFile` now takes `$existingFileId`, deactivates old file, creates new record, chains via `replaced_id`, copies entities, logs `doc_file_refreshed` (was silently destroying version history on temp upload replace) |
+| `DocumentServiceProvider.php:228` | `registerContent` now looks up old file entity BEFORE processing, passes `$existingFileId` to `finalizeTempFile` |
 
 ## 6. What Still PENDING / Coal
 
@@ -113,7 +115,7 @@ php artisan serve --host=127.0.0.1 --port=8000 # http://127.0.0.1:8000/ → Teda
 
 ## 9. Known Bugs / Debt
 
-- **File replacement** — original mechanic is STABLE. `registerContent` checks `entity_tag = exact match` + `table_tag = 'sys_con_ops'`. After first upload, entity flips to `table_tag = 'document_files'`. Re-uploads create duplicates because tag includes timestamp. **Master says: do NOT change this without approval.** The `old_versions` SQL matches by `entity_tag`.
+- **File replacement** — **FIXED (2026-08-28):** Both `addFileToDb` (traditional) and `finalizeTempFile` (temp upload) now create version chains. `finalizeTempFile` receives `$existingFileId` from `registerContent` entity lookup, deactivates old file (`status=0, replaced_id=newId`), creates new `document_files` record, copies entities, logs `doc_file_refreshed`. Old file preserved on disk (status=0). **Master says: do NOT change this without approval.** Full docs: `panel/docs/file-replacement-fix.md`.
 - **`syncOrderStatusFromFiles`** — only fires from `documentFileStatus` (admin action). Does NOT fire during `registerContent` (file save). Status revert on re-upload requires manual admin action.
 - **Main order `transfer_no` entity** — `recordPartiallySent` writes `transfer_no` to main order. OList uses `order_no` first (not `transfer_no`) so main displays correctly as `3510001793`.
 - **Lock** — `OForm.vue:63` `ready_for_shipment` is FULL lock (desc+imalatci+files). `files_rejected` keeps files editable for replace. `Form.vue:2385` compound-name lock + `hideAdd:true` single-file slots. `OrderItemTable.vue` is row list with scrollbar, not table.
