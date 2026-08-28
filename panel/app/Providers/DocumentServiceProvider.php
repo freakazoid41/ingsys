@@ -207,6 +207,15 @@ class DocumentServiceProvider extends ServiceProvider
                         $fileTypeInfo = (Sys_options::where(['ctitle' => 'type_id', 'op_key' => 'op-'.$typeTag])->first());
                         $fileTypeInfo = ! empty($fileTypeInfo) ? $fileTypeInfo->title : 'Dosya';
 
+                        // Look up existing file entity BEFORE processing — needed for replacement detection.
+                        // On first upload there is no entity yet ($oldFileEntity = null, $existingFileId = 0).
+                        // On re-upload the entity exists with entity_value = old document_files.id.
+                        $oldFileEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])->first();
+                        $existingFileId = 0;
+                        if($oldFileEntity && is_numeric($oldFileEntity->entity_value)){
+                            $existingFileId = (int) $oldFileEntity->entity_value;
+                        }
+
                         // Check if file is a reference (temp upload) or a File object
                         $isReference = is_string($file) && is_json($file);
                         if($isReference){
@@ -214,8 +223,10 @@ class DocumentServiceProvider extends ServiceProvider
                             $referenceId = $refData['reference_id'] ?? 0;
 
                             if($referenceId > 0){
-                                // Finalize temp file: move to permanent storage and link to document
-                                $fileResponse = finalizeTempFile($referenceId, $document->id, 'form-file');
+                                // Finalize temp file: move to permanent storage and link to document.
+                                // Pass existingFileId so finalizeTempFile can handle replacement
+                                // (deactivate old, create new record, chain via replaced_id, copy entities).
+                                $fileResponse = finalizeTempFile($referenceId, $document->id, 'form-file', $existingFileId);
                                 if($fileResponse['success']){
                                     $fileId = $fileResponse['file_id'];
                                 }else{
