@@ -109,18 +109,10 @@ class DocumentServiceProvider extends ServiceProvider
                 $birthKey = $birthMap[$typeKey] ?? 'doc_trans_created';
                 $birthType = Sys_options::where('op_key', $birthKey)->first();
                 if (!$birthType) $birthType = Sys_options::where('op_key','doc_trans_created')->first();
-                $birthLog = UserLog::create([
-                    'user_id' => auth('sanctum')->user()->id ?? 0,
-                    'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
-                    'relation' => 'documents',
-                    'relation_id' => $document->id,
-                    'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
-                    'description' => json_encode(['desc' => 'New Document Added'], JSON_UNESCAPED_UNICODE),
-                ]);
                 Transactions::create([
                     'op_id' => 0,
                     'type_id' => $birthType->id,
-                    'log_id' => $birthLog->id ?? 0,
+                    'log_id' => 0,
                     'target_id' => $document->id,
                     'description' => 'New Document Added',
                 ]);
@@ -394,9 +386,7 @@ class DocumentServiceProvider extends ServiceProvider
         // d.status is shadowed by the transaction aggregate aliased as "status" below, so the
         // document activeness flag is exposed under its own name.
         $document = "select sp.op_key,
-                            d.id, d.qnid, d.type_id, d.title, d.starting_at, d.ending_at,
-                            d.person_id, d.grp_code, d.parent_id, d.parent_type_id,
-                            d.created_at, d.updated_at,
+                            d.* ,
                             d.status as document_status,
                             (select     json_agg(
                                             json_build_object(
@@ -404,16 +394,15 @@ class DocumentServiceProvider extends ServiceProvider
                                                 'op_title' , so.title,
                                                 'note',t.note,
                                                 'created_at',t.created_at,
-                                                'name',coalesce(p.name, '-')
+                                                'name',p.name
                                             )
-                                            order by t.id
-                                        )::text
+                                        )
                                 from transactions as t
                                     inner join sys_options so on so.id = t.type_id
-                                    left join user_logs ul on ul.id = t.log_id
-                                    left join users u on u.id = ul.user_id
-                                    left join persons p on p.id = u.person_id
-                                where t.target_id = d.id and so.group_key = 'op-trans-' || sp.op_key)  as  status
+                                    inner join user_logs ul on ul.id = t.log_id
+                                    inner join users u on u.id = ul.user_id
+                                    inner join persons p on p.id = u.person_id
+                                where target_id = d.id and so.group_key = 'op-trans-' || sp.op_key)  as  status
                             
                             from documents d 
                         inner join sys_options as sp on sp.id = d.type_id

@@ -60,16 +60,3 @@ Check :
 create new docker container if not exist with name 'tedarikNewApp' from 61d0571c2f7bbc4b32f0d88475e8fa6a9beac12aac664a0fdc9f25b568ec8aa7 docker postgresql image and use it wth DB_USERNAME=tedarikNewApp
 DB_DATABASE=tedarikNewApp
 DB_PASSWORD=tedarikNewApp cradentials
-
-
-
-now lets talk abouıt partitionig mechanic detailed with order items mechanics. 
-
-every order item has quanitites. this quantities have types
-
-ST => Adet  (integer)
-KG => KG    (float)
-M  => Meter (float)
-
-while saving order items they are important.
-while partitioning order we need to select how much we are splitting from the main order.

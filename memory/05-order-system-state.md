@@ -29,15 +29,12 @@
 3. **SAP sends ONLY order items** (flat rows, no headers). Our cron **groups by `EBELN` → creates main `op-doc-order` ourselves** (header fields from first row: `BUKRS→sys_code, LIFNR→spec_code, EBELN→order_no, SUBMI→buying_no, MCOD1→ctitle, BEDAT→created_at`), **then adds each row as `op-doc-order-item`** (`MATNR**EBELP→prod_code, TXZ01→title, MENGE→quantity, MEINS→unit`). Prices `NETPR/WEMNG` no longer stored in form/table but SAP may still send (keep out of UI).
 4. **Partial split → clone** as new `op-doc-order` `transfer_no = EBELN-X` (`X` increment). Clone only exists if partially split, NOT auto for every order.
 
-## 3. Current Live Test Data (`panel` `tedarikNewApp` 2026-08-28)
+## 3. Current Live Test Data (`panel` `tedarikNewApp` 2026-08-27)
 
-**Reset script:** `panel/seed_sap_orders.php` — WIPES all order data (op-doc-order/item/transfer incl. clones + files + trans + logs + EAV) then INGESTS SAP flat rows (grouped by `EBELN` → header from first row + 1 item per row) via `registerContent`. `$sapRows` = paste real SAP export. Run `php seed_sap_orders.php` (fake auth: first active User). Clients untouched.
-
-**Order 111** `3510001793` — id 111 `op-doc-order` `spec_code 0000300181 → PANORAMA` `buying_no IH20205008` `sys_code 4000` `ctitle PANORAMA TEKSTİL` `created_at 17/04/2020` status `doc_trans_order_created (Sipariş Oluşturuldu)` — 6 SAP fields only, NO desc/imalatci/files (clean baseline, grp_code CATES). Birth tx now has a real `UserLog` (`registerContent` no longer writes `log_id=0`).
-* **Item 1** id=112 `prod_code 20.6.1.005**00120` Premium Kömür Tip A 2400.000 ST
-* **Item 2** id=113 `prod_code 20.6.1.008**00240` Premium Kömür Tip B 1800.500 ST
+**Order 83** `3510001793` `qnid e0aa1b22-1111-4faf-9d99-111111111111` id 83 `op-doc-order` `spec_code 0000300181 → PANORAMA` `buying_no IH20205008` `sys_code 4000` `ctitle PANORAMA TEKSTİL` `created_at 2020-04-17` status `doc_trans_order_created (Sipariş Oluşturuldu)` — 6 SAP fields only, NO desc/imalatci/files (clean baseline).
+* **Item 1** id=84 `prod_code 20.6.1.005**00120` Premium Kömür Tip A 2400.000 ST
+* **Item 2** id=85 `prod_code 20.6.1.008**00240` Premium Kömür Tip B 1800.500 ST
 * **Clients 3** `op-doc-client` + `lifnr`: `PANORAMA TEKSTİL 0000300181`, `HASÇELİK KABLO 0000300182`, `HES HACILAR ELEKTRİK 0000300183`
-* ⚠️ qnids regenerate on every reset — never hardcode; resolve via `order_no` entity lookup.
 
 ## 4. How Data Flows Now (SAP grouping, per Master)
 
@@ -86,7 +83,7 @@ SAP sends flat items: [{BUKRS,LIFNR,EBELN,EBELP,MATNR,TXZ01,MENGE,MEINS,BEDAT,SU
 
 ## 6. What Still PENDING / Coal
 
-- **SAP cron** NOT formalized → `panel/app/Console/Commands/SyncOrdersCommand.php` + `POST /api/v1/orders/sync-sap` (grouping logic §2.3 defined). Prototype = `panel/seed_sap_orders.php` (wipe + SAP ingest, runnable now).
+- **SAP cron** NOT formalized → `panel/app/Console/Commands/SyncOrdersCommand.php` + `POST /api/v1/orders/sync-sap` (grouping logic §2.3 defined). Test seed scripts `/tmp/fresh_order_2items.php` is prototype only.
 - **Front panel** design PENDING (`memory/idea.md:31`) — **backend transfer flow already BUILT** (order-detail SAVE → `processOrderTransfer` at_once/partial, files_rejected, cancel). What remains is the client-facing **skin**: route/layout (`/front/orders`...) that renders the order detail + at_once/partial radio + item checkboxes + desc/imalatci/2 files and calls the same `PUT /v1/document/{id}`.
 - **Dashboard** still coal `ReportServiceProvider.php:479` — needs order metrics.
 - **Branding** done `Tedarik Yönetim Sistemi`; SVGs still `CATES.svg/YATAGAN.svg` — optional neutral.
@@ -111,7 +108,7 @@ cd panel && php artisan migrate:status # 23 done
 cd panel && npm run build # after Form.vue/router/Sidebar/OForm/OList/OrderItemTable edit
 php artisan serve --host=127.0.0.1 --port=8000 # http://127.0.0.1:8000/ → Tedarik Yönetim Sistemi
 # login kadir / Kadir412. / 111111 → /coalpanel/orders
-# fresh SAP data: php seed_sap_orders.php  (wipe all orders + ingest $sapRows)
+# fresh data: php /tmp/fresh_order_2items.php
 ```
 
 ## 9. Known Bugs / Debt
