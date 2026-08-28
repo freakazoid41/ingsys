@@ -1,4 +1,4 @@
-# Order Management System — Current State (2026-08-27)
+# Order Management System — Current State (2026-08-28)
 
 > **This is the living snapshot. If you are LLM in a future session, read this first after `00-core-overview.md`.**
 > **Control panel conversion is DONE. Front panel PENDING (design awaited). SAP cron PENDING (grouping logic defined, not formalized).**
@@ -12,8 +12,8 @@
 |-------|------|------------------|
 | **DB** | `b2x` on `5431` (postgres `postgres:latest 61d0571c...`) | **`tedarikNewApp`** on `5431` same image `61d0571c2f7b` docker `tedarikNewApp` Up, `127.0.0.1:5431 tedarikNewApp/tedarikNewApp` (`panel/.env:28`) — 23 migrations, 77+18 sys_options |
 | **Doc types** `sys_options.group_key=op-doc` | `op-doc-request\|offer\|client\|flat` | **`op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, `parent_id=order.id`), `op-doc-client` (Cari)**. `op-doc-transfer` still seeded but **NOT used** (clones are `op-doc-order` with `transfer_no` entity `EBELN-X`). `OrderSystemSeeder.php` |
-| **Forms** `op-doc-forms` | 5: `request/offer/client/user/flat` | **`op-doc-order-form`** (`order_no/buying_no/spec_code/sys_code/ctitle/created_at` readOnly + `order_desc` textarea rows 3 + `imalatci_firma_adi` + `Malzeme Kabul` `group_key=transfer_kabul` `transfer_kabul_file` + `Malzeme Cins-Miktar Kabul` `group_key=transfer_cins` `transfer_cins_file`), **`op-doc-order-item-form`** (`prod_code/title/quantity/unit` readOnly, NO deal/received price — removed, + `item_test_docs` + `item_images`), `op-doc-client-form` **+ `lifnr` (Cari Kodu)** field. (`panel/resources/js/components/coalparts/Form.vue:1048,1810`) |
-| **Status** `op-trans-op-doc-order` | — | **`doc_trans_order_created → transfer_sent → ready_for_shipment → approved/rejected`** (terminal) + **`doc_trans_order_files_rejected` (Reddedilen Dosyalar Mevcut, set automatically when any order/item file is rejected)**. `ready_for_shipment` is `Sipariş Sevke Hazır`, set when all active files have latest status accepted; inactive old rejected versions are ignored. Guard in `setStatus` (`DocumentServiceProvider.php:745`) allows `transfer_sent/files_rejected → ready_for_shipment → approved/rejected`. File status `doc_file_waiting/accepted/rejected` (`op-trans`) via `documentFileStatus` |
+| **Forms** `op-doc-forms` | 5: `request/offer/client/user/flat` | **`op-doc-order-form`** (`order_no/buying_no/spec_code/sys_code/ctitle/created_at` readOnly + `order_desc` textarea rows 3 + `imalatci_firma_adi` + `Malzeme Kabul` `group_key=transfer_kabul` `transfer_kabul_file` single `hideAdd:true` + `Malzeme Cins-Miktar` `group_key=transfer_cins` `transfer_cins_file` single `hideAdd:true`), **`op-doc-order-item-form`** (`prod_code/title/quantity/unit` readOnly, NO deal/received price, + `item_test_docs` + `item_images`), `op-doc-client-form` **+ `lifnr` (Cari Kodu)** field. (`Form.vue:1048,1880` + `hideAdd` at `1874,1895`) |
+| **Status** `op-trans-op-doc-order` | — | **`doc_trans_order_created → transfer_sent → ready_for_shipment (Sipariş Sevke Hazır) → approved/rejected`** + **`doc_trans_order_files_rejected` (Reddedilen Dosyalar Mevcut)**. `ready_for_shipment` when all active current files `accepted`. Guard in `setStatus:745` allows `transfer_sent/files_rejected→ready_for_shipment→approved/rejected`. **Lock: `OForm.vue:63` `lockedStatuses` includes `ready_for_shipment` + `isFilesLocked` locks `transfer_kabul/cins` files also (except `files_rejected` where files stay editable for replace, `Form.vue:2385` handles `**` compound names). `ready_for_shipment` now FULL lock (desc+imalatci+files).** |
 | **Birth status** | — | `registerContent` (`DocumentServiceProvider.php:101`) uses per-type birth map: `op-doc-order→doc_trans_order_created`, `op-doc-transfer→doc_trans_transfer_created`, `op-doc-order-item→doc_trans_created`. FIXED so newborn order shows `Sipariş Oluşturuldu` in `tableList` (`Documents.php:83` `group_key=op-trans-<type>`). |
 | **File types** `op-file-types` | 5: `offer_otherdocs / iban / odasicil / vergi / imza` | **+ `op-transfer_kabul_file` (Malzeme Kabul), `op-transfer_cins_file` (Cins-Miktar), `op-item_test_file` (Ürün Test Dokümanı), `op-item_images_file` (Görsel)** |
 | **Permissions** | 19 `per-00..08` | **NOT split — reuse `per-05-01/02` for orders, `per-07-01/02` Dökümanlar, `per-06-01/02` Cari**. `PermissionHelpers.php:31` map has `op-doc-order/order-item/transfer → per-05-01/02`. No `per-09`. |
@@ -43,14 +43,12 @@ SAP sends flat items: [{BUKRS,LIFNR,EBELN,EBELP,MATNR,TXZ01,MENGE,MEINS,BEDAT,SU
 → cron groups by EBELN:
   → create ONE Documents op-doc-order (order_no=EBELN, spec_code=LIFNR, sys_code=BUKRS, buying_no=SUBMI, ctitle=MCOD1, created_at=BEDAT) [birth doc_trans_order_created]
   → for each row: Documents op-doc-order-item parent_id=order.id (prod_code=MATNR**EBELP, title=TXZ01, quantity=MENGE, unit=MEINS)
-→ admin/client opens /coalpanel/orders/form/:id → sees transfer selection (at_once/partial) + Sipariş Kalemleri table (OrderItemTable.vue) always at top + Açıklama textarea rows 3 + İmalatçı + Malzeme Kabul/Cins files
-→ client picks transfer type (Tek Seferde at_once | Parçalı partial) in transfer card; on SAVE (same /v1/document PUT endpoint) payload carries transfer_mode + selected_items
-→ at_once → order status created→transfer_sent (Dosyalar Kontrol Ediliyor orange)
-→ partial → backend clones op-doc-order transfer_no=EBELN-X (duplicates selected items under clone parent_id, moves order files and selected item files to the clone) → clone→transfer_sent; original stays (records partially_sent JSON + transfer_no entity)
-→ admin rejects a file → order auto-flips to files_rejected (Reddedilen Dosyalar Mevcut red) via syncOrderStatusFromFiles; all active files accepted → Sipariş Sevke Hazır
-→ admin approves → ready_for_shipment→approved (Kalite Onayı Verildi green), rejected→terminal red; cancel whole order via /v1/orders/cancel (list İptal Et or detail)
-→ files: transfer_kabul/transfer_cins on order + item_test/item_images on item → doc_file_waiting → Dökümanlar tab approve/reject (per-07-02)
-→ rejected file renew: client re-uploads in order detail (files stay editable even when locked), re-saves with a transfer mode → files_rejected→transfer_sent; after all active current files are accepted → ready_for_shipment
+→ admin/client opens /coalpanel/orders/form/:id → sees **Sipariş Kalemleri ROW list (10-15 rows, max-h 420px nice scrollbar, `# idx` + code + title ellipsis + qty badge + eye, selectable checkbox for partial)** always at top (`OrderItemTable.vue` card→row, no PickleTable, fetch via `POST /v1/table/documents` `parent_id`) + transfer selection (at_once/partial) above it when `canSend` + Açıklama rows3 + İmalatçı + Malzeme Kabul/Cins **single-file** (`hideAdd:true`)
+→ client picks transfer type (Tek Seferde at_once | Parçalı partial) in transfer card; on SAVE (`PUT /v1/document/{qnid}` `transfer_mode`+`selected_items`) → at_once created→transfer_sent, partial clones `EBELN-X` → clone transfer_sent
+→ admin rejects file → `files_rejected` red via `syncOrderStatusFromFiles`; all accepted → `ready_for_shipment` yellow truck **FULL lock** (desc+imalatci+files disabled, `isFilesLocked`), files only editable again when `files_rejected`
+→ admin approves → `ready_for_shipment→approved` green, `rejected` terminal red; cancel via `POST /v1/orders/cancel`
+→ files: `transfer_kabul/cins` (order) + `item_test/images` (item) → `doc_file_waiting` → Dökümanlar approve/reject
+→ renew: client re-uploads rejected file in `files_rejected` (only state where files editable) → re-save → `files_rejected→transfer_sent` → all accepted → `ready_for_shipment`
 ```
 
 ## 5. Files Changed (key)
@@ -66,12 +64,12 @@ SAP sends flat items: [{BUKRS,LIFNR,EBELN,EBELP,MATNR,TXZ01,MENGE,MEINS,BEDAT,SU
 | `panel/resources/js/components/coalparts/Form.vue:1048` | client form **`lifnr` = "Cari Kodu"** (10-digit keep zeros) |
 | `panel/resources/js/components/coalparts/Form.vue:1810` | order form `order_desc` textarea rows 3 + `transfer_kabul/transfer_cins` files; item form removed deal/received price |
 | `panel/resources/js/components/coalparts/Form.vue:2651` | textarea case respects `fitem.rows` (order_desc→3) |
-| `panel/resources/js/components/Order/OrderItemTable.vue` | NEW — order detail items table (resolve qnid→id, `parent_id` filter, Ürün Kodu/Adı/Miktar) |
-| `panel/resources/js/pages/coalsystem/Order/OForm.vue` | imports `OrderItemTable`, items table ALWAYS at top, transfer selection above when canSend, `readonlyFields` lock on sent, cancel button |
+| `panel/resources/js/components/Order/OrderItemTable.vue` | NEW — row list (no PickleTable, custom `POST /v1/table/documents` fetch, `# idx` + code + title + qty badge + eye, selectable checkbox, **max-h 420px thin scrollbar, 10-15 rows**, selectedCount header) |
+| `panel/resources/js/pages/coalsystem/Order/OForm.vue:63` | `lockedStatuses` includes `ready_for_shipment`, `isFilesLocked` locks `transfer_kabul/cins` files also, `readonlyFields` = desc+imalatci [+files when `isFilesLocked`], dynamic locked card text, `canSend` only `created/files_rejected` |
 | `panel/resources/js/pages/coalsystem/Order/OList.vue:192,217` | `Detay` button (was Aksiyon), `initialFilter op-doc-order` shows ALL orders (never hide), **uses `order_no` first** (not `transfer_no`), `Sipariş Sevke Hazır` uses a yellow badge with truck icon |
 | `panel/resources/js/pages/coalsystem/Client/CList.vue:195` | `Cari Kodu` column + mobile card |
 | `panel/resources/js/components/coalparts/Sidebar.vue:229` | Transferler hidden `v-if=false` |
-| `panel/resources/js/components/coalparts/Form.vue:2995` | textarea `readonlyFields` support (readOnly + disabled + opacity) |
+| `panel/resources/js/components/coalparts/Form.vue:2385,2995` | `readonlyFields` handles compound `field**group**id` via `startsWith(rf+'**')`, disables inputs+files (opacity 0.6, pointerEvents none), `hideAdd:true` for `transfer_kabul/cins` single-file |
 | `OrderSystemSeeder.php` | + `doc_trans_order_files_rejected` and `doc_trans_order_ready_for_shipment` (`Sipariş Sevke Hazır`) in `op-trans-op-doc-order` |
 | `DocumentServiceProvider.php:932` | `documentFileStatus` now calls `syncOrderStatusFromFiles` after each file status change |
 | `DocumentServiceProvider.php:966` | **`syncOrderStatusFromFiles`** — resolves nearest order without climbing above a clone, moves with clone item ownership, any current rejected → `files_rejected`, all current active files accepted → `ready_for_shipment`; ignores older active rejected order-slot replacements |
@@ -118,4 +116,4 @@ php artisan serve --host=127.0.0.1 --port=8000 # http://127.0.0.1:8000/ → Teda
 - **File replacement** — original mechanic is STABLE. `registerContent` checks `entity_tag = exact match` + `table_tag = 'sys_con_ops'`. After first upload, entity flips to `table_tag = 'document_files'`. Re-uploads create duplicates because tag includes timestamp. **Master says: do NOT change this without approval.** The `old_versions` SQL matches by `entity_tag`.
 - **`syncOrderStatusFromFiles`** — only fires from `documentFileStatus` (admin action). Does NOT fire during `registerContent` (file save). Status revert on re-upload requires manual admin action.
 - **Main order `transfer_no` entity** — `recordPartiallySent` writes `transfer_no` to main order. OList uses `order_no` first (not `transfer_no`) so main displays correctly as `3510001793`.
-- **Textarea readonlyFields** — Form.vue:2995 applies `readOnly + disabled` to textareas matching `readonlyFields`. Works for `order_desc` on locked orders.
+- **Lock** — `OForm.vue:63` `ready_for_shipment` is FULL lock (desc+imalatci+files). `files_rejected` keeps files editable for replace. `Form.vue:2385` compound-name lock + `hideAdd:true` single-file slots. `OrderItemTable.vue` is row list with scrollbar, not table.

@@ -1872,12 +1872,12 @@
                                 oninput : (e) => this.submitDynamicChanges(e.target)
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
-                                type  : 'sub',
                                 name  : 'sub_order_kabul',
                                 label : 'Malzeme Kabul Formu',
                                 type  : 'multiple',
                                 removable : false,
                                 requiredIfFirst : true,
+                                hideAdd : true,
                                 group_key : 'transfer_kabul',
                                 subs  : [
                                     {
@@ -1893,12 +1893,12 @@
                                 ]
                             },{
                                 class : ['form-control','mb-2','mb-md-0','form-item'],
-                                type  : 'sub',
                                 name  : 'sub_order_cins',
                                 label : 'Malzeme Cins-Miktar Kabul Formu',
                                 type  : 'multiple',
                                 removable : false,
                                 requiredIfFirst : true,
+                                hideAdd : true,
                                 group_key : 'transfer_cins',
                                 subs  : [
                                     {
@@ -2380,11 +2380,19 @@
                         
                         if(attr?.defaultValue)            input.value = attr.defaultValue;
                         if(attr?.readOnly)                input.readOnly = attr.readOnly;
-                        // Order System lock: when an order has been sent for review the
-                        // descriptive fields become read-only (files stay editable for re-upload).
-                        if(this.readonlyFields.includes(attr.name)){
+                        // Order System lock: descriptive fields become read-only when locked;
+                        // file slots become read-only when isFilesLocked (e.g. Sipariş Sevke Hazır).
+                        // Multiple file inputs use compound names like "transfer_kabul_file**transfer_kabul**id"
+                        if(this.readonlyFields.includes(attr.name) || this.readonlyFields.some(rf => attr.name === rf || attr.name.startsWith(rf + '**'))){
                             input.readOnly = true;
                             input.disabled = true;
+                            // file inputs inside multiple keep the visual disabled state even with preview
+                            if(attr.type === 'file'){
+                                input.style.opacity = '0.6';
+                                input.style.cursor = 'not-allowed';
+                                // prevent the DataTransfer preview from re-enabling the slot
+                                input.style.pointerEvents = 'none';
+                            }
                         }
                         if(attr.class !== undefined)      input.classList.add(...attr?.class);
                         if(attr?.required !== undefined)  input.required = attr.required;
@@ -3003,7 +3011,7 @@
                             else if(fitem.name === 'order_desc') input.rows = 3;
                             input.classList.add(...fitem.class);
                             if(fitem?.required !== undefined) input.required = fitem.required;
-                            if(this.readonlyFields.includes(fitem.name)){
+                            if(this.readonlyFields.includes(fitem.name) || this.readonlyFields.some(rf => fitem.name === rf || fitem.name.startsWith(rf + '**'))){
                                 input.readOnly = true;
                                 input.disabled = true;
                                 input.style.opacity = '0.6';

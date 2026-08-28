@@ -10,7 +10,7 @@ You drop Figma/HTML for `front panel (new)` — we build:
 1. **Route & Layout:** New `FrontPanel.vue` (client skin, no coal), `router/index.js` → `/front/orders` + `/front/orders/:id` + `/front/transfers` (client view). Separate from `/coalpanel` admin shell (`panel/resources/views/coalapp.blade.php` → two blades or host-based like `public/index.php:11` SYS_CODE). Auth reuses `persons/users` + `2FA` (`AuthController.php:873`), but `typeKey=op-pert-reseller` session `canProceed/canResponse` already works (`PersonsServiceProvider.php:566`).
 2. **Order Detail Client View** (`idea.md:2-9`): **backend already handles this** — order header (readOnly) + item table + `order_desc` + `imalatci_firma_adi` + `transfer_kabul`/`transfer_cins` files, and SAVE triggers `processOrderTransfer` (`at_once`/`partial` + `selected_items`). The front panel skin just needs to render these and call the same `PUT /v1/document/{id}` endpoint with `transfer_mode` + `selected_items`.
 3. **File upload wiring:** Reuse `Form.vue` schemas `op-doc-order-form` but render in front panel style. Ensure `pickle.js:824` `temp-upload` → `finalizeTempFile` → `document_files` → `doc_file_waiting`.
-4. **Rejected files:** client sees `files_rejected` status + can re-upload (files editable even when locked) + re-save with a transfer mode → `transfer_sent`.
+4. **Rejected files:** client sees `files_rejected` status + can re-upload (only `files_rejected` keeps files editable; `ready_for_shipment`/`transfer_sent` are FULL lock incl. files, `OForm.vue:63` `isFilesLocked`) + re-save → `transfer_sent`.
 
 **You need to give:** HTML/CSS or Figma, and whether front panel uses same `coalapp.blade.php` or new blade, and host (e.g. `tedarik.aydemenerji.com.tr` vs `komurtedarik.*`).
 

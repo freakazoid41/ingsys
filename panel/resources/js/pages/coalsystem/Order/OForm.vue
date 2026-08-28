@@ -60,10 +60,16 @@
                 } catch(e){}
                 return '';
             },
-            lockedStatuses(){ return ['doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected']; },
+            lockedStatuses(){ return ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected']; },
             isLocked(){ return this.id && this.lockedStatuses.includes(this.orderStatus); },
             canSend(){ return this.id && ['doc_trans_order_created','doc_trans_order_files_rejected'].includes(this.orderStatus); },
-            readonlyFields(){ return this.isLocked ? ['order_desc','imalatci_firma_adi'] : []; },
+            isFilesLocked(){ return this.id && ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected'].includes(this.orderStatus); },
+            readonlyFields(){
+                if(!this.isLocked) return [];
+                const fields = ['order_desc','imalatci_firma_adi'];
+                if(this.isFilesLocked) fields.push('transfer_kabul_file','transfer_cins_file');
+                return fields;
+            },
         },
         methods: {
             async submitForm(formData){
@@ -173,7 +179,7 @@
                     </div>
                     <div>
                         <div class="locked-card-badge">Sipariş Kilitli</div>
-                        <p class="locked-card-text">Açıklama ve imalatçı bilgileri kilitlendi; dosyalar yine de güncellenebilir.</p>
+                        <p class="locked-card-text">{{ isFilesLocked ? 'Sipariş kilitlendi; açıklama, imalatçı ve dosyalar değiştirilemez.' : 'Açıklama ve imalatçı bilgileri kilitlendi; dosyalar yine de güncellenebilir.' }}</p>
                     </div>
                 </div>
                 <button class="locked-cancel-btn" @click="cancelOrder" v-if="authStore.permissions?.includes('per-05-02')">

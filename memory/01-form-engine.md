@@ -115,7 +115,7 @@ Template: one `.area-target[data-tag=ftype]` per form type + `<AppFab>` (visible
 - `Math.random()` for password gen
 - `keyLock` used as `this.keyLock = []` but not in `data()` (non-reactive, works by accident)
 - `op-doc-per-kanaat` hardcoded in yesno block — dead logic from other project
-- **Textarea `readonlyFields`** — added at Form.vue:2995, applies `readOnly + disabled + opacity` to textareas matching `readonlyFields` prop. Used for `order_desc` on locked orders.
+- **Textarea `readonlyFields`** — added at Form.vue:2995/2385, applies `readOnly + disabled + opacity` to textareas/inputs matching `readonlyFields` prop. Handles compound names `field**group**id` via `startsWith(rf+'**')`. Used for `order_desc/imalatci_firma_adi` + files `transfer_kabul/cins` on locked orders (`OForm.vue:63` `isFilesLocked`). `transfer_kabul/cins` are single-file `multiple` with `hideAdd:true` (not repeatable).
 
 ---
 
