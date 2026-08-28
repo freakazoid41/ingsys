@@ -62,7 +62,15 @@
             },
             lockedStatuses(){ return ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected']; },
             isLocked(){ return this.id && this.lockedStatuses.includes(this.orderStatus); },
-            canSend(){ return this.id && ['doc_trans_order_created','doc_trans_order_files_rejected'].includes(this.orderStatus); },
+            canSend(){ return this.id && this.orderStatus === 'doc_trans_order_created'; },
+            storedTransferMode(){
+                const form = this.rawData?.formFormat?.['op-doc-order-form'] || this.formDataStore?.rawData?.formFormat?.['op-doc-order-form'] || {};
+                for (const connId in form) {
+                    const mode = form[connId]?.entities?.transfer_mode;
+                    if (mode) return mode;
+                }
+                return '';
+            },
             isFilesLocked(){ return this.id && ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected'].includes(this.orderStatus); },
             readonlyFields(){
                 if(!this.isLocked) return [];
@@ -171,6 +179,23 @@
             </div>
         </div>
 
+        <div class="transfer-info-card mb-6" v-if="id && !canSend && storedTransferMode">
+            <div class="transfer-info-body">
+                <div class="transfer-info-left">
+                    <div class="transfer-info-icon" :class="storedTransferMode === 'at_once' ? 'icon-at-once' : 'icon-partial'">
+                        <i :class="storedTransferMode === 'at_once' ? 'ki-outline ki-direct-right' : 'ki-outline ki-slice'"></i>
+                    </div>
+                    <div>
+                        <div class="transfer-info-label">Transfer Türü</div>
+                        <div class="transfer-info-value">{{ storedTransferMode === 'at_once' ? 'Tek Seferde' : 'Parçalı' }}</div>
+                    </div>
+                </div>
+                <div class="transfer-info-badge" :class="storedTransferMode === 'at_once' ? 'badge-at-once' : 'badge-partial'">
+                    {{ storedTransferMode === 'at_once' ? 'Tüm sipariş gönderildi' : 'Seçili kalemler gönderildi' }}
+                </div>
+            </div>
+        </div>
+
         <div class="locked-card mb-6" v-if="id && isLocked">
             <div class="locked-card-body">
                 <div class="locked-card-left">
@@ -266,5 +291,67 @@
     background: #fef2f2;
     border-color: #f87171;
     box-shadow: 0 1px 4px rgba(220,38,38,0.15);
+}
+.transfer-info-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+}
+.transfer-info-body {
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+.transfer-info-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.transfer-info-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+.transfer-info-icon.icon-at-once {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #3b82f6;
+}
+.transfer-info-icon.icon-partial {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #d97706;
+}
+.transfer-info-label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-bottom: 1px;
+}
+.transfer-info-value {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: #0f172a;
+}
+.transfer-info-badge {
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.transfer-info-badge.badge-at-once {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+.transfer-info-badge.badge-partial {
+    background: #fef3c7;
+    color: #92400e;
 }
 </style>

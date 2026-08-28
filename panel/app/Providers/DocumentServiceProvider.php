@@ -1136,6 +1136,13 @@ class DocumentServiceProvider extends ServiceProvider
             return ['success' => false, 'msg' => 'Bu belge transfer edilemez.'];
         }
 
+        // Guard: transfer mode can only be set on first send (status must be doc_trans_order_created).
+        // After first send the transfer type is locked and cannot be changed.
+        $currentStatus = $this->getLatestOrderStatus($order->id);
+        if ($currentStatus !== 'doc_trans_order_created') {
+            return ['success' => false, 'msg' => 'Transfer türü ilk gönderimden sonra değiştirilemez.'];
+        }
+
         // Collect the order form entities so we can carry them to the clone.
         $detail = $this->getFormData($order->qnid);
         $form = $detail['formFormat']['op-doc-order-form'] ?? [];
@@ -1225,15 +1232,18 @@ class DocumentServiceProvider extends ServiceProvider
             // The clone is the thing being sent for review.
             $st = $this->setStatus($clone->qnid, 'doc_trans_order_transfer_sent', 'Transfer gönderildi (parçalı): '.$transferNo);
             if (! ($st['success'] ?? false)) {
-                return ['success' => false, 'msg' => 'Klon durumu güncellenemedi: '.($st['msg'] ?? '')];
-            }
+            return ['success' => false, 'msg' => 'Klon durumu güncellenemedi: '.($st['msg'] ?? '')];
+        }
 
-            return [
-                'success' => true,
-                'transfer_no' => $transferNo,
-                'clone_qnid' => $clone->qnid,
-                'msg' => 'Parçalı transfer oluşturuldu: '.$transferNo,
-            ];
+        // Store transfer_mode as EAV entity so frontend can display it read-only after first send.
+        $this->saveTransferModeEntity($order, $mode);
+
+        return [
+            'success' => true,
+            'transfer_no' => $transferNo,
+            'clone_qnid' => $clone->qnid,
+            'msg' => 'Parçalı transfer oluşturuldu: '.$transferNo,
+        ];
         }
 
         // At-once: the order itself is the transfer being sent.
@@ -1242,7 +1252,44 @@ class DocumentServiceProvider extends ServiceProvider
             return ['success' => false, 'msg' => 'Sipariş durumu güncellenemedi: '.($st['msg'] ?? '')];
         }
 
+        // Store transfer_mode as EAV entity so frontend can display it read-only after first send.
+        $this->saveTransferModeEntity($order, $mode);
+
         return ['success' => true, 'msg' => 'Transfer gönderildi (tek seferde)'];
+    }
+
+    /** Persist transfer_mode ('at_once'|'partial') as an EAV entity on the order. */
+    private function saveTransferModeEntity($order, string $mode): void
+    {
+        $conn = Sys_con_ops::where('main_id', $order->id)
+            ->where('conn_id', 0)
+            ->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-form'))
+            ->first();
+        if (empty($conn)) {
+            return;
+        }
+        $entity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'transfer_mode', 'table_tag' => 'sys_con_ops'])->first();
+        if (empty($entity)) {
+            $entity = new Sys_con_entities;
+            $entity->conn_id = $conn->id;
+            $entity->entity_tag = 'transfer_mode';
+            $entity->table_tag = 'sys_con_ops';
+        }
+        $entity->entity_value = $mode;
+        $entity->save();
+    }
+
+    /** Get the latest order status op_key from transactions. */
+    private function getLatestOrderStatus(int $documentId): ?string
+    {
+        $tx = DB::table('transactions')
+            ->join('sys_options', 'sys_options.id', '=', 'transactions.type_id')
+            ->where('transactions.target_id', $documentId)
+            ->where('transactions.op_id', 0)
+            ->where('sys_options.group_key', 'op-trans-op-doc-order')
+            ->orderBy('transactions.id', 'desc')
+            ->first();
+        return $tx->op_key ?? null;
     }
 
     /** Relinks a document's file entity rows and file rows to another document. */

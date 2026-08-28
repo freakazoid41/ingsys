@@ -77,7 +77,7 @@ SAP sends flat items: [{BUKRS,LIFNR,EBELN,EBELP,MATNR,TXZ01,MENGE,MEINS,BEDAT,SU
 | `panel/resources/js/components/coalparts/Form.vue:1810` | order form `order_desc` textarea rows 3 + `transfer_kabul/transfer_cins` files; item form removed deal/received price |
 | `panel/resources/js/components/coalparts/Form.vue:2651` | textarea case respects `fitem.rows` (order_desc→3) |
 | `panel/resources/js/components/Order/OrderItemTable.vue` | NEW — row list (no PickleTable, custom `POST /v1/table/documents` fetch, `# idx` + code + title + qty badge + eye, selectable checkbox, **max-h 420px thin scrollbar, 10-15 rows**, selectedCount header) |
-| `panel/resources/js/pages/coalsystem/Order/OForm.vue:63` | `lockedStatuses` includes `ready_for_shipment`, `isFilesLocked` locks `transfer_kabul/cins` files also, `readonlyFields` = desc+imalatci [+files when `isFilesLocked`], dynamic locked card text, `canSend` only `created/files_rejected` |
+| `panel/resources/js/pages/coalsystem/Order/OForm.vue:63` | `lockedStatuses` includes `ready_for_shipment`, `isFilesLocked` locks `transfer_kabul/cins` files also, `readonlyFields` = desc+imalatci [+files when `isFilesLocked`], dynamic locked card text, `canSend` only `created` (not `files_rejected`), **`storedTransferMode`** computed reads `transfer_mode` entity, **read-only transfer info card** shows after first send |
 | `panel/resources/js/pages/coalsystem/Order/OList.vue:192,217` | `Detay` button (was Aksiyon), `initialFilter op-doc-order` shows ALL orders (never hide), **uses `order_no` first** (not `transfer_no`), `Sipariş Sevke Hazır` uses a yellow badge with truck icon |
 | `panel/resources/js/pages/coalsystem/Client/CList.vue:195` | `Cari Kodu` column + mobile card |
 | `panel/resources/js/components/coalparts/Sidebar.vue:229` | Transferler hidden `v-if=false` |
@@ -86,7 +86,7 @@ SAP sends flat items: [{BUKRS,LIFNR,EBELN,EBELP,MATNR,TXZ01,MENGE,MEINS,BEDAT,SU
 | `DocumentServiceProvider.php:932` | `documentFileStatus` now calls `syncOrderStatusFromFiles` after each file status change |
 | `DocumentServiceProvider.php:966` | **`syncOrderStatusFromFiles`** — resolves nearest order without climbing above a clone, moves with clone item ownership, any current rejected → `files_rejected`, all current active files accepted → `ready_for_shipment`; ignores older active rejected order-slot replacements |
 | `DocumentServiceProvider.php:1034` | **`applyOrderStatus`** — writes order status transaction (op-trans-op-doc-order) w/o touching documents.status |
-| `DocumentServiceProvider.php` | **`processOrderTransfer($orderQnid,$mode,$selectedItems)`** — at_once sets order transfer_sent; partial clones EBELN-X + moves order and selected item files + duplicates items + `recordPartiallySent`, sets clone transfer_sent |
+| `DocumentServiceProvider.php` | **`processOrderTransfer($orderQnid,$mode,$selectedItems)`** — at_once sets order transfer_sent; partial clones EBELN-X + moves order and selected item files + duplicates items + `recordPartiallySent`, sets clone transfer_sent. **`saveTransferModeEntity`** persists `transfer_mode` as EAV. **`getLatestOrderStatus`** guard rejects transfer_mode changes after first send |
 | `DocumentServiceProvider.php` | **`cancelOrder($id)`** — soft status=0 + terminal rejected transaction for order/transfer |
 | `Sys_con_ops.php` | added `type()` belongsTo relation (for whereHas lookup) |
 | `DocumentController.php` PUT | order save reads `transfer_mode`/`selected_items` from payload → calls `processOrderTransfer` |
