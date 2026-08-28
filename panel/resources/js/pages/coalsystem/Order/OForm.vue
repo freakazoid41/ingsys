@@ -53,12 +53,14 @@
         },
         computed: {
             orderStatus(){
-                let st = this.rawData?.document?.status || this.formDataStore?.rawData?.document?.status || '[]';
-                try {
-                    const arr = JSON.parse(st);
-                    if(Array.isArray(arr) && arr.length) return arr[arr.length-1].op_key || '';
-                } catch(e){}
-                return '';
+                let st = this.rawData?.document?.status ?? this.formDataStore?.rawData?.document?.status ?? null;
+                let arr = [];
+                if(Array.isArray(st)) arr = st;
+                else if(typeof st === 'string' && st.trim() && st.trim() !== '[]'){
+                    try { arr = JSON.parse(st); } catch(e){ arr = []; }
+                }
+                if(Array.isArray(arr) && arr.length) return arr[arr.length-1].op_key || '';
+                return this.id ? 'doc_trans_order_created' : '';
             },
             lockedStatuses(){ return ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected']; },
             isLocked(){ return this.id && this.lockedStatuses.includes(this.orderStatus); },

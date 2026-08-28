@@ -170,6 +170,13 @@ class DocumentController extends Controller
                 if ($key == 'op-doc-order' && in_array($transferMode, ['at_once', 'partial'])) {
                     $selectedItems = $decoded['selected_items'] ?? [];
                     $transferRes = (new DocumentServiceProvider())->processOrderTransfer($request->id, $transferMode, $selectedItems);
+                    if (! ($transferRes['success'] ?? false)) {
+                        return response()->json([
+                            'success' => false,
+                            'msg' => $transferRes['msg'] ?? 'Transfer gönderilemedi',
+                            'data' => $res,
+                        ], 422);
+                    }
                     if (! empty($transferRes['transfer_no'])) {
                         $res['transfer_no'] = $transferRes['transfer_no'];
                         $res['clone_qnid'] = $transferRes['clone_qnid'] ?? null;
