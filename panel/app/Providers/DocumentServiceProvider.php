@@ -210,7 +210,8 @@ class DocumentServiceProvider extends ServiceProvider
                         // Look up existing file entity BEFORE processing — needed for replacement detection.
                         // On first upload there is no entity yet ($oldFileEntity = null, $existingFileId = 0).
                         // On re-upload the entity exists with entity_value = old document_files.id.
-                        $oldFileEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])->first();
+                        // Resolve the NEWEST entity row so legacy duplicates never point back at the first file.
+                        $oldFileEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])->orderByDesc('id')->first();
                         $existingFileId = 0;
                         if($oldFileEntity && is_numeric($oldFileEntity->entity_value)){
                             $existingFileId = (int) $oldFileEntity->entity_value;
@@ -247,8 +248,10 @@ class DocumentServiceProvider extends ServiceProvider
                         // now add file connection
                         $entity = new Sys_con_entities;
 
-                        // check if entity is exist before
-                        $check = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'sys_con_ops'])->first();
+                        // check if entity is exist before — MUST match table_tag 'document_files',
+                        // otherwise a new entity row is created on every upload and the old file
+                        // entity is never updated to the new file id (always replaces the first file).
+                        $check = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])->orderByDesc('id')->first();
                         if (! empty($check)) {
                             $entity = $check;
                         }
