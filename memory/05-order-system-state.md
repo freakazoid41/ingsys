@@ -85,9 +85,10 @@
 | File | Change |
 |------|--------|
 | `OrderSystemSeeder.php` | + `op-doc-order-serial`, `op-doc-order-serial-form` |
-| `OrderItemTable.vue` | **Complete rewrite:** inline split inputs, quantity type awareness, serial entry UI (ST checkbox, KG/M table), collapse button, scrollable per-item, summary badge, flatpickr month picker, at_once mode serial support, `fetchSerialsForItems()` loads existing serials, collapsible read-only serial view (collapsed by default, `serialViewCollapsed` state), `formatSerialDate()`, `ensureAtOnceSerials()`. **+Excel serial upload (2026-08-31):** `import * as XLSX from 'xlsx'`, `excelFileInputs` ref map, `triggerExcelUpload(item)` captures `_excelUploadSplitAmt`, `downloadExcelTemplate()` generates template xlsx, `parseSerialExcel(item, file)` reads Excel client-side + replaces serials + ST mismatch Swal confirm + syncs split amount. `_excelUploadTime` flag prevents `rebuildSerials` overwrite (1000ms). `serialCollapsed[item.id] = false` after upload. 4 "Excel'den Yükle" + 4 "Şablon" buttons across all serial sections. |
+| `OrderItemTable.vue` | **Complete rewrite:** inline split inputs, quantity type awareness, serial entry UI (ST checkbox, KG/M table), collapse button, scrollable per-item, summary badge, flatpickr month picker, at_once mode serial support, `fetchSerialsForItems()` loads existing serials, collapsible read-only serial view (collapsed by default, `serialViewCollapsed` state), `formatSerialDate()`, `ensureAtOnceSerials()`. **+Excel serial upload (2026-08-31):** `import * as XLSX from 'xlsx'`, `excelFileInputs` ref map, `triggerExcelUpload(item)` captures `_excelUploadSplitAmt`, `downloadExcelTemplate()` generates template xlsx, `parseSerialExcel(item, file)` reads Excel client-side + replaces serials + ST mismatch Swal confirm + syncs split amount. `_excelUploadTime` flag prevents `rebuildSerials` overwrite (1000ms). `serialCollapsed[item.id] = false` after upload. 4 "Excel'den Yükle" + 4 "Şablon" buttons across all serial sections. **+KG/M serial → Böl input sync (2026-08-31):** `syncSplitFromSerials()` auto-updates splitAmounts from serial quantities sum; `_syncingSplit` flag prevents infinite loop between `splitAmounts` ↔ `serials` watchers. Called from `addSerialRow`, `removeSerialRow`, serial quantity change (debounced `serials` watcher), Excel upload. |
 | `package.json` | + `"xlsx": "^0.18.x"` dependency |
-| `OForm.vue` | `selectedItems` format `[{qnid, amount, serials}]`, `allItemSerials` for at_once, serial validation, `atOnceMode` prop + `@serials` listener, clone origin banner, transfer info card |
+| `OForm.vue` | `selectedItems` format `[{qnid, amount, serials}]`, `allItemSerials` for at_once, serial validation, `atOnceMode` prop + `@serials` listener, clone origin banner, transfer info card. **+Malzeme Kabul Formu print (2026-08-31):** "Malzeme Kabul Formu Yazdır" button (green, icon) in transfer card. `printMalzemeKabul()` method: validates İmalatçı firma required, Swal error modals with "Tamam" close, collects items (all/selected based on transferMode), calculates clone order_no suffix via `POST /v1/table/documents` query, submits `FormData` to `POST /v1/export/malzeme-kabul`. `getFieldValue()` helper for dynamicF, `orderFormEntities` computed, `getCurrentFormData()` ref method. |
+| `ExportController.php` | **+`malzemeKabul()` (2026-08-31):** `POST /v1/export/malzeme-kabul` — accepts `qnid`, `items` JSON, `order_no`, `buying_no`, `created_at`, `order_desc`, `imalatci_firma_adi`. Reads `getFormData()` for DB entities. Uses DB entities as PRIMARY source (not request) — `imalatci_firma_adi` always from saved data, only overrides if frontend sends non-empty. |
 | `DocumentServiceProvider.php` | `processOrderTransfer($qnid, $mode, $selectedItems, $itemSerials)` — handles partial clone + at_once serials. `duplicateOrderItem` accepts `$splitAmount`. New: `decrementItemQuantity`, `storeOriginalQuantity`, `createSerialEntries`, `setHasSerialsFlag`. |
 | `DocumentController.php` | Passes `$itemSerials` to `processOrderTransfer` |
 | `OList.vue` | Clone order "den ayrıldı" link with `findAndNavigateToOrder` method |
@@ -132,6 +133,24 @@ EXCEL SERIAL UPLOAD:
 → ST mismatch (e.g. 8 Excel rows vs 2 split): Swal confirm dialog → on confirm syncs splitAmounts = parsed.length
 → _excelUploadTime flag (1000ms) prevents rebuildSerials from overwriting
 → serialCollapsed[item.id] = false ensures area stays expanded
+
+KG/M SERIAL → BÖL INPUT SYNC (2026-08-31):
+→ syncSplitFromSerials() auto-updates splitAmounts[item.id] from serial quantity sum
+→ Called from: addSerialRow, removeSerialRow, serial quantity change (debounced 500ms via serials watcher), Excel upload
+→ _syncingSplit flag prevents infinite loop between splitAmounts ↔ serials watchers
+→ Only fires when sum > 0 (prevents clearing input when all serials removed)
+
+MALZEME KABUL FORMU PDF (2026-08-31):
+→ User clicks "Malzeme Kabul Formu Yazdır" button in transfer card (green, icon)
+→ Validates: imalatci_firma_adi required (Swal error if empty)
+→ Collects items (all for at_once, only selected for partial)
+→ Calculates clone order_no suffix by querying existing clones via POST /v1/table/documents
+→ buying_no (SUBMI) stays original — NO clone suffix
+→ POST /v1/export/malzeme-kabul with FormData (qnid, items JSON, order_no, buying_no, created_at, order_desc, imalatci_firma_adi)
+→ ExportController::malzemeKabul() — DB entities as PRIMARY source for imalatci_firma_adi (not request)
+→ Blade template: exports/malzeme-kabul.blade.php — A4 portrait, title underlined, Alım No/Sipariş No stacked left, Tarihi right, 2px table borders, signature grid
+→ dompdf renders PDF → download as malzeme-kabul-{order_no}.pdf
+→ Flow: fills form → clicks Print → PDF downloads → prints on paper → signs with pen → scans → uploads signed PDF to transfer_kabul file field → saves order
 ```
 
 ## 6. Perf / Code Quality Refactors (2026-08-29)
@@ -166,6 +185,8 @@ Applied WITHOUT changing mechanics or validations. Build clean.
 - **Branding** done `Tedarik Yönetim Sistemi`
 - **Legacy coal** pages kept hidden, remove later
 - **`op-doc-transfer` type** still in dict — could delete
+- **Malzeme Cins-Miktar Kabul Formu** — second PDF form (PENDING)
+- **Route ordering** — `POST /v1/export/malzeme-kabul` MUST be before `POST /v1/export/{model}/{type?}` wildcard in `api.php` (line 42, before line 45)
 
 ## 8. Credentials & Infra
 
@@ -193,3 +214,5 @@ php artisan serve --host=127.0.0.1 --port=8000
 - **`syncOrderStatusFromFiles`** — only fires from `documentFileStatus`, NOT from `registerContent`.
 - **Lock** — `ready_for_shipment` FULL lock. `files_rejected` keeps files editable.
 - **ST serial max** — capped at 300 rows (matches qty cap). ST >= 300 = no serial entry.
+- **PHP `??` vs `?:`** — `??` (null coalescing) doesn't fall through on empty string `''`. Always use `?:` or `!empty()` when checking frontend values that could be `''` (2026-08-31 lesson learned: imalatci_firma_adi bug).
+- **Route ordering** — Export routes MUST be before `{model}` wildcard in `api.php` or they'll never match (Laravel matches first route).

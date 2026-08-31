@@ -83,15 +83,41 @@ Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done,
 - `serialCollapsed[item.id] = false` ensures area stays expanded after upload
 - `normalizeExcelDate()`: handles string `YYYY-MM-DD` and Excel serial number dates → `YYYY-MM-01`
 
-## 3. Tech Debt
+### ✅ Malzeme Kabul Formu PDF
+- Print button "Malzeme Kabul Formu Yazdır" (green, icon) in OForm.vue transfer card
+- `ExportController::malzemeKabul()` at `POST /v1/export/malzeme-kabul`
+- Blade template: `exports/malzeme-kabul.blade.php` — A4 portrait, title underlined, table with 2px borders, signature grid
+- Turkish HTML entities in blade (`&#304;` for İ, `&#305;` for ı, etc.) — dompdf renders correctly
+- Route MUST be before `{model}` wildcard in `api.php` (line 42, before line 45)
+- DB entities as PRIMARY source for `imalatci_firma_adi` (not request) — PHP `??` doesn't fall through on empty string
+- Validates: `imalatci_firma_adi` required (Swal error modal with "Tamam" close)
+- Items: all for at_once, only selected for partial
+- Clone order_no suffix calculated by querying existing clones via `POST /v1/table/documents`
+- buying_no (SUBMI) stays original — NO clone suffix
+- User flow: fills form → clicks Print → PDF downloads → prints on paper → signs with pen → scans → uploads signed PDF to transfer_kabul file field → saves order
+
+### ✅ KG/M Serial → Böl Input Sync
+- `syncSplitFromSerials()` in OrderItemTable.vue auto-updates `splitAmounts[item.id]` from serial quantity sum
+- `_syncingSplit` flag prevents infinite loop between `splitAmounts` ↔ `serials` watchers
+- Called from: `addSerialRow`, `removeSerialRow`, serial quantity change (debounced 500ms), Excel upload
+- Only fires when sum > 0 (prevents clearing input when all serials removed)
+
+## 3. Pending — Malzeme Cins-Miktar Kabul Formu
+- Second PDF form for order transfer (PENDING)
+- Similar flow to Malzeme Kabul Formu but with different layout/data
+- Will need its own blade template + backend endpoint + print button
+
+## 4. Tech Debt
 
 - **Parent link:** `Documents::tableList:102` still `where parent_type_id=0` — items visible in main lists
 - **Security:** `DEV_ADMIN 111111`, `resetusercradentals` public, `CSRF off`, `decryptFile IDOR`, `pickle hardcoded`
 - **Old containers:** `B2X` still exists stopped on `5431`
 - **File replacement:** FIXED, do NOT change without approval
 - **`syncOrderStatusFromFiles`** — only fires from `documentFileStatus`, not from `registerContent`
+- **Route ordering** — Export routes MUST be before `{model}` wildcard or they never match (Laravel matches first)
+- **PHP `??` vs `?:`** — `??` doesn't fall through on empty string `''`. Always use `?:` or `!empty()` for frontend values
 
-## 4. How Future LLM Should Resume
+## 5. How Future LLM Should Resume
 
 1. Read `memory/00-core-overview.md` + `05-order-system-state.md` (current snapshot) + `06-roadmap-next.md` (this file) + `01-form-engine.md`.
 2. Check `docker ps -a | grep tedarikNewApp`, `panel/.env: DB_DATABASE`, `php artisan migrate:status`.
@@ -104,7 +130,7 @@ Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done,
 4. After any `Form.vue`/`router`/`Sidebar`/`OForm`/`OList`/`OrderItemTable.vue` edit → `npm run build` in `panel/` → test.
 5. Always update `memory/05` after major change.
 
-## 5. Decision Tree For Master
+## 6. Decision Tree For Master
 
 - **"Front design ready" → build client front-panel skin**
 - **"Dashboard" → rebuild ReportServiceProvider order stats**

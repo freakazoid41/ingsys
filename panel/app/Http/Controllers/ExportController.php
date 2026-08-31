@@ -434,4 +434,49 @@ class ExportController extends Controller
 
         return response()->download($zipPath, 'offer-' . ($document->qnid ?? 'doc') . '.zip')->deleteFileAfterSend(true);
     }
+
+    /**
+     * Generate Malzeme Kabul Formu PDF for an order.
+     * POST /v1/export/malzeme-kabul
+     * Body: { qnid, items: [{prod_code, title, unit, quantity, accept_quantity}], transfer_mode }
+     */
+    public function malzemeKabul(Request $request)
+    {
+        $req = $request->all();
+        if (empty($req['qnid'])) {
+            return response()->json(['success' => false, 'msg' => 'Sipariş bilgisi eksik.']);
+        }
+
+        $provider = new DocumentServiceProvider();
+        $formData = $provider->getFormData($req['qnid']);
+        if (!$formData || empty($formData['document'])) {
+            return response()->json(['success' => false, 'msg' => 'Sipariş bulunamadı.']);
+        }
+
+        $document = $formData['document'];
+        $formRows = $formData['formFormat']['op-doc-order-form'] ?? [];
+        $entities = !empty($formRows) ? current($formRows)['entities'] ?? [] : [];
+
+        $items = json_decode($req['items'] ?? '[]', true);
+
+        // Always use DB entities as primary — they have the real saved values.
+        // Only override with request if the user actually typed something.
+        $orderDesc = $entities['order_desc'] ?? '';
+        $imalatci = $entities['imalatci_firma_adi'] ?? '';
+        if (!empty(trim($req['order_desc'] ?? ''))) $orderDesc = $req['order_desc'];
+        if (!empty(trim($req['imalatci_firma_adi'] ?? ''))) $imalatci = $req['imalatci_firma_adi'];
+
+        $data = [
+            'buying_no'         => $req['buying_no'] ?? $entities['buying_no'] ?? '',
+            'order_no'          => $req['order_no'] ?? $entities['order_no'] ?? '',
+            'created_at'        => $req['created_at'] ?? $entities['created_at'] ?? '',
+            'order_desc'        => $orderDesc,
+            'imalatci_firma_adi'=> $imalatci,
+            'items'             => $items,
+        ];
+
+        $filename = 'malzeme-kabul-' . ($data['order_no'] ?: $document->qnid) . '.pdf';
+        $pdf = PDF::loadView('exports.malzeme-kabul', $data)->setPaper('a4', 'portrait');
+        return $pdf->download($filename);
+    }
 }

@@ -141,7 +141,7 @@ export default {
         splitAmounts: {
             deep: true,
             handler(){
-                this.rebuildSerials();
+                if(!this._syncingSplit) this.rebuildSerials();
                 this.notifySelect();
             }
         },
@@ -149,7 +149,10 @@ export default {
             deep: true,
             handler(){
                 clearTimeout(this._serialsDebounce);
-                this._serialsDebounce = setTimeout(()=> this.notifySelect(), 150);
+                this._serialsDebounce = setTimeout(()=> {
+                    this.syncSplitFromSerials();
+                    this.notifySelect();
+                }, 150);
             }
         }
     },
@@ -274,11 +277,33 @@ export default {
                 unit: unit
             });
             this.serials = { ...this.serials };
+            this.syncSplitFromSerials();
         },
         removeSerialRow(item, idx){
             const key = item.id;
             if(this.serials[key]) this.serials[key].splice(idx, 1);
             this.serials = { ...this.serials };
+            this.syncSplitFromSerials();
+        },
+        syncSplitFromSerials(){
+            if(!this.selectable) return;
+            for(const key in this.selected){
+                if(!this.selected[key]) continue;
+                const item = this.itemsMap.get(key);
+                if(!item) continue;
+                if(item.unit === 'ST') continue;
+                const sers = this.serials[key] || [];
+                let sum = 0;
+                for(const s of sers){
+                    const q = parseFloat(s.quantity);
+                    if(!isNaN(q) && q > 0) sum += q;
+                }
+                if(sum > 0){
+                    this._syncingSplit = true;
+                    this.splitAmounts[key] = Math.round(sum * 100) / 100;
+                    this._syncingSplit = false;
+                }
+            }
         },
         // Initialize flatpickr month picker on new .oic-fp-month elements only
         initFlatpickr(){
@@ -457,6 +482,10 @@ export default {
                 // but _excelUploadTime flag prevents overwrite for 1000ms
                 this.serials[item.id] = parsed;
                 this.serials = { ...this.serials };
+                // For KG/M: sync split amount from Excel serial sum
+                if(unit !== 'ST'){
+                    this.syncSplitFromSerials();
+                }
                 this.plib.toast(Swal, 'success', parsed.length + ' seri yüklendi');
             }catch(e){
                 this.plib.toast(Swal, 'error', 'Excel okunamadı');
@@ -964,7 +993,7 @@ export default {
                                             <span v-else style="width:28px;flex-shrink:0;"></span>
                                         </div>
                                     </div>
-                                    <button class="oic-serial-add" @click="addSerialRow(row)">
+                                    <button class="oic-serial-add mt-2" @click="addSerialRow(row)">
                                         <i class="ki-outline ki-plus" style="font-size:13px;"></i>
                                         <span>Satır Ekle</span>
                                     </button>

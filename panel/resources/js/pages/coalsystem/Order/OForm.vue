@@ -242,6 +242,153 @@
                 } catch(e) {
                     console.error('navigateToParentOrder failed', e);
                 }
+            },
+            async printMalzemeKabul(){
+                const showWarn = (title, text) => {
+                    this.Swal.fire({ icon:'warning', title, text, confirmButtonText:'Tamam', allowOutsideClick:true });
+                };
+                const itemTable = this.$refs.itemTable;
+                if(!itemTable || !itemTable.items || !itemTable.items.length){
+                    showWarn('Kalemler Yüklenmedi', 'Kalem bilgileri henüz yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
+                    return;
+                }
+                if(!this.transferMode){
+                    showWarn('Transfer Türü Seçin', 'Lütfen önce transfer türünü seçin: "Tek Seferde" veya "Parçalı".');
+                    return;
+                }
+                const getFieldValue = (name) => {
+                    const formComp = this.$refs.formRef;
+                    if(formComp && formComp.getCurrentFormData){
+                        const fd = formComp.getCurrentFormData();
+                        const dynF = fd?.dynamicF || {};
+                        for(const key in dynF){
+                            const e = dynF[key]?.entities;
+                            if(e && e[name] !== undefined && e[name] !== '') return String(e[name]).trim();
+                        }
+                    }
+                    const allInputs = document.querySelectorAll('input[name="'+name+'"], textarea[name="'+name+'"]');
+                    for(const inp of allInputs){
+                        if(inp.value && inp.value.trim()) return inp.value.trim();
+                    }
+                    return '';
+                };
+                const desc = getFieldValue('order_desc') || this.orderEntities.order_desc || '';
+                const imalatci = getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
+                if(!imalatci){
+                    showWarn('İmalatçı Firma Boş', 'İmalatçı Firma adı boş. Formu yazdırmadan önce imalatçı firma bilgisi girmelisiniz.');
+                    return;
+                }
+                if(this.transferMode === 'partial' && !this.selectedItems.length){
+                    showWarn('Kalem Seçilmedi', 'Parçalı transfer seçtiniz ama henüz kalem işaretlemediniz. Gönderilecek kalemleri tablodan işaretleyin.');
+                    return;
+                }
+                if(this.transferMode === 'partial'){
+                    for(const item of this.selectedItems){
+                        if(!item.amount || item.amount <= 0){
+                            showWarn('Bölme Miktarı Eksik', 'İşaretlenen kalemlerden birinin bölme miktarı girilmemiş. Tüm seçili kalemler için gönderilecek miktarı girin.');
+                            return;
+                        }
+                    }
+                }
+                const items = [];
+                if(this.transferMode === 'partial'){
+                    for(const sel of this.selectedItems){
+                        const item = itemTable.items.find(i => i.id == sel.qnid);
+                        if(!item) continue;
+                        items.push({
+                            prod_code: item.prod_code || '',
+                            title: item.title || '',
+                            unit: item.unit || '',
+                            quantity: item.quantity,
+                            accept_quantity: sel.amount || item.quantity
+                        });
+                    }
+                } else {
+                    for(const item of itemTable.items){
+                        items.push({
+                            prod_code: item.prod_code || '',
+                            title: item.title || '',
+                            unit: item.unit || '',
+                            quantity: item.quantity,
+                            accept_quantity: item.quantity
+                        });
+                    }
+                }
+                let orderNo = this.orderEntities.order_no || '';
+                const buyingNo = this.orderEntities.buying_no || '';
+                const createdAt = this.orderEntities.created_at || '';
+                if(this.transferMode === 'partial'){
+                    const baseNo = orderNo.replace(/-\d+$/, '');
+                    try {
+                        const cloneFd = new FormData();
+                        cloneFd.append('tableReq', JSON.stringify({
+                            filter: [
+                                { key:'form-type', type:'=', value:'op-doc-order-form' },
+                                { key:'type', type:'=', value:'op-doc-order' },
+                                { key:'all', type:'=', value: baseNo + '-' }
+                            ],
+                            scale: { page: 1, limit: 100 },
+                            order: { key: 'id', style: 'asc' }
+                        }));
+                        const cloneRsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, cloneFd);
+                        const cloneRows = cloneRsp?.data?.data || cloneRsp?.data || [];
+                        const cloneList = Array.isArray(cloneRows) ? cloneRows : (cloneRows?.data || []);
+                        let maxX = 0;
+                        for(const r of cloneList){
+                            try {
+                                const attrs = JSON.parse(r.main_attr || '[]');
+                                const noAttr = attrs.find(a => a.Key === 'order_no');
+                                if(noAttr && noAttr.Value){
+                                    const m = noAttr.Value.match(/-(\d+)$/);
+                                    if(m) maxX = Math.max(maxX, parseInt(m[1]));
+                                }
+                            } catch(e){}
+                        }
+                        orderNo = baseNo + '-' + (maxX + 1);
+                    } catch(e){
+                        orderNo = baseNo + '-1';
+                    }
+                }
+                const fd = new FormData();
+                fd.append('qnid', this.id);
+                fd.append('transfer_mode', this.transferMode);
+                fd.append('items', JSON.stringify(items));
+                fd.append('order_no', orderNo);
+                fd.append('buying_no', buyingNo);
+                fd.append('created_at', createdAt);
+                fd.append('order_desc', desc);
+                fd.append('imalatci_firma_adi', imalatci);
+                try{
+                    const rsp = await fetch('/api/v1/export/malzeme-kabul', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                            'Authorization': 'Bearer ' + (localStorage.getItem('token') || ''),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: fd
+                    });
+                    if(!rsp.ok){
+                        const errData = await rsp.json().catch(()=>({}));
+                        throw new Error(errData.msg || 'PDF oluşturulamadı (HTTP ' + rsp.status + ')');
+                    }
+                    const ct = rsp.headers.get('content-type') || '';
+                    if(!ct.includes('pdf')){
+                        const errData = await rsp.json().catch(()=>({}));
+                        throw new Error(errData.msg || 'Sunbekten PDF yerine hata döndü. Lütfen tekrar deneyin.');
+                    }
+                    const blob = await rsp.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'malzeme-kabul-' + (this.orderEntities.order_no || this.id) + '.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                } catch(e){
+                    this.Swal.fire({ icon:'error', title:'PDF Oluşturulamadı', text:'PDF indirilemedi: ' + e.message, confirmButtonText:'Tamam' });
+                }
             }
         }
     }
@@ -275,9 +422,15 @@
                         <div><div style="font-weight:700;font-size:0.95rem;color:#0f172a;">Parçalı</div><div style="font-size:0.82rem;color:#94a3b8;">Seçili kalemler gönderilir</div></div>
                     </label>
                 </div>
+                <div style="margin-top:14px;display:flex;justify-content:flex-end;">
+                    <button type="button" @click="printMalzemeKabul" class="print-kabul-btn">
+                        <i class="ki-outline ki-printer"></i>
+                        <span>Malzeme Kabul Formu Yazdır</span>
+                    </button>
+                </div>
             </div>
             <div style="background:#fff;padding:0;">
-                <OrderItemTable :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" />
+                <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" />
             </div>
         </div>
 
@@ -334,7 +487,7 @@
             </div>
         </div>
 
-        <Form formtypes="op-doc-order-form" v-if="loadForm" savebtntitle="Kaydet" :readonlyFields="readonlyFields" :savecallback="submitForm" />
+        <Form ref="formRef" formtypes="op-doc-order-form" v-if="loadForm" savebtntitle="Kaydet" :readonlyFields="readonlyFields" :savecallback="submitForm" />
         
     </div>
 </template>
@@ -534,5 +687,28 @@
 .transfer-info-badge.badge-partial {
     background: #fef3c7;
     color: #92400e;
+}
+.print-kabul-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.90rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 6px rgba(5,150,105,0.3);
+}
+.print-kabul-btn:hover {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+    box-shadow: 0 4px 12px rgba(5,150,105,0.4);
+    transform: translateY(-1px);
+}
+.print-kabul-btn i {
+    font-size: 16px;
 }
 </style>

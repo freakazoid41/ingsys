@@ -2141,6 +2141,9 @@
             this.formDataStore.setData({},{});
         },
         methods: {
+            getCurrentFormData(){
+                return this.formData || {};
+            },
             tcKimlikDogrula(tc) {
                 tc = tc.toString().trim();
 
