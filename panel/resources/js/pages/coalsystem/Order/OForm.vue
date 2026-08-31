@@ -116,10 +116,7 @@
                 for(const item of this.selectedItems){
                     if(!item.serials || !item.serials.length) continue;
                     for(const s of item.serials){
-                        if(!s.production_date){
-                            this.plib.toast(this.Swal,'info','Tüm seri numaraları için üretim tarihi girmelisiniz.',()=>{});
-                            return false;
-                        }
+                        // KG/M: production_date not required (auto-filled from order date)
                     }
                 }
                 return true;
@@ -129,12 +126,7 @@
                     if(item.unit === 'ST') continue;
                     let sum = 0;
                     for(const s of item.serials){
-                        if(!s.production_date){
-                            this.highlightItemQnid = null;
-                            this.$nextTick(()=>{ this.highlightItemQnid = item.qnid; });
-                            this.plib.toast(this.Swal,'info','Tüm seri numaraları için üretim tarihi girmelisiniz.',()=>{});
-                            return false;
-                        }
+                        // KG/M: production_date not required (auto-filled from order date)
                         const sq = parseFloat(s.quantity);
                         if(isNaN(sq) || sq <= 0){
                             this.highlightItemQnid = null;
@@ -537,7 +529,7 @@
                 </div>
             </div>
             <div style="background:#fff;padding:0;">
-                <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" />
+                <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" />
             </div>
         </div>
 

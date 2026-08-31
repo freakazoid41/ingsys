@@ -132,6 +132,13 @@ Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done,
 - **DList.vue grouping:** `groupFormatter` handles null/invalid JSON, falls back to `entity_tag` or "Belge". `rowFormatter` wrapped in try/catch
 - **DList.vue dates:** `dayjs.isValid()` check before formatting — no more "Invalid Date"
 
+### ✅ KG/M Auto Serial Date (2026-08-31 late)
+- `OrderItemTable.vue`: new `orderDate` prop + `parsedOrderDate` computed (parses SAP `d/m/Y` or `Y-m-d` → `YYYY-MM-01`)
+- `ensureAtOnceSerials`, `rebuildSerialsForItem`, `addSerialRow` all pre-fill KG/M `production_date` from order date
+- `production_date` validation removed for KG/M (not required — auto-filled but user can clear/change)
+- `OForm.vue`: passes `orderEntities.created_at` as `:orderDate` to `OrderItemTable`
+- `validatePartial` and `validateAtOnceSerials` removed `production_date` check for KG/M
+
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu
 - Second PDF form for order transfer (PENDING)
 - Similar flow to Malzeme Kabul Formu but with different layout/data

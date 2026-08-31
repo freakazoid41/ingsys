@@ -373,16 +373,11 @@
                             return badge;
                         }
                         
-                    },{
+                    },                    {
                         title : 'Eklenme Tarihi',
-                        key   : 'created_at',
-                        order : true,
-                        type  : 'string', // if column is string then make type string
-                        columnFormatter : (elm,rowData,columnData) => {
-                           if(!columnData) return '—';
-                           const d = dayjs(columnData);
-                           return d.isValid() ? d.format('DD/MM/YYYY HH:mm') : '—';
-                        }
+                        key   : '_created_at_fmt',
+                        order : false,
+                        type  : 'string',
                     },{
                         title : 'Güncel Durum',
                         key   : 'last_status',
@@ -601,8 +596,14 @@
                                     if(item && item.Key) values[item.Key] = item.Value;
                                 });
                             }
-                            const title = values.title || values.entity_tag || 'Belge';
-                            return `${title} — ${rowCount} belge`;
+                            // Extract order_no or title or entity_tag for group label
+                            const orderNo = values['order_no'] || values['title'] || values['entity_tag'] || '';
+                            if(orderNo) return `${orderNo} — ${rowCount} belge`;
+                            // Fallback: extract entity_tag prefix from any key (e.g. "order_no**op-doc-order-form**123" → "order_no")
+                            const firstKey = Object.keys(values)[0] || '';
+                            const prefix = firstKey.split('**')[0] || '';
+                            if(prefix) return `${prefix} — ${rowCount} belge`;
+                            return `Belge — ${rowCount} belge`;
                         } catch(e){
                             return `Belge — ${rowCount} belge`;
                         }
@@ -618,10 +619,22 @@
                     nextPageIcon : '<i class="ki-outline ki-arrow-right "></i>',
                     prevPageIcon : '<i class="ki-outline ki-arrow-left"></i>',
                     rowFormatter:(elm,data)=>{
+                        // Pre-format created_at for display
+                        const rawDate = data.created_at || '';
+                        if(rawDate){
+                            const d = dayjs(rawDate);
+                            data._created_at_fmt = d.isValid() ? d.format('DD/MM/YYYY HH:mm') : '—';
+                        } else {
+                            data._created_at_fmt = '—';
+                        }
                         if(data.relation_detail && data.relation_detail !== 'null'){
                             try {
                                 JSON.parse(data.relation_detail).forEach(element => {
-                                    if(element && element.Key) data[element['Key']] = element['Value'];
+                                    if(element && element.Key){
+                                        const rawKey = element.Key.split('**')[0] || element.Key;
+                                        data[rawKey] = element.Value;
+                                        data[element['Key']] = element.Value;
+                                    }
                                 });
                             } catch(e){}
                         }

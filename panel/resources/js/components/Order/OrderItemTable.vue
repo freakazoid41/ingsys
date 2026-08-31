@@ -16,7 +16,8 @@ export default {
         selectable: { type: Boolean, default: false },
         atOnceMode: { type: Boolean, default: false },
         highlightQnid: { type: String, default: null },
-        containerSuffix: { type: String, default: '' }
+        containerSuffix: { type: String, default: '' },
+        orderDate: { type: String, default: '' }
     },
     data(){
         return {
@@ -39,6 +40,20 @@ export default {
         hasItems(){ return this.items.length > 0; },
         selectedCount(){ return Object.keys(this.selected).filter(k => this.selected[k]).length; },
         itemsMap(){ return new Map(this.items.map(i => [i.id, i])); },
+        parsedOrderDate(){
+            const raw = this.orderDate || '';
+            if(!raw) return '';
+            // d/m/Y → YYYY-MM-01
+            const dmY = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if(dmY) return dmY[3] + '-' + dmY[2].padStart(2,'0') + '-01';
+            // Y-m-d → YYYY-MM-01
+            const ymd = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if(ymd) return ymd[1] + '-' + ymd[2] + '-01';
+            // YYYY-MM-DDTHH:MM:SS etc
+            const iso = raw.match(/^(\d{4})-(\d{2})/);
+            if(iso) return iso[1] + '-' + iso[2] + '-01';
+            return '';
+        },
         allValid(){
             // Validate partial mode (selected items)
             for(const key in this.selected){
@@ -64,7 +79,6 @@ export default {
                     if(sers.length === 0) return false;
                     let sum = 0;
                     for(const s of sers){
-                        if(!s.production_date) return false;
                         const sq = parseFloat(s.quantity);
                         if(isNaN(sq) || sq <= 0) return false;
                         sum += sq;
@@ -83,7 +97,6 @@ export default {
                     if(sers.length === 0) return false;
                     let sum = 0;
                     for(const s of sers){
-                        if(!s.production_date) return false;
                         const sq = parseFloat(s.quantity);
                         if(isNaN(sq) || sq <= 0) return false;
                         sum += sq;
@@ -173,6 +186,7 @@ export default {
             return true;
         },
         ensureAtOnceSerials(){
+            const defaultDate = this.parsedOrderDate || '';
             for(const item of this.items){
                 if(!this.needsSerialsAtOnce(item)) continue;
                 const key = item.id;
@@ -181,7 +195,7 @@ export default {
                 // KG/M: create first row if empty
                 if(!this.serials[key] || this.serials[key].length === 0){
                     const qty = parseFloat(item.quantity) || 0;
-                    this.serials[key] = [{ serial_no: '-', production_date: '', production_date_display: '', quantity: qty, unit }];
+                    this.serials[key] = [{ serial_no: '-', production_date: defaultDate, production_date_display: '', quantity: qty, unit }];
                 }
             }
             this.serials = { ...this.serials };
@@ -222,7 +236,8 @@ export default {
             } else {
                 const existing = this.serials[key] || [];
                 if(existing.length === 0){
-                    this.serials[key] = [{ serial_no: '-', production_date: '', production_date_display: '', quantity: amt, unit }];
+                    const defaultDate = this.parsedOrderDate || '';
+                    this.serials[key] = [{ serial_no: '-', production_date: defaultDate, production_date_display: '', quantity: amt, unit }];
                 } else {
                     existing.forEach(s => s.unit = unit);
                     this.serials[key] = [...existing];
@@ -271,7 +286,7 @@ export default {
             if(!this.serials[key]) this.serials[key] = [];
             this.serials[key].push({
                 serial_no: unit === 'ST' ? '' : '-',
-                production_date: '',
+                production_date: unit === 'ST' ? '' : (this.parsedOrderDate || ''),
                 production_date_display: '',
                 quantity: unit === 'ST' ? 1 : 0,
                 unit: unit
