@@ -555,14 +555,15 @@ if(!function_exists('finalizeTempFile')){
             if($existingFileId > 0){
                 $fileOld = \App\Models\Document_files::where('id', $existingFileId)->first();
                 if($fileOld){
-                    // Deactivate old file and chain
+                    // Deactivate old file
                     $fileOld->status = 0;
-                    $fileOld->replaced_id = $docFile->id;
                     $fileOld->save();
 
-                    // Promote temp record to permanent
+                    // Promote temp record to permanent. The NEW file's replaced_id points
+                    // back to the version it replaced (one version before).
                     $docFile->relation_id = $documentId;
                     $docFile->relation = 'documents';
+                    $docFile->replaced_id = $fileOld->id;
                     $docFile->save();
 
                     // Log replacement (doc_file_refreshed, NOT doc_file_waiting)
@@ -797,8 +798,11 @@ if(!function_exists('uploadFile')){
             if($rowId != 0){
                 $fileOld = \App\Models\Document_files::where('id', $rowId)->first(); // every file needs to stay so make this passive file
                 $fileOld->status        = 0;
-                $fileOld->replaced_id   = $file->id;
                 $fileOld->save();
+
+                // The NEW file's replaced_id points back to the version it replaced (one version before).
+                $file->replaced_id      = $fileOld->id;
+                $file->save();
 
                 \App\Models\Transactions::create([
                     'op_id'     => 1,

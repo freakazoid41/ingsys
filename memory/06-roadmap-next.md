@@ -150,7 +150,7 @@ Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done,
 - **Security:** `DEV_ADMIN 111111`, `resetusercradentals` public, `CSRF off`, `decryptFile IDOR`, `pickle hardcoded`
 - **Old containers:** `B2X` still exists stopped on `5431`
 - **File replacement:** FIXED, do NOT change without approval
-- **`syncOrderStatusFromFiles`** — only fires from `documentFileStatus`, not from `registerContent`
+- **`syncOrderStatusFromFiles`** — FIXED 2026-08-31: fires from `registerContent` (file replacement) too; waiting/refreshed files → `transfer_sent` "Dosyalar Kontrol Ediliyor". See `memory/05 §10`.
 - **Route ordering** — Export routes MUST be before `{model}` wildcard or they never match (Laravel matches first)
 - **PHP `??` vs `?:`** — `??` doesn't fall through on empty string `''`. Always use `?:` or `!empty()` for frontend values
 

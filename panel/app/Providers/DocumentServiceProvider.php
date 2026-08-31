@@ -142,6 +142,7 @@ class DocumentServiceProvider extends ServiceProvider
                 // here count documents for counable request number
                 $documentCount = Documents::where('type_id', $document->type_id)->count();
             }
+            $lastFileEntity = null;
             foreach ($dynamicF as $key => $field) {
                 $id = explode('**', $key)[1];
                 $tag = $field['tag'];
@@ -228,7 +229,8 @@ class DocumentServiceProvider extends ServiceProvider
                         // Look up existing file entity BEFORE processing — needed for replacement detection.
                         // On first upload there is no entity yet ($oldFileEntity = null, $existingFileId = 0).
                         // On re-upload the entity exists with entity_value = old document_files.id.
-                        $oldFileEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])->first();
+                        // Resolve the NEWEST entity row so legacy duplicates never point back at the first file.
+                        $oldFileEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])->orderByDesc('id')->first();
                         $existingFileId = 0;
                         if($oldFileEntity && is_numeric($oldFileEntity->entity_value)){
                             $existingFileId = (int) $oldFileEntity->entity_value;
@@ -265,8 +267,10 @@ class DocumentServiceProvider extends ServiceProvider
                         // now add file connection
                         $entity = new Sys_con_entities;
 
-                        // check if entity is exist before
-                        $check = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'sys_con_ops'])->first();
+                        // check if entity is exist before — MUST match table_tag 'document_files',
+                        // otherwise a new entity row is created on every upload and the old file
+                        // entity is never updated to the new file id (always replaces the first file).
+                        $check = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])->orderByDesc('id')->first();
 
                         if (! empty($check)) {
                             $entity = $check;
@@ -278,11 +282,19 @@ class DocumentServiceProvider extends ServiceProvider
                         $entity->entity_value = strip_tags($fileId);
 
                         $entity->save();
+                        $lastFileEntity = $entity;
                     }
                 }
             }
             // ////////////////////////////// Dynamic Fields ********************************
             DB::commit(); // <= Commit the changes
+
+            // Order System: re-uploading a rejected file replaces it (old → status 0,
+            // new → doc_file_refreshed). Recompute the parent order status so
+            // files_rejected returns to "Dosyalar Kontrol Ediliyor" (transfer_sent).
+            if (! empty($lastFileEntity)) {
+                $this->syncOrderStatusFromFiles($lastFileEntity);
+            }
 
             // here get updated data
             $updatedResult = $this->getFormData($document->qnid);
@@ -1096,6 +1108,10 @@ class DocumentServiceProvider extends ServiceProvider
                 $this->applyOrderStatus($doc, 'doc_trans_order_files_rejected', 'Dosya reddedildi');
             } elseif ($allAccepted && ! empty($orderFileRows)) {
                 $this->applyOrderStatus($doc, 'doc_trans_order_ready_for_shipment', 'Tüm aktif dosyalar kabul edildi');
+            } elseif (! empty($orderFileRows)) {
+                // Files exist but are still waiting / refreshed (not all accepted, none rejected)
+                // → back to "Dosyalar Kontrol Ediliyor" (transfer_sent).
+                $this->applyOrderStatus($doc, 'doc_trans_order_transfer_sent', 'Dosyalar kontrol ediliyor');
             }
         } catch (\Exception $e) {
             // never break the file status flow because order status sync failed

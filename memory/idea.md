@@ -93,4 +93,6 @@ if an order is partitioned before , cannot sand at once again. its always partia
 
 on order detail , if product is kg-m its auto serial row's date input is not required. just add same date with order's own date YYYY-MM-DD
 
+- Malzeme Cins Formu
+- Dosya yenileme mantığında hala hata var
 - order items have 'Test Dökümanı' file and bunch of product image so make area for them
