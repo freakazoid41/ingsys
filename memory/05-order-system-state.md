@@ -87,14 +87,15 @@
 | `OrderSystemSeeder.php` | + `op-doc-order-serial`, `op-doc-order-serial-form` |
 | `OrderItemTable.vue` | **Complete rewrite:** inline split inputs, quantity type awareness, serial entry UI (ST checkbox, KG/M table), collapse button, scrollable per-item, summary badge, flatpickr month picker, at_once mode serial support, `fetchSerialsForItems()` loads existing serials, collapsible read-only serial view (collapsed by default, `serialViewCollapsed` state), `formatSerialDate()`, `ensureAtOnceSerials()`. **+Excel serial upload (2026-08-31):** `import * as XLSX from 'xlsx'`, `excelFileInputs` ref map, `triggerExcelUpload(item)` captures `_excelUploadSplitAmt`, `downloadExcelTemplate()` generates template xlsx, `parseSerialExcel(item, file)` reads Excel client-side + replaces serials + ST mismatch Swal confirm + syncs split amount. `_excelUploadTime` flag prevents `rebuildSerials` overwrite (1000ms). `serialCollapsed[item.id] = false` after upload. 4 "Excel'den Yükle" + 4 "Şablon" buttons across all serial sections. **+KG/M serial → Böl input sync (2026-08-31):** `syncSplitFromSerials()` auto-updates splitAmounts from serial quantities sum; `_syncingSplit` flag prevents infinite loop between `splitAmounts` ↔ `serials` watchers. Called from `addSerialRow`, `removeSerialRow`, serial quantity change (debounced `serials` watcher), Excel upload. |
 | `package.json` | + `"xlsx": "^0.18.x"` dependency |
-| `OForm.vue` | `selectedItems` format `[{qnid, amount, serials}]`, `allItemSerials` for at_once, serial validation, `atOnceMode` prop + `@serials` listener, clone origin banner, transfer info card. **+Malzeme Kabul Formu print (2026-08-31):** "Malzeme Kabul Formu Yazdır" button (green, icon) in transfer card. `printMalzemeKabul()` method: validates İmalatçı firma required, Swal error modals with "Tamam" close, collects items (all/selected based on transferMode), calculates clone order_no suffix via `POST /v1/table/documents` query, submits `FormData` to `POST /v1/export/malzeme-kabul`. `getFieldValue()` helper for dynamicF, `orderFormEntities` computed, `getCurrentFormData()` ref method. |
-| `ExportController.php` | **+`malzemeKabul()` (2026-08-31):** `POST /v1/export/malzeme-kabul` — accepts `qnid`, `items` JSON, `order_no`, `buying_no`, `created_at`, `order_desc`, `imalatci_firma_adi`. Reads `getFormData()` for DB entities. Uses DB entities as PRIMARY source (not request) — `imalatci_firma_adi` always from saved data, only overrides if frontend sends non-empty. |
-| `DocumentServiceProvider.php` | `processOrderTransfer($qnid, $mode, $selectedItems, $itemSerials)` — handles partial clone + at_once serials. `duplicateOrderItem` accepts `$splitAmount`. New: `decrementItemQuantity`, `storeOriginalQuantity`, `createSerialEntries`, `setHasSerialsFlag`. |
+| `OForm.vue` | `selectedItems` format `[{qnid, amount, serials}]`, `allItemSerials` for at_once, serial validation, `atOnceMode` prop + `@serials` listener, clone origin banner, transfer info card. **+Malzeme Kabul Formu print (2026-08-31):** "Malzeme Kabul Formu Yazdır" button (green, icon) in transfer card. `printMalzemeKabul()` method: validates İmalatçı firma required, Swal error modals with "Tamam" close, collects items (all/selected based on transferMode), calculates clone order_no suffix via `POST /v1/table/documents` query, submits `FormData` to `POST /v1/export/malzeme-kabul`. `getFieldValue()` helper for dynamicF, `orderFormEntities` computed, `getCurrentFormData()` ref method. **FIX 2026-08-31 late:** `imalatci_firma_adi` now rendered **inside** signature box (`exports/malzeme-kabul.blade.php` second row), not floating. `getFieldValue()` hardened to handle compound names + prefix match. **NEW RULE 2026-08-31 late:** `hasPartitions` check — `checkHasPartitions()` queries `POST /v1/table/documents all=baseNo+'-'`, disables `Tek Seferde` radio (grey, pointer-events none) + banner, forces `transferMode='partial'` if partitioned. `buildTransferPayload()` & `printMalzemeKabul()` block `at_once` when `hasPartitions`. `isAtOnceDisabled` computed. **Parçayı Sil label:** `isCloneOrder` → button shows `Parçayı Sil` vs `İptal Et`, Swal title changes. |
+| `ExportController.php` | **+`malzemeKabul()` (2026-08-31):** `POST /v1/export/malzeme-kabul` — accepts `qnid`, `items` JSON, `order_no`, `buying_no`, `created_at`, `order_desc`, `imalatci_firma_adi`. Reads `getFormData()` for DB entities. Uses DB entities as PRIMARY source (not request) — `imalatci_firma_adi` always from saved data, only overrides if frontend sends non-empty. **Fix 2026-08-31 late:** `trim((string)(...??''))` cast for `ConvertEmptyStringsToNull` (trim(null) TypeError). Blade `malzeme-kabul.blade.php` now shows `imalatci_firma_adi` **inside** `signature-grid` second row (`height:80px`), dedicated floating block removed. |
+| `DocumentServiceProvider.php` | `processOrderTransfer($qnid, $mode, $selectedItems, $itemSerials)` — handles partial clone + at_once serials. `duplicateOrderItem` accepts `$splitAmount`. New: `decrementItemQuantity`, `storeOriginalQuantity`, `createSerialEntries`, `setHasSerialsFlag`. **NEW 2026-08-31 late:** `hasActivePartitions($baseNo,$excludeId)` counts active `EBELN-X` clones (`d.status=1`); guard blocks `at_once` if partitioned (`Bu sipariş daha önce parçalı gönderildi...`). `incrementItemQuantity()`, `restoreQuantitiesForClone()`, `restoreQuantityForSingleCloneItem()` — on `removeContent()`/`cancelOrder()` for clones (`parent_id!=0` + `EBELN-X`), restores `split_amount` to original `quantity` (ST int / KG/M float), deactivates clone serials/items. `removeContent` UserLog `user_id` fallback `?? 0` fixed. |
 | `DocumentController.php` | Passes `$itemSerials` to `processOrderTransfer` |
-| `OList.vue` | Clone order "den ayrıldı" link with `findAndNavigateToOrder` method |
+| `OList.vue` | Clone order "den ayrıldı" link with `findAndNavigateToOrder` method. **NEW 2026-08-31 late:** `Parçayı Sil` label for clones (`isCloneRow` check), `cancelOrder(qnid,isPartial)` conditional Swal, `table.deleteRow(qnid)` instead of `window.location.reload()` (was `removeRow` bug → now `deleteRow` per `pickletable/assets/script.js:680`). |
 | `Sidebar.vue` | **REMOVED "Sipariş Oluştur" menu item** — orders come from SAP, only "Sipariş Listesi" shown |
 | `OForm.vue` | **No-id guard** — `/coalpanel/orders/form` (no id) redirects to `OrderList`. Form requires a SAP-created order id. |
 | `CspMiddleware.php` | + `'unsafe-eval'` to `script-src` (sweetalert2 uses `new Function()` to parse form input values in Swal HTML). Local `IS_TEST=true` disables CSP header entirely; change matters for production. |
+| `exports/malzeme-kabul.blade.php` | **Fix:** `imalatci_firma_adi` moved from floating `İmalatçı Firma :` block **into** `signature-grid` second row (`<td height:80px>{{ $imalatci_firma_adi }}`), single occurrence. |
 
 ## 5. How Data Flows Now
 
@@ -105,11 +106,12 @@ SAP sends flat items → cron groups by EBELN → order + items
   → fetchSerialsForItems: for items with has_serials=1, fetch op-doc-order-serial children
   → Existing serials shown as collapsible read-only section (collapsed by default)
 → Transfer card: Tek Seferde (at_once) | Parçalı (partial)
+  → NEW RULE 2026-08-31 late: if `hasActivePartitions(baseNo)` (active EBELN-X clones exist, d.status=1) → Tek Seferde disabled (grey, banner), forced Parçalı. Backend `hasActivePartitions()` guard blocks at_once with error. All clones removed (status=0) → Tek Seferde unlocks again.
 
 AT-ONCE:
 → All items show serial entry (KG/M: auto first row via ensureAtOnceSerials, ST<300: checkbox)
 → SAVE → PUT /v1/document/{id} + transfer_mode='at_once' + item_serials
-→ processOrderTransfer: setStatus transfer_sent + createSerialEntries per item
+→ processOrderTransfer: guard hasActivePartitions → if partitioned → error; else setStatus transfer_sent + createSerialEntries per item
 
 PARTIAL:
 → Select items → split amount inputs → serial entry per selected item
@@ -142,15 +144,24 @@ KG/M SERIAL → BÖL INPUT SYNC (2026-08-31):
 
 MALZEME KABUL FORMU PDF (2026-08-31):
 → User clicks "Malzeme Kabul Formu Yazdır" button in transfer card (green, icon)
-→ Validates: imalatci_firma_adi required (Swal error if empty)
+→ Validates: imalatci_firma_adi required (Swal error if empty) + hasPartitions guard (Tek Seferde blocked if partitioned)
 → Collects items (all for at_once, only selected for partial)
 → Calculates clone order_no suffix by querying existing clones via POST /v1/table/documents
 → buying_no (SUBMI) stays original — NO clone suffix
 → POST /v1/export/malzeme-kabul with FormData (qnid, items JSON, order_no, buying_no, created_at, order_desc, imalatci_firma_adi)
-→ ExportController::malzemeKabul() — DB entities as PRIMARY source for imalatci_firma_adi (not request)
-→ Blade template: exports/malzeme-kabul.blade.php — A4 portrait, title underlined, Alım No/Sipariş No stacked left, Tarihi right, 2px table borders, signature grid
+→ ExportController::malzemeKabul() — DB entities as PRIMARY source for imalatci_firma_adi (not request) — trim((string)...) fix for ConvertEmptyStringsToNull
+→ Blade template: exports/malzeme-kabul.blade.php — A4 portrait, title underlined, Alım No/Sipariş No stacked left, Tarihi right, 2px table borders, signature grid **with imalatci_firma_adi inside second row (height:80px)** (not floating)
 → dompdf renders PDF → download as malzeme-kabul-{order_no}.pdf
 → Flow: fills form → clicks Print → PDF downloads → prints on paper → signs with pen → scans → uploads signed PDF to transfer_kabul file field → saves order
+  → After fix 2026-08-31 late: imalatci_firma_adi appears once inside signature box, not duplicated.
+
+RESTORE ON REMOVE (2026-08-31 late):
+→ User clicks Parçayı Sil on clone (EBELN-X) in OForm locked-card or OList row (was İptal Et, now conditional)
+→ POST /v1/orders/cancel or DELETE /v1/document/{cloneQnid} → Documents.status=0 + Transactions rejected
+→ DocumentServiceProvider::restoreQuantitiesForClone() — for each clone item (parent_id=clone.id, type op-doc-order-item, split_from_qnid + split_amount) → incrementItemQuantity(originalQnid, split_amount) (ST int / KG/M float), deactivate clone serials (status 0) + clone items (status 0)
+→ Single item delete (op-doc-order-item with split_from_qnid) → restoreQuantityForSingleCloneItem()
+→ OList: table.deleteRow(qnid) (not reload) — row vanishes via pickletable/assets/script.js:680
+→ Result: main order quantity restores (e.g. 2398 → 2400), hasActivePartitions re-checked → Tek Seferde unlocks if no active clones remain.
 ```
 
 ## 6. Perf / Code Quality Refactors (2026-08-29)

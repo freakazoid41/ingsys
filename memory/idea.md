@@ -88,3 +88,6 @@ exmp :
     * every st can be have a serial number and 'Malzeme Üretim Tarihi (Month-Year)' if quanitity is below the 300 else no serial entering just quantity entering. 
 
 
+
+if an order is partitioned before , cannot sand at once again. its always partial anymore.. (except all partitioned parts are removed)
+

@@ -102,6 +102,13 @@ Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done,
 - Called from: `addSerialRow`, `removeSerialRow`, serial quantity change (debounced 500ms), Excel upload
 - Only fires when sum > 0 (prevents clearing input when all serials removed)
 
+### ✅ Malzeme Kabul Formu Fix + Partition Rules (2026-08-31 late)
+- **PDF fix:** `imalatci_firma_adi` moved from floating block **into** `signature-grid` second row (`height:80px`), single occurrence. `ExportController::malzemeKabul` `trim((string)...)` fix, `OForm::getFieldValue()` handles compound names. `view:clear` needed.
+- **Partition lock:** `hasActivePartitions(baseNo,excludeId)` counts active `EBELN-X` (`d.status=1`). `processOrderTransfer` blocks `at_once` if partitioned. `OForm::checkHasPartitions()` queries `POST /v1/table/documents all=baseNo+'-'`, disables `Tek Seferde` radio (grey + banner), forces `partial`. All clones `status=0` → unlocks.
+- **Restore on delete:** `incrementItemQuantity()`, `restoreQuantitiesForClone()`, `restoreQuantityForSingleCloneItem()` in `DocumentServiceProvider`. Hooks in `removeContent()` + `cancelOrder()` — clone `EBELN-X` delete → `split_amount` added back to main (`ST` int, `KG/M` float), serials/items deactivated. `removeContent` UserLog `user_id ?? 0` fix.
+- **Parçayı Sil label:** `OForm.vue` locked-card + `OList.vue` list button now show `Parçayı Sil` for clones (`isCloneOrder` / `/-\d+$/`), `İptal Et` for mains. Swal titles/notes conditional.
+- **No reload on delete:** `OList.vue` `cancelOrder` now `this.table.deleteRow(qnid)` (was `window.location.reload()`, `removeRow` is wrong → `pickletable/assets/script.js:680 deleteRow`).
+
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu
 - Second PDF form for order transfer (PENDING)
 - Similar flow to Malzeme Kabul Formu but with different layout/data

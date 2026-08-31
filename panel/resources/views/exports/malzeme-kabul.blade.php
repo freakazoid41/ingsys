@@ -71,6 +71,10 @@
                 <td style="width:50%;">&#304;malat&#231;&#305; Firma</td>
                 <td style="width:50%;">Onaylayan</td>
             </tr>
+            <tr>
+                <td style="height:80px;vertical-align:middle;text-align:center;font-weight:600;font-size:12px;">{{ $imalatci_firma_adi ?? '' }}</td>
+                <td style="height:80px;"></td>
+            </tr>
         </table>
     </div>
 </body>

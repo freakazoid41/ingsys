@@ -548,8 +548,37 @@ class DocumentServiceProvider extends ServiceProvider
     {
         // first find all attributes
         $document = Documents::where('qnid', $id)->first();
+        if (empty($document)) return ['success' => false, 'msg' => 'Belge bulunamadı'];
+        $docTypeKey = Sys_options::where('id', $document->type_id)->value('op_key');
+        // Clone order/item restoration: if this is a partitioned piece, give its qty back to main
+        $needsRestoreClone = ($docTypeKey === 'op-doc-order' && (int)$document->parent_id !== 0);
+        $needsRestoreItem  = ($docTypeKey === 'op-doc-order-item');
+        // Need to capture detail before soft-delete for type check via EAV suffix fallback
+        $preDetail = null;
+        if ($docTypeKey === 'op-doc-order' && (int)$document->parent_id === 0) {
+            try { $preDetail = $this->getFormData($document->qnid); } catch(\Throwable $e) {}
+        }
         $document->status = 0;
         $document->save();
+        if ($needsRestoreClone) {
+            $this->restoreQuantitiesForClone($document);
+        } elseif ($needsRestoreItem) {
+            // Only restore if this item itself is a clone piece (has split_from_qnid)
+            try {
+                $d = $this->getFormData($document->qnid);
+                $f = $d['formFormat']['op-doc-order-item-form'] ?? [];
+                $ents=[]; foreach($f as $cr) foreach(($cr['entities']??[]) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
+                if (!empty($ents['split_from_qnid'])) $this->restoreQuantityForSingleCloneItem($document);
+            } catch(\Throwable $e) {}
+        } elseif ($docTypeKey === 'op-doc-order' && $preDetail) {
+            // Fallback suffix check for clones where parent_id wasn't set (legacy)
+            $form = $preDetail['formFormat']['op-doc-order-form'] ?? [];
+            $ents=[]; foreach($form as $cr) foreach(($cr['entities']??[]) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
+            $on = $ents['order_no'] ?? '';
+            if (preg_match('/-\d+$/',$on) && (int)$document->parent_id !== 0) {
+                $this->restoreQuantitiesForClone($document);
+            }
+        }
 
         $detail = $this->getFormData($document->qnid);
 
@@ -578,7 +607,7 @@ class DocumentServiceProvider extends ServiceProvider
         }
 
         UserLog::create([
-            'user_id' => auth('sanctum')->user()->id,
+            'user_id' => auth('sanctum')->user()->id ?? DB::table('users')->where('status',1)->value('id') ?? 0,
             'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
             'relation' => 'documents',
             'relation_id' => $document->id,
@@ -1158,6 +1187,12 @@ class DocumentServiceProvider extends ServiceProvider
         $baseNo = $entities['order_no'] ?? '';
         $baseNo = preg_replace('/-\d+$/', '', (string) $baseNo);
 
+        // NEW RULE: if order was partitioned before (has active EBELN-X clones), at_once is forbidden.
+        // Always partial anymore, except when ALL partitions are removed (status=0).
+        if ($mode === 'at_once' && $baseNo !== '' && $this->hasActivePartitions($baseNo, $order->id)) {
+            return ['success' => false, 'msg' => 'Bu sipariş daha önce parçalı gönderildi. Artık sadece parçalı gönderim yapılabilir. (Tüm parçalar silinirse tek seferde tekrar mümkün)'];
+        }
+
         if ($mode === 'partial') {
             // Compute next EBELN-X suffix for this base order number.
             $x = 1;
@@ -1303,6 +1338,22 @@ class DocumentServiceProvider extends ServiceProvider
         }
         $entity->entity_value = $mode;
         $entity->save();
+    }
+
+    /** Check if base order has active EBELN-X clones (status=1). Excludes given doc id. */
+    private function hasActivePartitions(string $baseNo, int $excludeId): bool
+    {
+        if ($baseNo === '') return false;
+        $cnt = DB::selectOne(
+            "SELECT COUNT(*) as c FROM sys_con_entities sce
+             JOIN sys_con_ops sco ON sco.id = sce.conn_id
+             JOIN documents d ON d.id = sco.main_id
+             JOIN sys_options so ON so.id = d.type_id
+             WHERE so.op_key = 'op-doc-order' AND sce.entity_tag = 'order_no'
+               AND sce.entity_value LIKE ? AND d.status = 1 AND d.id != ?",
+            [$baseNo.'-%', $excludeId]
+        );
+        return ($cnt->c ?? 0) > 0;
     }
 
     /** Get the latest order status op_key from transactions. */
@@ -1592,6 +1643,111 @@ class DocumentServiceProvider extends ServiceProvider
     }
 
     /**
+     * Increment an order item's quantity (restore after clone removal).
+     * Inverse of decrementItemQuantity — adds splitAmount back to original.
+     */
+    private function incrementItemQuantity($itemQnid, $splitAmount): void
+    {
+        $item = Documents::where('qnid', $itemQnid)->first();
+        if (empty($item)) return;
+        $conn = Sys_con_ops::where('main_id', $item->id)
+            ->where('conn_id', 0)
+            ->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-item-form'))
+            ->first();
+        if (empty($conn)) return;
+        $qtyEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'quantity', 'table_tag' => 'sys_con_ops'])->first();
+        if (empty($qtyEntity)) return;
+        $currentQty = (float) $qtyEntity->entity_value;
+        $newQty = $currentQty + (float) $splitAmount;
+        $unitEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'unit', 'table_tag' => 'sys_con_ops'])->first();
+        $unit = $unitEntity->entity_value ?? 'ST';
+        $qtyEntity->entity_value = $unit === 'ST' ? (string) (int) $newQty : (string) round($newQty, 2);
+        $qtyEntity->save();
+    }
+
+    /**
+     * When a clone order (EBELN-X) is removed/cancelled, restore its split quantities
+     * back to the main order. Also deactivates clone serials/items.
+     */
+    private function restoreQuantitiesForClone(Documents $cloneDoc): void
+    {
+        // Resolve original order via parent_id (set at clone creation via parent_qnid)
+        $originalId = (int) $cloneDoc->parent_id;
+        if ($originalId === 0) {
+            // Fallback: strip -X suffix and find by order_no
+            try {
+                $detail = $this->getFormData($cloneDoc->qnid);
+                $form = $detail['formFormat']['op-doc-order-form'] ?? [];
+                $ents = [];
+                foreach ($form as $cr) foreach (($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
+                $orderNo = $ents['order_no'] ?? '';
+                $baseNo = preg_replace('/-\d+$/','',(string)$orderNo);
+                if ($baseNo && $baseNo !== $orderNo) {
+                    $orig = DB::table('sys_con_entities as sce')
+                        ->join('sys_con_ops as sco','sco.id','=','sce.conn_id')
+                        ->join('documents as d','d.id','=','sco.main_id')
+                        ->join('sys_options as so','so.id','=','d.type_id')
+                        ->where('so.op_key','op-doc-order')->where('sce.entity_tag','order_no')->where('sce.entity_value',$baseNo)->where('d.status',1)->value('d.id');
+                    if ($orig) $originalId = (int)$orig;
+                }
+            } catch (\Throwable $e) {}
+        }
+        if ($originalId === 0) return;
+
+        // Find all clone items parented to this clone
+        $itemTypeId = Sys_options::where('op_key','op-doc-order-item')->value('id');
+        $serialTypeId = Sys_options::where('op_key','op-doc-order-serial')->value('id');
+        $cloneItems = Documents::where('parent_id', $cloneDoc->id)
+            ->when($itemTypeId, fn($q) => $q->where('type_id', $itemTypeId))
+            ->get();
+        foreach ($cloneItems as $cItem) {
+            // Deactivate serials of clone item first
+            $serials = Documents::where('parent_id', $cItem->id)
+                ->when($serialTypeId, fn($q)=>$q->where('type_id', $serialTypeId))->get();
+            foreach ($serials as $s) {
+                $s->status = 0; $s->save();
+            }
+            // Restore quantity to original item via split_from_qnid
+            try {
+                $cDetail = $this->getFormData($cItem->qnid);
+                $cForm = $cDetail['formFormat']['op-doc-order-item-form'] ?? [];
+                $cEnts = [];
+                foreach ($cForm as $cr) foreach (($cr['entities'] ?? []) as $k=>$v) if(!isset($cEnts[$k])) $cEnts[$k]=$v;
+                $fromQnid = $cEnts['split_from_qnid'] ?? null;
+                $splitAmt = (float)($cEnts['split_amount'] ?? $cEnts['quantity'] ?? 0);
+                if ($fromQnid && $splitAmt > 0) {
+                    $this->incrementItemQuantity($fromQnid, $splitAmt);
+                }
+            } catch (\Throwable $e) {}
+            // Deactivate clone item itself
+            $cItem->status = 0; $cItem->save();
+        }
+    }
+
+    /**
+     * When a single clone ITEM is removed, restore its split amount to the original item.
+     */
+    private function restoreQuantityForSingleCloneItem(Documents $cloneItemDoc): void
+    {
+        try {
+            $detail = $this->getFormData($cloneItemDoc->qnid);
+            $form = $detail['formFormat']['op-doc-order-item-form'] ?? [];
+            $ents = [];
+            foreach ($form as $cr) foreach (($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
+            $fromQnid = $ents['split_from_qnid'] ?? null;
+            $splitAmt = (float)($ents['split_amount'] ?? $ents['quantity'] ?? 0);
+            if ($fromQnid && $splitAmt > 0) {
+                $this->incrementItemQuantity($fromQnid, $splitAmt);
+            }
+            // Deactivate its serials
+            $serialTypeId2 = Sys_options::where('op_key','op-doc-order-serial')->value('id');
+            $serials = Documents::where('parent_id', $cloneItemDoc->id)
+                ->when($serialTypeId2, fn($q)=>$q->where('type_id', $serialTypeId2))->get();
+            foreach ($serials as $s) { $s->status = 0; $s->save(); }
+        } catch (\Throwable $e) {}
+    }
+
+    /**
      * Order System: reject & cancel a whole order. Soft-passes documents.status=0 and
      * writes a terminal rejection transaction so the list/detail both reflect it.
      */
@@ -1644,6 +1800,11 @@ class DocumentServiceProvider extends ServiceProvider
                 'note' => $note ?? '-',
                 'description' => json_encode(['note' => $note], JSON_UNESCAPED_UNICODE),
             ]);
+
+            // If this is a clone order (EBELN-X) being cancelled, restore its quantities to main
+            if (($docType->op_key ?? null) === 'op-doc-order' && (int)$document->parent_id !== 0) {
+                $this->restoreQuantitiesForClone($document);
+            }
 
             DB::commit();
         } catch (\Throwable $e) {

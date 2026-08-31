@@ -461,10 +461,11 @@ class ExportController extends Controller
 
         // Always use DB entities as primary — they have the real saved values.
         // Only override with request if the user actually typed something.
+        // Cast to string first — ConvertEmptyStringsToNull can turn '' into null (trim(null) TypeError on PHP 8).
         $orderDesc = $entities['order_desc'] ?? '';
         $imalatci = $entities['imalatci_firma_adi'] ?? '';
-        if (!empty(trim($req['order_desc'] ?? ''))) $orderDesc = $req['order_desc'];
-        if (!empty(trim($req['imalatci_firma_adi'] ?? ''))) $imalatci = $req['imalatci_firma_adi'];
+        if (!empty(trim((string)($req['order_desc'] ?? '')))) $orderDesc = $req['order_desc'];
+        if (!empty(trim((string)($req['imalatci_firma_adi'] ?? '')))) $imalatci = $req['imalatci_firma_adi'];
 
         $data = [
             'buying_no'         => $req['buying_no'] ?? $entities['buying_no'] ?? '',

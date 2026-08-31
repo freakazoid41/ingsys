@@ -34,6 +34,8 @@
             } catch(e) { this.parsedStatus = []; }
             this.loadForm = true;
             setTimeout(() => this.navigationStore.toggle(false), 400);
+            // New rule: if order was partitioned before (has active EBELN-X clones), force partial
+            this.checkHasPartitions();
         },
         data() {
             const route = useRoute();
@@ -50,6 +52,8 @@
                 selectedItems: [],
                 allItemSerials: [],
                 highlightItemQnid: null,
+                hasPartitions: false,
+                checkingPartitions: false,
             };
         },
         computed: {
@@ -89,6 +93,9 @@
                     if (entities && (entities.order_no || entities.transfer_mode)) return entities;
                 }
                 return {};
+            },
+            isAtOnceDisabled(){
+                return this.hasPartitions;
             },
         },
         methods: {
@@ -142,8 +149,62 @@
                 }
                 return true;
             },
+            async checkHasPartitions(){
+                try {
+                    const orderNo = this.orderEntities?.order_no || '';
+                    if(!orderNo) return;
+                    const baseNo = orderNo.replace(/-\d+$/, '');
+                    if(!baseNo) return;
+                    // clones are op-doc-order with order_no = baseNo + '-X', active only (tableList filters status=1)
+                    this.checkingPartitions = true;
+                    const fd = new FormData();
+                    fd.append('tableReq', JSON.stringify({
+                        filter: [
+                            { key:'form-type', type:'=', value:'op-doc-order-form' },
+                            { key:'type', type:'=', value:'op-doc-order' },
+                            { key:'all', type:'=', value: baseNo + '-' }
+                        ],
+                        scale: { page: 1, limit: 100 },
+                        order: { key: 'id', style: 'asc' }
+                    }));
+                    const rsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
+                    const rows = rsp?.data?.data || rsp?.data || [];
+                    const list = Array.isArray(rows) ? rows : (rows?.data || []);
+                    let found = false;
+                    for(const r of list){
+                        try {
+                            const attrs = JSON.parse(r.main_attr || '[]');
+                            const noAttr = attrs.find(a => a.Key === 'order_no');
+                            const v = noAttr ? String(noAttr.Value) : '';
+                            if(v && v !== orderNo && v.startsWith(baseNo + '-') && /-\d+$/.test(v)){
+                                // tableList already filters active, so any hit = active partition
+                                // also ensure it's not the current doc itself
+                                if(String(r.id) !== String(this.id)) found = true;
+                                // even if r.id is current clone, still counts as partition exists for base
+                                // for base order, any clone means partitioned before
+                                if(!this.isCloneOrder && v.startsWith(baseNo + '-')) found = true;
+                            }
+                        } catch(e){}
+                    }
+                    // If we are viewing the base order, any clone found means partitioned before
+                    // If we are viewing a clone, don't apply rule to itself
+                    if(!this.isCloneOrder) this.hasPartitions = found;
+                    else this.hasPartitions = false;
+                    if(this.hasPartitions && this.transferMode === 'at_once'){
+                        this.transferMode = 'partial';
+                    }
+                } catch(e) {
+                    console.error('checkHasPartitions failed', e);
+                } finally {
+                    this.checkingPartitions = false;
+                }
+            },
             buildTransferPayload(){
                 if(!this.canSend || !this.transferMode) return;
+                if(this.hasPartitions && this.transferMode === 'at_once'){
+                    this.plib.toast(this.Swal,'info','Bu sipariş daha önce parçalı gönderildi. Artık sadece parçalı gönderim yapılabilir.',()=>{});
+                    return false;
+                }
                 this.formData.transfer_mode = this.transferMode;
                 if(this.transferMode === 'partial'){
                     if(!this.validatePartial()) return false;
@@ -199,13 +260,14 @@
                 this.allItemSerials = serials;
             },
             async cancelOrder(){
+                const isPartial = this.isCloneOrder;
                 const conf = await this.Swal.fire({
-                    title:'Siparişi İptal Et',
-                    text:'Sipariş tamamen reddedilecek ve iptal edilecek. Emin misiniz?',
-                    icon:'warning', showCancelButton:true, confirmButtonText:'Evet, İptal Et', cancelButtonText:'Vazgeç',
+                    title: isPartial ? 'Parçayı Sil' : 'Siparişi İptal Et',
+                    text: isPartial ? 'Bu parça (EBELN-X) silinecek ve miktarları ana siparişe geri eklenecek. Emin misiniz?' : 'Sipariş tamamen reddedilecek ve iptal edilecek. Emin misiniz?',
+                    icon:'warning', showCancelButton:true, confirmButtonText: isPartial ? 'Evet, Sil' : 'Evet, İptal Et', cancelButtonText:'Vazgeç',
                 });
                 if(!conf.isConfirmed) return;
-                const fd=new FormData(); fd.append('id',this.id); fd.append('note','Sipariş reddedildi ve iptal edildi');
+                const fd=new FormData(); fd.append('id',this.id); fd.append('note', isPartial ? 'Parça silindi, miktarlar ana siparişe iade edildi' : 'Sipariş reddedildi ve iptal edildi');
                 const rsp=await this.plib.request({url:'/api/v1/orders/cancel', method:'POST'}, null, fd);
                 this.plib.toast(this.Swal, rsp.success?'success':'error', rsp.msg||'İşlem Tamamlandı',()=>{
                     if(rsp.success) this.$router.push({name:'OrderList'});
@@ -256,19 +318,42 @@
                     showWarn('Transfer Türü Seçin', 'Lütfen önce transfer türünü seçin: "Tek Seferde" veya "Parçalı".');
                     return;
                 }
+                if(this.hasPartitions && this.transferMode === 'at_once'){
+                    showWarn('Tek Seferde Kilitli', 'Bu sipariş daha önce parçalı gönderildiği için artık sadece parçalı gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.');
+                    return;
+                }
                 const getFieldValue = (name) => {
                     const formComp = this.$refs.formRef;
                     if(formComp && formComp.getCurrentFormData){
-                        const fd = formComp.getCurrentFormData();
-                        const dynF = fd?.dynamicF || {};
-                        for(const key in dynF){
-                            const e = dynF[key]?.entities;
-                            if(e && e[name] !== undefined && e[name] !== '') return String(e[name]).trim();
-                        }
+                        try {
+                            const fd = formComp.getCurrentFormData();
+                            const dynF = fd?.dynamicF || {};
+                            for(const key in dynF){
+                                const e = dynF[key]?.entities;
+                                if(!e) continue;
+                                // exact key or compound like "field**group**id" (file slots use compound)
+                                for(const ek in e){
+                                    const base = ek.split('**')[0].split('*-*').pop();
+                                    if(base === name && e[ek] !== undefined && String(e[ek]).trim() !== ''){
+                                        return String(e[ek]).trim();
+                                    }
+                                }
+                                if(e[name] !== undefined && String(e[name]).trim() !== '') return String(e[name]).trim();
+                            }
+                        } catch(e) {}
                     }
-                    const allInputs = document.querySelectorAll('input[name="'+name+'"], textarea[name="'+name+'"]');
+                    // DOM fallback: match exact name or prefix (multiple file fields use compound names)
+                    const allInputs = document.querySelectorAll('input[name^="'+name+'"], textarea[name^="'+name+'"]');
                     for(const inp of allInputs){
-                        if(inp.value && inp.value.trim()) return inp.value.trim();
+                        if(inp.value && String(inp.value).trim()) return String(inp.value).trim();
+                    }
+                    // last resort: any input where value exists and dataset.tag matches order form
+                    const anyInputs = document.querySelectorAll('.form-item');
+                    for(const inp of anyInputs){
+                        const n = inp.getAttribute('name') || '';
+                        if(n === name || n.startsWith(name + '**')){
+                            if(inp.value && String(inp.value).trim()) return String(inp.value).trim();
+                        }
                     }
                     return '';
                 };
@@ -407,8 +492,8 @@
                     </div>
                 </div>
                 <div style="display:flex;gap:14px;">
-                    <label class="transfer-mode-option" :class="{ active: transferMode === 'at_once' }" style="flex:1;display:flex;align-items:center;gap:14px;padding:14px 18px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all 0.2s;background:#fff;">
-                        <input type="radio" value="at_once" v-model="transferMode" class="d-none">
+                    <label class="transfer-mode-option" :class="{ active: transferMode === 'at_once', disabled: hasPartitions }" :style="hasPartitions ? 'flex:1;display:flex;align-items:center;gap:14px;padding:14px 18px;border:2px solid #e2e8f0;border-radius:12px;cursor:not-allowed;transition:all 0.2s;background:#f1f5f9 !important;opacity:0.55;pointer-events:none;' : 'flex:1;display:flex;align-items:center;gap:14px;padding:14px 18px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all 0.2s;background:#fff;'" @click="hasPartitions && $event.preventDefault()">
+                        <input type="radio" value="at_once" v-model="transferMode" class="d-none" :disabled="hasPartitions">
                         <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:center;color:#3b82f6;font-size:17px;flex-shrink:0;">
                             <i class="ki-outline ki-direct-right"></i>
                         </div>
@@ -421,6 +506,10 @@
                         </div>
                         <div><div style="font-weight:700;font-size:0.95rem;color:#0f172a;">Parçalı</div><div style="font-size:0.82rem;color:#94a3b8;">Seçili kalemler gönderilir</div></div>
                     </label>
+                </div>
+                <div v-if="hasPartitions" style="margin-top:12px;padding:10px 14px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:0.85rem;display:flex;align-items:center;gap:8px;">
+                    <i class="ki-outline ki-information-2" style="font-size:16px;"></i>
+                    <span>Bu sipariş daha önce parçalı gönderildiği için artık sadece <b>Parçalı</b> gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.</span>
                 </div>
                 <div style="margin-top:14px;display:flex;justify-content:flex-end;">
                     <button type="button" @click="printMalzemeKabul" class="print-kabul-btn">
@@ -482,7 +571,7 @@
                 </div>
                 <button class="locked-cancel-btn" @click="cancelOrder" v-if="authStore.permissions?.includes('per-05-02')">
                     <i class="ki-outline ki-trash"></i>
-                    <span>İptal Et</span>
+                    <span>{{ isCloneOrder ? 'Parçayı Sil' : 'İptal Et' }}</span>
                 </button>
             </div>
         </div>

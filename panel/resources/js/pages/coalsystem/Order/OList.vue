@@ -270,7 +270,9 @@
                             };
                             wrap.appendChild(btn);
                             const cancelBtn=document.createElement('button');
-                            cancelBtn.textContent='İptal Et';
+                            const vClone = row.transfer_no || row.order_no || '';
+                            const isCloneRow = /\-\d+$/.test(vClone);
+                            cancelBtn.textContent= isCloneRow ? 'Parçayı Sil' : 'İptal Et';
                             cancelBtn.className='btn';
                             cancelBtn.style.background='#fef2f2';
                             cancelBtn.style.color='#dc2626';
@@ -282,7 +284,7 @@
                             cancelBtn.style.cursor='pointer';
                             cancelBtn.onmouseenter=()=> cancelBtn.style.background='#fee2e2';
                             cancelBtn.onmouseleave=()=> cancelBtn.style.background='#fef2f2';
-                            cancelBtn.onclick=()=> this.cancelOrder(row.id);
+                            cancelBtn.onclick=()=> this.cancelOrder(row.id, isCloneRow);
                             wrap.appendChild(cancelBtn);
                             return wrap;
                         }
@@ -322,18 +324,21 @@
                     },
                 });
             },
-            async cancelOrder(orderQnid){
+            async cancelOrder(orderQnid, isPartial=false){
                 const conf = await this.Swal.fire({
-                    title:'Siparişi İptal Et',
-                    text:'Sipariş tamamen reddedilecek ve iptal edilecek. Emin misiniz?',
-                    icon:'warning', showCancelButton:true, confirmButtonText:'Evet, İptal Et', cancelButtonText:'Vazgeç',
+                    title: isPartial ? 'Parçayı Sil' : 'Siparişi İptal Et',
+                    text: isPartial ? 'Bu parça (EBELN-X) silinecek ve miktarları ana siparişe geri eklenecek. Emin misiniz?' : 'Sipariş tamamen reddedilecek ve iptal edilecek. Emin misiniz?',
+                    icon:'warning', showCancelButton:true, confirmButtonText: isPartial ? 'Evet, Sil' : 'Evet, İptal Et', cancelButtonText:'Vazgeç',
                 });
                 if(!conf.isConfirmed) return;
-                const fd=new FormData(); fd.append('id',orderQnid); fd.append('note','Sipariş listesinden reddedildi ve iptal edildi');
+                const fd=new FormData(); fd.append('id',orderQnid); fd.append('note', isPartial ? 'Parça silindi, miktarlar ana siparişe iade edildi' : 'Sipariş listesinden reddedildi ve iptal edildi');
                 const rsp=await this.plib.request({url:'/api/v1/orders/cancel', method:'POST'}, null, fd);
-                this.plib.toast(this.Swal, rsp.success?'success':'error', rsp.msg||'İşlem Tamamlandı',()=>{
-                    if(rsp.success) window.location.reload();
-                });
+                if(rsp.success){
+                    try { this.table.deleteRow(orderQnid); } catch(e) { try { this.table.removeRow(orderQnid); } catch(e2) { console.error('deleteRow failed', e, e2); } }
+                    this.plib.toast(this.Swal,'success', rsp.msg||'İşlem Tamamlandı');
+                } else {
+                    this.plib.toast(this.Swal,'error', rsp.msg||'İşlem başarısız');
+                }
             },
             async findAndNavigateToOrder(baseNo){
                 try{
