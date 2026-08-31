@@ -54,7 +54,9 @@ Global middleware (`bootstrap/app.php:19-27`): `ParsePutMultipart` (broken, fall
 - **Transfer send happens on the order-detail SAVE** (`PUT /v1/document/{qnid}`, payload `transfer_mode` + `selected_items`) → `DocumentServiceProvider::processOrderTransfer`: `at_once` sets order `transfer_sent`; `partial` clones `op-doc-order` `transfer_no=EBELN-X` + `moveOrderFilesToDocument` + `duplicateOrderItem` + `recordPartiallySent`, sets clone `transfer_sent`.
 - `POST /v1/orders/cancel` → `DocumentServiceProvider::cancelOrder` soft `status=0` + terminal rejected transaction (reject & cancel whole order).
 
-{{PERMISSION MAP}} `panel/app/Helpers/PermissionHelpers.php:215` `docPermCheck(typeKey, perm)`:
+### Permission Map — `docPermCheck(typeKey, perm)`
+
+`panel/app/Helpers/PermissionHelpers.php:215`:
 ```php
 'op-doc-request' => ['read'=>'per-05-01', 'edit'=>'per-05-02', 'status'=>'per-05-02'],
 'op-doc-client'  => ['read'=>'per-06-01', 'edit'=>'per-06-02'],

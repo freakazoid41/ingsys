@@ -81,20 +81,9 @@ php artisan orders:sync --json=/tmp/sap_fresh_payload.json
 
 **From existing test data:** The file at `/tmp/sap_fresh_payload.json` has 5 orders (3510004200-3510004600), 14 items, 5 clients. Reuse or modify.
 
-## 5. Current Live Data (2026-08-28 after sync)
+## 5. Current Live Data
 
-| EBELN | Müşteri | LIFNR | Items | Status |
-|-------|---------|-------|-------|--------|
-| 3510001793 | PANORAMA TEKSTİL | 0000300181 | 2 | doc_trans_order_created |
-| 3510002100 | HASÇELİK KABLO | 0000300182 | 3 | doc_trans_order_created |
-| 3510003500 | HES HACILAR ELEKTRİK | 0000300183 | 4 | doc_trans_order_created |
-| 3510004200 | DEMİR ÇELİK A.Ş. | 0000300184 | 3 | doc_trans_order_created |
-| 3510004300 | AKSA ENERJİ LTD. | 0000300185 | 2 | doc_trans_order_created |
-| 3510004400 | YILDIZ TEKSTİL | 0000300186 | 4 | doc_trans_order_created |
-| 3510004500 | BORA MADENCİLİK | 0000300187 | 2 | doc_trans_order_created |
-| 3510004600 | GÜNEŞ ELEKTRİK | 0000300188 | 3 | doc_trans_order_created |
-
-**Total: 8 orders, 23 items, 8 clients** (3 original from memory/05 §3 + 5 new from sync command)
+**Authoritative snapshot lives in `memory/05-order-system-state.md` §8.** As of the last fresh sync (`/tmp/sap_fresh_payload.json --fresh`): **8 orders, 23 items, 8 clients — all ST < 300, mixed ST/KG/M across orders, 0 files, 163 transactions**. Clean slate.
 
 ## 6. Important Notes
 
