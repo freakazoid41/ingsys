@@ -5,6 +5,7 @@ import flatpickr from 'flatpickr';
 import monthSelectPlugin from 'flatpickr/dist/plugins/monthSelect/index.js';
 import { Turkish } from 'flatpickr/dist/l10n/tr.js';
 import 'flatpickr/dist/plugins/monthSelect/style.css';
+import * as XLSX from 'xlsx';
 
 flatpickr.localize(Turkish);
 
@@ -27,6 +28,7 @@ export default {
             serialEnabled: {},
             serialCollapsed: {},
             serialViewCollapsed: {},
+            excelFileInputs: {},
             items: [],
             loading: true,
             error: null,
@@ -225,10 +227,13 @@ export default {
             }
         },
         rebuildSerials(){
+            const now = Date.now();
             for(const key in this.selected){
                 if(!this.selected[key]) continue;
                 const item = this.itemsMap.get(key);
                 if(!item) continue;
+                // Skip items that just had Excel uploaded (within 1000ms)
+                if(this._excelUploadTime && this._excelUploadTime[key] && (now - this._excelUploadTime[key]) < 1000) continue;
                 const unit = item.unit || 'ST';
                 const amt = parseFloat(this.splitAmounts[key]) || 0;
                 if(amt <= 0){ this.serials[key] = []; this.serialEnabled[key] = false; continue; }
@@ -350,12 +355,112 @@ export default {
         },
         formatSerialDate(val){
             if(!val) return '-';
-            // YYYY-MM-01 → MM.YYYY
             const parts = val.split('-');
             if(parts.length >= 2) return parts[1] + '.' + parts[0];
-            // MM.YYYY already
             if(val.includes('.')) return val;
             return val;
+        },
+        triggerExcelUpload(item){
+            this._excelUploadSplitAmt = parseFloat(this.splitAmounts[item.id]) || 0;
+            const input = this.excelFileInputs[item.id];
+            if(input){ input.value = ''; input.click(); }
+        },
+        downloadExcelTemplate(){
+            const ws_data = [
+                ['SRLCODE', 'SRLDATE', 'QUANTITY'],
+                ['SRL01', '2024-01-15', 50],
+                ['SRL02', '2024-01-15', 50],
+                ['SRL03', '2024-02-01', 100],
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Seri Listesi');
+            XLSX.writeFile(wb, 'seri_numarasi_sablonu.xlsx');
+        },
+        onExcelFileSelected(item, event){
+            const file = event.target.files[0];
+            if(!file) return;
+            this.parseSerialExcel(item, file);
+        },
+        normalizeExcelDate(val){
+            if(val === null || val === undefined) return '';
+            if(typeof val === 'number'){
+                const d = new Date((val - 25569) * 86400000);
+                return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
+            }
+            const str = String(val).replace(/\//g, '-');
+            const match = str.match(/^(\d{4})-(\d{2})/);
+            if(match) return match[1] + '-' + match[2] + '-01';
+            return '';
+        },
+        async parseSerialExcel(item, file){
+            try{
+                const data = await file.arrayBuffer();
+                const wb = XLSX.read(data, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws);
+                if(!rows.length){
+                    this.plib.toast(Swal, 'info', 'Excel dosyası boş');
+                    return;
+                }
+                const unit = item.unit || 'ST';
+                const parsed = [];
+                for(const r of rows){
+                    const qty = unit === 'ST' ? 1 : (parseFloat(r['QUANTITY']) || 0);
+                    if(qty <= 0 && unit !== 'ST') continue;
+                    parsed.push({
+                        serial_no: r['SRLCODE'] || '-',
+                        production_date: this.normalizeExcelDate(r['SRLDATE']),
+                        production_date_display: '',
+                        quantity: qty,
+                        unit: unit
+                    });
+                }
+                if(!parsed.length){
+                    this.plib.toast(Swal, 'info', 'Geçerli seri bulunamadı');
+                    return;
+                }
+                // ST: warn if row count doesn't match split amount
+                if(unit === 'ST'){
+                    let amt = this._excelUploadSplitAmt || 0;
+                    if(amt === 0 && this.atOnceMode){
+                        amt = parseFloat(item.quantity) || 0;
+                    }
+                    console.log('[ExcelSerial] unit:', unit, 'amt:', amt, 'parsed:', parsed.length, '_excelUploadSplitAmt:', this._excelUploadSplitAmt, 'atOnceMode:', this.atOnceMode);
+                    if(amt > 0 && parsed.length !== Math.min(amt, 300)){
+                        const confirm = await Swal.fire({
+                            title: 'Satır Uyuşmazlığı',
+                            html: 'Excel <b>' + parsed.length + '</b> satır içeriyor, ancak girilen miktar <b>' + amt + ' ST</b>.<br>Bölme miktarı Excel satır sayısına eşitlenecek (<b>' + parsed.length + ' ST</b>).',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Evet, Yükle',
+                            cancelButtonText: 'İptal',
+                        });
+                        if(!confirm.isConfirmed) return;
+                        // Sync split amount with Excel row count
+                        this.splitAmounts[item.id] = parsed.length;
+                        this.splitAmounts = { ...this.splitAmounts };
+                    }
+                }
+                // Mark upload time to prevent rebuildSerials from overwriting
+                if(!this._excelUploadTime) this._excelUploadTime = {};
+                this._excelUploadTime[item.id] = Date.now();
+                // Ensure serialEnabled for ST
+                if(unit === 'ST'){
+                    this.serialEnabled[item.id] = true;
+                    this.serialEnabled = { ...this.serialEnabled };
+                }
+                // Ensure serial area is expanded (not collapsed)
+                this.serialCollapsed[item.id] = false;
+                this.serialCollapsed = { ...this.serialCollapsed };
+                // Set serials — triggers rebuildSerials via splitAmounts watcher,
+                // but _excelUploadTime flag prevents overwrite for 1000ms
+                this.serials[item.id] = parsed;
+                this.serials = { ...this.serials };
+                this.plib.toast(Swal, 'success', parsed.length + ' seri yüklendi');
+            }catch(e){
+                this.plib.toast(Swal, 'error', 'Excel okunamadı');
+            }
         },
         getSelected(){
             const result = [];
@@ -689,6 +794,15 @@ export default {
                                     <div class="oic-serial-header mt-2">
                                         <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
                                         <span>Ürün Seri Numaralarını Giriniz. (Toplam: {{ row.quantity }} {{ row.unit }})</span>
+                                        <button class="oic-serial-excel" @click.stop="triggerExcelUpload(row)" style="margin-left:auto;">
+                                            <i class="ki-outline ki-file-up" style="font-size:13px;"></i>
+                                            <span>Excel'den Yükle</span>
+                                        </button>
+                                        <button class="oic-serial-excel oic-serial-dl" @click.stop="downloadExcelTemplate" title="Şablon İndir">
+                                            <i class="ki-outline ki-file-down" style="font-size:13px;"></i>
+                                            <span>Şablon</span>
+                                        </button>
+                                        <input type="file" :ref="el => { if(el) excelFileInputs[row.id] = el }" accept=".xls,.xlsx" style="display:none" @change="onExcelFileSelected(row, $event)" />
                                     </div>
                                     <div class="oic-serial-scroll">
                                         <div class="oic-serial-grid">
@@ -713,6 +827,15 @@ export default {
                                     <div class="oic-serial-header mt-2">
                                         <i class="ki-outline ki-hash" style="font-size:13px;color:#64748b;"></i>
                                         <span>Ürün parti Numaralarını Giriniz. (Toplam: {{ row.quantity }} {{ row.unit }})</span>
+                                        <button class="oic-serial-excel" @click.stop="triggerExcelUpload(row)">
+                                            <i class="ki-outline ki-file-up" style="font-size:13px;"></i>
+                                            <span>Excel'den Yükle</span>
+                                        </button>
+                                        <button class="oic-serial-excel oic-serial-dl" @click.stop="downloadExcelTemplate" title="Şablon İndir">
+                                            <i class="ki-outline ki-file-down" style="font-size:13px;"></i>
+                                            <span>Şablon</span>
+                                        </button>
+                                        <input type="file" :ref="el => { if(el) excelFileInputs[row.id] = el }" accept=".xls,.xlsx" style="display:none" @change="onExcelFileSelected(row, $event)" />
                                         <button class="oic-serial-add" @click="addSerialRow(row)" style="margin-left:auto;">
                                             <i class="ki-outline ki-plus" style="font-size:13px;"></i>
                                             <span>Satır Ekle</span>
@@ -770,6 +893,15 @@ export default {
                                 <div class="oic-serial-header" @click.stop="toggleCollapse(row)" style="cursor:pointer;">
                                     <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
                                     <span>Ürün Seri Numaralarını Giriniz.</span>
+                                    <button class="oic-serial-excel" @click.stop="triggerExcelUpload(row)">
+                                        <i class="ki-outline ki-file-up" style="font-size:13px;"></i>
+                                        <span>Excel'den Yükle</span>
+                                    </button>
+                                    <button class="oic-serial-excel oic-serial-dl" @click.stop="downloadExcelTemplate" title="Şablon İndir">
+                                        <i class="ki-outline ki-file-down" style="font-size:13px;"></i>
+                                        <span>Şablon</span>
+                                    </button>
+                                    <input type="file" :ref="el => { if(el) excelFileInputs[row.id] = el }" accept=".xls,.xlsx" style="display:none" @change="onExcelFileSelected(row, $event)" />
                                     <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                         {{ isCollapsed(row) ? 'Genişlet' : 'Daralt' }}
                                         <i :class="isCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
@@ -798,6 +930,15 @@ export default {
                                 <div class="oic-serial-header" @click.stop="toggleCollapse(row)" style="cursor:pointer;">
                                     <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
                                     <span>Ürün parti Numaralarını Giriniz.</span>
+                                    <button class="oic-serial-excel" @click.stop="triggerExcelUpload(row)">
+                                        <i class="ki-outline ki-file-up" style="font-size:13px;"></i>
+                                        <span>Excel'den Yükle</span>
+                                    </button>
+                                    <button class="oic-serial-excel oic-serial-dl" @click.stop="downloadExcelTemplate" title="Şablon İndir">
+                                        <i class="ki-outline ki-file-down" style="font-size:13px;"></i>
+                                        <span>Şablon</span>
+                                    </button>
+                                    <input type="file" :ref="el => { if(el) excelFileInputs[row.id] = el }" accept=".xls,.xlsx" style="display:none" @change="onExcelFileSelected(row, $event)" />
                                     <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                         {{ isCollapsed(row) ? 'Genişlet' : 'Daralt' }}
                                         <i :class="isCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
@@ -915,6 +1056,9 @@ export default {
 .oic-serial-remove:hover { background:#fef2f2; border-color:#fecaca; color:#dc2626; }
 .oic-serial-add { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:1px dashed #cbd5e1; border-radius:8px; background:transparent; color:#64748b; font-size:0.84rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
 .oic-serial-add:hover { background:#f8fafc; border-color:#94a3b8; color:#334155; }
+.oic-serial-excel { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border:1px dashed #6366f1; border-radius:8px; background:transparent; color:#6366f1; font-size:0.84rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.oic-serial-excel:hover { background:#eef2ff; border-color:#818cf8; color:#4f46e5; }
+.oic-serial-dl { padding:8px 10px; min-width:36px; justify-content:center; }
 .oic-serial-hint { border-top:1px solid #e2e8f0; padding:10px 18px; display:flex; align-items:center; gap:7px; font-size:0.82rem; color:#94a3b8; }
 .oic-serial-hint-inline { margin-top:12px; padding:8px 12px; font-size:0.78rem; color:#94a3b8; font-style:italic; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; }
 

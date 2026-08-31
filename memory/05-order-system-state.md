@@ -1,4 +1,4 @@
-# Order Management System — Current State (2026-08-28)
+# Order Management System — Current State (2026-08-31)
 
 > **This is the living snapshot. If you are LLM in a future session, read this first after `00-core-overview.md`.**
 > **Control panel conversion is DONE. Front panel PENDING (design awaited). SAP cron PENDING (grouping logic defined, not formalized).**
@@ -72,6 +72,7 @@
 - **Summary badge:** Shows on main row when serials filled: `hash icon 2 seri, toplam 500 KG`
 - **Per-item scroll:** Serial area has its own scrollbar, doesn't affect main list
 - **Existing serial display:** Collapsible read-only section under item row (purple gradient bg, disabled inputs, formatted `MM.YYYY`). **Collapsed by default.** Uses `serialViewCollapsed` state (separate from `serialCollapsed` used for entry UI). `fetchSerialsForItems()` loads serials for items with `has_serials=1` on page load. `formatSerialDate()` converts `YYYY-MM-01` → `MM.YYYY`.
+- **Excel upload:** "Excel'den Yükle" button + "Şablon" download button in all 4 serial sections (at-once ST, at-once KG/M, partial ST, partial KG/M). Reads `.xls/.xlsx` client-side via SheetJS (`xlsx` package). Excel format: `SRLCODE` (serial_no), `SRLDATE` (production_date), `QUANTITY` (quantity). ST rows force quantity=1. **Replaces** existing serials for that item. ST mismatch warning: Swal confirm dialog shows row count vs split amount, on confirm syncs `splitAmounts[item.id] = parsed.length`. `_excelUploadSplitAmt` captures split amount at click time to avoid async timing issues. `_excelUploadTime` flag (1000ms) prevents `rebuildSerials` from overwriting Excel data. `serialCollapsed[item.id] = false` ensures serial area stays expanded after upload.
 
 ### Clone Order Link (NEW)
 - `OList.vue`: Clone orders (`3510001793-1`) show clickable "3510001793'den ayrıldı" link below order number
@@ -79,12 +80,13 @@
 - Detects clones by `-X` suffix pattern in `order_no` entity
 - Navigates to original via search (`POST /v1/table/documents` with `all` filter)
 
-## 4. Files Changed (key — 2026-08-28 session)
+## 4. Files Changed (key — 2026-08-28 + 2026-08-31 sessions)
 
 | File | Change |
 |------|--------|
 | `OrderSystemSeeder.php` | + `op-doc-order-serial`, `op-doc-order-serial-form` |
-| `OrderItemTable.vue` | **Complete rewrite:** inline split inputs, quantity type awareness, serial entry UI (ST checkbox, KG/M table), collapse button, scrollable per-item, summary badge, flatpickr month picker, at_once mode serial support, `fetchSerialsForItems()` loads existing serials, collapsible read-only serial view (collapsed by default, `serialViewCollapsed` state), `formatSerialDate()`, `ensureAtOnceSerials()` |
+| `OrderItemTable.vue` | **Complete rewrite:** inline split inputs, quantity type awareness, serial entry UI (ST checkbox, KG/M table), collapse button, scrollable per-item, summary badge, flatpickr month picker, at_once mode serial support, `fetchSerialsForItems()` loads existing serials, collapsible read-only serial view (collapsed by default, `serialViewCollapsed` state), `formatSerialDate()`, `ensureAtOnceSerials()`. **+Excel serial upload (2026-08-31):** `import * as XLSX from 'xlsx'`, `excelFileInputs` ref map, `triggerExcelUpload(item)` captures `_excelUploadSplitAmt`, `downloadExcelTemplate()` generates template xlsx, `parseSerialExcel(item, file)` reads Excel client-side + replaces serials + ST mismatch Swal confirm + syncs split amount. `_excelUploadTime` flag prevents `rebuildSerials` overwrite (1000ms). `serialCollapsed[item.id] = false` after upload. 4 "Excel'den Yükle" + 4 "Şablon" buttons across all serial sections. |
+| `package.json` | + `"xlsx": "^0.18.x"` dependency |
 | `OForm.vue` | `selectedItems` format `[{qnid, amount, serials}]`, `allItemSerials` for at_once, serial validation, `atOnceMode` prop + `@serials` listener, clone origin banner, transfer info card |
 | `DocumentServiceProvider.php` | `processOrderTransfer($qnid, $mode, $selectedItems, $itemSerials)` — handles partial clone + at_once serials. `duplicateOrderItem` accepts `$splitAmount`. New: `decrementItemQuantity`, `storeOriginalQuantity`, `createSerialEntries`, `setHasSerialsFlag`. |
 | `DocumentController.php` | Passes `$itemSerials` to `processOrderTransfer` |
@@ -119,6 +121,17 @@ SERIAL ENTRIES:
 → EAV: serial_no, production_date (YYYY-MM-01), quantity, unit
 → Parent item gets has_serials=1 flag
 → Viewing: fetchSerialsForItems loads serials → shown in collapsible disabled fields
+
+EXCEL SERIAL UPLOAD:
+→ User clicks "Excel'den Yükle" → triggerExcelUpload captures splitAmounts[item.id]
+→ File picker (.xls/.xlsx) → SheetJS reads client-side (no backend)
+→ Maps: SRLCODE→serial_no, SRLDATE→production_date (YYYY-MM-01), QUANTITY→quantity
+→ ST: quantity forced to1, serial checkbox auto-enabled
+→ KG/M: quantity from Excel
+→ REPLACES existing serials for that item
+→ ST mismatch (e.g. 8 Excel rows vs 2 split): Swal confirm dialog → on confirm syncs splitAmounts = parsed.length
+→ _excelUploadTime flag (1000ms) prevents rebuildSerials from overwriting
+→ serialCollapsed[item.id] = false ensures area stays expanded
 ```
 
 ## 6. Perf / Code Quality Refactors (2026-08-29)

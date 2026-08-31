@@ -67,6 +67,22 @@ Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done,
 - OList: `_attrsParsed` guard, CSS ellipsis, cleaned dead setup returns
 - Full details in `memory/05 §6`
 
+## 2.6 Recently Completed (2026-08-31)
+
+### ✅ Excel Serial Upload
+- `xlsx` (SheetJS) package added to `package.json`
+- `OrderItemTable.vue`: client-side Excel read for serial number entry
+- 4 "Excel'den Yükle" buttons + 4 "Şablon" download buttons across all serial sections
+- Excel format: SRLCODE, SRLDATE, QUANTITY columns
+- `downloadExcelTemplate()` generates template xlsx with headers + 3 example rows
+- `parseSerialExcel(item, file)`: SheetJS read → map → replace serials for item
+- ST: quantity forced to1, serial checkbox auto-enabled
+- ST mismatch: Swal confirm dialog, on confirm syncs `splitAmounts[item.id] = parsed.length`
+- `_excelUploadSplitAmt` captures split at click time (async timing fix)
+- `_excelUploadTime` flag (1000ms) prevents `rebuildSerials` overwrite
+- `serialCollapsed[item.id] = false` ensures area stays expanded after upload
+- `normalizeExcelDate()`: handles string `YYYY-MM-DD` and Excel serial number dates → `YYYY-MM-01`
+
 ## 3. Tech Debt
 
 - **Parent link:** `Documents::tableList:102` still `where parent_type_id=0` — items visible in main lists
