@@ -91,3 +91,4 @@ exmp :
 
 if an order is partitioned before , cannot sand at once again. its always partial anymore.. (except all partitioned parts are removed)
 
+on order detail , if product is kg-m its auto serial row's date input is not required. just add same date with order's own date YYYY-MM-DD

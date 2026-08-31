@@ -1285,6 +1285,7 @@ class DocumentServiceProvider extends ServiceProvider
 
         // Store transfer_mode as EAV entity so frontend can display it read-only after first send.
         $this->saveTransferModeEntity($order, $mode);
+        $this->saveTransferModeEntity($clone, $mode);
 
         return [
             'success' => true,

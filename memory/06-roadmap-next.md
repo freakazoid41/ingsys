@@ -109,6 +109,29 @@ Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done,
 - **Parçayı Sil label:** `OForm.vue` locked-card + `OList.vue` list button now show `Parçayı Sil` for clones (`isCloneOrder` / `/-\d+$/`), `İptal Et` for mains. Swal titles/notes conditional.
 - **No reload on delete:** `OList.vue` `cancelOrder` now `this.table.deleteRow(qnid)` (was `window.location.reload()`, `removeRow` is wrong → `pickletable/assets/script.js:680 deleteRow`).
 
+### ✅ Serial UI Improvements (2026-08-31 late)
+- **At_once collapse buttons:** Both ST and KG/M at_once serial sections now have Daralt/Genişlet toggle (was missing, caused screen flooding with many items)
+- **Partial layout matches at_once:** Header shows "Toplam: X unit" + "Satır Ekle" moved to header row for KG/M (was at bottom)
+- **Visual color split:** at_once serial bg = light gray `#f8fafc`, partial serial bg = warm yellow/amber gradient `#fffbeb → #fef3c7` via `.oic-serial-partial` CSS class
+- **Daralt far right:** `margin-left:auto` on Daralt span in all 4 serial sections so button sits at far right, not crowded next to Satır Ekle
+
+### ✅ Fresh SAP Sync Data (2026-08-31 late)
+- New `/tmp/sap_fresh_payload.json` — 23 items across 8 orders, **all ST < 300** (serial checkbox available), mixed ST/KG/M in every order
+- `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` wipes and recreates
+
+### ✅ Malzeme Kabul Reprint from files_rejected (2026-08-31 late)
+- `canPrintKabul` computed = `canSend || files_rejected` — button shows in locked card when files rejected
+- `printMalzemeKabul` uses `effectiveTransferMode` (form state if canSend, else `storedTransferMode` from DB)
+- `getFieldValue()` uses `orderEntities` directly when form is locked (DB-only mode)
+- Items from `itemTable.items` (all items used when selectedItems empty in locked state)
+- **Reprint order_no fix:** If current order already has suffix (`/\-\d+$/`), uses it as-is. Only increments for NEW partial transfers from base order
+
+### ✅ Transfer Mode on Clone + DList Fixes (2026-08-31 late)
+- **Backend:** `saveTransferModeEntity($clone, $mode)` added for partial mode — clones now store `transfer_mode` in EAV
+- **Frontend fallback:** `storedTransferMode` falls back to `'partial' for clone orders if entity missing (covers old clones)
+- **DList.vue grouping:** `groupFormatter` handles null/invalid JSON, falls back to `entity_tag` or "Belge". `rowFormatter` wrapped in try/catch
+- **DList.vue dates:** `dayjs.isValid()` check before formatting — no more "Invalid Date"
+
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu
 - Second PDF form for order transfer (PENDING)
 - Similar flow to Malzeme Kabul Formu but with different layout/data

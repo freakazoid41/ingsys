@@ -64,9 +64,13 @@
             lockedStatuses(){ return ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected']; },
             isLocked(){ return this.id && this.lockedStatuses.includes(this.orderStatus); },
             canSend(){ return this.id && this.orderStatus === 'doc_trans_order_created'; },
+            canPrintKabul(){ return this.canSend || this.orderStatus === 'doc_trans_order_files_rejected'; },
             storedTransferMode(){
                 const entities = this.orderFormEntities;
-                return entities.transfer_mode || '';
+                if(entities.transfer_mode) return entities.transfer_mode;
+                // Fallback: clone orders without stored transfer_mode are always partial
+                if(this.isCloneOrder) return 'partial';
+                return '';
             },
             isFilesLocked(){ return this.id && ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected'].includes(this.orderStatus); },
             readonlyFields(){
@@ -314,15 +318,23 @@
                     showWarn('Kalemler Yüklenmedi', 'Kalem bilgileri henüz yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
                     return;
                 }
-                if(!this.transferMode){
-                    showWarn('Transfer Türü Seçin', 'Lütfen önce transfer türünü seçin: "Tek Seferde" veya "Parçalı".');
+                // Determine transfer mode: use form state if canSend, else use DB stored value
+                const effectiveTransferMode = this.canSend ? this.transferMode : this.storedTransferMode;
+                if(!effectiveTransferMode){
+                    showWarn('Transfer Türü Yok', 'Transfer türü bilgisi bulunamadı. Sayfayı yenileyip tekrar deneyin.');
                     return;
                 }
-                if(this.hasPartitions && this.transferMode === 'at_once'){
+                if(this.hasPartitions && effectiveTransferMode === 'at_once'){
                     showWarn('Tek Seferde Kilitli', 'Bu sipariş daha önce parçalı gönderildiği için artık sadece parçalı gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.');
                     return;
                 }
+                // Get field value: from form DOM if canSend, else from DB entities
                 const getFieldValue = (name) => {
+                    if(!this.canSend){
+                        // DB-only mode: use orderEntities directly
+                        const val = this.orderEntities[name];
+                        return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : '';
+                    }
                     const formComp = this.$refs.formRef;
                     if(formComp && formComp.getCurrentFormData){
                         try {
@@ -331,7 +343,6 @@
                             for(const key in dynF){
                                 const e = dynF[key]?.entities;
                                 if(!e) continue;
-                                // exact key or compound like "field**group**id" (file slots use compound)
                                 for(const ek in e){
                                     const base = ek.split('**')[0].split('*-*').pop();
                                     if(base === name && e[ek] !== undefined && String(e[ek]).trim() !== ''){
@@ -342,12 +353,10 @@
                             }
                         } catch(e) {}
                     }
-                    // DOM fallback: match exact name or prefix (multiple file fields use compound names)
                     const allInputs = document.querySelectorAll('input[name^="'+name+'"], textarea[name^="'+name+'"]');
                     for(const inp of allInputs){
                         if(inp.value && String(inp.value).trim()) return String(inp.value).trim();
                     }
-                    // last resort: any input where value exists and dataset.tag matches order form
                     const anyInputs = document.querySelectorAll('.form-item');
                     for(const inp of anyInputs){
                         const n = inp.getAttribute('name') || '';
@@ -363,11 +372,15 @@
                     showWarn('İmalatçı Firma Boş', 'İmalatçı Firma adı boş. Formu yazdırmadan önce imalatçı firma bilgisi girmelisiniz.');
                     return;
                 }
-                if(this.transferMode === 'partial' && !this.selectedItems.length){
+                // For partial mode in files_rejected: selectedItems may be empty (form locked), treat all items as selected
+                if(effectiveTransferMode === 'partial' && !this.selectedItems.length && !this.canSend){
+                    // DB mode: use all items as selected (order was already sent with all items or subset)
+                    // Fall through to use all items
+                } else if(effectiveTransferMode === 'partial' && !this.selectedItems.length){
                     showWarn('Kalem Seçilmedi', 'Parçalı transfer seçtiniz ama henüz kalem işaretlemediniz. Gönderilecek kalemleri tablodan işaretleyin.');
                     return;
                 }
-                if(this.transferMode === 'partial'){
+                if(effectiveTransferMode === 'partial' && this.selectedItems.length){
                     for(const item of this.selectedItems){
                         if(!item.amount || item.amount <= 0){
                             showWarn('Bölme Miktarı Eksik', 'İşaretlenen kalemlerden birinin bölme miktarı girilmemiş. Tüm seçili kalemler için gönderilecek miktarı girin.');
@@ -376,7 +389,7 @@
                     }
                 }
                 const items = [];
-                if(this.transferMode === 'partial'){
+                if(effectiveTransferMode === 'partial' && this.selectedItems.length){
                     for(const sel of this.selectedItems){
                         const item = itemTable.items.find(i => i.id == sel.qnid);
                         if(!item) continue;
@@ -402,41 +415,46 @@
                 let orderNo = this.orderEntities.order_no || '';
                 const buyingNo = this.orderEntities.buying_no || '';
                 const createdAt = this.orderEntities.created_at || '';
-                if(this.transferMode === 'partial'){
-                    const baseNo = orderNo.replace(/-\d+$/, '');
-                    try {
-                        const cloneFd = new FormData();
-                        cloneFd.append('tableReq', JSON.stringify({
-                            filter: [
-                                { key:'form-type', type:'=', value:'op-doc-order-form' },
-                                { key:'type', type:'=', value:'op-doc-order' },
-                                { key:'all', type:'=', value: baseNo + '-' }
-                            ],
-                            scale: { page: 1, limit: 100 },
-                            order: { key: 'id', style: 'asc' }
-                        }));
-                        const cloneRsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, cloneFd);
-                        const cloneRows = cloneRsp?.data?.data || cloneRsp?.data || [];
-                        const cloneList = Array.isArray(cloneRows) ? cloneRows : (cloneRows?.data || []);
-                        let maxX = 0;
-                        for(const r of cloneList){
-                            try {
-                                const attrs = JSON.parse(r.main_attr || '[]');
-                                const noAttr = attrs.find(a => a.Key === 'order_no');
-                                if(noAttr && noAttr.Value){
-                                    const m = noAttr.Value.match(/-(\d+)$/);
-                                    if(m) maxX = Math.max(maxX, parseInt(m[1]));
-                                }
-                            } catch(e){}
+                if(effectiveTransferMode === 'partial'){
+                    // If current order already has a suffix (e.g. 3510002100-1), it's a reprint — use as-is
+                    if(!/\-\d+$/.test(orderNo)){
+                        // Base order — calculate next clone suffix
+                        const baseNo = orderNo;
+                        try {
+                            const cloneFd = new FormData();
+                            cloneFd.append('tableReq', JSON.stringify({
+                                filter: [
+                                    { key:'form-type', type:'=', value:'op-doc-order-form' },
+                                    { key:'type', type:'=', value:'op-doc-order' },
+                                    { key:'all', type:'=', value: baseNo + '-' }
+                                ],
+                                scale: { page: 1, limit: 100 },
+                                order: { key: 'id', style: 'asc' }
+                            }));
+                            const cloneRsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, cloneFd);
+                            const cloneRows = cloneRsp?.data?.data || cloneRsp?.data || [];
+                            const cloneList = Array.isArray(cloneRows) ? cloneRows : (cloneRows?.data || []);
+                            let maxX = 0;
+                            for(const r of cloneList){
+                                try {
+                                    const attrs = JSON.parse(r.main_attr || '[]');
+                                    const noAttr = attrs.find(a => a.Key === 'order_no');
+                                    if(noAttr && noAttr.Value){
+                                        const m = noAttr.Value.match(/-(\d+)$/);
+                                        if(m) maxX = Math.max(maxX, parseInt(m[1]));
+                                    }
+                                } catch(e){}
+                            }
+                            orderNo = baseNo + '-' + (maxX + 1);
+                        } catch(e){
+                            orderNo = baseNo + '-1';
                         }
-                        orderNo = baseNo + '-' + (maxX + 1);
-                    } catch(e){
-                        orderNo = baseNo + '-1';
                     }
+                    // else: clone order already has suffix, use as-is for reprint
                 }
                 const fd = new FormData();
                 fd.append('qnid', this.id);
-                fd.append('transfer_mode', this.transferMode);
+                fd.append('transfer_mode', effectiveTransferMode);
                 fd.append('items', JSON.stringify(items));
                 fd.append('order_no', orderNo);
                 fd.append('buying_no', buyingNo);
@@ -569,10 +587,16 @@
                         <p class="locked-card-text">{{ isFilesLocked ? 'Sipariş kilitlendi; açıklama, imalatçı ve dosyalar değiştirilemez.' : 'Açıklama ve imalatçı bilgileri kilitlendi; dosyalar yine de güncellenebilir.' }}</p>
                     </div>
                 </div>
-                <button class="locked-cancel-btn" @click="cancelOrder" v-if="authStore.permissions?.includes('per-05-02')">
-                    <i class="ki-outline ki-trash"></i>
-                    <span>{{ isCloneOrder ? 'Parçayı Sil' : 'İptal Et' }}</span>
-                </button>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button v-if="orderStatus === 'doc_trans_order_files_rejected'" type="button" @click="printMalzemeKabul" class="print-kabul-btn" style="margin:0;">
+                        <i class="ki-outline ki-printer"></i>
+                        <span>Malzeme Kabul Formu Yazdır</span>
+                    </button>
+                    <button class="locked-cancel-btn" @click="cancelOrder" v-if="authStore.permissions?.includes('per-05-02')">
+                        <i class="ki-outline ki-trash"></i>
+                        <span>{{ isCloneOrder ? 'Parçayı Sil' : 'İptal Et' }}</span>
+                    </button>
+                </div>
             </div>
         </div>
 

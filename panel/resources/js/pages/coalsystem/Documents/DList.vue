@@ -379,7 +379,9 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
-                           return dayjs(columnData).format('DD/MM/YYYY HH:mm');
+                           if(!columnData) return '—';
+                           const d = dayjs(columnData);
+                           return d.isValid() ? d.format('DD/MM/YYYY HH:mm') : '—';
                         }
                     },{
                         title : 'Güncel Durum',
@@ -590,15 +592,20 @@
                     // grouping configuration
                     groupBy : 'relation_detail', // group by file type (PDF, DOCX, etc.)
                     groupFormatter : (groupValue, rowCount) => {
-                        const values = {};
-                        const data = JSON.parse(groupValue);
-                        data.forEach(item => {
-                            values[item.Key] = item.Value;
-                        });
-
-
-
-                        return `${values.title} — ${rowCount} belge`;
+                        if(!groupValue || groupValue === 'null') return `Belge — ${rowCount} belge`;
+                        try {
+                            const values = {};
+                            const data = JSON.parse(groupValue);
+                            if(Array.isArray(data)){
+                                data.forEach(item => {
+                                    if(item && item.Key) values[item.Key] = item.Value;
+                                });
+                            }
+                            const title = values.title || values.entity_tag || 'Belge';
+                            return `${title} — ${rowCount} belge`;
+                        } catch(e){
+                            return `Belge — ${rowCount} belge`;
+                        }
                     },
                     groupToggleCallback : null,
                     ajax:{
@@ -611,17 +618,13 @@
                     nextPageIcon : '<i class="ki-outline ki-arrow-right "></i>',
                     prevPageIcon : '<i class="ki-outline ki-arrow-left"></i>',
                     rowFormatter:(elm,data)=>{
-                        //console.log(elm,data);
-                        //modify row element
-                        //elm.style.backgroundColor = 'yellow';
-                        //modify data
-                        JSON.parse(data.relation_detail).forEach(element => {
-                            data[element['Key']] = element['Value'];
-                            //if(data['cont_name'] == undefined) data['cont_name'] = []
-                            //if(element['Key'].includes('cont_name')) data['cont_name'].push(element['Value']);
-                        });
-                        //data['cont_name'] = (data['cont_name'] ?? []).join(' , ');
-                        //data.status = JSON.parse(data.status).OpTitle;
+                        if(data.relation_detail && data.relation_detail !== 'null'){
+                            try {
+                                JSON.parse(data.relation_detail).forEach(element => {
+                                    if(element && element.Key) data[element['Key']] = element['Value'];
+                                });
+                            } catch(e){}
+                        }
                         return data;
                     },
                 });

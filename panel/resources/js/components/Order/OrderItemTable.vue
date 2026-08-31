@@ -820,10 +820,10 @@ export default {
 
                                 <!-- ST serial rows (when enabled) -->
                                 <div v-if="row.unit === 'ST' && needsSerials(row)">
-                                    <div class="oic-serial-header mt-2">
+                                    <div class="oic-serial-header mt-2" @click="toggleCollapse(row)" style="cursor:pointer;">
                                         <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
                                         <span>Ürün Seri Numaralarını Giriniz. (Toplam: {{ row.quantity }} {{ row.unit }})</span>
-                                        <button class="oic-serial-excel" @click.stop="triggerExcelUpload(row)" style="margin-left:auto;">
+                                        <button class="oic-serial-excel" @click.stop="triggerExcelUpload(row)">
                                             <i class="ki-outline ki-file-up" style="font-size:13px;"></i>
                                             <span>Excel'den Yükle</span>
                                         </button>
@@ -832,8 +832,12 @@ export default {
                                             <span>Şablon</span>
                                         </button>
                                         <input type="file" :ref="el => { if(el) excelFileInputs[row.id] = el }" accept=".xls,.xlsx" style="display:none" @change="onExcelFileSelected(row, $event)" />
+                                        <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                            {{ isCollapsed(row) ? 'Genişlet' : 'Daralt' }}
+                                            <i :class="isCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
+                                        </span>
                                     </div>
-                                    <div class="oic-serial-scroll">
+                                    <div v-show="!isCollapsed(row)" class="oic-serial-scroll">
                                         <div class="oic-serial-grid">
                                             <div v-for="(ser, si) in (serials[row.id] || [])" :key="si" class="oic-serial-row">
                                                 <div class="oic-serial-field">
@@ -853,7 +857,7 @@ export default {
 
                                 <!-- KG/M serial rows (always required) -->
                                 <div v-if="row.unit !== 'ST'">
-                                    <div class="oic-serial-header mt-2">
+                                    <div class="oic-serial-header mt-2" @click="toggleCollapse(row)" style="cursor:pointer;">
                                         <i class="ki-outline ki-hash" style="font-size:13px;color:#64748b;"></i>
                                         <span>Ürün parti Numaralarını Giriniz. (Toplam: {{ row.quantity }} {{ row.unit }})</span>
                                         <button class="oic-serial-excel" @click.stop="triggerExcelUpload(row)">
@@ -865,12 +869,16 @@ export default {
                                             <span>Şablon</span>
                                         </button>
                                         <input type="file" :ref="el => { if(el) excelFileInputs[row.id] = el }" accept=".xls,.xlsx" style="display:none" @change="onExcelFileSelected(row, $event)" />
-                                        <button class="oic-serial-add" @click="addSerialRow(row)" style="margin-left:auto;">
+                                        <button class="oic-serial-add" @click.stop="addSerialRow(row)">
                                             <i class="ki-outline ki-plus" style="font-size:13px;"></i>
                                             <span>Satır Ekle</span>
                                         </button>
+                                        <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                            {{ isCollapsed(row) ? 'Genişlet' : 'Daralt' }}
+                                            <i :class="isCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
+                                        </span>
                                     </div>
-                                    <div class="oic-serial-scroll">
+                                    <div v-show="!isCollapsed(row)" class="oic-serial-scroll">
                                         <div class="oic-serial-table">
                                             <div class="oic-serial-table-header">
                                                 <span style="flex:0 0 40px;">#</span>
@@ -918,10 +926,10 @@ export default {
                             </div>
 
                             <!-- Serial entry: ST (when checkbox enabled) -->
-                            <div v-if="row.unit === 'ST' && needsSerials(row)" class="oic-serial-section">
+                            <div v-if="row.unit === 'ST' && needsSerials(row)" class="oic-serial-section oic-serial-partial">
                                 <div class="oic-serial-header" @click.stop="toggleCollapse(row)" style="cursor:pointer;">
                                     <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
-                                    <span>Ürün Seri Numaralarını Giriniz.</span>
+                                    <span>Ürün Seri Numaralarını Giriniz. (Toplam: {{ parseFloat(splitAmounts[row.id]) }} {{ row.unit }})</span>
                                     <button class="oic-serial-excel" @click.stop="triggerExcelUpload(row)">
                                         <i class="ki-outline ki-file-up" style="font-size:13px;"></i>
                                         <span>Excel'den Yükle</span>
@@ -955,10 +963,10 @@ export default {
                             </div>
 
                             <!-- Serial entry: KG/M (always required) -->
-                            <div v-if="row.unit !== 'ST' && needsSerials(row)" class="oic-serial-section">
+                            <div v-if="row.unit !== 'ST' && needsSerials(row)" class="oic-serial-section oic-serial-partial">
                                 <div class="oic-serial-header" @click.stop="toggleCollapse(row)" style="cursor:pointer;">
                                     <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
-                                    <span>Ürün parti Numaralarını Giriniz.</span>
+                                    <span>Ürün parti Numaralarını Giriniz. (Toplam: {{ parseFloat(splitAmounts[row.id]) }} {{ row.unit }})</span>
                                     <button class="oic-serial-excel" @click.stop="triggerExcelUpload(row)">
                                         <i class="ki-outline ki-file-up" style="font-size:13px;"></i>
                                         <span>Excel'den Yükle</span>
@@ -968,6 +976,10 @@ export default {
                                         <span>Şablon</span>
                                     </button>
                                     <input type="file" :ref="el => { if(el) excelFileInputs[row.id] = el }" accept=".xls,.xlsx" style="display:none" @change="onExcelFileSelected(row, $event)" />
+                                    <button class="oic-serial-add" @click.stop="addSerialRow(row)">
+                                        <i class="ki-outline ki-plus" style="font-size:13px;"></i>
+                                        <span>Satır Ekle</span>
+                                    </button>
                                     <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                         {{ isCollapsed(row) ? 'Genişlet' : 'Daralt' }}
                                         <i :class="isCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
@@ -993,10 +1005,6 @@ export default {
                                             <span v-else style="width:28px;flex-shrink:0;"></span>
                                         </div>
                                     </div>
-                                    <button class="oic-serial-add mt-2" @click="addSerialRow(row)">
-                                        <i class="ki-outline ki-plus" style="font-size:13px;"></i>
-                                        <span>Satır Ekle</span>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1058,6 +1066,7 @@ export default {
 
 /* Serial section */
 .oic-serial-section { border-top:1px solid #e2e8f0; padding:14px 18px; }
+.oic-serial-partial { background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%); border-color:#fde68a; }
 .oic-serial-header { display:flex; align-items:center; gap:8px; font-size:0.88rem; font-weight:600; color:#334155; margin-bottom:12px; }
 .oic-serial-grid { display:flex; flex-direction:column; gap:10px; }
 .oic-serial-row { display:flex; align-items:flex-end; gap:12px; }
