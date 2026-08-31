@@ -129,8 +129,8 @@ Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done,
 ### ✅ Transfer Mode on Clone + DList Fixes (2026-08-31 late)
 - **Backend:** `saveTransferModeEntity($clone, $mode)` added for partial mode — clones now store `transfer_mode` in EAV
 - **Frontend fallback:** `storedTransferMode` falls back to `'partial' for clone orders if entity missing (covers old clones)
-- **DList.vue grouping:** `groupFormatter` handles null/invalid JSON, falls back to `entity_tag` or "Belge". `rowFormatter` wrapped in try/catch
-- **DList.vue dates:** `dayjs.isValid()` check before formatting — no more "Invalid Date"
+- **DList.vue grouping:** `groupFormatter` extracts `order_no` from `relation_detail` entities (not just `title`). `rowFormatter` sets raw field name from `entity_tag` as top-level key
+- **DList.vue dates:** `rowFormatter` pre-formats `created_at` → `_created_at_fmt` (DD/MM/YYYY HH:mm). Column uses `key: '_created_at_fmt'` with `type: 'string'` — no custom formatter, PickleTable renders pre-formatted value directly
 
 ### ✅ KG/M Auto Serial Date (2026-08-31 late)
 - `OrderItemTable.vue`: new `orderDate` prop + `parsedOrderDate` computed (parses SAP `d/m/Y` or `Y-m-d` → `YYYY-MM-01`)
