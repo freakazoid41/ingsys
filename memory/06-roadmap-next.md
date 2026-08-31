@@ -139,6 +139,40 @@ Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done,
 - `OForm.vue`: passes `orderEntities.created_at` as `:orderDate` to `OrderItemTable`
 - `validatePartial` and `validateAtOnceSerials` removed `production_date` check for KG/M
 
+### ✅ Order Status: files_rejected → transfer_sent (2026-08-31)
+- **Root cause:** Re-uploading a rejected file went through `registerContent` (form save) → file replacement, but `syncOrderStatusFromFiles` only fired from `documentFileStatus` (admin accept/reject), never from registerContent. Replaced file's lastOp = `doc_file_refreshed` (neither rejected nor accepted) → no branch matched → status stuck at `files_rejected`.
+- **Fix 1:** `registerContent` now calls `syncOrderStatusFromFiles()` after file replacement (tracked via `$lastFileEntity`).
+- **Fix 2:** `syncOrderStatusFromFiles` gained a branch: no rejected + not all accepted (waiting/refreshed) → `doc_trans_order_transfer_sent` ("Dosyalar Kontrol Ediliyor").
+- **Files:** `DocumentServiceProvider.php` — `registerContent` (lines 144-150, 233, 273, 282-294) + `syncOrderStatusFromFiles` (lines 1104-1112).
+- **Verified live:** order 343 stuck on `files_rejected` → ran sync → "Dosyalar Kontrol Ediliyor".
+
+### ✅ File Replacement v2: Entity + replaced_id (2026-08-31)
+- **Entity bug:** `$check` in `registerContent` queried `table_tag='sys_con_ops'` but file entities live under `table_tag='document_files'` → never matched → duplicate entity rows on every upload → `$oldFileEntity->first()` (no order) returned OLDEST row → `$existingFileId` always the FIRST file → every replacement deactivated first file, not latest.
+- **Entity fix (FINAL per Master):** every upload still creates a NEW entity row (duplicate rows = version history, original design kept). Activeness = **`document_files.status`** (NOT an entity column — Master's convention). `$oldFileEntity` finds the active entity via `whereIn(entity_value, id::text from document_files where status=1)` + `orderByDesc('id')`. `getFormData` join filters file entities via `EXISTS(document_files status=1)`. `removedData` skips entities whose file is inactive. `old_versions` stays the ORIGINAL entity-tag query (works again with duplicate rows).
+- **replaced_id direction:** Changed from `old.replaced_id = new` (forward, wrong) to `new.replaced_id = old` (backward = "one version before"). Applied in both `finalizeTempFile` and `addFileToDb` in `DocumentHelpers.php`.
+- **Files:** `DocumentServiceProvider.php` (lines 233, 273) + `DocumentHelpers.php` (lines 554-567 finalizeTempFile, 798-805 addFileToDb).
+- **Porting doc:** `file-versioning-system.md` at repo root (Turkish, sections 1-6) — taşınabilir referans: mimari, schema, doğru kod desenleri, geçmiş hatalar, port checklist, doğrulama SQL. (`file-replacement-fix.md` yerine geçti.)
+- **CoalSYS branch:** Same entity + replaced_id fixes applied to CoalSYS branch. Committed there too.
+- **Data repair:** Order 343 chain fixed: `86→88→89→90→91` (was broken: 86→91, 88/89/90 orphans).
+- **Ghost cleanup:** orphan file 92 (`relation='-'`, stale pre-fix artifact) removed during fresh sync.
+
+### ✅ Fresh SAP Sync (2026-08-31)
+- Wiped 31 old docs, 50 document_files (+ temp on disk), 2 orphan file entities.
+- `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh`
+- Result: 8 orders, 23 items, 8 clients, 0 files, 163 transactions. Clean slate.
+
+### ✅ Transfer-send pre-emption fix (2026-08-31)
+- **Bug:** saving an at_once send WITH files caused `registerContent`'s new sync call to flip the order to `transfer_sent` BEFORE `processOrderTransfer` ran → its "created only" guard rejected the send silently → order never actually sent (no serials), not locked.
+- **Fix:** (1) `registerContent` skips the sync when `transfer_mode` is in the payload; (2) `syncOrderStatusFromFiles`'s `transfer_sent` recovery branch only fires when current status is `files_rejected` (never pre-empts a fresh send).
+
+### ✅ old_versions kept ORIGINAL entity-tag query (2026-08-31)
+- **Bug:** `Document_files::tableList` `old_versions` subquery matched files by shared `entity_tag` on entity rows — worked only because of the duplicate-entity bug. An in-place entity update (single row) made old versions vanish.
+- **Final decision (Master):** duplicate entity rows ARE the version history → `old_versions` stays the ORIGINAL entity-tag-based query (no CTE). Activeness = `document_files.status`. Verified live: 3 uploads → 3 entity rows → old_versions returns 3.
+
+### ✅ Status array ORDER BY fix (2026-08-31)
+- **Bug:** `getFormData` document status `json_agg` had NO `ORDER BY` → array order non-deterministic → frontend `parsedStatus[last]` picked the WRONG current status (e.g. `transfer_sent` instead of `files_rejected`) → `isFilesLocked` true → rejected file inputs DISABLED.
+- **Fix:** `ORDER BY t.id` inside `json_agg` (oldest→newest, last = current). List query (`Documents::tableList:83`) already orders correctly. See `memory/05 §10`.
+
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu
 - Second PDF form for order transfer (PENDING)
 - Similar flow to Malzeme Kabul Formu but with different layout/data

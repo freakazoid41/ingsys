@@ -120,7 +120,15 @@ class DocumentServiceProvider extends ServiceProvider
 
             // removed data process
             foreach ($removed as $row) {
-                $check = Sys_con_entities::where(['conn_id' => $row['id'], 'entity_tag' => $row['key']])->first();
+                // Resolve the entity pointing at the ACTIVE file — older version rows
+                // (their file has document_files.status=0) are history, not the live link.
+                $check = Sys_con_entities::where(['conn_id' => $row['id'], 'entity_tag' => $row['key']])->orderByDesc('id')->first();
+                if (! empty($check) && $check->table_tag == 'document_files') {
+                    $fileStatus = Document_files::where('id', (int) $check->entity_value)->value('status');
+                    if ($fileStatus != 1) {
+                        $check = null;
+                    }
+                }
                 if (! empty($check)) {
                     if ($check->table_tag == 'document_files') {
                         // just deactivate file on system
@@ -228,9 +236,13 @@ class DocumentServiceProvider extends ServiceProvider
 
                         // Look up existing file entity BEFORE processing — needed for replacement detection.
                         // On first upload there is no entity yet ($oldFileEntity = null, $existingFileId = 0).
-                        // On re-upload the entity exists with entity_value = old document_files.id.
-                        // Resolve the NEWEST entity row so legacy duplicates never point back at the first file.
-                        $oldFileEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])->orderByDesc('id')->first();
+                        // On re-upload, the ACTIVE entity is the one whose file is still active
+                        // (document_files.status=1); older version rows are ignored.
+                        $oldFileEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])
+                            ->whereIn('entity_value', function ($q) {
+                                $q->selectRaw('id::text')->from('document_files')->where('status', 1);
+                            })
+                            ->orderByDesc('id')->first();
                         $existingFileId = 0;
                         if($oldFileEntity && is_numeric($oldFileEntity->entity_value)){
                             $existingFileId = (int) $oldFileEntity->entity_value;
@@ -264,23 +276,14 @@ class DocumentServiceProvider extends ServiceProvider
                             $fileId = $fileResponse['rowId'];
                         }
 
-                        // now add file connection
+                        // now add file connection — every upload creates a NEW entity row so the
+                        // version history lives in the entity rows (old_versions/DList).
+                        // Activeness is derived from the linked document_files.status.
                         $entity = new Sys_con_entities;
-
-                        // check if entity is exist before — MUST match table_tag 'document_files',
-                        // otherwise a new entity row is created on every upload and the old file
-                        // entity is never updated to the new file id (always replaces the first file).
-                        $check = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])->orderByDesc('id')->first();
-
-                        if (! empty($check)) {
-                            $entity = $check;
-                        }
-
                         $entity->table_tag = 'document_files';
                         $entity->conn_id = $conn->id;
                         $entity->entity_tag = $fileName;
                         $entity->entity_value = strip_tags($fileId);
-
                         $entity->save();
                         $lastFileEntity = $entity;
                     }
@@ -292,7 +295,9 @@ class DocumentServiceProvider extends ServiceProvider
             // Order System: re-uploading a rejected file replaces it (old → status 0,
             // new → doc_file_refreshed). Recompute the parent order status so
             // files_rejected returns to "Dosyalar Kontrol Ediliyor" (transfer_sent).
-            if (! empty($lastFileEntity)) {
+            // Skip on a transfer send — processOrderTransfer sets the status right after,
+            // otherwise its "created only" guard would reject the send.
+            if (! empty($lastFileEntity) && empty($requestData['transfer_mode'])) {
                 $this->syncOrderStatusFromFiles($lastFileEntity);
             }
 
@@ -370,7 +375,7 @@ class DocumentServiceProvider extends ServiceProvider
                             from sys_con_ops dco 
 
                     inner join sys_options so on so.id = dco.type_id
-                    left join sys_con_entities sce on sce.conn_id = dco.id 
+                    left join sys_con_entities sce on sce.conn_id = dco.id and (sce.table_tag <> 'document_files' or exists (select 1 from document_files dfe where dfe.id = sce.entity_value::int and dfe.status = 1))
                     inner join documents as d on d.id = dco.main_id
     
                     where   so.group_key = 'op-doc-forms' and 
@@ -420,6 +425,7 @@ class DocumentServiceProvider extends ServiceProvider
                                                 'created_at',t.created_at,
                                                 'name',p.name
                                             )
+                                            ORDER BY t.id
                                         )
                                 from transactions as t
                                     inner join sys_options so on so.id = t.type_id
@@ -1109,9 +1115,12 @@ class DocumentServiceProvider extends ServiceProvider
             } elseif ($allAccepted && ! empty($orderFileRows)) {
                 $this->applyOrderStatus($doc, 'doc_trans_order_ready_for_shipment', 'Tüm aktif dosyalar kabul edildi');
             } elseif (! empty($orderFileRows)) {
-                // Files exist but are still waiting / refreshed (not all accepted, none rejected)
-                // → back to "Dosyalar Kontrol Ediliyor" (transfer_sent).
-                $this->applyOrderStatus($doc, 'doc_trans_order_transfer_sent', 'Dosyalar kontrol ediliyor');
+                // Files exist but are still waiting / refreshed (not all accepted, none rejected).
+                // Only recover to "Dosyalar Kontrol Ediliyor" from the files_rejected state —
+                // on a fresh send (created) the transfer flow itself sets transfer_sent.
+                if ($this->getLatestOrderStatus($doc->id) === 'doc_trans_order_files_rejected') {
+                    $this->applyOrderStatus($doc, 'doc_trans_order_transfer_sent', 'Dosyalar kontrol ediliyor');
+                }
             }
         } catch (\Exception $e) {
             // never break the file status flow because order status sync failed
