@@ -46,6 +46,12 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 - File replacement v2 (entity-rows + backward `replaced_id`), `syncOrderStatusFromFiles` fires from `registerContent`, status `json_agg ORDER BY t.id`
 - DList file grouping fix — `group_key` SQL column (COALESCE same-conn `order_no` for order-level files → clone's number, parent `order_no` for item files → clone's number via `d.parent_id`) so all files group under the correct clone order number instead of item names
 - DList cleanup — product images excluded from files listing (not actionable), test documents show product name in İlişki column
+- **Product image removal fix (2026-09-01 late):** `OrderItemTable.fetchItemFiles` stores `entity_tag`/`connId`, `removeExistingImageFile` tracks `_removedExistingFiles` with key, `OForm.saveItemFiles` generic `removedData` — images now deactivate (`document_files.status=0`) on save
+- **File preview for item docs (2026-09-01 late):** `previewExistingFile` iframe modal for both test docs (pdf/xls) and product images (encrypted name broke old `\.pdf$` check) + `previewLocalImage` pdf→iframe/xls→download/image→imageUrl; chips clickable + eye button
+- **Thumbnail grid + gallery (2026-09-01 late):** Ürün Görselleri `oic-image-grid` 84×84 `12px` `src="/order-file/{qnid}"` + `URL.createObjectURL` + `onThumbError` fallback + `beforeUnmount` revoke; gallery `teleport to body` `oic-gallery-overlay` `rgba(15,23,42,0.88) blur(6px)` `48px` nav `counter` `stage 70vh` thumb strip `64px` `Esc/←/→`
+- **Split overlay icons (2026-09-01 late):** Was pill bottom bar → `oic-split` 50/50 `eye 22px` `ki-eye` left `rgba(79,70,229,0.82)` + `ki-cross-circle 22px` right `rgba(225,29,72,0.84)` `blur(3px)` split line
+- **Lock for images (2026-09-01 late):** `OrderItemTable readonly` (`OForm :readonly="isLocked"`), guards on all file triggers/removes, `Görsel Ekle`/`Sil` hidden when locked, `oic-split left.full` preview full-width, lock hint `ki-lock-2`
+- **Test doc non-removable (2026-09-01 late):** Existing `accepted/pending` no X (only preview), rejected `Yeni Test Dökümanı Yükle` always visible even when `isLocked` so replace works in `files_rejected`; insert only on save, replace via `existingId`
 - Partition lock + quantity restore, DList grouping/date fixes, perf pass on OrderItemTable/OForm/OList
 
 ## 6. Pending / Next (see `06`)

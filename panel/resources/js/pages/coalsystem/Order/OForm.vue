@@ -298,10 +298,11 @@
                 if(!hasAny) return true;
                 const itemTable = this.$refs.itemTable;
                 if(!itemTable || !itemTable.items) return true;
-                // Process removed existing files first
+                // Process removed existing files first (test docs + product images)
                 for(const rf of removedFiles){
-                    const connId = rf.connId;
-                    if(!connId) continue;
+                    const connId = rf.connId || rf.id;
+                    const key = rf.key;
+                    if(!connId || !key) continue;
                     const item = itemTable.items.find(i => i._fileConnId == connId);
                     if(!item) continue;
                     const itemQnid = item._raw?.qnid || item.id_qnid || item.id;
@@ -309,17 +310,18 @@
                         const envelope = new FormData();
                         envelope.append('data', JSON.stringify({
                             typeKey: 'op-doc-order-item',
-                            removedData: [{ id: connId, key: 'item_test_file**item_test_docs**' + connId }]
+                            removedData: [{ id: connId, key: key }]
                         }));
                         await this.plib.request({
                             url: '/api/v1/document/' + itemQnid,
                             method: 'PUT'
                         }, null, envelope);
                     } catch(e) {
-                        console.error('Remove test file failed', e);
+                        console.error('Remove file failed', e, rf);
                     }
                 }
                 this.itemRemovedFiles = [];
+                if(itemTable) itemTable._removedExistingFiles = [];
                 for(const item of itemTable.items){
                     const testFile = tf[item.id];
                     const images = imgs[item.id] || [];
@@ -850,7 +852,7 @@
                 </div>
             </div>
             <div style="background:#fff;padding:0;">
-                <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
+                <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" :readonly="isLocked" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
             </div>
         </div>
 
