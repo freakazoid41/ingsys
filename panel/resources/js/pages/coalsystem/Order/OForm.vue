@@ -56,6 +56,8 @@
                 checkingPartitions: false,
                 itemFiles: {},
                 itemRemovedFiles: [],
+                printingKabul: false,
+                printingCins: false,
             };
         },
         computed: {
@@ -494,6 +496,8 @@
                         }
                     }
                 }
+                this.printingKabul = true;
+                this.Swal.fire({ title:'PDF oluşturuluyor...', html:'<div style="display:flex;justify-content:center;padding:10px"><i class="ki-outline ki-loading" style="font-size:26px;animation:spin 1s linear infinite;color:#059669"></i></div><div style="font-size:0.85rem;color:#64748b">Lütfen bekleyin, form hazırlanıyor</div>', allowOutsideClick:false, showConfirmButton:false, didOpen:()=>this.Swal.showLoading() });
                 const items = [];
                 if(effectiveTransferMode === 'partial' && this.selectedItems.length){
                     for(const sel of this.selectedItems){
@@ -595,7 +599,11 @@
                     a.click();
                     window.URL.revokeObjectURL(url);
                     a.remove();
+                    this.Swal.close();
+                    this.printingKabul = false;
                 } catch(e){
+                    this.Swal.close();
+                    this.printingKabul = false;
                     this.Swal.fire({ icon:'error', title:'PDF Oluşturulamadı', text:'PDF indirilemedi: ' + e.message, confirmButtonText:'Tamam' });
                 }
             },
@@ -672,6 +680,8 @@
                         }
                     }
                 }
+                this.printingCins = true;
+                this.Swal.fire({ title:'PDF oluşturuluyor...', html:'<div style="display:flex;justify-content:center;padding:10px"><i class="ki-outline ki-loading" style="font-size:26px;animation:spin 1s linear infinite;color:#7c3aed"></i></div><div style="font-size:0.85rem;color:#64748b">Lütfen bekleyin, form hazırlanıyor</div>', allowOutsideClick:false, showConfirmButton:false, didOpen:()=>this.Swal.showLoading() });
                 const items = [];
                 if(effectiveTransferMode === 'partial' && this.selectedItems.length){
                     for(const sel of this.selectedItems){
@@ -800,7 +810,11 @@
                     a.click();
                     window.URL.revokeObjectURL(url);
                     a.remove();
+                    this.Swal.close();
+                    this.printingCins = false;
                 } catch(e){
+                    this.Swal.close();
+                    this.printingCins = false;
                     this.Swal.fire({ icon:'error', title:'PDF Oluşturulamadı', text:'PDF indirilemedi: ' + e.message, confirmButtonText:'Tamam' });
                 }
             }
@@ -841,13 +855,13 @@
                     <span>Bu sipariş daha önce parçalı gönderildiği için artık sadece <b>Parçalı</b> gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.</span>
                 </div>
                 <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:10px;">
-                    <button type="button" @click="printMalzemeKabul" class="print-kabul-btn">
-                        <i class="ki-outline ki-printer"></i>
-                        <span>Malzeme Kabul Formu Yazdır</span>
+                    <button type="button" @click="printMalzemeKabul" class="print-kabul-btn" :disabled="printingKabul">
+                        <i :class="printingKabul ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingKabul ? 'font-size:16px;animation:spin 1s linear infinite' : ''"></i>
+                        <span>{{ printingKabul ? 'Oluşturuluyor...' : 'Malzeme Kabul Formu Yazdır' }}</span>
                     </button>
-                    <button type="button" @click="printMalzemeCinsMiktar" class="print-cins-btn">
-                        <i class="ki-outline ki-printer"></i>
-                        <span>Malzeme Cins-Miktar Kabul Formu Yazdır</span>
+                    <button type="button" @click="printMalzemeCinsMiktar" class="print-cins-btn" :disabled="printingCins">
+                        <i :class="printingCins ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingCins ? 'font-size:16px;animation:spin 1s linear infinite' : ''"></i>
+                        <span>{{ printingCins ? 'Oluşturuluyor...' : 'Malzeme Cins-Miktar Kabul Formu Yazdır' }}</span>
                     </button>
                 </div>
             </div>
@@ -903,13 +917,13 @@
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
-                    <button v-if="orderStatus === 'doc_trans_order_files_rejected'" type="button" @click="printMalzemeKabul" class="print-kabul-btn" style="margin:0;">
-                        <i class="ki-outline ki-printer"></i>
-                        <span>Malzeme Kabul Formu Yazdır</span>
+                    <button v-if="orderStatus === 'doc_trans_order_files_rejected'" type="button" @click="printMalzemeKabul" class="print-kabul-btn" style="margin:0;" :disabled="printingKabul">
+                        <i :class="printingKabul ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingKabul ? 'font-size:16px;animation:spin 1s linear infinite' : ''"></i>
+                        <span>{{ printingKabul ? 'Oluşturuluyor...' : 'Malzeme Kabul Formu Yazdır' }}</span>
                     </button>
-                    <button v-if="orderStatus === 'doc_trans_order_files_rejected'" type="button" @click="printMalzemeCinsMiktar" class="print-cins-btn" style="margin:0;">
-                        <i class="ki-outline ki-printer"></i>
-                        <span>Malzeme Cins-Miktar Kabul Formu Yazdır</span>
+                    <button v-if="orderStatus === 'doc_trans_order_files_rejected'" type="button" @click="printMalzemeCinsMiktar" class="print-cins-btn" style="margin:0;" :disabled="printingCins">
+                        <i :class="printingCins ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingCins ? 'font-size:16px;animation:spin 1s linear infinite' : ''"></i>
+                        <span>{{ printingCins ? 'Oluşturuluyor...' : 'Malzeme Cins-Miktar Kabul Formu Yazdır' }}</span>
                     </button>
                     <button class="locked-cancel-btn" @click="cancelOrder" v-if="authStore.permissions?.includes('per-05-02')">
                         <i class="ki-outline ki-trash"></i>
@@ -1166,4 +1180,6 @@
 .print-cins-btn i {
     font-size: 16px;
 }
+.print-kabul-btn:disabled, .print-cins-btn:disabled { opacity:0.72; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 </style>

@@ -52,6 +52,7 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 - **Split overlay icons (2026-09-01 late):** Was pill bottom bar → `oic-split` 50/50 `eye 22px` `ki-eye` left `rgba(79,70,229,0.82)` + `ki-cross-circle 22px` right `rgba(225,29,72,0.84)` `blur(3px)` split line
 - **Lock for images (2026-09-01 late):** `OrderItemTable readonly` (`OForm :readonly="isLocked"`), guards on all file triggers/removes, `Görsel Ekle`/`Sil` hidden when locked, `oic-split left.full` preview full-width, lock hint `ki-lock-2`
 - **Test doc non-removable (2026-09-01 late):** Existing `accepted/pending` no X (only preview), rejected `Yeni Test Dökümanı Yükle` always visible even when `isLocked` so replace works in `files_rejected`; insert only on save, replace via `existingId`
+- **Loader for Kabul/Cins (2026-09-01 late):** `OForm printingKabul/printingCins` + `Swal PDF oluşturuluyor... ki-loading spin` covering clone suffix + export fetch, `Swal.close()` + `disabled` `Oluşturuluyor...` `opacity 0.72` `@keyframes spin`
 - Partition lock + quantity restore, DList grouping/date fixes, perf pass on OrderItemTable/OForm/OList
 
 ## 6. Pending / Next (see `06`)
