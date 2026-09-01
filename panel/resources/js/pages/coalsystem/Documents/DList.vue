@@ -365,7 +365,13 @@
                                     badge.textContent = rowData.relation_qnid;
                                     break;
                                 default:
-                                    badge.classList.add('bg-secondary');
+                                    // Test documents: show product name if available
+                                    if(rowData.product_name){
+                                        badge.textContent = rowData.product_name;
+                                        badge.classList.add('bg-info','text-white');
+                                    } else {
+                                        badge.classList.add('bg-secondary');
+                                    }
                             }
 
 

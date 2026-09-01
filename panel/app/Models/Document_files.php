@@ -122,6 +122,11 @@ class Document_files extends Model
                                          AND sce.table_tag = 'sys_con_ops' LIMIT 1),
                                         ''
                                     ) as group_key",
+            // Product name for test documents — the item document's title entity
+            'product_name'      => "(SELECT sce2.entity_value FROM sys_con_entities sce2
+                                     INNER JOIN sys_con_ops sco2 ON sco2.id = sce2.conn_id
+                                     WHERE sco2.main_id = d.id AND sce2.entity_tag = 'title'
+                                     AND sce2.table_tag = 'sys_con_ops' LIMIT 1) as product_name",
             
             
         );
@@ -139,6 +144,8 @@ class Document_files extends Model
         $where  .= " and d.grp_code='".($GLOBALS['SYS_CODE'] ?? 'CATES')."' and d.status = 1 ";
 
         $where  .= " and sf.op_key not in ('op-offer_otherdocs_file') ";
+        // Exclude product images from files listing — they are per-item and not actionable
+        $where  .= " and se.entity_tag not like '%item_images_file%' ";
         
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);
