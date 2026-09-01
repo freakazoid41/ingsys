@@ -17,8 +17,8 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 | DB | `tedarikNewApp` @ `127.0.0.1:5431` (docker `tedarikNewApp`, image `61d0571c2f7b`) |
 | Panel | `php artisan serve --host=127.0.0.1 --port=8000` |
 | Login | `kadir@kontent.com.tr / Kadir412.` → 2FA `111111` |
-| Data | 8 orders / 23 items / 8 clients / 0 files (fresh sync, **all ST < 300**, mixed ST/KG/M) |
-| Resync | `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` |
+| Data | 8 orders / 21 items / 8 clients / 0 files / 0 serials / 37 trans (fresh sync 2026-09-01 12:25, `/tmp/sap_payload.json` 21 rows → 8 EBELN, **all ST < 300**, mixed ST/KG/M, storage wiped) |
+| Resync | `cp /tmp/sap_payload.json /tmp/sap_fresh_payload.json && php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` + manual wipe serials/files/storage (see `05` §9) |
 
 ## 3. Order System In One Screen
 

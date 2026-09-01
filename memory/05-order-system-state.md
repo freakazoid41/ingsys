@@ -3,7 +3,7 @@
 > **This is the living snapshot. If you are LLM in a future session, read this first after `00-core-overview.md`.**
 > **Control panel conversion is DONE. Front panel PENDING (design awaited). SAP cron PENDING (grouping logic defined, not formalized).**
 > **⚠️ KEY CORRECTION (Master): Transfers are NOT a separate doc type — they ARE `op-doc-order` cloned with a new number (`EBELN-X`) only when an order is partially split. `op-doc-transfer` type still exists in dict but is NOT used for the UI anymore.**
-> **Fresh SAP data: 8 orders, 23 items (all ST < 300), 0 files, clean slate.**
+> **Fresh SAP data (2026-09-01 12:25): 8 orders, 21 items (SAP `/tmp/sap_payload.json` 21 rows → 8 EBELN), 8 clients, 0 files, 0 serials, 37 transactions — clean slate after full wipe (orders/items/serials/files/storage). `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` (copied from `sap_payload.json`).**
 
 ## 1. What Changed Since Coal
 
@@ -246,7 +246,7 @@ Applied WITHOUT changing mechanics or validations. Build clean.
 - **Artisan:** `php artisan serve --host=127.0.0.1 --port=8000`
 - **Login:** `kadir@kontent.com.tr / Kadir412.` → 2FA `111111`
 - **Seeds:** 23 migrations + seeders. `OrderSystemSeeder` now has 20 dict rows (+serial type/form)
-- **Fresh data:** `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` (8 orders, 23 items, mixed ST/KG/M)
+- **Fresh data (2026-09-01 12:25):** `cp /tmp/sap_payload.json /tmp/sap_fresh_payload.json && php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` → 8 orders / 21 items (8 EBELN, `/tmp/sap_payload.json` 21 rows, mixed ST/KG/M, all ST<300) + 8 clients reused, 0 files, 0 serials, 37 trans. Full wipe also cleared `36` serials + `33` files + `168` file trans + `123` storage files + orphan `sys_con_ops`. See §9.
 
 ## 9. How To Resume
 
@@ -256,7 +256,8 @@ cd panel && php artisan migrate:status # 23 done
 cd panel && npm run build # after any Vue/edit
 php artisan serve --host=127.0.0.1 --port=8000
 # login kadir / Kadir412. / 111111 → /coalpanel/orders
-# fresh data: php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh
+# fresh data: cp /tmp/sap_payload.json /tmp/sap_fresh_payload.json && php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh
+# + manual wipe serials/files/storage if needed (see §8 fresh data note)
 ```
 
 ## 10. Known Bugs / Debt

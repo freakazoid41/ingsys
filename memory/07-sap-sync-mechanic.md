@@ -79,17 +79,17 @@ EOF
 php artisan orders:sync --json=/tmp/sap_fresh_payload.json
 ```
 
-**From existing test data:** The file at `/tmp/sap_fresh_payload.json` has 5 orders (3510004200-3510004600), 14 items, 5 clients. Reuse or modify.
+**From existing test data:** The file at `/tmp/sap_payload.json` (copied to `/tmp/sap_fresh_payload.json` for sync) has **8 orders, 21 items, 8 clients** (3510004200, 3510004300×2, 3510004400×4, 3510004500×2, 3510004600×3, 3510001793×2, 3510002100×3, 3510003500×4). Reuse or modify.
 
 ## 5. Current Live Data
 
-**Authoritative snapshot lives in `memory/05-order-system-state.md` §8.** As of the last fresh sync (`/tmp/sap_fresh_payload.json --fresh`): **8 orders, 23 items, 8 clients — all ST < 300, mixed ST/KG/M across orders, 0 files, 163 transactions**. Clean slate.
+**Authoritative snapshot lives in `memory/05-order-system-state.md` §8.** As of the last fresh sync (2026-09-01 12:25, `cp /tmp/sap_payload.json /tmp/sap_fresh_payload.json && php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` + manual wipe serials/files/storage): **8 orders, 21 items, 8 clients, 0 files, 0 serials, 37 transactions** — all ST < 300, mixed ST/KG/M (ST/KG/M), clean slate. Source `/tmp/sap_payload.json` 21 rows → 8 EBELN.
 
 ## 6. Important Notes
 
 - **No auth needed** — command runs as CLI, `person_id='system'` for all created docs
 - **No file uploads** — only creates order headers + item rows. Files (transfer_kabul/cins/item_test/images) are uploaded via the UI
 - **No grp_code set** — `target_type` entity not in payload, so `grp_code` stays null. If tenant filtering needed, add `target_type` to payload entities
-- **Transactions total: 104** (birth transactions for all docs)
-- **Wipe clean:** `--fresh` deletes all orders + items + their EAV + transactions. Clients are NOT deleted
-- **Old coal data** (3510001793 etc) still exists from previous sessions. Use `--fresh` to remove if unwanted
+- **Transactions total: 37** (birth: 8 orders + 21 items + 8 clients)
+- **Wipe clean:** `--fresh` deletes all `op-doc-order` + `op-doc-order-item` docs + their EAV + transactions. Clients are NOT deleted. Serials (`op-doc-order-serial`) + files (`document_files` + `op_id=1` trans + `table_tag=document_files` entities) + storage `storage/app/public/documents/*` must be wiped manually for full clean (see `05` §8).
+- **Old coal data** no longer exists — wiped 2026-09-01. Use `--fresh` to remove if unwanted after new tests

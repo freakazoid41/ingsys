@@ -30,7 +30,7 @@ All logged in `memory/05` — summary in `memory/08 §5`. Highlights:
 - Serial system: KG/M required, ST<300 optional, Excel upload, collapse UI, auto date
 - Split/partition: quantity types, clone `EBELN-X`, partition lock, quantity restore
 - Malzeme Kabul PDF + reprint; file replacement v2 + `syncOrderStatusFromFiles`
-- SAP sync fresh data (8 orders / 23 items)
+- SAP sync fresh data (8 orders / 21 items, 2026-09-01 12:25, `/tmp/sap_payload.json`)
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 
