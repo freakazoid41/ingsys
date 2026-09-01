@@ -32,11 +32,10 @@ All logged in `memory/05` — summary in `memory/08 §5`. Highlights:
 - Malzeme Kabul PDF + reprint; file replacement v2 + `syncOrderStatusFromFiles`
 - SAP sync fresh data (8 orders / 23 items)
 
-## 3. Pending — Malzeme Cins-Miktar Kabul Formu
+## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 
-- Second PDF form for order transfer (PENDING)
-- Similar flow to Malzeme Kabul Formu but with different layout/data
-- Will need its own blade template + backend endpoint + print button
+- ✅ **Mechanics DONE (2026-09-01):** blade template, controller method, route, Vue method, 2 purple buttons, CSS — all cloned from Malzeme Kabul
+- ✅ **Content DONE (2026-09-01):** Blade rewritten — title "SEVK EDİLECEK MALZEMENİN CİNSİ VE MİKTARI", header 4-row vertical table (label | ":" | value), items flattened by serials (Seri/Parti column), signature grid. Controller adds `ctitle` as `company`. Frontend flattens items by serials.
 
 ## 4. Tech Debt (kept out of `05 §10`)
 

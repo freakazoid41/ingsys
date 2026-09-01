@@ -39,6 +39,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     //Route::post('/v1/admin/force-logout/{personId}',   [PersonsController::class, 'forceLogoutUser']);
     Route::post('/v1/table/{model}',                   [SystemController::class, 'table']);
     Route::post('/v1/export/malzeme-kabul',            [ExportController::class, 'malzemeKabul']);
+    Route::post('/v1/export/malzeme-cins-miktar-kabul', [ExportController::class, 'malzemeCinsMiktarKabul']);
     Route::post('/v1/export/{model}/{type?}',          [ExportController::class, 'index']);
 
     Route::any('/v1/users/{id?}',                      [PersonsController::class, 'uindex']);

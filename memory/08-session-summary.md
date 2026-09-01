@@ -39,6 +39,7 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 
 - Excel serial upload (client-side SheetJS) + KG/M serial→Böl input sync
 - Malzeme Kabul PDF print/reprint (`files_rejected` reprint, `imalatci_firma_adi` inside signature box)
+- **Malzeme Cins-Miktar Kabul Formu** (2026-09-01) — DONE: blade "SEVK EDİLECEK MALZEMENİN CİNSİ VE MİKTARI", header 4-row vertical table, items flattened by serials, controller with `ctitle` company, 2 purple buttons
 - File replacement v2 (entity-rows + backward `replaced_id`), `syncOrderStatusFromFiles` fires from `registerContent`, status `json_agg ORDER BY t.id`
 - Partition lock + quantity restore, DList grouping/date fixes, perf pass on OrderItemTable/OForm/OList
 
@@ -46,7 +47,7 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 
 - **Front panel** (client skin) — backend transfer+serial flow READY, design awaited (`memory/idea.md`)
 - **Dashboard** — still coal, needs order metrics
-- **Malzeme Cins-Miktar Kabul Formu** — 2nd PDF form (PENDING)
+- **Malzeme Cins-Miktar Kabul Formu** — DONE (2026-09-01)
 - Cleanup: drop `op-doc-transfer` type, legacy coal pages, `permission_version` file-cache bug
 
 ## 7. Resume In 5 Commands

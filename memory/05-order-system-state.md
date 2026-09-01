@@ -101,6 +101,10 @@
 | `CspMiddleware.php` | + `'unsafe-eval'` to `script-src` (sweetalert2 uses `new Function()` to parse form input values in Swal HTML). Local `IS_TEST=true` disables CSP header entirely; change matters for production. |
 | `exports/malzeme-kabul.blade.php` | **Fix:** `imalatci_firma_adi` moved from floating `İmalatçı Firma :` block **into** `signature-grid` second row (`<td height:80px>{{ $imalatci_firma_adi }}`), single occurrence. |
 | `DocumentHelpers.php` | **+File replacement `replaced_id` direction FIX (2026-08-31):** `finalizeTempFile()` + `addFileToDb()` — changed from `old.replaced_id = new` (forward) to `new.replaced_id = old` (backward = "one version before"). New file's `replaced_id` points to its predecessor. Old file only gets `status=0` (no `replaced_id`). |
+| `exports/malzeme-cins-miktar-kabul.blade.php` | **NEW (2026-09-01):** Clone of `malzeme-kabul.blade.php`, title `MALZEME CINS-MIKTAR KABUL FORMU`. Same layout (header, items table, signature grid). Content to be customized later. |
+| `ExportController.php` | **+`malzemeCinsMiktarKabul()` (2026-09-01):** `POST /v1/export/malzeme-cins-miktar-kabul` — same logic as `malzemeKabul()`, renders `exports.malzeme-cins-miktar-kabul`, filename `malzeme-cins-miktar-{order_no}.pdf`. |
+| `OForm.vue` | **+`printMalzemeCinsMiktar()` (2026-09-01):** Clone of `printMalzemeKabul()`, hits new endpoint, downloads `malzeme-cins-miktar-{order_no}.pdf`. **+2 purple buttons** (`.print-cins-btn`) in transfer card + locked card (next to green Kabul buttons). CSS: purple gradient `#7c3aed → #6d28d9`. |
+| `routes/api.php` | **+`POST /v1/export/malzeme-cins-miktar-kabul` (2026-09-01):** Before `{model}` wildcard. |
 
 ## 5. How Data Flows Now
 
@@ -167,6 +171,17 @@ RESTORE ON REMOVE (2026-08-31 late):
 → DocumentServiceProvider::restoreQuantitiesForClone() — for each clone item (parent_id=clone.id, type op-doc-order-item, split_from_qnid + split_amount) → incrementItemQuantity(originalQnid, split_amount) (ST int / KG/M float), deactivate clone serials (status 0) + clone items (status 0)
 → Single item delete (op-doc-order-item with split_from_qnid) → restoreQuantityForSingleCloneItem()
 → OList: table.deleteRow(qnid) (not reload) — row vanishes via pickletable/assets/script.js:680
+
+MALZEME CINS-MIKTAR KABUL FORMU PDF (2026-09-01):
+→ Mechanics identical to Malzeme Kabul — same data flow, same validations, same items/order_no/buying_no/imalatci
+→ User clicks purple "Malzeme Cins-Miktar Kabul Formu Yazdır" button (transfer card or locked card)
+→ Same validations: imalatci_firma_adi required, hasPartitions guard
+→ Items FLATTENED by serial numbers: each serial = one row (serial_no + serial quantity). Items without serials = one row with item qty + serial_no '-'
+→ Same clone order_no suffix calculation
+→ POST /v1/export/malzeme-cins-miktar-kabul with flattened items (prod_code, title, unit, quantity, serial_no)
+→ ExportController::malzemeCinsMiktarKabul() — adds `company` from `ctitle` entity, renders exports/malzeme-cins-miktar-kabul.blade.php
+→ Blade: title "SEVK EDİLECEK MALZEMENİN CİNSİ VE MİKTARI", header table 4 rows vertical (Şirket/İmalatçı Firma/İhale NO/Sipariş NO with label | ":" | value), items table (Malzeme Kodu/Cinsi/Birim/Miktar/Seri-Parti No), signature grid
+→ dompdf renders PDF → download as malzeme-cins-miktar-{order_no}.pdf
 → Result: main order quantity restores (e.g. 2398 → 2400), hasActivePartitions re-checked → Tek Seferde unlocks if no active clones remain.
 ```
 
@@ -202,8 +217,8 @@ Applied WITHOUT changing mechanics or validations. Build clean.
 - **Branding** done `Tedarik Yönetim Sistemi`
 - **Legacy coal** pages kept hidden, remove later
 - **`op-doc-transfer` type** still in dict — could delete
-- **Malzeme Cins-Miktar Kabul Formu** — second PDF form (PENDING)
-- **Route ordering** — `POST /v1/export/malzeme-kabul` MUST be before `POST /v1/export/{model}/{type?}` wildcard in `api.php` (line 42, before line 45)
+- **Malzeme Cins-Miktar Kabul Formu** — DONE (2026-09-01): blade (SEVK EDİLECEK MALZEMENİN CİNSİ VE MİKTARI), controller, route, Vue method + buttons, serials flattened
+- **Route ordering** — `POST /v1/export/malzeme-kabul` + `POST /v1/export/malzeme-cins-miktar-kabul` MUST be before `POST /v1/export/{model}/{type?}` wildcard in `api.php` (line 41-42, before line 43)
 
 ## 8. Credentials & Infra
 

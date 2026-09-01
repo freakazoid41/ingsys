@@ -480,4 +480,47 @@ class ExportController extends Controller
         $pdf = PDF::loadView('exports.malzeme-kabul', $data)->setPaper('a4', 'portrait');
         return $pdf->download($filename);
     }
+
+    /**
+     * POST /v1/export/malzeme-cins-miktar-kabul
+     * Body: { qnid, items: [{prod_code, title, unit, quantity, serial_no}], transfer_mode }
+     */
+    public function malzemeCinsMiktarKabul(Request $request)
+    {
+        $req = $request->all();
+        if (empty($req['qnid'])) {
+            return response()->json(['success' => false, 'msg' => 'Sipariş bilgisi eksik.']);
+        }
+
+        $provider = new DocumentServiceProvider();
+        $formData = $provider->getFormData($req['qnid']);
+        if (!$formData || empty($formData['document'])) {
+            return response()->json(['success' => false, 'msg' => 'Sipariş bulunamadı.']);
+        }
+
+        $document = $formData['document'];
+        $formRows = $formData['formFormat']['op-doc-order-form'] ?? [];
+        $entities = !empty($formRows) ? current($formRows)['entities'] ?? [] : [];
+
+        $items = json_decode($req['items'] ?? '[]', true);
+
+        $orderDesc = $entities['order_desc'] ?? '';
+        $imalatci = $entities['imalatci_firma_adi'] ?? '';
+        if (!empty(trim((string)($req['order_desc'] ?? '')))) $orderDesc = $req['order_desc'];
+        if (!empty(trim((string)($req['imalatci_firma_adi'] ?? '')))) $imalatci = $req['imalatci_firma_adi'];
+
+        $data = [
+            'company'           => $entities['ctitle'] ?? '',
+            'buying_no'         => $req['buying_no'] ?? $entities['buying_no'] ?? '',
+            'order_no'          => $req['order_no'] ?? $entities['order_no'] ?? '',
+            'created_at'        => $req['created_at'] ?? $entities['created_at'] ?? '',
+            'order_desc'        => $orderDesc,
+            'imalatci_firma_adi'=> $imalatci,
+            'items'             => $items,
+        ];
+
+        $filename = 'malzeme-cins-miktar-' . ($data['order_no'] ?: $document->qnid) . '.pdf';
+        $pdf = PDF::loadView('exports.malzeme-cins-miktar-kabul', $data)->setPaper('a4', 'portrait');
+        return $pdf->download($filename);
+    }
 }
