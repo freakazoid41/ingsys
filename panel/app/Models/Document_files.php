@@ -104,11 +104,24 @@ class Document_files extends Model
                                                 inner join users u on u.id = ul.user_id
                                                 inner join persons p on p.id = u.person_id
                                             where t.target_id = i.id and op_id = 1 order by t.id desc limit 1)  as  last_status",
-            'parent_order_no'   => "(SELECT sce.entity_value FROM sys_con_entities sce
-                                    INNER JOIN sys_con_ops sco ON sco.id = sce.conn_id
-                                    INNER JOIN documents pd ON pd.id = sco.main_id
-                                    WHERE sce.entity_tag = 'order_no' AND pd.id = d.parent_id
-                                    AND sce.table_tag = 'sys_con_ops' LIMIT 1) as parent_order_no",
+            'title'             => "COALESCE(
+                                        (SELECT sce.entity_value FROM sys_con_entities sce
+                                         WHERE sce.conn_id = se.conn_id AND sce.entity_tag = 'title' AND sce.table_tag = 'sys_con_ops' LIMIT 1),
+                                        ''
+                                    ) as title",
+            'group_key'         => "COALESCE(
+                                        -- For order-level files: order_no from same conn (clone's own number)
+                                        (SELECT sce.entity_value FROM sys_con_entities sce
+                                         WHERE sce.conn_id = se.conn_id AND sce.entity_tag = 'order_no'
+                                         AND sce.table_tag = 'sys_con_ops' LIMIT 1),
+                                        -- For item files: order_no from parent document (clone order's number)
+                                        (SELECT sce.entity_value FROM sys_con_entities sce
+                                         INNER JOIN sys_con_ops sco ON sco.id = sce.conn_id
+                                         INNER JOIN documents pd ON pd.id = sco.main_id
+                                         WHERE sce.entity_tag = 'order_no' AND pd.id = d.parent_id
+                                         AND sce.table_tag = 'sys_con_ops' LIMIT 1),
+                                        ''
+                                    ) as group_key",
             
             
         );

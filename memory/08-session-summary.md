@@ -17,7 +17,7 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 | DB | `tedarikNewApp` @ `127.0.0.1:5431` (docker `tedarikNewApp`, image `61d0571c2f7b`) |
 | Panel | `php artisan serve --host=127.0.0.1 --port=8000` |
 | Login | `kadir@kontent.com.tr / Kadir412.` → 2FA `111111` |
-| Data | 8 orders / 21 items / 8 clients / 0 files / 0 serials / 37 trans (fresh sync 2026-09-01 12:25, `/tmp/sap_payload.json` 21 rows → 8 EBELN, **all ST < 300**, mixed ST/KG/M, storage wiped) |
+| Data | 8 orders / 21 items / 8 clients / 0 files / 0 serials / 37 trans (fresh sync 2026-09-01 12:25, `/tmp/sap_payload.json` 21 rows → 8 EBELN, **all ST < 300**, mixed ST/KG/M, storage wiped) — **after testing: 10 orders (8 + 2 clones `-1`), 23 items, 2 serials, 10 files (9 active), 55 trans** |
 | Resync | `cp /tmp/sap_payload.json /tmp/sap_fresh_payload.json && php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` + manual wipe serials/files/storage (see `05` §9) |
 
 ## 3. Order System In One Screen
@@ -42,7 +42,9 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 - **Malzeme Cins-Miktar Kabul Formu** (2026-09-01) — DONE: blade "SEVK EDİLECEK MALZEMENİN CİNSİ VE MİKTARI", header 4-row vertical table, items flattened by serials, controller with `ctitle` company, 2 purple buttons
 - **Cins-Miktar serial fix** (2026-09-01) — reads frontend serial state instead of DB-only, works for new partitions
 - **Item file uploads** (2026-09-01) — Test Dökümanı (rejectable/acceptable) + Ürün Görselleri (multi, no status) per order item, collapsible section in OrderItemTable, saved via separate item PUT after main order save
+- **Item file fixes (2026-09-01):** (1) `fetchItemFiles` read `conn.files` which backend never fills — files live as JSON in `conn.entities` → detail showed nothing; now parses entities + legacy fallback, deduped. (2) Every image shared ONE entity_tag → backend treated each new image as a replacement (old `status=0`); now unique tag `item_images_file**item_images**{rowId}**img-{uploadId}` per image → multi-upload works. (3) **Partial transfer race:** `saveItemFiles` ran AFTER the order PUT → clone created before item files were finalized → files stayed on original items; now item files save FIRST so `moveOrderFilesToDocument` relinks them to the clone. (4) `duplicateOrderItem` no longer copies file-JSON as junk scalar entities. Data repair: moved item 548's files/entities → clone item 553.
 - File replacement v2 (entity-rows + backward `replaced_id`), `syncOrderStatusFromFiles` fires from `registerContent`, status `json_agg ORDER BY t.id`
+- DList file grouping fix — `group_key` SQL column (COALESCE same-conn `order_no` for order-level files → clone's number, parent `order_no` for item files → clone's number via `d.parent_id`) so all files group under the correct clone order number instead of item names
 - Partition lock + quantity restore, DList grouping/date fixes, perf pass on OrderItemTable/OForm/OList
 
 ## 6. Pending / Next (see `06`)

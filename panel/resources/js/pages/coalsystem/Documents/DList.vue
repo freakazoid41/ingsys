@@ -585,28 +585,10 @@
                     columnSearch : true, // true - false for opening and closig
                     paginationType : 'scroll',// scroll - number (number for default)
                     // grouping configuration
-                    groupBy : 'relation_detail', // group by file type (PDF, DOCX, etc.)
+                    groupBy : 'group_key', // order_no for both order-level and item files (item files use parent_order_no)
                     groupFormatter : (groupValue, rowCount) => {
-                        if(!groupValue || groupValue === 'null') return `Belge — ${rowCount} belge`;
-                        try {
-                            const values = {};
-                            const data = JSON.parse(groupValue);
-                            if(Array.isArray(data)){
-                                data.forEach(item => {
-                                    if(item && item.Key) values[item.Key] = item.Value;
-                                });
-                            }
-                            // Extract order_no or title or entity_tag for group label
-                            const orderNo = values['order_no'] || values['title'] || values['entity_tag'] || '';
-                            if(orderNo) return `${orderNo} — ${rowCount} belge`;
-                            // Fallback: extract entity_tag prefix from any key (e.g. "order_no**op-doc-order-form**123" → "order_no")
-                            const firstKey = Object.keys(values)[0] || '';
-                            const prefix = firstKey.split('**')[0] || '';
-                            if(prefix) return `${prefix} — ${rowCount} belge`;
-                            return `Belge — ${rowCount} belge`;
-                        } catch(e){
-                            return `Belge — ${rowCount} belge`;
-                        }
+                        if(!groupValue || groupValue === 'null' || groupValue === '') return `Belge — ${rowCount} belge`;
+                        return `${groupValue} — ${rowCount} belge`;
                     },
                     groupToggleCallback : null,
                     ajax:{
@@ -626,21 +608,6 @@
                             data._created_at_fmt = d.isValid() ? d.format('DD/MM/YYYY HH:mm') : '—';
                         } else {
                             data._created_at_fmt = '—';
-                        }
-                        // For item files (test docs + images), inject parent order_no into relation_detail
-                        // so they group under the parent order in the files list
-                        if(data.parent_order_no && data.entity_tag && (data.entity_tag.includes('item_test_file') || data.entity_tag.includes('item_images_file'))){
-                            try {
-                                let entities = [];
-                                if(data.relation_detail && data.relation_detail !== 'null'){
-                                    entities = JSON.parse(data.relation_detail);
-                                }
-                                // Add parent_order_no so groupFormatter picks it up
-                                if(!entities.find(e => e.Key === 'order_no')){
-                                    entities.push({ Key: 'order_no', Value: data.parent_order_no });
-                                }
-                                data.relation_detail = JSON.stringify(entities);
-                            } catch(e){}
                         }
                         if(data.relation_detail && data.relation_detail !== 'null'){
                             try {

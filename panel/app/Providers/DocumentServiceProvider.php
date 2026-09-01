@@ -1435,6 +1435,13 @@ class DocumentServiceProvider extends ServiceProvider
         $entities = [];
         foreach ($form as $connRow) {
             foreach (($connRow['entities'] ?? []) as $k => $v) {
+                // File slots (item_test_file / item_images_file) carry a JSON payload of the
+                // linked file — they are NOT scalar fields. The real files+entities are moved
+                // to the clone by moveOrderFilesToDocument; copying them here creates junk
+                // scalar rows that duplicate the file JSON on the clone.
+                if (str_contains($k, 'item_test_file') || str_contains($k, 'item_images_file')) {
+                    continue;
+                }
                 if (! isset($entities[$k])) {
                     $entities[$k] = $v;
                 }

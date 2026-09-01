@@ -225,6 +225,12 @@
 
                 const rsp = this.plib.checkForm('.form-item');
                 if(rsp.valid){
+                    // Save item files BEFORE the order save. The partial-transfer flow
+                    // (processOrderTransfer → moveOrderFilesToDocument) can only move item
+                    // files that are already linked (finalized + entities) to the original
+                    // items. Saving after the order PUT leaves them on the originals and the
+                    // clone ships without test docs/images.
+                    if(!(await this.saveItemFiles())) return;
                     const envelope = new FormData();
                     envelope.append('data', JSON.stringify(this.formData));
                     for(const [key, fileItem] of Object.entries(this.formData.files || {})){
@@ -238,10 +244,6 @@
                         url: '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),
                         method: this.id !== undefined ? 'PUT' : 'POST',
                     },null,envelope);
-                    // Save item files (test docs + images) after main order save
-                    if(response && response.success !== false){
-                        await this.saveItemFiles();
-                    }
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         const msg = response?.data?.transfer_msg || response.msg || 'İşlem Tamamlandı';
@@ -282,9 +284,9 @@
                 const imgs = this.itemFiles?.images || {};
                 const connIds = this.itemFiles?.connIds || {};
                 const hasAny = Object.keys(tf).some(k => tf[k]?.reference) || Object.keys(imgs).some(k => (imgs[k]||[]).length > 0);
-                if(!hasAny) return;
+                if(!hasAny) return true;
                 const itemTable = this.$refs.itemTable;
-                if(!itemTable || !itemTable.items) return;
+                if(!itemTable || !itemTable.items) return true;
                 for(const item of itemTable.items){
                     const testFile = tf[item.id];
                     const images = imgs[item.id] || [];
@@ -311,7 +313,11 @@
                             for(let i = 0; i < images.length; i++){
                                 const img = images[i];
                                 if(!img.reference) continue;
-                                const fileKey = 'item_images**dynamicFile**' + i + '**' + rowId + '*-*item_images_file**item_images**' + rowId;
+                                // Unique entity tag per image so multiple images coexist instead of
+                                // replacing each other (shared tag = one slot = last one wins).
+                                // Suffix carries a unique id — never reuse the same tag for a new image.
+                                const imgTag = 'item_images_file**item_images**' + rowId + '**img-' + (img.uploadId || (Date.now() + '-' + i));
+                                const fileKey = 'item_images**dynamicFile**' + i + '**' + rowId + '*-*' + imgTag;
                                 filesObj[fileKey] = img.reference;
                             }
                         }
@@ -322,14 +328,23 @@
                         for(const [key, ref] of Object.entries(filesObj)){
                             envelope.append(key, JSON.stringify(ref));
                         }
-                        await this.plib.request({
+                        const itemRsp = await this.plib.request({
                             url: '/api/v1/document/' + itemQnid,
                             method: 'PUT'
                         }, null, envelope);
+                        if(!itemRsp || itemRsp.success === false){
+                            this.plib.toast(this.Swal, 'error', itemRsp?.msg || itemRsp?.message || 'Kalem dosyaları kaydedilemedi.');
+                            return false;
+                        }
                     } catch(e) {
                         console.error('Item file save failed for item', item.id, e);
+                        this.plib.toast(this.Swal, 'error', 'Kalem dosyaları kaydedilemedi: ' + (e?.msg || e?.message || 'bilinmeyen hata'));
+                        return false;
                     }
                 }
+                // Clear state so a retry of the order save doesn't re-send used references
+                this.itemFiles = {};
+                return true;
             },
             async navigateToParentOrder(){
                 if(!this.parentOrderNo) return;

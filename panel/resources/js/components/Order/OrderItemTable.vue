@@ -866,12 +866,31 @@ export default {
                     const formFormat = rsp?.data?.formFormat?.['op-doc-order-item-form'] || {};
                     for(const connId in formFormat){
                         const conn = formFormat[connId];
-                        const files = conn?.files || {};
-                        // Store the connId for saving files later
+                        // Store the connId for saving files later (first conn is main item row)
                         if(!item._fileConnId) item._fileConnId = connId;
-                        for(const tag in files){
-                            const fileData = files[tag];
+                        const seenIds = new Set();
+                        // Gather file candidates from both conn.files (legacy) and conn.entities (current backend: JSON string in entities)
+                        const candidates = {};
+                        const files = conn?.files || {};
+                        for(const tag in files){ candidates[tag] = files[tag]; }
+                        const entities = conn?.entities || {};
+                        for(const tag in entities){
+                            if(!tag.includes('item_test_file') && !tag.includes('item_images_file')) continue;
+                            if(candidates[tag]) continue; // already from files
+                            const raw = entities[tag];
+                            let parsed = null;
+                            if(typeof raw === 'object' && raw !== null && raw.id){
+                                parsed = raw;
+                            } else if(typeof raw === 'string'){
+                                try{ parsed = JSON.parse(raw); } catch(e){ continue; }
+                            }
+                            if(parsed && parsed.id) candidates[tag] = parsed;
+                        }
+                        for(const tag in candidates){
+                            const fileData = candidates[tag];
                             if(!fileData || !fileData.id) continue;
+                            if(seenIds.has(fileData.id)) continue;
+                            seenIds.add(fileData.id);
                             const isTest = tag.includes('item_test_file');
                             const isImage = tag.includes('item_images_file');
                             if(isTest){
