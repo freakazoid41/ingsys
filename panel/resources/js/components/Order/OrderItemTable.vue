@@ -816,9 +816,14 @@ export default {
             this.itemImages = { ...this.itemImages };
             this.emitItemFiles();
         },
-        removeExistingTestFile(itemId){
+        removeExistingTestFile(itemId, file){
             this.existingTestFiles[itemId] = [];
             this.existingTestFiles = { ...this.existingTestFiles };
+            // Track removed file — will be included in next emitItemFiles call
+            if(file && file.id){
+                if(!this._removedExistingFiles) this._removedExistingFiles = [];
+                this._removedExistingFiles.push({ id: file.id, connId: this.items.find(i => i.id === itemId)?._fileConnId });
+            }
             this.emitItemFiles();
         },
         removeExistingImageFile(itemId, idx){
@@ -848,7 +853,8 @@ export default {
             this.$emit('item-files', {
                 testFiles: { ...this.itemTestFiles },
                 images: imagesCopy,
-                connIds
+                connIds,
+                removedFiles: this._removedExistingFiles || []
             });
         },
         hasItemFiles(item){
@@ -1003,28 +1009,28 @@ export default {
                                 </span>
                             </div>
                             <div v-show="!isItemFilesCollapsed(row)" class="oic-item-files-body">
-                                <!-- Test Dökümanı -->
+                                <!-- Test Dökümanı (single slot — like Malzeme Kabul) -->
                                 <div class="oic-item-file-section">
                                     <div class="oic-item-file-label">
                                         <i class="ki-outline ki-document" style="font-size:13px;color:#3b82f6;"></i>
                                         <span>Test Dökümanı</span>
                                         <span class="oic-item-file-hint">(Reddedilebilir / Onaylanabilir)</span>
                                     </div>
-                                    <!-- Existing test file -->
-                                    <div v-if="(existingTestFiles[row.id] || []).length > 0" class="oic-item-file-list">
-                                        <div v-for="(ef, efi) in existingTestFiles[row.id]" :key="'et-'+ef.id" class="oic-item-file-chip">
+                                    <!-- Existing test file (single) -->
+                                    <div v-if="existingTestFiles[row.id] && existingTestFiles[row.id].length > 0" class="oic-item-file-list">
+                                        <div class="oic-item-file-chip">
                                             <i class="ki-outline ki-document" style="font-size:13px;color:#3b82f6;"></i>
-                                            <span class="oic-item-file-name" :title="ef.name">{{ ef.name }}</span>
-                                            <span v-if="ef.last_status" class="oic-item-file-status" :class="ef.last_status.op_key === 'doc_file_accepted' ? 'status-accepted' : ef.last_status.op_key === 'doc_file_rejected' ? 'status-rejected' : 'status-pending'">
-                                                {{ ef.last_status.op_key === 'doc_file_accepted' ? 'Onaylandı' : ef.last_status.op_key === 'doc_file_rejected' ? 'Reddedildi' : 'Beklemede' }}
+                                            <span class="oic-item-file-name" :title="existingTestFiles[row.id][0].name">{{ existingTestFiles[row.id][0].name }}</span>
+                                            <span v-if="existingTestFiles[row.id][0].last_status" class="oic-item-file-status" :class="existingTestFiles[row.id][0].last_status.op_key === 'doc_file_accepted' ? 'status-accepted' : existingTestFiles[row.id][0].last_status.op_key === 'doc_file_rejected' ? 'status-rejected' : 'status-pending'">
+                                                {{ existingTestFiles[row.id][0].last_status.op_key === 'doc_file_accepted' ? 'Onaylandı' : existingTestFiles[row.id][0].last_status.op_key === 'doc_file_rejected' ? 'Reddedildi' : 'Beklemede' }}
                                             </span>
-                                            <button class="oic-item-file-remove" @click.stop="removeExistingTestFile(row.id)" title="Kaldır">
+                                            <button class="oic-item-file-remove" @click.stop="removeExistingTestFile(row.id, existingTestFiles[row.id][0])" title="Kaldır">
                                                 <i class="ki-outline ki-cross" style="font-size:11px;"></i>
                                             </button>
                                         </div>
                                     </div>
-                                    <!-- New test file upload -->
-                                    <div v-if="!itemTestFiles[row.id] || !itemTestFiles[row.id].reference" class="oic-item-file-upload">
+                                    <!-- Upload button: only when no existing file -->
+                                    <div v-if="(!existingTestFiles[row.id] || existingTestFiles[row.id].length === 0) && (!itemTestFiles[row.id] || !itemTestFiles[row.id].reference)" class="oic-item-file-upload">
                                         <button class="oic-item-file-btn" @click.stop="triggerTestUpload(row)" :disabled="itemTestFiles[row.id]?.uploading">
                                             <i :class="itemTestFiles[row.id]?.uploading ? 'ki-outline ki-loading' : 'ki-outline ki-file-up'" style="font-size:14px;"></i>
                                             <span>{{ itemTestFiles[row.id]?.uploading ? 'Yükleniyor...' : 'Test Dökümanı Yükle' }}</span>

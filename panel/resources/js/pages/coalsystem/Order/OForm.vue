@@ -55,6 +55,7 @@
                 hasPartitions: false,
                 checkingPartitions: false,
                 itemFiles: {},
+                itemRemovedFiles: [],
             };
         },
         computed: {
@@ -264,6 +265,15 @@
             },
             onItemFiles(files){
                 this.itemFiles = files;
+                // Track removed existing files — will be added to removedData on next save
+                if(files.removedFiles && files.removedFiles.length){
+                    if(!this.itemRemovedFiles) this.itemRemovedFiles = [];
+                    for(const rf of files.removedFiles){
+                        if(!this.itemRemovedFiles.find(r => r.id === rf.id)){
+                            this.itemRemovedFiles.push(rf);
+                        }
+                    }
+                }
             },
             async cancelOrder(){
                 const isPartial = this.isCloneOrder;
@@ -283,10 +293,33 @@
                 const tf = this.itemFiles?.testFiles || {};
                 const imgs = this.itemFiles?.images || {};
                 const connIds = this.itemFiles?.connIds || {};
-                const hasAny = Object.keys(tf).some(k => tf[k]?.reference) || Object.keys(imgs).some(k => (imgs[k]||[]).length > 0);
+                const removedFiles = this.itemRemovedFiles || [];
+                const hasAny = Object.keys(tf).some(k => tf[k]?.reference) || Object.keys(imgs).some(k => (imgs[k]||[]).length > 0) || removedFiles.length > 0;
                 if(!hasAny) return true;
                 const itemTable = this.$refs.itemTable;
                 if(!itemTable || !itemTable.items) return true;
+                // Process removed existing files first
+                for(const rf of removedFiles){
+                    const connId = rf.connId;
+                    if(!connId) continue;
+                    const item = itemTable.items.find(i => i._fileConnId == connId);
+                    if(!item) continue;
+                    const itemQnid = item._raw?.qnid || item.id_qnid || item.id;
+                    try {
+                        const envelope = new FormData();
+                        envelope.append('data', JSON.stringify({
+                            typeKey: 'op-doc-order-item',
+                            removedData: [{ id: connId, key: 'item_test_file**item_test_docs**' + connId }]
+                        }));
+                        await this.plib.request({
+                            url: '/api/v1/document/' + itemQnid,
+                            method: 'PUT'
+                        }, null, envelope);
+                    } catch(e) {
+                        console.error('Remove test file failed', e);
+                    }
+                }
+                this.itemRemovedFiles = [];
                 for(const item of itemTable.items){
                     const testFile = tf[item.id];
                     const images = imgs[item.id] || [];
@@ -306,7 +339,9 @@
                             entities: {}
                         };
                         if(hasTest){
-                            const fileKey = 'item_test_docs**dynamicFile**0**' + rowId + '*-*item_test_file**item_test_docs**' + rowId;
+                            // Include existing file ID in key so registerContent detects replacement
+                            const existingId = (this.$refs.itemTable?.existingTestFiles?.[item.id]?.[0]?.id) || 0;
+                            const fileKey = 'item_test_docs**dynamicFile**' + existingId + '**' + rowId + '*-*item_test_file**item_test_docs**' + rowId;
                             filesObj[fileKey] = testFile.reference;
                         }
                         if(hasImages){
