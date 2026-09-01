@@ -145,7 +145,9 @@ export default {
             }
             if(!newVal) return;
             this.$nextTick(()=>{
-                const wrap = this.$el.querySelector(`[data-item-qnid="${newVal}"]`);
+                const root = this.$refs?.rootEl || this.$el;
+                if(!root || typeof root.querySelector !== 'function') return;
+                const wrap = root.querySelector(`[data-item-qnid="${newVal}"]`);
                 if(wrap){
                     const row = wrap.querySelector('.oic-row');
                     if(row){
@@ -336,9 +338,11 @@ export default {
         },
         // Initialize flatpickr month picker on new .oic-fp-month elements only
         initFlatpickr(){
-            if(!this.$el) return;
+            const root = this.$refs?.rootEl || this.$el;
+            if(!root || typeof root.querySelectorAll !== 'function') return;
             this.$nextTick(()=>{
-                const inputs = this.$el.querySelectorAll('.oic-fp-month:not(.fp-initialized)');
+                const el = (this.$refs?.rootEl && typeof this.$refs.rootEl.querySelectorAll === 'function') ? this.$refs.rootEl : (this.$el && typeof this.$el.querySelectorAll === 'function' ? this.$el : root);
+                const inputs = el.querySelectorAll('.oic-fp-month:not(.fp-initialized)');
                 inputs.forEach(input => {
                     const serialKey = input.dataset.serialKey;
                     if(!serialKey) return;
@@ -751,8 +755,12 @@ export default {
         isItemFilesCollapsed(item){
             return this.itemFilesCollapsed[item.id] !== false;
         },
+        isTestRejected(itemId){
+            const f = this.existingTestFiles[itemId]?.[0];
+            return !!(f && f.last_status && f.last_status.op_key === 'doc_file_rejected');
+        },
         triggerTestUpload(item){
-            if(this.readonly) return;
+            if(this.readonly && !this.isTestRejected(item.id)) return;
             const input = this.testFileInputs[item.id];
             if(input){ input.value = ''; input.click(); }
         },
@@ -762,7 +770,7 @@ export default {
             if(input){ input.value = ''; input.click(); }
         },
         async onTestFileSelected(item, event){
-            if(this.readonly) return;
+            if(this.readonly && !this.isTestRejected(item.id)) return;
             const file = event.target.files[0];
             if(!file) return;
             const ext = file.name.split('.').pop().toLowerCase();
@@ -829,7 +837,7 @@ export default {
             }
         },
         removeTestFile(itemId){
-            if(this.readonly) return;
+            if(this.readonly && !this.isTestRejected(itemId)) return;
             this.itemTestFiles[itemId] = { uploading: false, file: null, reference: null };
             this.itemTestFiles = { ...this.itemTestFiles };
             this.emitItemFiles();
@@ -1092,7 +1100,7 @@ export default {
 }
 </script>
 <template>
-    <div class="order-item-card">
+    <div class="order-item-card" ref="rootEl">
         <div class="order-item-header">
             <div class="order-item-header-left">
                 <div class="order-item-icon">
@@ -1186,7 +1194,7 @@ export default {
                                             <button class="oic-item-file-preview" @click.stop="previewLocalImage({file: itemTestFiles[row.id].file})" title="Önizle">
                                                 <i class="ki-outline ki-eye" style="font-size:12px;"></i>
                                             </button>
-                                            <button v-if="!readonly" class="oic-item-file-remove" @click.stop="removeTestFile(row.id)" title="Kaldır">
+                                            <button v-if="!readonly || isTestRejected(row.id)" class="oic-item-file-remove" @click.stop="removeTestFile(row.id)" title="Kaldır">
                                                 <i class="ki-outline ki-cross" style="font-size:11px;"></i>
                                             </button>
                                         </div>

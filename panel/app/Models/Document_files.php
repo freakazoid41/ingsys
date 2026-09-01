@@ -108,7 +108,7 @@ class Document_files extends Model
                                         (SELECT sce.entity_value FROM sys_con_entities sce
                                          WHERE sce.conn_id = se.conn_id AND sce.entity_tag = 'title' AND sce.table_tag = 'sys_con_ops' LIMIT 1),
                                         ''
-                                    ) as title",
+                                    )  as  title",
             'group_key'         => "COALESCE(
                                         -- For order-level files: order_no from same conn (clone's own number)
                                         (SELECT sce.entity_value FROM sys_con_entities sce
@@ -121,7 +121,7 @@ class Document_files extends Model
                                          WHERE sce.entity_tag = 'order_no' AND pd.id = d.parent_id
                                          AND sce.table_tag = 'sys_con_ops' LIMIT 1),
                                         ''
-                                    ) as group_key",
+                                    )  as  group_key",
             // Product name for test documents — the item document's title entity
             'product_name'      => "(SELECT sce2.entity_value FROM sys_con_entities sce2
                                      INNER JOIN sys_con_ops sco2 ON sco2.id = sce2.conn_id

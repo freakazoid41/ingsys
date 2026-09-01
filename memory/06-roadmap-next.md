@@ -31,6 +31,7 @@ All logged in `memory/05` — summary in `memory/08 §5`. Highlights:
 - Split/partition: quantity types, clone `EBELN-X`, partition lock, quantity restore
 - Malzeme Kabul PDF + reprint; file replacement v2 + `syncOrderStatusFromFiles`
 - SAP sync fresh data (8 orders / 21 items, 2026-09-01 12:25, `/tmp/sap_payload.json`)
+- 2026-09-02: rejected `Yeni Test Yükle` unlock + still-rejected toast + DList grouping header full-length + pickletable header-cache fix
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 

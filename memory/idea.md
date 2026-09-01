@@ -7,5 +7,3 @@
 ** admin panel dashboard
 
 
-
-- Loader for creating malzeme forms

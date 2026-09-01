@@ -247,12 +247,51 @@
                         url: '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),
                         method: this.id !== undefined ? 'PUT' : 'POST',
                     },null,envelope);
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         this.navigationStore.toggle(false);
                         const msg = response?.data?.transfer_msg || response.msg || 'İşlem Tamamlandı';
-                        this.plib.toast(this.Swal, response.success ? 'success' : 'error', msg,() => {
-                            if(response.success) this.$router.push({ name: 'OrderList' });
-                        });
+                        // Slutty helper: if order still in files_rejected, list which slots are still rejected
+                        let still = [];
+                        try {
+                            const detail = response?.detail || response?.data?.detail || {};
+                            const docStatus = detail?.document?.status ? JSON.parse(detail.document.status) : [];
+                            const lastOp = Array.isArray(docStatus) && docStatus.length ? docStatus[docStatus.length - 1]?.op_key : '';
+                            if (lastOp === 'doc_trans_order_files_rejected') {
+                                const orderForm = detail?.formFormat?.['op-doc-order-form'] || {};
+                                for (const cid in orderForm) {
+                                    const ents = orderForm[cid].entities || {};
+                                    for (const tag in ents) {
+                                        if (!tag.includes('transfer_kabul_file') && !tag.includes('transfer_cins_file')) continue;
+                                        let parsed = null;
+                                        try { parsed = JSON.parse(ents[tag]); } catch(e) { continue; }
+                                        if (parsed?.last_status?.op_key === 'doc_file_rejected') {
+                                            still.push(tag.includes('transfer_kabul') ? 'Malzeme Kabul' : 'Malzeme Cins-Miktar');
+                                        }
+                                    }
+                                }
+                                const it = this.$refs.itemTable;
+                                if (it) {
+                                    for (const item of it.items || []) {
+                                        const ex = it.existingTestFiles?.[item.id]?.[0];
+                                        const replaced = it.itemTestFiles?.[item.id]?.reference;
+                                        if (ex?.last_status?.op_key === 'doc_file_rejected' && !replaced) {
+                                            still.push(`Test: ${item.prod_code || item.title || item.id}`);
+                                        }
+                                    }
+                                }
+                                still = [...new Set(still)];
+                            }
+                        } catch(e) {}
+                        if (still.length) {
+                            const html = `<div style="text-align:left"><div style="font-weight:700;color:#0f172a;margin-bottom:6px;">Kaydedildi — hala reddedilen dosyalar var</div><div style="font-size:0.88rem;color:#475569;margin-bottom:8px;">${still.join(', ')}</div><div style="font-size:0.82rem;color:#64748b;">Bu dosyaları yenileyip tekrar Kaydet yapın, aksi halde durum <b>Reddedilen Dosyalar Mevcut</b> olarak kalır.</div></div>`;
+                            this.Swal.fire({ icon: 'info', html, confirmButtonText: 'Anladım', allowOutsideClick: false }).then(() => {
+                                if (response.success) this.$router.push({ name: 'OrderList' });
+                            });
+                        } else {
+                            this.plib.toast(this.Swal, response.success ? 'success' : 'error', msg,() => {
+                                if(response.success) this.$router.push({ name: 'OrderList' });
+                            });
+                        }
                     }, 300);
                 }else{
                     this.navigationStore.toggle(false);

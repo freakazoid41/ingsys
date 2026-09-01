@@ -1,4 +1,4 @@
-# INGSYS — Session Handoff Summary (2026-09-01)
+# INGSYS — Session Handoff Summary (2026-09-02)
 
 > **Read this first (2 min).** Then `05-order-system-state.md` (LIVE state), `06-roadmap-next.md` (what's next).
 > Consolidates the 8 memory docs — deep-dives stay in their files.
@@ -17,7 +17,7 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 | DB | `tedarikNewApp` @ `127.0.0.1:5431` (docker `tedarikNewApp`, image `61d0571c2f7b`) |
 | Panel | `php artisan serve --host=127.0.0.1 --port=8000` |
 | Login | `kadir@kontent.com.tr / Kadir412.` → 2FA `111111` |
-| Data | 8 orders / 21 items / 8 clients / 0 files / 0 serials / 39 trans (fresh sync 2026-09-01, `/tmp/sap_fresh_payload.json` 21 rows → 8 EBELN, mixed ST/KG/M, all ST<300) |
+| Data | 8 orders / 21 items / 8 clients / ~files (live, grows) / 0 serials / 39+ trans (fresh sync 2026-09-01, `/tmp/sap_fresh_payload.json` 21 rows → 8 EBELN, mixed ST/KG/M, all ST<300; 2026-09-02 fixes on top) |
 | Resync | `cp /tmp/sap_payload.json /tmp/sap_fresh_payload.json && php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` + manual wipe serials/files/storage (see `05` §9) |
 
 ## 3. Order System In One Screen
@@ -53,6 +53,8 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 - **Lock for images (2026-09-01 late):** `OrderItemTable readonly` (`OForm :readonly="isLocked"`), guards on all file triggers/removes, `Görsel Ekle`/`Sil` hidden when locked, `oic-split left.full` preview full-width, lock hint `ki-lock-2`
 - **Test doc non-removable (2026-09-01 late):** Existing `accepted/pending` no X (only preview), rejected `Yeni Test Dökümanı Yükle` always visible even when `isLocked` so replace works in `files_rejected`; insert only on save, replace via `existingId`
 - **Loader for Kabul/Cins (2026-09-01 late):** `OForm printingKabul/printingCins` + `Swal PDF oluşturuluyor... ki-loading spin` covering clone suffix + export fetch, `Swal.close()` + `disabled` `Oluşturuluyor...` `opacity 0.72` `@keyframes spin`
+- **Rejected upload + still-rejected toast (2026-09-02):** `OrderItemTable.isTestRejected()` unlocks `Yeni Test Yükle`/`removeTestFile` when `files_rejected` even if `isLocked`; `OForm.submitForm` now shows `Kaydedildi — hala reddedilen dosyalar var: Malzeme Kabul, Test: ...` when `lastOp==files_rejected` (from `detail.formFormat` + `itemTable.existingTestFiles`), otherwise normal toast. Prevents "stuck" confusion when multiple rejected slots remain.
+- **DList grouping visual + header cache (2026-09-02):** `DList.groupFormatter` duplicate `›` + shrink-wrapped flex pill left + `border-collapse:separate` broke head search/order. Fixed to inner `div.dlist-group__inner` `display:flex; width:100%; gradient #eef2ff; border-left:3px #6366f1; radius12` + `ki-folder` + `count` pill `margin-left:auto`; `pickletable/script.js:275` now clears `groupHeaderElements={}` on `isFiltering`/`isOrdering` so header not missing after filter/sort. Full-length header, head search/order intact.
 - Partition lock + quantity restore, DList grouping/date fixes, perf pass on OrderItemTable/OForm/OList
 
 ## 6. Pending / Next (see `06`)
