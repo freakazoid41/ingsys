@@ -54,6 +54,7 @@
                 highlightItemQnid: null,
                 hasPartitions: false,
                 checkingPartitions: false,
+                itemFiles: {},
             };
         },
         computed: {
@@ -237,6 +238,10 @@
                         url: '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),
                         method: this.id !== undefined ? 'PUT' : 'POST',
                     },null,envelope);
+                    // Save item files (test docs + images) after main order save
+                    if(response && response.success !== false){
+                        await this.saveItemFiles();
+                    }
                     setTimeout(() => {
                         this.navigationStore.toggle(false);
                         const msg = response?.data?.transfer_msg || response.msg || 'İşlem Tamamlandı';
@@ -255,6 +260,9 @@
             onItemSerials(serials){
                 this.allItemSerials = serials;
             },
+            onItemFiles(files){
+                this.itemFiles = files;
+            },
             async cancelOrder(){
                 const isPartial = this.isCloneOrder;
                 const conf = await this.Swal.fire({
@@ -268,6 +276,58 @@
                 this.plib.toast(this.Swal, rsp.success?'success':'error', rsp.msg||'İşlem Tamamlandı',()=>{
                     if(rsp.success) this.$router.push({name:'OrderList'});
                 });
+            },
+            async saveItemFiles(){
+                const tf = this.itemFiles?.testFiles || {};
+                const imgs = this.itemFiles?.images || {};
+                const connIds = this.itemFiles?.connIds || {};
+                const hasAny = Object.keys(tf).some(k => tf[k]?.reference) || Object.keys(imgs).some(k => (imgs[k]||[]).length > 0);
+                if(!hasAny) return;
+                const itemTable = this.$refs.itemTable;
+                if(!itemTable || !itemTable.items) return;
+                for(const item of itemTable.items){
+                    const testFile = tf[item.id];
+                    const images = imgs[item.id] || [];
+                    const hasTest = testFile && testFile.reference;
+                    const hasImages = images.length > 0;
+                    if(!hasTest && !hasImages) continue;
+                    // Use existing connId from SAP sync, or generate new rowId
+                    const rowId = connIds[item.id] || ('new-' + Date.now());
+                    try {
+                        const envelope = new FormData();
+                        const dynamicF = {};
+                        const filesObj = {};
+                        dynamicF['op-doc-order-item-form**' + rowId] = {
+                            tag: 'op-doc-order-item-form',
+                            entities: {}
+                        };
+                        if(hasTest){
+                            const fileKey = 'item_test_docs**dynamicFile**0**' + rowId + '*-*item_test_file**item_test_docs**' + rowId;
+                            filesObj[fileKey] = testFile.reference;
+                        }
+                        if(hasImages){
+                            for(let i = 0; i < images.length; i++){
+                                const img = images[i];
+                                if(!img.reference) continue;
+                                const fileKey = 'item_images**dynamicFile**' + i + '**' + rowId + '*-*item_images_file**item_images**' + rowId;
+                                filesObj[fileKey] = img.reference;
+                            }
+                        }
+                        envelope.append('data', JSON.stringify({
+                            typeKey: 'op-doc-order-item',
+                            dynamicF
+                        }));
+                        for(const [key, ref] of Object.entries(filesObj)){
+                            envelope.append(key, JSON.stringify(ref));
+                        }
+                        await this.plib.request({
+                            url: '/api/v1/document/' + item.id,
+                            method: 'PUT'
+                        }, null, envelope);
+                    } catch(e) {
+                        console.error('Item file save failed for item', item.id, e);
+                    }
+                }
             },
             async navigateToParentOrder(){
                 if(!this.parentOrderNo) return;
@@ -563,7 +623,9 @@
                     for(const sel of this.selectedItems){
                         const item = itemTable.items.find(i => i.id == sel.qnid);
                         if(!item) continue;
-                        const serials = item.serials || [];
+                        // Use frontend serial state (newly entered), fall back to DB serials
+                        const frontendSerials = itemTable.serials?.[item.id] || [];
+                        const serials = frontendSerials.length > 0 ? frontendSerials : (item.serials || []);
                         if(serials.length){
                             for(const s of serials){
                                 items.push({
@@ -586,7 +648,9 @@
                     }
                 } else {
                     for(const item of itemTable.items){
-                        const serials = item.serials || [];
+                        // Use frontend serial state (newly entered), fall back to DB serials
+                        const frontendSerials = itemTable.serials?.[item.id] || [];
+                        const serials = frontendSerials.length > 0 ? frontendSerials : (item.serials || []);
                         if(serials.length){
                             for(const s of serials){
                                 items.push({
@@ -734,7 +798,7 @@
                 </div>
             </div>
             <div style="background:#fff;padding:0;">
-                <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" />
+                <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
             </div>
         </div>
 

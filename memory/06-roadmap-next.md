@@ -36,6 +36,16 @@ All logged in `memory/05` — summary in `memory/08 §5`. Highlights:
 
 - ✅ **Mechanics DONE (2026-09-01):** blade template, controller method, route, Vue method, 2 purple buttons, CSS — all cloned from Malzeme Kabul
 - ✅ **Content DONE (2026-09-01):** Blade rewritten — title "SEVK EDİLECEK MALZEMENİN CİNSİ VE MİKTARI", header 4-row vertical table (label | ":" | value), items flattened by serials (Seri/Parti column), signature grid. Controller adds `ctitle` as `company`. Frontend flattens items by serials.
+- ✅ **Serial fix DONE (2026-09-01):** `printMalzemeCinsMiktar` reads frontend serial state (`itemTable.serials`) instead of DB-only (`item.serials`) — works for new partitions where serials aren't saved yet.
+
+## 3b. Item File Uploads — DONE (2026-09-01)
+
+- ✅ Collapsible "Dosyalar" section per item in OrderItemTable
+- ✅ Test Dökümanı: single file, rejectable/acceptable (`item_test_docs` group)
+- ✅ Ürün Görselleri: multi-file, no accept/reject (`item_images` group)
+- ✅ Existing files fetched from DB on load, shown with status badges
+- ✅ New uploads via temp-upload, saved via separate item PUT after main order save
+- ✅ Uses existing connId from SAP sync (avoids duplicate sys_con_ops rows)
 
 ## 4. Tech Debt (kept out of `05 §10`)
 

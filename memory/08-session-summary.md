@@ -1,4 +1,4 @@
-# INGSYS — Session Handoff Summary (2026-08-31)
+# INGSYS — Session Handoff Summary (2026-09-01)
 
 > **Read this first (2 min).** Then `05-order-system-state.md` (LIVE state), `06-roadmap-next.md` (what's next).
 > Consolidates the 8 memory docs — deep-dives stay in their files.
@@ -40,6 +40,8 @@ A **generic EAV document engine** (Laravel 12 / PHP 8.2 / PostgreSQL / Vue 3 SPA
 - Excel serial upload (client-side SheetJS) + KG/M serial→Böl input sync
 - Malzeme Kabul PDF print/reprint (`files_rejected` reprint, `imalatci_firma_adi` inside signature box)
 - **Malzeme Cins-Miktar Kabul Formu** (2026-09-01) — DONE: blade "SEVK EDİLECEK MALZEMENİN CİNSİ VE MİKTARI", header 4-row vertical table, items flattened by serials, controller with `ctitle` company, 2 purple buttons
+- **Cins-Miktar serial fix** (2026-09-01) — reads frontend serial state instead of DB-only, works for new partitions
+- **Item file uploads** (2026-09-01) — Test Dökümanı (rejectable/acceptable) + Ürün Görselleri (multi, no status) per order item, collapsible section in OrderItemTable, saved via separate item PUT after main order save
 - File replacement v2 (entity-rows + backward `replaced_id`), `syncOrderStatusFromFiles` fires from `registerContent`, status `json_agg ORDER BY t.id`
 - Partition lock + quantity restore, DList grouping/date fixes, perf pass on OrderItemTable/OForm/OList
 

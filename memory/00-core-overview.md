@@ -1,6 +1,6 @@
 # INGSYS Core Overview — For Future Sessions
 
-> **⚠️ CURRENT STATE 2026-08-31: CONVERTED to Order Management System.** DB `tedarikNewApp` :5431, 8 orders / 23 items / 0 files (fresh sync, all ST<300, mixed ST/KG/M). Transfers = `op-doc-order` clones (`EBELN-X`), `op-doc-transfer` unused. Order↔Client by `LIFNR`. Lock: `ready_for_shipment` FULL, `files_rejected` keeps files editable. File replacement FINAL design in place. Panel `http://127.0.0.1:8000` (`kadir@kontent.com.tr / Kadir412. / 111111`).
+> **⚠️ CURRENT STATE 2026-09-01: CONVERTED to Order Management System.** DB `tedarikNewApp` :5431, 8 orders / 23 items / 0 files (fresh sync, all ST<300, mixed ST/KG/M). Transfers = `op-doc-order` clones (`EBELN-X`), `op-doc-transfer` unused. Order↔Client by `LIFNR`. Lock: `ready_for_shipment` FULL, `files_rejected` keeps files editable. File replacement FINAL design in place. Item file uploads (Test Dökümanı + Ürün Görselleri) per order item. Panel `http://127.0.0.1:8000` (`kadir@kontent.com.tr / Kadir412. / 111111`).
 > **👉 READ FIRST: `memory/08-session-summary.md` (clean 2-min handoff), then `05-order-system-state.md` (LIVE), `06-roadmap-next.md`. This file = architecture reference.**
 
 > **Source:** `panel/` is the real app. `memory/` is empty baseline, `panel/docs/` has 11 mapping docs (2026-08-01) — coal docs are now STALE, see `memory/05`. This file is the 30-second brain dump.

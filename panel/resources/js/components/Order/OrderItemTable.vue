@@ -33,7 +33,14 @@ export default {
             items: [],
             loading: true,
             error: null,
-            fpInstances: []
+            fpInstances: [],
+            itemTestFiles: {},
+            itemImages: {},
+            existingTestFiles: {},
+            existingImages: {},
+            itemFilesCollapsed: {},
+            testFileInputs: {},
+            imageFileInputs: {}
         }
     },
     computed:{
@@ -107,7 +114,7 @@ export default {
             return true;
         }
     },
-    emits: ['select', 'serials'],
+    emits: ['select', 'serials', 'item-files'],
     mounted(){
         this.resolveAndBuild();
     },
@@ -682,6 +689,8 @@ export default {
                 });
                 // Fetch serials for items that have them
                 await this.fetchSerialsForItems();
+                // Fetch existing item files
+                await this.fetchItemFiles();
             }catch(e){
                 this.error = 'Kalemler yüklenemedi';
             }finally{
@@ -722,6 +731,169 @@ export default {
                     console.error('fetchSerials failed for item', item.id, e);
                 }
             }
+        },
+        // --- Item file upload methods ---
+        toggleItemFilesCollapse(item){
+            const key = item.id;
+            this.itemFilesCollapsed[key] = !this.itemFilesCollapsed[key];
+            this.itemFilesCollapsed = { ...this.itemFilesCollapsed };
+        },
+        isItemFilesCollapsed(item){
+            return this.itemFilesCollapsed[item.id] !== false;
+        },
+        triggerTestUpload(item){
+            const input = this.testFileInputs[item.id];
+            if(input){ input.value = ''; input.click(); }
+        },
+        triggerImageUpload(item){
+            const input = this.imageFileInputs[item.id];
+            if(input){ input.value = ''; input.click(); }
+        },
+        async onTestFileSelected(item, event){
+            const file = event.target.files[0];
+            if(!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+            if(!['pdf','xls','xlsx','jpg','jpeg','png'].includes(ext)){
+                this.plib.toast(Swal, 'info', 'Sadece pdf, xls, xlsx, jpg, jpeg, png dosyaları yükleyebilirsiniz.');
+                return;
+            }
+            if(file.size > 42 * 1024 * 1024){
+                this.plib.toast(Swal, 'info', 'Dosya boyutu 42MB\'dan küçük olmalıdır.');
+                return;
+            }
+            this.$set ? this.$set(this.itemTestFiles, item.id, { uploading: true, file, reference: null }) : (this.itemTestFiles[item.id] = { uploading: true, file, reference: null });
+            this.itemTestFiles = { ...this.itemTestFiles };
+            try {
+                const ref = await this.uploadTempFile(file);
+                this.itemTestFiles[item.id] = { uploading: false, file, reference: ref };
+                this.itemTestFiles = { ...this.itemTestFiles };
+                this.emitItemFiles();
+            } catch(e) {
+                this.itemTestFiles[item.id] = { uploading: false, file: null, reference: null };
+                this.itemTestFiles = { ...this.itemTestFiles };
+                this.plib.toast(Swal, 'error', 'Dosya yüklenemedi');
+            }
+        },
+        async onImageFileSelected(item, event){
+            const file = event.target.files[0];
+            if(!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+            if(!['jpg','jpeg','png','pdf'].includes(ext)){
+                this.plib.toast(Swal, 'info', 'Sadece jpg, jpeg, png, pdf dosyaları yükleyebilirsiniz.');
+                return;
+            }
+            if(file.size > 42 * 1024 * 1024){
+                this.plib.toast(Swal, 'info', 'Dosya boyutu 42MB\'dan küçük olmalıdır.');
+                return;
+            }
+            if(!this.itemImages[item.id]) this.itemImages[item.id] = [];
+            this.itemImages[item.id].push({ uploading: true, file, reference: null });
+            this.itemImages = { ...this.itemImages };
+            try {
+                const ref = await this.uploadTempFile(file);
+                const idx = this.itemImages[item.id].findIndex(f => f.uploading && f.file === file);
+                if(idx !== -1){
+                    this.itemImages[item.id][idx] = { uploading: false, file, reference: ref };
+                }
+                this.itemImages = { ...this.itemImages };
+                this.emitItemFiles();
+            } catch(e) {
+                const idx = this.itemImages[item.id].findIndex(f => f.uploading && f.file === file);
+                if(idx !== -1) this.itemImages[item.id].splice(idx, 1);
+                this.itemImages = { ...this.itemImages };
+                this.plib.toast(Swal, 'error', 'Dosya yüklenemedi');
+            }
+        },
+        removeTestFile(itemId){
+            this.itemTestFiles[itemId] = { uploading: false, file: null, reference: null };
+            this.itemTestFiles = { ...this.itemTestFiles };
+            this.emitItemFiles();
+        },
+        removeImageFile(itemId, idx){
+            if(this.itemImages[itemId]) this.itemImages[itemId].splice(idx, 1);
+            this.itemImages = { ...this.itemImages };
+            this.emitItemFiles();
+        },
+        removeExistingTestFile(itemId){
+            this.existingTestFiles[itemId] = [];
+            this.existingTestFiles = { ...this.existingTestFiles };
+            this.emitItemFiles();
+        },
+        removeExistingImageFile(itemId, idx){
+            if(this.existingImages[itemId]) this.existingImages[itemId].splice(idx, 1);
+            this.existingImages = { ...this.existingImages };
+            this.emitItemFiles();
+        },
+        uploadTempFile(file){
+            const fd = new FormData();
+            fd.append('file', file);
+            return this.plib.request({ url:'/api/v1/temp-upload', method:'POST' }, null, fd)
+                .then(r => {
+                    if(r && r.success !== false) return r.reference || r.data?.reference || r;
+                    throw new Error('Upload failed');
+                });
+        },
+        emitItemFiles(){
+            const connIds = {};
+            for(const item of this.items){
+                if(item._fileConnId) connIds[item.id] = item._fileConnId;
+            }
+            this.$emit('item-files', {
+                testFiles: { ...this.itemTestFiles },
+                images: { ...this.itemImages },
+                connIds
+            });
+        },
+        hasItemFiles(item){
+            const tf = this.itemTestFiles[item.id];
+            const hasNewTest = tf && (tf.reference || tf.file);
+            const hasNewImages = (this.itemImages[item.id] || []).length > 0;
+            const hasExistTest = (this.existingTestFiles[item.id] || []).length > 0;
+            const hasExistImages = (this.existingImages[item.id] || []).length > 0;
+            return hasNewTest || hasNewImages || hasExistTest || hasExistImages;
+        },
+        async fetchItemFiles(){
+            for(const item of this.items){
+                try{
+                    const rsp = await this.plib.request({url:'/api/v1/document/'+item.id, method:'GET'}, null);
+                    const formFormat = rsp?.data?.formFormat?.['op-doc-order-item-form'] || {};
+                    for(const connId in formFormat){
+                        const conn = formFormat[connId];
+                        const files = conn?.files || {};
+                        // Store the connId for saving files later
+                        if(!item._fileConnId) item._fileConnId = connId;
+                        for(const tag in files){
+                            const fileData = files[tag];
+                            if(!fileData || !fileData.id) continue;
+                            const isTest = tag.includes('item_test_file');
+                            const isImage = tag.includes('item_images_file');
+                            if(isTest){
+                                if(!this.existingTestFiles[item.id]) this.existingTestFiles[item.id] = [];
+                                this.existingTestFiles[item.id].push({
+                                    id: fileData.id,
+                                    qnid: fileData.qnid,
+                                    name: fileData.name || fileData.description || 'Test Dosyası',
+                                    status: fileData.status,
+                                    last_status: fileData.last_status
+                                });
+                            } else if(isImage){
+                                if(!this.existingImages[item.id]) this.existingImages[item.id] = [];
+                                this.existingImages[item.id].push({
+                                    id: fileData.id,
+                                    qnid: fileData.qnid,
+                                    name: fileData.name || fileData.description || 'Görsel',
+                                    status: fileData.status,
+                                    last_status: fileData.last_status
+                                });
+                            }
+                        }
+                    }
+                }catch(e){
+                    // silent — items may not have files yet
+                }
+            }
+            this.existingTestFiles = { ...this.existingTestFiles };
+            this.existingImages = { ...this.existingImages };
         }
     }
 }
@@ -791,6 +963,100 @@ export default {
                             <button class="oic-eye" @click.stop="showDetail(row)" title="Detay">
                                 <i class="ki-outline ki-eye"></i>
                             </button>
+                        </div>
+
+                        <!-- Item file uploads (Test Dökümanı + Ürün Görselleri) -->
+                        <div class="oic-item-files" @click.stop>
+                            <div class="oic-item-files-header" @click="toggleItemFilesCollapse(row)">
+                                <i class="ki-outline ki-file" style="font-size:13px;color:#6366f1;"></i>
+                                <span>Dosyalar</span>
+                                <span v-if="hasItemFiles(row)" class="oic-file-badge">var</span>
+                                <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                    {{ isItemFilesCollapsed(row) ? 'Genişlet' : 'Daralt' }}
+                                    <i :class="isItemFilesCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
+                                </span>
+                            </div>
+                            <div v-show="!isItemFilesCollapsed(row)" class="oic-item-files-body">
+                                <!-- Test Dökümanı -->
+                                <div class="oic-item-file-section">
+                                    <div class="oic-item-file-label">
+                                        <i class="ki-outline ki-document" style="font-size:13px;color:#3b82f6;"></i>
+                                        <span>Test Dökümanı</span>
+                                        <span class="oic-item-file-hint">(Reddedilebilir / Onaylanabilir)</span>
+                                    </div>
+                                    <!-- Existing test file -->
+                                    <div v-if="(existingTestFiles[row.id] || []).length > 0" class="oic-item-file-list">
+                                        <div v-for="(ef, efi) in existingTestFiles[row.id]" :key="'et-'+ef.id" class="oic-item-file-chip">
+                                            <i class="ki-outline ki-document" style="font-size:13px;color:#3b82f6;"></i>
+                                            <span class="oic-item-file-name" :title="ef.name">{{ ef.name }}</span>
+                                            <span v-if="ef.last_status" class="oic-item-file-status" :class="ef.last_status.op_key === 'doc_file_accepted' ? 'status-accepted' : ef.last_status.op_key === 'doc_file_rejected' ? 'status-rejected' : 'status-pending'">
+                                                {{ ef.last_status.op_key === 'doc_file_accepted' ? 'Onaylandı' : ef.last_status.op_key === 'doc_file_rejected' ? 'Reddedildi' : 'Beklemede' }}
+                                            </span>
+                                            <button class="oic-item-file-remove" @click.stop="removeExistingTestFile(row.id)" title="Kaldır">
+                                                <i class="ki-outline ki-cross" style="font-size:11px;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- New test file upload -->
+                                    <div v-if="!itemTestFiles[row.id] || !itemTestFiles[row.id].reference" class="oic-item-file-upload">
+                                        <button class="oic-item-file-btn" @click.stop="triggerTestUpload(row)" :disabled="itemTestFiles[row.id]?.uploading">
+                                            <i :class="itemTestFiles[row.id]?.uploading ? 'ki-outline ki-loading' : 'ki-outline ki-file-up'" style="font-size:14px;"></i>
+                                            <span>{{ itemTestFiles[row.id]?.uploading ? 'Yükleniyor...' : 'Test Dökümanı Yükle' }}</span>
+                                        </button>
+                                        <input type="file" :ref="el => { if(el) testFileInputs[row.id] = el }" accept=".pdf,.xls,.xlsx,.jpg,.jpeg,.png" style="display:none" @change="onTestFileSelected(row, $event)" />
+                                    </div>
+                                    <!-- Uploaded test file -->
+                                    <div v-else class="oic-item-file-list">
+                                        <div class="oic-item-file-chip uploaded">
+                                            <i class="ki-outline ki-document" style="font-size:13px;color:#059669;"></i>
+                                            <span class="oic-item-file-name">{{ itemTestFiles[row.id].file?.name || 'Dosya' }}</span>
+                                            <span class="oic-item-file-status status-uploaded">Yüklendi</span>
+                                            <button class="oic-item-file-remove" @click.stop="removeTestFile(row.id)" title="Kaldır">
+                                                <i class="ki-outline ki-cross" style="font-size:11px;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Ürün Görselleri -->
+                                <div class="oic-item-file-section">
+                                    <div class="oic-item-file-label">
+                                        <i class="ki-outline ki-image" style="font-size:13px;color:#8b5cf6;"></i>
+                                        <span>Ürün Görselleri</span>
+                                        <span class="oic-item-file-hint">(Çoklu, onay/reddet yok)</span>
+                                    </div>
+                                    <!-- Existing images -->
+                                    <div v-if="(existingImages[row.id] || []).length > 0" class="oic-item-file-list">
+                                        <div v-for="(ef, efi) in existingImages[row.id]" :key="'ei-'+ef.id" class="oic-item-file-chip">
+                                            <i class="ki-outline ki-image" style="font-size:13px;color:#8b5cf6;"></i>
+                                            <span class="oic-item-file-name" :title="ef.name">{{ ef.name }}</span>
+                                            <button class="oic-item-file-remove" @click.stop="removeExistingImageFile(row.id, efi)" title="Kaldır">
+                                                <i class="ki-outline ki-cross" style="font-size:11px;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- Uploaded images -->
+                                    <div v-if="(itemImages[row.id] || []).length > 0" class="oic-item-file-list">
+                                        <div v-for="(img, imgIdx) in itemImages[row.id]" :key="'img-'+imgIdx" class="oic-item-file-chip uploaded">
+                                            <i class="ki-outline ki-image" style="font-size:13px;color:#8b5cf6;"></i>
+                                            <span class="oic-item-file-name">{{ img.file?.name || 'Görsel' }}</span>
+                                            <span v-if="img.uploading" class="oic-item-file-status status-uploading">Yükleniyor...</span>
+                                            <span v-else class="oic-item-file-status status-uploaded">Yüklendi</span>
+                                            <button class="oic-item-file-remove" @click.stop="removeImageFile(row.id, imgIdx)" title="Kaldır">
+                                                <i class="ki-outline ki-cross" style="font-size:11px;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- Add image button -->
+                                    <div class="oic-item-file-upload">
+                                        <button class="oic-item-file-btn oic-item-file-btn-image" @click.stop="triggerImageUpload(row)">
+                                            <i class="ki-outline ki-plus" style="font-size:14px;"></i>
+                                            <span>Görsel Ekle</span>
+                                        </button>
+                                        <input type="file" :ref="el => { if(el) imageFileInputs[row.id] = el }" accept=".jpg,.jpeg,.png,.pdf" style="display:none" @change="onImageFileSelected(row, $event)" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Existing serial data (collapsible, read-only) -->
@@ -1165,4 +1431,32 @@ export default {
     .oic-serial-row { flex-direction:column; align-items:stretch; }
     .oic-serial-qty { text-align:left; }
 }
+
+/* Item file sections */
+.oic-item-files { background:#f8fafc; border:1px solid #e2e8f0; border-top:none; border-bottom-left-radius:12px; border-bottom-right-radius:12px; }
+.oic-item-files-header { display:flex; align-items:center; gap:7px; padding:10px 18px; cursor:pointer; font-size:0.85rem; font-weight:600; color:#475569; }
+.oic-item-files-header:hover { background:#f1f5f9; }
+.oic-file-badge { background:#e0e7ff; color:#4f46e5; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:10px; }
+.oic-item-files-body { padding:4px 18px 14px; display:flex; flex-direction:column; gap:14px; }
+.oic-item-file-section { display:flex; flex-direction:column; gap:6px; }
+.oic-item-file-label { display:flex; align-items:center; gap:6px; font-size:0.82rem; font-weight:600; color:#334155; }
+.oic-item-file-hint { font-size:0.72rem; font-weight:400; color:#94a3b8; }
+.oic-item-file-list { display:flex; flex-wrap:wrap; gap:6px; }
+.oic-item-file-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; font-size:0.82rem; max-width:320px; }
+.oic-item-file-chip.uploaded { border-color:#bbf7d0; background:#f0fdf4; }
+.oic-item-file-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#0f172a; font-weight:500; flex:1; min-width:0; }
+.oic-item-file-status { font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:6px; white-space:nowrap; flex-shrink:0; }
+.oic-item-file-status.status-pending { background:#fef3c7; color:#92400e; }
+.oic-item-file-status.status-accepted { background:#dcfce7; color:#166534; }
+.oic-item-file-status.status-rejected { background:#fef2f2; color:#991b1b; }
+.oic-item-file-status.status-uploaded { background:#dcfce7; color:#166534; }
+.oic-item-file-status.status-uploading { background:#e0e7ff; color:#4338ca; }
+.oic-item-file-remove { width:24px; height:24px; border-radius:6px; border:1px solid #e2e8f0; background:#fff; color:#94a3b8; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.15s; }
+.oic-item-file-remove:hover { background:#fef2f2; border-color:#fecaca; color:#dc2626; }
+.oic-item-file-upload { display:flex; align-items:center; gap:8px; }
+.oic-item-file-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border:1px dashed #cbd5e1; border-radius:8px; background:transparent; color:#64748b; font-size:0.82rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.oic-item-file-btn:hover { background:#f8fafc; border-color:#94a3b8; color:#334155; }
+.oic-item-file-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.oic-item-file-btn-image { border-color:#c4b5fd; color:#7c3aed; }
+.oic-item-file-btn-image:hover { background:#f5f3ff; border-color:#a78bfa; color:#6d28d9; }
 </style>
