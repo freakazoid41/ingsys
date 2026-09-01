@@ -329,6 +329,7 @@ export default {
         },
         // Initialize flatpickr month picker on new .oic-fp-month elements only
         initFlatpickr(){
+            if(!this.$el) return;
             this.$nextTick(()=>{
                 const inputs = this.$el.querySelectorAll('.oic-fp-month:not(.fp-initialized)');
                 inputs.forEach(input => {
@@ -735,6 +736,8 @@ export default {
         // --- Item file upload methods ---
         toggleItemFilesCollapse(item){
             const key = item.id;
+            // Default collapsed = true; first toggle must flip to false (expanded)
+            if(this.itemFilesCollapsed[key] === undefined) this.itemFilesCollapsed[key] = true;
             this.itemFilesCollapsed[key] = !this.itemFilesCollapsed[key];
             this.itemFilesCollapsed = { ...this.itemFilesCollapsed };
         },
@@ -1001,7 +1004,7 @@ export default {
                         <div class="oic-item-files" @click.stop>
                             <div class="oic-item-files-header" @click="toggleItemFilesCollapse(row)">
                                 <i class="ki-outline ki-file" style="font-size:13px;color:#6366f1;"></i>
-                                <span>Dosyalar</span>
+                                <span>Dosyalar (Test - Ürün Resmi)</span>
                                 <span v-if="hasItemFiles(row)" class="oic-file-badge">var</span>
                                 <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                     {{ isItemFilesCollapsed(row) ? 'Genişlet' : 'Daralt' }}
@@ -1009,44 +1012,57 @@ export default {
                                 </span>
                             </div>
                             <div v-show="!isItemFilesCollapsed(row)" class="oic-item-files-body">
-                                <!-- Test Dökümanı (single slot — like Malzeme Kabul) -->
+                                    <!-- Test Dökümanı (single slot — like Malzeme Kabul) -->
                                 <div class="oic-item-file-section">
                                     <div class="oic-item-file-label">
                                         <i class="ki-outline ki-document" style="font-size:13px;color:#3b82f6;"></i>
                                         <span>Test Dökümanı</span>
                                         <span class="oic-item-file-hint">(Reddedilebilir / Onaylanabilir)</span>
                                     </div>
-                                    <!-- Existing test file (single) -->
-                                    <div v-if="existingTestFiles[row.id] && existingTestFiles[row.id].length > 0" class="oic-item-file-list">
+                                    <!-- Uploaded test file (new replacement — takes priority) -->
+                                    <div v-if="itemTestFiles[row.id]?.reference" class="oic-item-file-list">
+                                        <div class="oic-item-file-chip uploaded">
+                                            <i class="ki-outline ki-document" style="font-size:13px;color:#059669;"></i>
+                                            <span class="oic-item-file-name">{{ itemTestFiles[row.id]?.file?.name || 'Dosya' }}</span>
+                                            <span class="oic-item-file-status status-uploaded">Yüklendi</span>
+                                            <button class="oic-item-file-remove" @click.stop="removeTestFile(row.id)" title="Kaldır">
+                                                <i class="ki-outline ki-cross" style="font-size:11px;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- Existing test file: accepted/pending — show as single slot (no upload button) -->
+                                    <div v-else-if="existingTestFiles[row.id] && existingTestFiles[row.id].length > 0 && existingTestFiles[row.id][0].last_status?.op_key !== 'doc_file_rejected'" class="oic-item-file-list">
                                         <div class="oic-item-file-chip">
                                             <i class="ki-outline ki-document" style="font-size:13px;color:#3b82f6;"></i>
                                             <span class="oic-item-file-name" :title="existingTestFiles[row.id][0].name">{{ existingTestFiles[row.id][0].name }}</span>
-                                            <span v-if="existingTestFiles[row.id][0].last_status" class="oic-item-file-status" :class="existingTestFiles[row.id][0].last_status.op_key === 'doc_file_accepted' ? 'status-accepted' : existingTestFiles[row.id][0].last_status.op_key === 'doc_file_rejected' ? 'status-rejected' : 'status-pending'">
-                                                {{ existingTestFiles[row.id][0].last_status.op_key === 'doc_file_accepted' ? 'Onaylandı' : existingTestFiles[row.id][0].last_status.op_key === 'doc_file_rejected' ? 'Reddedildi' : 'Beklemede' }}
+                                            <span v-if="existingTestFiles[row.id][0].last_status" class="oic-item-file-status" :class="existingTestFiles[row.id][0].last_status.op_key === 'doc_file_accepted' ? 'status-accepted' : 'status-pending'">
+                                                {{ existingTestFiles[row.id][0].last_status.op_key === 'doc_file_accepted' ? 'Onaylandı' : 'Beklemede' }}
                                             </span>
                                             <button class="oic-item-file-remove" @click.stop="removeExistingTestFile(row.id, existingTestFiles[row.id][0])" title="Kaldır">
                                                 <i class="ki-outline ki-cross" style="font-size:11px;"></i>
                                             </button>
                                         </div>
                                     </div>
-                                    <!-- Upload button: only when no existing file -->
-                                    <div v-if="(!existingTestFiles[row.id] || existingTestFiles[row.id].length === 0) && (!itemTestFiles[row.id] || !itemTestFiles[row.id].reference)" class="oic-item-file-upload">
+                                    <!-- Existing test file: rejected — show rejected status + upload button to replace -->
+                                    <div v-else-if="existingTestFiles[row.id] && existingTestFiles[row.id].length > 0 && existingTestFiles[row.id][0].last_status?.op_key === 'doc_file_rejected'" class="oic-item-file-list" style="flex-direction:column;gap:8px;">
+                                        <div class="oic-item-file-chip">
+                                            <i class="ki-outline ki-document" style="font-size:13px;color:#3b82f6;"></i>
+                                            <span class="oic-item-file-name" :title="existingTestFiles[row.id][0].name">{{ existingTestFiles[row.id][0].name }}</span>
+                                            <span class="oic-item-file-status status-rejected">Reddedildi</span>
+                                        </div>
+                                        <button class="oic-item-file-btn" @click.stop="triggerTestUpload(row)">
+                                            <i class="ki-outline ki-file-up" style="font-size:14px;"></i>
+                                            <span>Yeni Test Dökümanı Yükle</span>
+                                        </button>
+                                        <input type="file" :ref="el => { if(el) testFileInputs[row.id] = el }" accept=".pdf,.xls,.xlsx,.jpg,.jpeg,.png" style="display:none" @change="onTestFileSelected(row, $event)" />
+                                    </div>
+                                    <!-- No file at all — upload button -->
+                                    <div v-else class="oic-item-file-upload">
                                         <button class="oic-item-file-btn" @click.stop="triggerTestUpload(row)" :disabled="itemTestFiles[row.id]?.uploading">
                                             <i :class="itemTestFiles[row.id]?.uploading ? 'ki-outline ki-loading' : 'ki-outline ki-file-up'" style="font-size:14px;"></i>
                                             <span>{{ itemTestFiles[row.id]?.uploading ? 'Yükleniyor...' : 'Test Dökümanı Yükle' }}</span>
                                         </button>
                                         <input type="file" :ref="el => { if(el) testFileInputs[row.id] = el }" accept=".pdf,.xls,.xlsx,.jpg,.jpeg,.png" style="display:none" @change="onTestFileSelected(row, $event)" />
-                                    </div>
-                                    <!-- Uploaded test file -->
-                                    <div v-else class="oic-item-file-list">
-                                        <div class="oic-item-file-chip uploaded">
-                                            <i class="ki-outline ki-document" style="font-size:13px;color:#059669;"></i>
-                                            <span class="oic-item-file-name">{{ itemTestFiles[row.id].file?.name || 'Dosya' }}</span>
-                                            <span class="oic-item-file-status status-uploaded">Yüklendi</span>
-                                            <button class="oic-item-file-remove" @click.stop="removeTestFile(row.id)" title="Kaldır">
-                                                <i class="ki-outline ki-cross" style="font-size:11px;"></i>
-                                            </button>
-                                        </div>
                                     </div>
                                 </div>
 

@@ -1417,7 +1417,11 @@ class DocumentServiceProvider extends ServiceProvider
                 DB::table('document_files')->where('id', (int) $fe->entity_value)
                     ->update(['relation_id' => $toDocId]);
             }
-            // Relink the entity to the clone's form connection.
+            // Relink the entity to the clone's form connection AND update entity_tag
+            // so replacement detection works on the new conn (entity_tag embeds connId).
+            $oldConnId = (string) $fe->conn_id;
+            $newConnId = (string) $toConn->id;
+            $fe->entity_tag = str_replace($oldConnId, $newConnId, $fe->entity_tag);
             $fe->conn_id = $toConn->id;
             $fe->save();
         }
