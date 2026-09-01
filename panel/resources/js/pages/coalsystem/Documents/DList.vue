@@ -627,6 +627,21 @@
                         } else {
                             data._created_at_fmt = '—';
                         }
+                        // For item files (test docs + images), inject parent order_no into relation_detail
+                        // so they group under the parent order in the files list
+                        if(data.parent_order_no && data.entity_tag && (data.entity_tag.includes('item_test_file') || data.entity_tag.includes('item_images_file'))){
+                            try {
+                                let entities = [];
+                                if(data.relation_detail && data.relation_detail !== 'null'){
+                                    entities = JSON.parse(data.relation_detail);
+                                }
+                                // Add parent_order_no so groupFormatter picks it up
+                                if(!entities.find(e => e.Key === 'order_no')){
+                                    entities.push({ Key: 'order_no', Value: data.parent_order_no });
+                                }
+                                data.relation_detail = JSON.stringify(entities);
+                            } catch(e){}
+                        }
                         if(data.relation_detail && data.relation_detail !== 'null'){
                             try {
                                 JSON.parse(data.relation_detail).forEach(element => {

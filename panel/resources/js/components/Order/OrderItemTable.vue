@@ -787,18 +787,20 @@ export default {
                 return;
             }
             if(!this.itemImages[item.id]) this.itemImages[item.id] = [];
-            this.itemImages[item.id].push({ uploading: true, file, reference: null });
+            const uploadId = Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+            this.itemImages[item.id].push({ uploadId, uploading: true, file, reference: null });
             this.itemImages = { ...this.itemImages };
             try {
                 const ref = await this.uploadTempFile(file);
-                const idx = this.itemImages[item.id].findIndex(f => f.uploading && f.file === file);
-                if(idx !== -1){
-                    this.itemImages[item.id][idx] = { uploading: false, file, reference: ref };
+                const entry = this.itemImages[item.id].find(f => f.uploadId === uploadId);
+                if(entry){
+                    entry.uploading = false;
+                    entry.reference = ref;
                 }
                 this.itemImages = { ...this.itemImages };
                 this.emitItemFiles();
             } catch(e) {
-                const idx = this.itemImages[item.id].findIndex(f => f.uploading && f.file === file);
+                const idx = this.itemImages[item.id].findIndex(f => f.uploadId === uploadId);
                 if(idx !== -1) this.itemImages[item.id].splice(idx, 1);
                 this.itemImages = { ...this.itemImages };
                 this.plib.toast(Swal, 'error', 'Dosya yüklenemedi');
@@ -838,9 +840,14 @@ export default {
             for(const item of this.items){
                 if(item._fileConnId) connIds[item.id] = item._fileConnId;
             }
+            // Deep copy images arrays to avoid shared reference issues
+            const imagesCopy = {};
+            for(const k in this.itemImages){
+                imagesCopy[k] = this.itemImages[k].map(f => ({...f}));
+            }
             this.$emit('item-files', {
                 testFiles: { ...this.itemTestFiles },
-                images: { ...this.itemImages },
+                images: imagesCopy,
                 connIds
             });
         },

@@ -291,6 +291,8 @@
                     const hasTest = testFile && testFile.reference;
                     const hasImages = images.length > 0;
                     if(!hasTest && !hasImages) continue;
+                    // Use qnid (UUID) for API — registerContent expects qnid, not numeric id
+                    const itemQnid = item._raw?.qnid || item.id_qnid || item.id;
                     // Use existing connId from SAP sync, or generate new rowId
                     const rowId = connIds[item.id] || ('new-' + Date.now());
                     try {
@@ -321,7 +323,7 @@
                             envelope.append(key, JSON.stringify(ref));
                         }
                         await this.plib.request({
-                            url: '/api/v1/document/' + item.id,
+                            url: '/api/v1/document/' + itemQnid,
                             method: 'PUT'
                         }, null, envelope);
                     } catch(e) {
