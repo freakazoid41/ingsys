@@ -2,7 +2,7 @@
 
 > **This is the living snapshot. If you are LLM in a future session, read this first after `00-core-overview.md`.**
 > **Control panel conversion DONE. Public Tedarik Panel DONE & POLISHED (`/tedarik` → `/tedarikpanel` card 1360px, tabs 64px protruding). Tenants renamed CATES/YATAGAN → GDZ/ADM (2026-09-02). SAP cron group-by-EBELN defined.**
-> **⚠️ KEY CORRECTION (Master): Transfers are NOT a separate doc type — they ARE `op-doc-order` cloned with a new number (`EBELN-X`) only when partially split. `op-doc-transfer` seeded but NOT used.**
+> **⚠️ KEY CORRECTION (Master): Transfers are NOT a separate doc type — they ARE `op-doc-order` cloned with a new number (`EBELN-X`) only when partially split. `op-doc-transfer` + `op-doc-transfer-form` + `doc_trans_transfer_*` (4 keys) + `op-trans-op-doc-transfer` group PURGED 2026-09-02 (6 `sys_options` rows deleted, code cleaned — see Files Changed).**
 > **Fresh SAP data (2026-09-02 08:20): 8 orders, 21 items (SAP `/tmp/sap_payload.json` 21 rows → 8 EBELN), 8 clients, 0 files, 0 serials, 37 trans — re-seeded after `migrate:fresh` GDZ (`php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh`). `grp_code=GDZ`×8.**
 > **2026-09-02 fixes: `OrderItemTable` rejected unlock + `OForm` still-rejected toast + `DList` grouping header full-length + `pickletable` header-cache + `DList` popup fix + `Document_files` join/old_versions. 2026-09-02 late: Tedarik login `/tedarik` orange 560×840 140px Gdz, unified orange 2FA (`loginSms` single file), `GDZ/ADM` rename + DB re-seed, `public/index.php` `adm ? ADM : GDZ`. 2026-09-02 late polished: TedarikPanel 6 tabs 64×12 protruding -52 (38px outside, 10px gap), logo 82px + label, menu flex1 centered, OList card-rows + PickleTable overrides, `pickletable/script.js` height auto guard.***
 
@@ -13,7 +13,7 @@
 | Layer | Coal | Order System Now |
 |-------|------|------------------|
 | **DB** | `b2x` on `5431` | **`tedarikNewApp`** on `5431` `61d0571c2f7b` `tedarikNewApp` Up, `127.0.0.1:5431` (`panel/.env:28`) — 23 migrations, GDZ (ex CATES) default `grp_code`, `sys_options` `GDZ` `op-apt-types`, `gdz.jpg/adm.jpg` + `GDZ.svg/ADM.svg` from `gdzLogo.svg/admLogo.svg` |
-| **Doc types** `sys_options.group_key=op-doc` | `op-doc-request\|offer\|client\|flat` | **`op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, `parent_id=order.id`), `op-doc-order-serial` (Seri, `parent_id=item.id`), `op-doc-client` (Cari)**. `op-doc-transfer` seeded but **NOT used** (clones `EBELN-X`). `OrderSystemSeeder.php` |
+| **Doc types** `sys_options.group_key=op-doc` | `op-doc-request\|offer\|client\|flat` | **`op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, `parent_id=order.id`), `op-doc-order-serial` (Seri, `parent_id=item.id`), `op-doc-client` (Cari)**. `op-doc-transfer` + `transfer-form` + `transfer_*` statuses **PURGED 2026-09-02** (clones `EBELN-X` remain `op-doc-order`). `OrderSystemSeeder.php` |
 | **Forms** `op-doc-forms` | 5: `request/offer/client/user/flat` | **`op-doc-order-form`** (`order_no/buying_no/spec_code/sys_code/ctitle/created_at` readOnly + `order_desc` textarea rows 3 + `imalatci_firma_adi` + `Malzeme Kabul` `group_key=transfer_kabul` `transfer_kabul_file` single `hideAdd:true` + `Malzeme Cins-Miktar` `group_key=transfer_cins` `transfer_cins_file` single `hideAdd:true`), **`op-doc-order-item-form`** (`prod_code/title/quantity/unit` readOnly, NO deal/received price, + `item_test_docs` + `item_images`), **`op-doc-order-serial-form`** (`serial_no/production_date/quantity/unit`), `op-doc-client-form` **+ `lifnr` (Cari Kodu)** field. |
 | **Status** `op-trans-op-doc-order` | — | **`doc_trans_order_created → transfer_sent → ready_for_shipment → approved/rejected`** + **`doc_trans_order_files_rejected`**. `transfer_sent` = "Dosyalar Kontrol Ediliyor". |
 | **File types** `op-file-types` | 5 | **+ `op-transfer_kabul_file`, `op-transfer_cins_file`, `op-item_test_file`, `op-item_images_file`** |
@@ -259,9 +259,10 @@ Applied WITHOUT changing mechanics or validations. Build clean.
 - **Dashboard** still coal — needs order metrics
 - **Branding** done `Tedarik Yönetim Sistemi`
 - **Legacy coal** pages kept hidden, remove later
-- **`op-doc-transfer` type** still in dict — could delete
+- **`op-doc-transfer` type** — **PURGED 2026-09-02** (deleted `op-doc-transfer` + `op-doc-transfer-form` + 4× `doc_trans_transfer_*`, `OrderSystemSeeder` + `DocumentServiceProvider` + `Form.vue` + `PermissionHelpers` + `OList/OForm` + DB 6 rows)
 - **Malzeme Cins-Miktar Kabul Formu** — DONE (2026-09-01): blade (SEVK EDİLECEK MALZEMENİN CİNSİ VE MİKTARI), controller, route, Vue method + buttons, serials flattened
 - **Route ordering** — `POST /v1/export/malzeme-kabul` + `POST /v1/export/malzeme-cins-miktar-kabul` MUST be before `POST /v1/export/{model}/{type?}` wildcard in `api.php` (line 41-42, before line 43)
+- **Bug 2026-09-02:** `OList.vue:248` sent `doc_trans_transfer_approved/sent/rejected` for `op-doc-order` docs → `ready_for_shipment → transfer_approved` blocked by `setStatus` guard → fixed to `doc_trans_order_*` + DB purge
 
 ## 8. Credentials & Infra
 

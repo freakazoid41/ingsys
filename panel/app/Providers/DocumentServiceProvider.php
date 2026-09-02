@@ -103,7 +103,6 @@ class DocumentServiceProvider extends ServiceProvider
                 // op-doc-order -> doc_trans_order_created, op-doc-order-item -> doc_trans_created (generic, items have no dedicated order flow), etc.
                 $birthMap = [
                     'op-doc-order' => 'doc_trans_order_created',
-                    'op-doc-transfer' => 'doc_trans_transfer_created',
                     'op-doc-order-item' => 'doc_trans_created',
                 ];
                 $birthKey = $birthMap[$typeKey] ?? 'doc_trans_created';
@@ -810,14 +809,12 @@ class DocumentServiceProvider extends ServiceProvider
             }
 
             // Order status guard — like offer's editableStatuses, enforce valid transitions
-            if (in_array($documentType->op_key ?? null, ['op-doc-order','op-doc-transfer'])) {
+            if (($documentType->op_key ?? null) === 'op-doc-order') {
                 $allowed = [
                     'doc_trans_order_created' => ['doc_trans_order_transfer_sent'],
                     'doc_trans_order_transfer_sent' => ['doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected'],
                     'doc_trans_order_ready_for_shipment' => ['doc_trans_order_approved','doc_trans_order_rejected'],
                     'doc_trans_order_files_rejected' => ['doc_trans_order_ready_for_shipment','doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected'],
-                    'doc_trans_transfer_created' => ['doc_trans_transfer_sent'],
-                    'doc_trans_transfer_sent' => ['doc_trans_transfer_approved','doc_trans_transfer_rejected'],
                 ];
                 // fetch last order status (op-trans-op-doc-order group)
                 $lastOpKey = DB::table('transactions as t')
@@ -1041,7 +1038,7 @@ class DocumentServiceProvider extends ServiceProvider
             $docTypeKey = $doc
                 ? Sys_options::where('id', $doc->type_id)->value('op_key')
                 : null;
-            while ($doc && ! in_array($docTypeKey, ['op-doc-order', 'op-doc-transfer']) && (int) $doc->parent_id > 0) {
+            while ($doc && $docTypeKey !== 'op-doc-order' && (int) $doc->parent_id > 0) {
                 $parent = Documents::where('id', $doc->parent_id)->first();
                 $doc = $parent;
                 $docTypeKey = $doc
@@ -1053,7 +1050,7 @@ class DocumentServiceProvider extends ServiceProvider
             }
 
             $docType = Sys_options::where('id', $doc->type_id)->first();
-            if (! in_array($docType->op_key ?? null, ['op-doc-order', 'op-doc-transfer'])) {
+            if (($docType->op_key ?? null) !== 'op-doc-order') {
                 return;
             }
 
@@ -1795,7 +1792,7 @@ class DocumentServiceProvider extends ServiceProvider
             return ['success' => false, 'msg' => 'Sipariş bulunamadı: '.$id];
         }
         $docType = Sys_options::where('id', $document->type_id)->first();
-        if (! in_array($docType->op_key ?? null, ['op-doc-order', 'op-doc-transfer'])) {
+        if (($docType->op_key ?? null) !== 'op-doc-order') {
             return ['success' => false, 'msg' => 'Bu belge tipi iptal edilemez.'];
         }
         if ((int) $document->status === 0) {
@@ -1810,11 +1807,7 @@ class DocumentServiceProvider extends ServiceProvider
                 return ['success' => false, 'msg' => 'Sipariş zaten iptal edilmiş.'];
             }
 
-            $statusKey = ($docType->op_key ?? null) === 'op-doc-transfer' ? 'doc_trans_transfer_rejected' : 'doc_trans_order_rejected';
-            $type = Sys_options::where('op_key', $statusKey)->first();
-            if (empty($type)) {
-                $type = Sys_options::where('op_key', 'doc_trans_order_rejected')->first();
-            }
+            $type = Sys_options::where('op_key', 'doc_trans_order_rejected')->first();
 
             $log = UserLog::create([
                 'user_id' => auth('sanctum')->user()->id ?? 0,

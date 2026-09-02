@@ -189,7 +189,7 @@
                             btn.style.gap='6px';
                             if(_isTedarik){
                                 // vivid solid pills as in screenshot
-                                if(label.includes('Kalite Onayı') || opKey==='doc_trans_transfer_approved' || opKey==='doc_trans_order_approved'){
+                                if(label.includes('Kalite Onayı') || opKey==='doc_trans_order_approved'){
                                     btn.style.background='#22c55e';
                                     btn.style.color='#ffffff';
                                     btn.style.borderColor='#22c55e';
@@ -208,11 +208,11 @@
                                     btn.style.background='#fef3c7';
                                     btn.style.color='#92400e';
                                     btn.style.borderColor='#fcd34d';
-                                } else if(label.includes('Kalite Onayı') || opKey==='doc_trans_transfer_approved' || opKey==='doc_trans_order_approved'){
+                                } else if(label.includes('Kalite Onayı') || opKey==='doc_trans_order_approved'){
                                     btn.style.background='#dcfce7';
                                     btn.style.color='#166534';
                                     btn.style.borderColor='#86efac';
-                                } else if(label.includes('Kontrol Ediliyor') || opKey==='doc_trans_transfer_sent' || opKey==='doc_trans_order_transfer_sent' || opKey==='doc_file_waiting'){
+                                } else if(label.includes('Kontrol Ediliyor') || opKey==='doc_trans_order_transfer_sent' || opKey==='doc_file_waiting'){
                                     btn.style.background='#ffedd5';
                                     btn.style.color='#9a3412';
                                     btn.style.borderColor='#fdba74';
@@ -245,10 +245,10 @@
                                     title:'Durum Değiştir',
                                     showConfirmButton:false, showCloseButton:true,
                                     html:`<div class="d-flex flex-column gap-2 p-2">
-                                        <button class="btn btn-success doc-status" data-key="doc_trans_transfer_approved" style="background:#22c55e;border:none;"><i class="ki-outline ki-check-circle me-2"></i>Kalite Onayı Verildi</button>
+                                        <button class="btn btn-success doc-status" data-key="doc_trans_order_approved" style="background:#22c55e;border:none;"><i class="ki-outline ki-check-circle me-2"></i>Kalite Onayı Verildi</button>
                                         <button class="btn doc-status" data-key="doc_trans_order_ready_for_shipment" style="background:#facc15;color:#713f12;border:none;"><i class="ki-outline ki-truck me-2"></i>Sipariş Sevke Hazır</button>
-                                        <button class="btn doc-status" data-key="doc_trans_transfer_sent" style="background:#f97316;color:#fff;border:none;"><i class="ki-outline ki-magnifier me-2"></i>Dosyalar Kontrol Ediliyor</button>
-                                        <button class="btn btn-danger doc-status" data-key="doc_trans_transfer_rejected"><i class="ki-outline ki-cross-circle me-2"></i>Reddedildi</button>
+                                        <button class="btn doc-status" data-key="doc_trans_order_transfer_sent" style="background:#f97316;color:#fff;border:none;"><i class="ki-outline ki-magnifier me-2"></i>Dosyalar Kontrol Ediliyor</button>
+                                        <button class="btn btn-danger doc-status" data-key="doc_trans_order_rejected"><i class="ki-outline ki-cross-circle me-2"></i>Reddedildi</button>
                                     </div>`,
                                     willOpen:()=>{
                                         document.querySelectorAll('.doc-status').forEach(b=>b.addEventListener('click', async e=>{

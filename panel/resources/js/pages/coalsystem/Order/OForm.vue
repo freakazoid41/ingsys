@@ -65,7 +65,7 @@
                 if(Array.isArray(this.parsedStatus) && this.parsedStatus.length) return this.parsedStatus[this.parsedStatus.length-1].op_key || '';
                 return '';
             },
-            lockedStatuses(){ return ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected']; },
+            lockedStatuses(){ return ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected']; },
             isLocked(){ return this.id && this.lockedStatuses.includes(this.orderStatus); },
             canSend(){ return this.id && this.orderStatus === 'doc_trans_order_created'; },
             canPrintKabul(){ return this.canSend || this.orderStatus === 'doc_trans_order_files_rejected'; },
@@ -76,7 +76,7 @@
                 if(this.isCloneOrder) return 'partial';
                 return '';
             },
-            isFilesLocked(){ return this.id && ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_transfer_sent','doc_trans_transfer_approved','doc_trans_transfer_rejected'].includes(this.orderStatus); },
+            isFilesLocked(){ return this.id && ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected'].includes(this.orderStatus); },
             readonlyFields(){
                 if(!this.isLocked) return [];
                 const fields = ['order_desc','imalatci_firma_adi'];

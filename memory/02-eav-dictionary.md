@@ -24,14 +24,14 @@ Every enumerated value in the system is a row here. No enums in code.
 
 | group_key | Contents | Used as |
 |-----------|----------|---------|
-| `op-doc` | document types: `op-doc-request|offer|client|flat` + `op-doc-client-main` **+ NOW `op-doc-order|order-item|transfer` (`OrderSystemSeeder.php:06`)** | `documents.type_id` |
-| `op-doc-forms` | form definitions: `op-doc-request-form|offer-form|client-form|user-form|flat-form|user-contact-form|user-client-form|user-permission-form|user-notification-form` **+ `op-doc-order-form|order-item-form|transfer-form`** | `sys_con_ops.type_id` |
+| `op-doc` | document types: `op-doc-request|offer|client|flat` + `op-doc-client-main` **+ NOW `op-doc-order|order-item|order-serial` (`OrderSystemSeeder.php:06`, `op-doc-transfer` **PURGED 2026-09-02**)** | `documents.type_id` |
+| `op-doc-forms` | form definitions: `op-doc-request-form|offer-form|client-form|user-form|flat-form|user-contact-form|user-client-form|user-permission-form|user-notification-form` **+ `op-doc-order-form|order-item-form|order-serial-form` (`op-doc-transfer-form` **PURGED**)** | `sys_con_ops.type_id` |
 | `op-per-types` / `op-apt-types` | old flat/apt types (legacy) | — |
 | `op-pert` | person types: `op-pert-admin|reseller` | `persons.type_id` |
 | `op-file-types` | file categories: 5 entries | `sys_options title for file UI` |
 | `trans` | generic trans types (19) | `transactions.type_id` when `op_id=0` |
 | `op-trans-op-doc-request` / `op-trans-op-doc-offer` | status machines per doc type | `transactions.type_id` (dynamic group `op-trans-{docOpKey}`) |
-| `op-trans-op-doc-order` / `op-trans-op-doc-transfer` | **NEW** Sipariş/Transfer status: `doc_trans_order_created/transfer_sent/approved/rejected/files_rejected` + `doc_trans_transfer_created/sent/approved/rejected` (`files_rejected` = "Reddedilen Dosyalar Mevcut", auto-set by `syncOrderStatusFromFiles` when any order/item file is rejected) | `transactions.type_id` |
+| `op-trans-op-doc-order` | **NEW** Sipariş status: `doc_trans_order_created/transfer_sent/ready_for_shipment/approved/rejected/files_rejected` (`files_rejected` = "Reddedilen Dosyalar Mevcut", auto-set by `syncOrderStatusFromFiles` when any order/item file is rejected) — `op-trans-op-doc-transfer` + `doc_trans_transfer_*` **PURGED 2026-09-02** (was 4 keys, 0 transactions ever) | `transactions.type_id` |
 | `op-file-types` extended | **+ `op-transfer_kabul_file` (Malzeme Kabul), `op-transfer_cins_file` (Cins-Miktar), `op-item_test_file`, `op-item_images_file`** | `sys_options title for file UI` |
 | `op-logs` | log kinds: 24 `log-*` | `user_logs.type_id` |
 | `op-cur-types` | currencies TRY/USD/EUR/GBP | `currencies` |

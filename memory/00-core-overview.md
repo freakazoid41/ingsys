@@ -1,6 +1,6 @@
 # INGSYS Core Overview — For Future Sessions
 
-> **⚠️ CURRENT STATE 2026-09-02 late: Order Management System + Public Tedarik Panel POLISHED.** DB `tedarikNewApp` :5431, 8 orders / 21 items / 8 clients / 0 files / 0 serials (re-seeded 2026-09-02 GDZ). Transfers = `op-doc-order` clones (`EBELN-X`), `op-doc-transfer` unused. Order↔Client by `LIFNR`. Tenants **GDZ/ADM** (ex CATES/YATAGAN) via `GDZ.svg/ADM.svg`. Public login `/tedarik` → `/tedarikpanel` orange Gdz card 560×840 140px logo → TedarikPanel card 1360px white `12px` shadow, sidebar 210px, 6 tabs 64×12 protruding -52 (38px outside) `48px` left gap, logo 82px + `Malzeme Tedarik İş Süreci` 11.5px, menu centered flex1, PickleTable card-rows `0 7px` `auto`. File replacement FINAL + item files (Test single + Görseller multi) via `group_key`. Panel `http://127.0.0.1:8000` (`kadir@kontent.com.tr / Kadir412. / 111111`).
+> **⚠️ CURRENT STATE 2026-09-02 late: Order Management System + Public Tedarik Panel POLISHED.** DB `tedarikNewApp` :5431, 8 orders / 21 items / 8 clients / 0 files / 0 serials (re-seeded 2026-09-02 GDZ). Transfers = `op-doc-order` clones (`EBELN-X`), `op-doc-transfer` **PURGED 2026-09-02** (6 rows deleted from `sys_options` + code). Order↔Client by `LIFNR`. Tenants **GDZ/ADM** (ex CATES/YATAGAN) via `GDZ.svg/ADM.svg`. Public login `/tedarik` → `/tedarikpanel` orange Gdz card 560×840 140px logo → TedarikPanel card 1360px white `12px` shadow, sidebar 210px, 6 tabs 64×12 protruding -52 (38px outside) `48px` left gap, logo 82px + `Malzeme Tedarik İş Süreci` 11.5px, menu centered flex1, PickleTable card-rows `0 7px` `auto`. File replacement FINAL + item files (Test single + Görseller multi) via `group_key`. Panel `http://127.0.0.1:8000` (`kadir@kontent.com.tr / Kadir412. / 111111`).
 > **👉 READ FIRST: `memory/08-session-summary.md` (clean 2-min handoff), then `05-order-system-state.md` (LIVE), `06-roadmap-next.md`. This file = architecture reference.**
 
 > **Source:** `panel/` is the real app. `memory/` is empty baseline, `panel/docs/` has 11 mapping docs (2026-08-01) — coal docs are now STALE, see `memory/05`. This file is the 30-second brain dump.
@@ -54,7 +54,7 @@ sys_con_entities  — field value: conn_id→sys_con_ops, entity_tag = field**gr
 - No FKs, soft delete (`status=0`), raw SQL everywhere.
 
 ## 6. Document Types & State Machines
-`sys_options group op-doc`: `op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, parent_id=order), `op-doc-order-serial` (Seri, parent_id=item), `op-doc-client` (Cari). `op-doc-transfer` seeded but **NOT used** (clones are `op-doc-order` with `transfer_no=EBELN-X`).
+`sys_options group op-doc`: `op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, parent_id=order), `op-doc-order-serial` (Seri, parent_id=item), `op-doc-client` (Cari). `op-doc-transfer` **PURGED 2026-09-02** (was seeded but never used — clones are `op-doc-order` with `transfer_no=EBELN-X`; 6 `sys_options` rows deleted, `OrderSystemSeeder.php` + `DocumentServiceProvider` + `Form.vue` + `PermissionHelpers` cleaned).
 
 - **Order:** `doc_trans_order_created → transfer_sent → ready_for_shipment → approved/rejected` + `files_rejected`
 - **File:** `doc_file_waiting → accepted | rejected → refreshed`

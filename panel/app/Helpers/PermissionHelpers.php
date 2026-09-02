@@ -55,11 +55,6 @@ if(!function_exists('checkPerm')){
                 'edit' => 'per-05-02',
                 'read' => 'per-05-01',
                 'status' => 'per-05-02',
-            ],
-            'op-doc-transfer' => [
-                'edit' => 'per-05-02',
-                'read' => 'per-05-01',
-                'status' => 'per-05-02',
             ]
         ];
         

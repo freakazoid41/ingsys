@@ -29,6 +29,7 @@ All logged in `memory/05 §4`. Highlights:
 - SAP sync fresh data (8 orders / 21 items, 2026-09-02 08:20 re-seed GDZ, `grp_code=GDZ`)
 - 2026-09-02: rejected `Yeni Test Yükle` unlock + still-rejected toast + DList grouping header full-length + pickletable header-cache + popup + join fix
 - 2026-09-02 late: Tedarik public panel `/tedarik` → `/tedarikpanel` (orange 560×840 140px Gdz, unified 2FA 560×720), `GDZ/ADM` rename + DB re-seed, `public/index.php` `adm ? ADM : GDZ` + **TedarikPanel polish 2026-09-02 late: card 1360×12 sidebar 210 6×64px tabs -52 protruding 38px, logo 82 + label, menu centered, OList card-rows 0 7px, pickletable guard**
+- 2026-09-02 late: **TRANSFER PURGE** — `op-doc-transfer` + `op-doc-transfer-form` + `doc_trans_transfer_*` (4) purged from `sys_options` (6 rows) + `OrderSystemSeeder.php` + `DocumentServiceProvider.php` (birthMap, guard, sync, cancel) + `DocumentController` + `PermissionHelpers` + `Form.vue` (113-line schema) + `OList`/`OForm` transfer keys → only `op-doc-order` + `doc_trans_order_*` remain; bug `OList:248 transfer_approved → blocked` fixed
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 

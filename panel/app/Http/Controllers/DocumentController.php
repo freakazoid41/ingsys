@@ -410,7 +410,7 @@ class DocumentController extends Controller
 
         $form     = (new DocumentServiceProvider())->getFormData($request->id);
         $document = $form['document'] ?? null;
-        if(!is_object($document) || !in_array($document->op_key ?? null, ['op-doc-order','op-doc-transfer'])){
+        if(!is_object($document) || ($document->op_key ?? null) !== 'op-doc-order'){
             return response()->json([
                 'success' => false,
                 'msg'     => 'Sipariş bulunamadı veya bu belge tipi iptal edilemez.',
