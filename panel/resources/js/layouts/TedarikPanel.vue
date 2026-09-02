@@ -37,8 +37,22 @@ export default {
             const el = document.querySelector('input[name="SYS_CODE"]');
             if (el && el.value) this.sysCode = el.value;
         } catch(e) {}
-        // keep bg grey
+        // keep bg grey + lock page scroll — only inner .tedarik-main-inner scrolls (tabs stay fixed)
         document.body.style.background = '#f2f2f3';
+        this._prevHtmlOverflow = document.documentElement.style.overflow;
+        this._prevBodyOverflow = document.body.style.overflow;
+        this._prevBodyHeight = document.body.style.height;
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+        document.body.style.height = '100vh';
+        try { document.body.style.height = '100dvh'; } catch(e) {}
+    },
+    beforeUnmount() {
+        try {
+            document.documentElement.style.overflow = this._prevHtmlOverflow || '';
+            document.body.style.overflow = this._prevBodyOverflow || '';
+            document.body.style.height = this._prevBodyHeight || '';
+        } catch(e) {}
     },
     computed: {
         userName() { return this.authStore.userName || this.authStore.currentStatus?.main_name || ''; },
@@ -153,16 +167,23 @@ export default {
 <style scoped>
 .tedarik-root {
     background: #f2f2f3;
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
     padding: 22px 18px 18px 48px;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: stretch;
+    box-sizing: border-box;
 }
 .tedarik-frame {
     width: 100%;
     max-width: 1360px;
-    min-height: calc(100vh - 40px);
+    height: calc(100vh - 40px);
+    height: calc(100dvh - 40px);
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    min-height: 0;
     background: #ffffff;
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.07);
@@ -182,6 +203,10 @@ export default {
     overflow: visible;
     position: relative;
     z-index: 10;
+    height: 100%;
+    min-height: 0;
+    flex-shrink: 0;
+    align-self: stretch;
 }
 .tedarik-logo {
     display: flex;
@@ -341,6 +366,8 @@ export default {
 .tedarik-main {
     flex: 1;
     min-width: 0;
+    min-height: 0;
+    height: 100%;
     background: transparent;
     display: flex;
     flex-direction: column;
@@ -352,25 +379,49 @@ export default {
 }
 .tedarik-main-inner {
     flex: 1;
+    min-height: 0;
+    height: 0;
     padding: 22px 24px 10px 20px;
-    overflow-x: visible;
+    overflow-x: hidden;
     overflow-y: auto;
     min-width: 0;
     display: flex;
     flex-direction: column;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+    -webkit-overflow-scrolling: touch;
+}
+.tedarik-main-inner::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.tedarik-main-inner::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 999px;
+}
+.tedarik-main-inner::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+}
+.tedarik-main-inner::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 .tedarik-main-inner > * {
-    flex: 1;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
+    min-height: min-content;
 }
 @media (max-width: 992px) {
-    .tedarik-root { padding: 0; }
-    .tedarik-frame { border-radius: 0; min-height: 100vh; flex-direction: column; overflow: hidden; }
-    .tedarik-sidebar { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid #f1f5f9; overflow: hidden; }
+    .tedarik-root { padding: 0; height: auto; min-height: 100vh; overflow: visible; align-items: flex-start; }
+    .tedarik-frame { border-radius: 0; height: auto; max-height: none; min-height: 100vh; flex-direction: column; overflow: visible; }
+    .tedarik-sidebar { width: 100%; min-width: 0; height: auto; min-height: 0; border-right: none; border-bottom: 1px solid #f1f5f9; overflow: visible; align-self: auto; }
+    .tedarik-main { height: auto; min-height: 0; overflow: visible; }
+    .tedarik-main-inner { height: auto; min-height: 0; overflow: visible; }
     .tedarik-menu-item { margin-left: 0; width: 100%; }
     .tedarik-info-card { margin-left: 0; width: 100%; }
     .tedarik-logout { margin-left: 0; width: 100%; }
+    .tedarik-modules-btn { margin-left: 0; width: 100%; }
 }
 </style>
 <!-- UNSCOPED GLOBAL: override pickletable defaults for entire tedarik panel -->
