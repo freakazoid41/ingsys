@@ -1,10 +1,10 @@
-# Order Management System — Current State (2026-09-02)
+# Order Management System — Current State (2026-09-02 late)
 
 > **This is the living snapshot. If you are LLM in a future session, read this first after `00-core-overview.md`.**
-> **Control panel conversion is DONE. Front panel PENDING (design awaited). SAP cron PENDING (grouping logic defined, not formalized).**
-> **⚠️ KEY CORRECTION (Master): Transfers are NOT a separate doc type — they ARE `op-doc-order` cloned with a new number (`EBELN-X`) only when an order is partially split. `op-doc-transfer` type still exists in dict but is NOT used for the UI anymore.**
-> **Fresh SAP data (2026-09-01 12:25): 8 orders, 21 items (SAP `/tmp/sap_payload.json` 21 rows → 8 EBELN), 8 clients, 0 files, 0 serials, 37 transactions — clean slate after full wipe (orders/items/serials/files/storage). `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` (copied from `sap_payload.json`).**
-> **2026-09-02 fixes: `OrderItemTable` rejected upload unlock + `OForm` still-rejected toast + `DList` grouping header full-length + `pickletable` header-cache bug + `DList` detail popup İlişki/Invalid Date fix + `Document_files` join/old_versions fix.**
+> **Control panel conversion DONE. Public Tedarik Panel STARTED (`/tedarik` → `/tedarikpanel`). Tenants renamed CATES/YATAGAN → GDZ/ADM (2026-09-02). SAP cron group-by-EBELN defined.**
+> **⚠️ KEY CORRECTION (Master): Transfers are NOT a separate doc type — they ARE `op-doc-order` cloned with a new number (`EBELN-X`) only when partially split. `op-doc-transfer` seeded but NOT used.**
+> **Fresh SAP data (2026-09-02 08:20): 8 orders, 21 items (SAP `/tmp/sap_payload.json` 21 rows → 8 EBELN), 8 clients, 0 files, 0 serials, 37 trans — re-seeded after `migrate:fresh` GDZ (`php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh`). `grp_code=GDZ`×8.**
+> **2026-09-02 fixes: `OrderItemTable` rejected unlock + `OForm` still-rejected toast + `DList` grouping header full-length + `pickletable` header-cache + `DList` popup fix + `Document_files` join/old_versions. 2026-09-02 late: Tedarik login `/tedarik` orange 560×840 140px Gdz, unified orange 2FA (`loginSms` single file), `GDZ/ADM` rename + DB re-seed, `public/index.php` `adm ? ADM : GDZ`.**
 
 ## 1. What Changed Since Coal
 
@@ -12,14 +12,15 @@
 
 | Layer | Coal | Order System Now |
 |-------|------|------------------|
-| **DB** | `b2x` on `5431` | **`tedarikNewApp`** on `5431` same image `61d0571c2f7b` docker `tedarikNewApp` Up, `127.0.0.1:5431 tedarikNewApp/tedarikNewApp` (`panel/.env:28`) — 23 migrations, 77+18+2 sys_options |
-| **Doc types** `sys_options.group_key=op-doc` | `op-doc-request\|offer\|client\|flat` | **`op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, `parent_id=order.id`), `op-doc-order-serial` (Seri Numarası, `parent_id=item.id`), `op-doc-client` (Cari)**. `op-doc-transfer` still seeded but **NOT used** (clones are `op-doc-order` with `transfer_no` entity `EBELN-X`). `OrderSystemSeeder.php` |
+| **DB** | `b2x` on `5431` | **`tedarikNewApp`** on `5431` `61d0571c2f7b` `tedarikNewApp` Up, `127.0.0.1:5431` (`panel/.env:28`) — 23 migrations, GDZ (ex CATES) default `grp_code`, `sys_options` `GDZ` `op-apt-types`, `gdz.jpg/adm.jpg` + `GDZ.svg/ADM.svg` from `gdzLogo.svg/admLogo.svg` |
+| **Doc types** `sys_options.group_key=op-doc` | `op-doc-request\|offer\|client\|flat` | **`op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, `parent_id=order.id`), `op-doc-order-serial` (Seri, `parent_id=item.id`), `op-doc-client` (Cari)**. `op-doc-transfer` seeded but **NOT used** (clones `EBELN-X`). `OrderSystemSeeder.php` |
 | **Forms** `op-doc-forms` | 5: `request/offer/client/user/flat` | **`op-doc-order-form`** (`order_no/buying_no/spec_code/sys_code/ctitle/created_at` readOnly + `order_desc` textarea rows 3 + `imalatci_firma_adi` + `Malzeme Kabul` `group_key=transfer_kabul` `transfer_kabul_file` single `hideAdd:true` + `Malzeme Cins-Miktar` `group_key=transfer_cins` `transfer_cins_file` single `hideAdd:true`), **`op-doc-order-item-form`** (`prod_code/title/quantity/unit` readOnly, NO deal/received price, + `item_test_docs` + `item_images`), **`op-doc-order-serial-form`** (`serial_no/production_date/quantity/unit`), `op-doc-client-form` **+ `lifnr` (Cari Kodu)** field. |
 | **Status** `op-trans-op-doc-order` | — | **`doc_trans_order_created → transfer_sent → ready_for_shipment → approved/rejected`** + **`doc_trans_order_files_rejected`**. `transfer_sent` = "Dosyalar Kontrol Ediliyor". |
 | **File types** `op-file-types` | 5 | **+ `op-transfer_kabul_file`, `op-transfer_cins_file`, `op-item_test_file`, `op-item_images_file`** |
 | **Permissions** | 19 `per-00..08` | **NOT split — reuse `per-05-01/02` for orders, `per-07-01/02` Dökümanlar, `per-06-01/02` Cari**. |
-| **Frontend** `router/index.js:24` | 17 routes | **`/coalpanel/orders` OrderList, `/orders/form/:id` OrderForm** |
-| **Sidebar** `Sidebar.vue:200` | Talep/Teklifler | **Siparişler only** (Sipariş Listesi — Oluştur removed, SAP-only) + `Dökümanlar` + `Firma` + `Yönetim`. |
+| **Frontend** `router/index.js:24` | 17 routes | **`/coalpanel/orders` OrderList, `/orders/form/:id` OrderForm** + **`/tedarikpanel`** (`TedarikPanel.vue` header) `/tedarik` login orange 560×840 140px Gdz, unified `loginSms` 560×720 orange |
+| **Sidebar** `Sidebar.vue:200` | Talep/Teklifler | **Siparişler only** (Sipariş Listesi — Oluştur removed, SAP-only) + `Dökümanlar` + `Firma` + `Yönetim`. `TedarikPanel` minimal (no sidebar). |
+| **Tenants** `public/index.php:11` | `yatagantermik ? YATAGAN : CATES` | **`adm ? ADM : GDZ`** → `GDZ.svg/ADM.svg`, `gdz.jpg/adm.jpg`, bulk `CATES/YATAGAN → GDZ/ADM` 2026-09-02 |
 
 ## 2. Data Model — CRITICAL (Master's rules)
 
@@ -118,7 +119,13 @@
 | `DList.vue` | **FIX grouping header visual + full-length (2026-09-02):** Duplicate `›` (`td.textContent` included icon → `›351000...`) + shrink-wrapped flex pill left. Fixed to inner `div.dlist-group__inner` `display:flex; width:100%; gradient #eef2ff→#f8fafc; border-left:3px #6366f1; radius12` + folder `ki-folder` icon + `count` pill `margin-left:auto` dot. Head search/order broke due to `border-collapse:separate` + `tbody background` — reverted to `collapse` and inner card handles spacing. |
 | `pickletable/assets/script.js` | **FIX group header missing after filter/order (2026-09-02):** `getData` cleared `body.innerHTML` on `isFiltering`/`isOrdering` but kept `groupHeaderElements` cache → `renderGroups` reused detached header, `indexOf -1` → no header inserted. Now clears `this.groupHeaderElements={}` there. |
 | `Document_files.php` (Model) | **FIX file list relation & old_versions (2026-09-02):** `tableList()` join `se.entity_value=i.id::text` had no `table_tag='document_files'` filter → garbage `sys_con_ops/quantity=180` row linked to `document_files id 180` → duplicate rows + `old_versions` `df2.id=se2.entity_value::int` crashed on `340.60` (`invalid input syntax for integer`). Fixed: join `+ and se.table_tag='document_files'`, `old_versions` → `df2.id::text=se2.entity_value and se2.table_tag='document_files' and se2.entity_value ~ '^[0-9]+$'`. Now only real file links, no cast crash. |
-| `DList.vue` | **FIX detail popup İlişki & Eklenme Tarihi for Malzeme Kabul/Cins (2026-09-02):** `rowFormatter` overwrote `data.created_at` with EAV `created_at="20/08/2026"` (order SAP date `d/m/Y`) → popup `dayjs("20/08/2026")` = `Invalid Date` (table column used `_created_at_fmt` computed before overwrite, so table was correct but modal not). Fix: preserve `data._file_created_at = data.created_at` before loop, compute `_created_at_fmt` from it, then skip overwriting `created_at/id/file/qnid/_created_at_fmt` (store as `eav_*`). `createDetailModalContent` now uses `product_name \|\| title \|\| order_no` for İlişki (orders have no title → was blank → now shows `order_no 3510003500-1`) + `_created_at_fmt` / `_file_created_at` with `isValid()` fallback for Eklenme Tarihi. `columnFormatter` İlişki badge fallback `product_name → order_no → title → '—'`. `formatDocumentCard` rows fixed same (`_created_at_fmt` + product_name fallback). |
+| `DList.vue` | **FIX detail popup İlişki & Eklenme Tarihi for Malzeme Kabul/Cins (2026-09-02):** `rowFormatter` overwrote `data.created_at` with EAV `created_at="20/08/2026"` → `Invalid Date`. Fix: preserve `_file_created_at`, compute `_created_at_fmt`, skip overwriting `created_at/id/file/qnid`, store as `eav_*`. `createDetailModalContent` uses `product_name||order_no`. `columnFormatter` fallback `product_name → order_no → '—'`. |
+| `public/index.php` | **Tenants GDZ/ADM (2026-09-02):** `CATES/YATAGAN → GDZ/ADM`, `yatagantermik → adm`, `GDZ.svg/ADM.svg`, `gdz.jpg/adm.jpg` |
+| `SysSeeder.php` / `Documents` migration | `CATES → GDZ`, `GDZ Sistem`, bulk `CATES/YATAGAN→GDZ/ADM` 16 files (`Header.vue`, `RSummary.vue`, `emails/layout`, Models, Providers) |
+| `resources/views/auth/tedariklogin.blade.php` | **NEW Tedarik login `/tedarik` → `/tedarikpanel` orange Gdz card `560×840 140px` logo `Sipariş Platformu`, `E-Posta/Şifreniz` 56px inputs, `Giriş Yap` 58px #FF4713, `Beni Hatırla/Şifremi unuttum`, video icon** — `AuthController tedariklogin()` + origin-aware `loginUser` (`auth_panel=tedarik`) + `checkCode` `tedarik-login` redirect + unified orange `loginSms` (single file for both panels) |
+| `resources/views/auth/loginSms.blade.php` | **Unified 2FA** orange Gdz `560×720 110px` logo `Doğrulama Kodu` 6×52px inputs, `44px` countdown #FF4713, `Tekrar Gönder` |
+| `resources/views/tedarikapp.blade.php` + `layouts/TedarikPanel.vue` + `router/index.js:110` | **NEW `/tedarikpanel`** (`TedarikPanel` orange header) + `pages/tedarik/Dashboard.vue` placeholder, reuses `OrderList/OrderForm` for tedarik view |
+| `public/front/pages/tedariklogin/page.js` | Tedarik login JS `→ /tedarikpanel`, remember-me cookies |
 
 ## 5. How Data Flows Now
 
@@ -256,12 +263,12 @@ Applied WITHOUT changing mechanics or validations. Build clean.
 ## 8. Credentials & Infra
 
 - **Docker:** `tedarikNewApp` postgres `61d0571c2f7b` on `127.0.0.1:5431`
-- **Panel .env:** `DB_DATABASE=tedarikNewApp` `:5431`
+- **Panel .env:** `DB_DATABASE=tedarikNewApp` `:5431` (GDZ default `grp_code`)
 - **Artisan:** `php artisan serve --host=127.0.0.1 --port=8000`
-- **Login:** `kadir@kontent.com.tr / Kadir412.` → 2FA `111111`
-- **Seeds:** 23 migrations + seeders. `OrderSystemSeeder` now has 20 dict rows (+serial type/form)
-- **Fresh data (2026-09-01, latest sync):** `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` → 8 orders / 21 items / 8 clients / 0 files / 0 serials / 39 trans. Clean slate — no leftover data.
-- **Live state (2026-09-01, fresh sync):** 8 orders (all base, 0 clones) / 21 items / 8 clients / 0 files / 0 serials / 39 transactions. SAP payload: `/tmp/sap_fresh_payload.json` 21 rows → 8 EBELN, mixed ST/KG/M, all ST<300. Clean slate — no leftover data.
+- **Logins:** Admin `http://127.0.0.1:8000/` → `/coalpanel` + Tedarik `http://127.0.0.1:8000/tedarik` → `/tedarikpanel` (same 2FA orange, same creds) — `kadir@kontent.com.tr / Kadir412.` → 2FA `111111`
+- **Seeds:** 23 migrations + seeders. `SysSeeder` `GDZ` / `OrderSystemSeeder` 20 rows (+serial) / `UserSeeder` 9 users
+- **Fresh data (2026-09-02 08:20, re-seeded GDZ):** `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` → 8 orders / 21 items / 8 clients / 0 files / 0 serials / 37 trans. `grp_code=GDZ`×8. Clean slate.
+- **Live state (2026-09-02):** 8 orders (all base) / 21 items / 8 clients / 0 files / 0 serials / 37 trans. SAP `/tmp/sap_fresh_payload.json` 21 rows → 8 EBELN, mixed ST/KG/M, ST<300.
 
 ## 9. How To Resume
 

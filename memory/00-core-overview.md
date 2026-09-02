@@ -1,6 +1,6 @@
 # INGSYS Core Overview — For Future Sessions
 
-> **⚠️ CURRENT STATE 2026-09-01: CONVERTED to Order Management System.** DB `tedarikNewApp` :5431, 8 orders / 21 items / 8 clients / 0 files / 0 serials. Transfers = `op-doc-order` clones (`EBELN-X`), `op-doc-transfer` unused. Order↔Client by `LIFNR`. Lock: `ready_for_shipment` FULL, `files_rejected` keeps files editable. File replacement FINAL design + item files (Test Dökümanı single-slot rejectable + Ürün Görselleri multi) per order item. DList groups all files under clone order number via `group_key` SQL column. Panel `http://127.0.0.1:8000` (`kadir@kontent.com.tr / Kadir412. / 111111`).
+> **⚠️ CURRENT STATE 2026-09-02: Order Management System + Public Tedarik Panel.** DB `tedarikNewApp` :5431, 8 orders / 21 items / 8 clients / 0 files / 0 serials (re-seeded 2026-09-02 GDZ). Transfers = `op-doc-order` clones (`EBELN-X`), `op-doc-transfer` unused. Order↔Client by `LIFNR`. Tenants **GDZ/ADM** (ex CATES/YATAGAN) via `GDZ.svg/ADM.svg`. Public login `/tedarik` → `/tedarikpanel` orange Gdz card 560×840 140px logo unified 2FA. File replacement FINAL + item files (Test single + Görseller multi) via `group_key`. Panel `http://127.0.0.1:8000` (`kadir@kontent.com.tr / Kadir412. / 111111`).
 > **👉 READ FIRST: `memory/08-session-summary.md` (clean 2-min handoff), then `05-order-system-state.md` (LIVE), `06-roadmap-next.md`. This file = architecture reference.**
 
 > **Source:** `panel/` is the real app. `memory/` is empty baseline, `panel/docs/` has 11 mapping docs (2026-08-01) — coal docs are now STALE, see `memory/05`. This file is the 30-second brain dump.
@@ -11,11 +11,11 @@ Tedarik Yönetim Sistemi — Order Management System (converted from KomurTedari
 - **Admin** `op-pert-admin` — manages orders, clients, file approvals
 - **Supplier** `op-pert-reseller` — self-registers, fills firm form + uploads files
 
-Multi-tenant via `panel/public/index.php:11-15` → `Host contains yatagantermik ? YATAGAN : CATES` → `$GLOBALS['SYS_CODE']` → `documents.grp_code`, `user_logs.sys_code`.
+Multi-tenant via `panel/public/index.php:11-15` → `Host contains adm ? ADM : GDZ` (ex `yatagantermik ? YATAGAN : CATES`) → `$GLOBALS['SYS_CODE']` → `documents.grp_code`, `user_logs.sys_code`.
 
 ## 2. Stack
 Laravel 12 / PHP 8.2 / PostgreSQL (port 5431) / Sanctum 4 (token+session)  
-Vue 3 SPA @ `/coalpanel` — Vite 6, Pinia 2, vue-router 4, Tailwind 3  
+Vue 3 SPA @ `/coalpanel` (admin) + `/tedarikpanel` (public Tedarik, `TedarikPanel.vue`) — Vite 6, Pinia 2, vue-router 4, Tailwind 3  
 Mail: SMTP Gmail or `intmail.aydemenerji.com.tr:25` via `MAIL_USE_RELAY` (`MailService.php:52`)  
 SMS: İletişim Makinesi `UserGatewayWS`/`SMSGatewayWS` (`SmsService.php`)  
 PDF/Excel: dompdf/mpdf + PhpSpreadsheet  
@@ -23,9 +23,9 @@ Queue/Cache/Session: `database` driver; permission cache: `file` store
 
 ## 3. Entry Points
 - **HTTP:** `panel/public/index.php` → `panel/bootstrap/app.php:9-32` (routes `web.php`/`api.php`, middleware `ParsePutMultipart`+`CspMiddleware`, `trustProxies('*')`, `validateCsrfTokens except ['*']` → CSRF OFF)
-- **SPA shell:** `GET /coalpanel/{any}` closure in `web.php:30-48` (checks `session type_key+2f_success` → `resources/views/coalapp.blade.php`)
-- **SPA bootstrap:** `resources/js/app.js:1-71` → `authStore.getPermissions()` → parallel `permissionDataStore.fetchRoleTemplates/items()` → supplier `!canProceed` redirect → `authStore.startHeartbeat()` 30s `GET /api/v1/getpermissions` → mount
-- **Auth blades:** `resources/views/auth/coallogin|loginSms|register|passwordReset.blade.php` + compiled `public/front/pages/*/page.js` (source missing)
+- **SPA shells:** `GET /coalpanel/{any}` → `coalapp.blade.php` + `GET /tedarikpanel/{any}` → `tedarikapp.blade.php` closures in `web.php:30-60` (checks `session type_key+2f_success`)
+- **SPA bootstrap:** `resources/js/app.js:1-71` → `authStore.getPermissions()` → parallel `permissionDataStore.fetchRoleTemplates/items()` → supplier `!canProceed` redirect → `authStore.startHeartbeat()` 30s `GET /api/v1/getpermissions` → mount (serves both panels)
+- **Auth blades:** `resources/views/auth/coallogin|tedariklogin|loginSms|register|passwordReset.blade.php` + `tedarikapp.blade.php` + compiled `public/front/pages/*/page.js` (`tedariklogin` orange 560×840 140px Gdz, `loginSms` unified orange 560×720)
 
 ## 4. The Big Lie: Providers Are Not Providers
 `panel/app/Providers/` — only `AppServiceProvider` is real. The rest are **domain services called via `new`**:
@@ -60,12 +60,12 @@ sys_con_entities  — field value: conn_id→sys_con_ops, entity_tag = field**gr
 - **File:** `doc_file_waiting → accepted | rejected → refreshed`
 - **Serial:** `op-doc-order-serial` docs parented to items. Entities: `serial_no`, `production_date` (YYYY-MM-01), `quantity`, `unit`
 
-## 7. Routing — 8 web + ~30 api
-**Web** `routes/web.php:69`: `/`, `/register`, `/logout`, `/smscallback`, `/auth/passwordreset/{code}`, `POST /auth/passchange`, `/coalpanel{any}`, `/order-file/{doc}`, `POST /export/offer`, `GET /export/{model}/{type?}`  
-**API** `routes/api.php:69`: `POST auth/checkcode|sendmail|resend-code`, `POST /v1/auth/login|register`, `POST /v1/auth/resetusercradentals` (PUBLIC!), `GET /v1/me`, `ANY /v1/document/{id?}`, `ANY /v1/transaction`, `POST /v1/temp-upload`, `POST /v1/table/{model}`, `POST /v1/export/{model}`, `ANY /v1/users|persons`, `GET /v1/notifications`, `POST /v1/notificationlog/{id}/retrigger`, `GET/POST/DELETE /v1/roles/templates`, `GET /v1/roles/items`, `POST /v1/trans/set-status|cancel-offer|reopen-offer|set-file-status*|disable-document`, `ANY /v1/dashboard/{type}/{period?}`, `GET /v1/getpermissions` (heartbeat)
+## 7. Routing — 10 web + ~30 api
+**Web** `routes/web.php:69`: `/` (admin login), `/tedarik` (tedarik login `tedarik-login`), `/register`, `/logout`, `/smscallback` (unified orange 2FA), `/auth/passwordreset/{code}`, `POST /auth/passchange`, `/coalpanel{any}`, `/tedarikpanel{any}`, `/order-file/{doc}`, `POST /export/offer`, `GET /export/{model}/{type?}`  
+**API** `routes/api.php:69`: `POST auth/checkcode|sendmail|resend-code`, `POST /v1/auth/login/{type?}` (`admin`|`tedarik` → `session auth_panel`), `POST /v1/auth/register`, `POST /v1/auth/resetusercradentals` (PUBLIC!), `GET /v1/me`, `ANY /v1/document/{id?}`, `ANY /v1/transaction`, `POST /v1/temp-upload`, `POST /v1/table/{model}`, `POST /v1/export/malzeme-kabul|malzeme-cins-miktar-kabul`, `POST /v1/export/{model}`, `ANY /v1/users|persons`, `GET /v1/notifications`, `POST /v1/notificationlog/{id}/retrigger`, `GET/POST/DELETE /v1/roles/templates`, `GET /v1/roles/items`, `POST /v1/trans/set-status|cancel-offer|reopen-offer|set-file-status*|disable-document|orders/cancel`, `ANY /v1/dashboard/{type}/{period?}`, `GET /v1/getpermissions` (heartbeat)
 
 ## 8. Auth & Session
-`AuthController.php:873` flow: `POST /v1/auth/login` (reCAPTCHA + `Cache login:attempts 5×15min` → `Auth::attempt` → `generateAndSendTwoFactorCode` → 6-digit to `storage/app/{token}-{personId}-login.txt` + Mail/SMS to `contmail*/contphone*`) → `GET /smscallback` → `POST auth/checkcode` (120s TTL one-time) → `Auth::login` → `loadUserPermissionsToSession` → `clientPermInfo` → `createToken` → `ActiveSession` → `forceLogoutPerson` (single-session) → SPA.
+`AuthController.php:891` flow: `POST /v1/auth/login/{type?}` (`tedarik`|`admin` → `session auth_panel`, reCAPTCHA + `Cache login:attempts 5×15min` → `Auth::attempt` → `generateAndSendTwoFactorCode` → 6-digit to `storage/app/{token}-{personId}-login.txt` + Mail/SMS) → `GET /smscallback` (single orange card for both panels, `tedariklogin` 560×840 vs `coallogin` blue) → `POST auth/checkcode` (120s TTL, reads `session auth_panel` → `loginRoute = tedarik-login|login`) → `Auth::login` → `loadUserPermissionsToSession` → `clientPermInfo` → `createToken` → `ActiveSession` → `forceLogoutPerson` → SPA (`/tedarikpanel` or `/coalpanel`). `public/front/pages/tedariklogin/page.js` sets `localStorage token` → `/tedarikpanel`; `loginSms/page.js` unified.
 
 Middleware `CheckPermissionVersion.php:91` on every protected request: if `force_logout` → 401, else if `permission_version` mismatch → `loadPermissionsToSession` + bump.
 
@@ -77,7 +77,7 @@ Frontend `stores/auth.js:43` heartbeat 30s + `pickle.js:105-154` 401 handlers (`
 Per-person JSON array in EAV `op-doc-user-permission-form`. Runtime via `PermissionService::has()` → `DEV_ADMIN backdoor` → `session sper-{code}` → `file cache permissions.user.{id}` (30d, `microtime*1e6` version). Helpers: `checkPerm()`, `docPermCheck(typeKey, read|edit|status)` in `PermissionHelpers.php:215`. Frontend `GET /v1/getpermissions` drives menu/button visibility. `updateUserPermissions()` fans out role changes + `bumpUserPermissionVersion`.
 
 ## 10. Frontend Skeleton
-`router/index.js:103` (routes under `/coalpanel`, NO auth guard) → `layouts/App.vue:35` → `layouts/CoalPanel.vue:82` (Sidebar+Header+Simplebar) → pages in `resources/js/pages/coalsystem/` (Orders/OList+OForm, Documents/DList, Users/*, Roles/*, Logs/LList, NotificationLogs/NList, Notifications/NSettings, Dashboard.vue)
+`router/index.js:110` (routes under `/coalpanel` + `/tedarikpanel`, NO auth guard) → `layouts/App.vue:35` → `layouts/CoalPanel.vue:82` (admin Sidebar+Header) + `layouts/TedarikPanel.vue` (public header, Gdz orange) → pages in `resources/js/pages/coalsystem/` (Orders/OList+OForm, Documents/DList, Users/*, Roles/*, Logs/LList, NotificationLogs/NList, Notifications/NSettings, Dashboard.vue) + `resources/js/pages/tedarik/Dashboard.vue` (placeholder)
 
 5 Pinia stores: `auth`, `permissiondata`, `navigation` (breadcrumbs+notifications+sys_code DOM read), `events` (legacy), `formdata` (list→form carrier, typo `addional`)
 

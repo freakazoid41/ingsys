@@ -5,33 +5,30 @@
 
 ## 1. Immediate Next (Choose 1)
 
-### Option A: Front Panel Design Arrives → Build Client Flow (Recommended)
-You drop Figma/HTML for `front panel (new)` — we build:
+### Option A: Tedarik Panel Orders → Build Client Order Flow (IN PROGRESS 2026-09-02)
+Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/tedarikpanel` `TedarikPanel.vue` + `Dashboard.vue` placeholder, route `router/index.js:110` reuses `OList/OForm`). Next:
+1. **Order List tedarik view:** filter by client LIFNR (`currentStatus.clientQnidList` if reseller), hide admin actions, show `transfer_sent/files_rejected` badges.
+2. **Order Detail tedarik:** order header readOnly + `OrderItemTable` with `readonly` + file upload (test+images) + transfer card at_once/partial + serials (KG/M required, ST optional), same `processOrderTransfer` payload.
+3. **File + serial wiring:** reuse `Form.vue` + `pickle.js` temp-upload (already done in admin OForm — clone for tedarik).
+4. **Rejected:** `files_rejected` orange + re-upload unlock + `still-rejected` toast.
 
-1. **Route & Layout:** New `FrontPanel.vue` (client skin, no coal), `router/index.js` → `/front/orders` + `/front/orders/:id` + `/front/transfers` (client view). Separate from `/coalpanel` admin shell.
-2. **Order Detail Client View:** **backend already handles this** — order header (readOnly) + item table + `order_desc` + `imalatci_firma_adi` + `transfer_kabul`/`transfer_cins` files, and SAVE triggers `processOrderTransfer` (`at_once`/`partial` + `selected_items` + `item_serials`).
-3. **Serial entry in front panel:** Must support same serial flow — KG/M required, ST optional (< 300), flatpickr month picker.
-4. **File upload wiring:** Reuse `Form.vue` schemas + `pickle.js` temp-upload.
-5. **Rejected files:** client sees `files_rejected` + can re-upload + re-save → `transfer_sent`.
-
-**You need to give:** HTML/CSS or Figma, blade choice, host.
-
-### Option B: No Design Yet → Dashboard Rebuild
-1. Replace coal `topstats/monthlyoffers` with order queries
+### Option B: Dashboard Rebuild
+1. Replace coal `topstats/monthlyoffers` with order queries (pending transfers, awaiting files, approved today)
 2. Header bell for order notifications
-3. Build report cards (pending transfers, awaiting files, approved today)
+3. Report cards per tenant GDZ/ADM
 
-### Option C: Skin It
-Replace `Kömür Tedarik` branding → `Tedarik Yönetim Sistemi` (already done, but SVGs still CATES/YATAGAN).
+### Option C: Branding — DONE 2026-09-02
+`CATES/YATAGAN → GDZ/ADM` (`public/index.php` `adm ? ADM : GDZ`, `GDZ.svg/ADM.svg`, `gdz/adm.jpg`, `SysSeeder` `GDZ Sistem`, 16 files bulk, `emails/layout` logo, DB re-seed `grp_code=GDZ`). Admin `/` still blue CATES? Now GDZ. Tedarik `/tedarik` orange Gdz.
 
 ## 2. Completed (recent)
 
-All logged in `memory/05` — summary in `memory/08 §5`. Highlights:
+All logged in `memory/05 §4`. Highlights:
 - Serial system: KG/M required, ST<300 optional, Excel upload, collapse UI, auto date
 - Split/partition: quantity types, clone `EBELN-X`, partition lock, quantity restore
-- Malzeme Kabul PDF + reprint; file replacement v2 + `syncOrderStatusFromFiles`
-- SAP sync fresh data (8 orders / 21 items, 2026-09-01 12:25, `/tmp/sap_payload.json`)
-- 2026-09-02: rejected `Yeni Test Yükle` unlock + still-rejected toast + DList grouping header full-length + pickletable header-cache fix
+- Malzeme Kabul/Cins-Miktar PDF + reprint; file replacement v2 + `syncOrderStatusFromFiles`
+- SAP sync fresh data (8 orders / 21 items, 2026-09-02 08:20 re-seed GDZ, `grp_code=GDZ`)
+- 2026-09-02: rejected `Yeni Test Yükle` unlock + still-rejected toast + DList grouping header full-length + pickletable header-cache + popup + join fix
+- 2026-09-02 late: Tedarik public panel `/tedarik` → `/tedarikpanel` (orange 560×840 140px Gdz, unified 2FA 560×720), `GDZ/ADM` rename + DB re-seed, `public/index.php` `adm ? ADM : GDZ`
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 
