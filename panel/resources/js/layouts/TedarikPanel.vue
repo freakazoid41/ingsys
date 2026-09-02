@@ -1,40 +1,393 @@
 <script>
 import { useNavigationStore } from '@/stores/navigation'
+import { useAuthStore } from '@/stores/auth'
 import { useHead } from '@unhead/vue'
 
 export default {
-    setup() { return { useNavigationStore, useHead } },
-    data() { return { navigationStore: useNavigationStore() } },
-    mounted() {
-      document.body.dataset.saTheme = localStorage.getItem("sa-theme");
+    setup() { return { useNavigationStore, useAuthStore, useHead } },
+    data() {
+        return {
+            navigationStore: useNavigationStore(),
+            authStore: useAuthStore(),
+            sysCode: 'ADM',
+        }
     },
+    mounted() {
+        document.body.dataset.saTheme = localStorage.getItem("sa-theme");
+        try {
+            const el = document.querySelector('input[name="SYS_CODE"]');
+            if (el && el.value) this.sysCode = el.value;
+        } catch(e) {}
+        // keep bg grey
+        document.body.style.background = '#f2f2f3';
+    },
+    computed: {
+        userName() { return this.authStore.userName || this.authStore.currentStatus?.main_name || ''; },
+        isOrdersActive() { return this.$route.path.includes('/orders'); },
+        isDokumanActive() { return this.$route.path.includes('/document'); },
+    },
+    methods: {
+        isActive(path) { return this.$route.path === path || this.$route.path.startsWith(path); }
+    }
 }
 </script>
 <template>
-    <div class="page d-flex flex-column flex-root" style="background:#f2f2f3; min-height:100vh;">
-        <!-- Minimal header for public Tedarik panel -->
-        <div class="d-flex align-items-center justify-content-between px-4 py-3" style="background:#fff; border-bottom:1px solid #e5e7eb;">
-            <a href="/tedarikpanel" class="d-flex align-items-center text-decoration-none">
-                <svg width="90" height="32" viewBox="0 0 110 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <text x="0" y="28" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="800" fill="#FF4A15" letter-spacing="-1">Gdz</text>
-                    <g transform="translate(62, 4)">
-                        <path d="M6 4 L22 0 L22 8 L6 12 Z" fill="#FF4A15"/><path d="M6 14 L22 10 L22 18 L6 22 Z" fill="#FF4A15"/><path d="M24 4 L38 12 L24 20 Z" fill="#FF4A15"/>
-                    </g>
-                </svg>
-                <span class="ms-3 fw-semibold" style="color:#111827; font-size:14px;">Sipariş Platformu — Tedarik Yönetim Paneli</span>
-            </a>
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-muted" style="font-size:13px;">{{ navigationStore.breadcrumps?.title || '' }}</span>
-                <a href="/logout" class="btn btn-sm" style="background:#FF4A15; color:#fff; border-radius:8px; padding:6px 14px; font-weight:600;">Çıkış</a>
-            </div>
-        </div>
-        <div class="flex-grow-1 p-4">
-            <div class="container-xxl">
-                <router-view :key="$route.path"></router-view>
-            </div>
+    <div class="tedarik-root">
+        <div class="tedarik-frame">
+            <!-- Sidebar -->
+            <aside class="tedarik-sidebar">
+                <div class="tedarik-logo">
+                    <img :src="`/coaltheme/${sysCode}.svg`" :alt="sysCode" @error="(e)=> e.target.style.display='none'" />
+                    <div class="tedarik-logo-label">Malzeme Tedarik İş Süreci</div>
+                </div>
+
+                <nav class="tedarik-menu">
+                    <router-link to="/tedarikpanel/orders" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isOrdersActive }]">
+                            <span>Siparişler</span>
+                            <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                        </a>
+                    </router-link>
+                    <a :class="['tedarik-menu-item', { active: isDokumanActive }]" @click="$router.push('/tedarikpanel/orders')" style="cursor:pointer;">
+                        <span>Doküman</span>
+                        <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                    </a>
+                    <a class="tedarik-menu-item" @click="() => {}">
+                        <span>Kullanıcılar</span>
+                        <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                    </a>
+                    <a class="tedarik-menu-item" @click="() => {}">
+                        <span>Raporlar</span>
+                        <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                    </a>
+                </nav>
+
+                <div class="tedarik-bottom">
+                    <a class="tedarik-info-card" href="javascript:;">
+                        <span class="tedarik-info-label">Bilgilendirmeler</span>
+                        <span class="tedarik-info-badge">0</span>
+                    </a>
+
+                    <a href="/logout" class="tedarik-logout">
+                        <span>TEST TALK</span>
+                        <span class="tedarik-logout-icon"><i class="ki-outline ki-entrance-left"></i></span>
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main -->
+            <main class="tedarik-main">
+                <div class="tedarik-main-inner">
+                    <router-view :key="$route.path"></router-view>
+                </div>
+            </main>
         </div>
     </div>
 </template>
+<style scoped>
+.tedarik-root {
+    background: #f2f2f3;
+    min-height: 100vh;
+    padding: 22px 18px 18px 48px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+.tedarik-frame {
+    width: 100%;
+    max-width: 1360px;
+    min-height: calc(100vh - 40px);
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.07);
+    display: flex;
+    overflow: visible;
+    position: relative;
+}
+.tedarik-sidebar {
+    width: 210px;
+    min-width: 210px;
+    background: transparent;
+    padding: 22px 16px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    overflow: visible;
+    position: relative;
+    z-index: 10;
+}
+.tedarik-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 22px;
+    padding-left: 4px;
+    gap: 8px;
+}
+.tedarik-logo img {
+    height: 82px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+}
+.tedarik-logo-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    padding-left: 6px;
+    white-space: nowrap;
+    user-select: none;
+}
+.tedarik-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: visible;
+    flex: 1;
+    justify-content: start;
+    margin: 12px 0;
+}
+.tedarik-menu-item {
+    height: 64px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px 0 20px;
+    font-size: 17.5px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all .15s ease;
+    background: #8e8e93;
+    color: #ffffff;
+    border: none;
+    user-select: none;
+    letter-spacing: 0.15px;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-left: -52px;
+    width: calc(100% + 52px);
+}
+.tedarik-menu-item:hover {
+    background: #7e7e82;
+    color: #fff;
+}
+.tedarik-menu-item.active {
+    background: #FF5A1F;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(255,90,31,0.28);
+}
+.tedarik-menu-arrow {
+    font-size: 25px;
+    opacity: 0.9;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.tedarik-bottom {
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 12px;
+    padding-bottom: 8px;
+}
+.tedarik-info-card {
+    height: 64px;
+    border: 1px solid #e6e6e7;
+    border-radius: 12px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    text-decoration: none;
+    color: #2f2f33;
+    font-size: 16.5px;
+    font-weight: 600;
+    transition: border-color .15s;
+    margin-left: -52px;
+    width: calc(100% + 52px);
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.tedarik-info-card:hover { border-color: #d1d5db; }
+.tedarik-info-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #22c55e;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+.tedarik-logout {
+    height: 64px;
+    border: 1.5px solid #ef3b3b;
+    border-radius: 12px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    text-decoration: none;
+    color: #2f2f33;
+    font-size: 16.5px;
+    font-weight: 700;
+    transition: background .15s;
+    margin-left: -52px;
+    width: calc(100% + 52px);
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.tedarik-logout:hover { background: #fef2f2; }
+.tedarik-logout-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ef3b3b;
+    font-size: 16px;
+}
+
+.tedarik-logout-icon i {font-size: 25px;}
+.tedarik-main {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-left: 1px solid #f2f2f3;
+    border-radius: 0 12px 12px 0;
+    position: relative;
+    z-index: 1;
+}
+.tedarik-main-inner {
+    flex: 1;
+    padding: 22px 24px 10px 20px;
+    overflow-x: visible;
+    overflow-y: auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.tedarik-main-inner > * {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+@media (max-width: 992px) {
+    .tedarik-root { padding: 0; }
+    .tedarik-frame { border-radius: 0; min-height: 100vh; flex-direction: column; overflow: hidden; }
+    .tedarik-sidebar { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid #f1f5f9; overflow: hidden; }
+    .tedarik-menu-item { margin-left: 0; width: 100%; }
+    .tedarik-info-card { margin-left: 0; width: 100%; }
+    .tedarik-logout { margin-left: 0; width: 100%; }
+}
+</style>
+<!-- UNSCOPED GLOBAL: override pickletable defaults for entire tedarik panel -->
 <style>
 #kt_content_container { max-height: unset !important; height: auto !important; overflow: visible !important; }
+
+/* PickleTable overrides — tedarik panel */
+.tedarik-main .pickletable {
+    height: auto !important;
+    border: none !important;
+}
+.tedarik-main .pickletable .divTable {
+    height: auto !important;
+    overflow: visible !important;
+    border-bottom: none !important;
+}
+.tedarik-main .pickletable table {
+    border-collapse: separate !important;
+    border-spacing: 0 7px !important;
+    table-layout: auto !important;
+    border: none !important;
+    width: 100% !important;
+}
+.tedarik-main .pickletable thead th {
+    background: transparent !important;
+    color: #b0b0b5 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: relative !important;
+    top: auto !important;
+    padding: 0 14px 10px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+.tedarik-main .pickletable thead th:last-child {
+    text-align: right !important;
+}
+.tedarik-main .pickletable tbody tr {
+    background: transparent !important;
+}
+.tedarik-main .pickletable tbody tr:hover td {
+    background: #fcfcfc !important;
+}
+.tedarik-main .pickletable tbody td {
+    background: #fff !important;
+    border: 1px solid #e8e8ea !important;
+    border-left: 1px solid #e8e8ea !important;
+    border-right: 1px solid #e8e8ea !important;
+    font-size: 13.5px !important;
+    padding: 13px 14px !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+}
+.tedarik-main .pickletable tbody td:first-child {
+    border-left: 1px solid #e8e8ea !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-left-radius: 8px !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+}
+.tedarik-main .pickletable tbody td:last-child {
+    border-right: 1px solid #e8e8ea !important;
+    border-top-right-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+}
+.tedarik-main .pickletable .divPagination {
+    border-top: none !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    padding: 12px 0 0 !important;
+}
+.tedarik-main .pickletable .divPagination button,
+.tedarik-main .pickletable .divPagination .page-link {
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    color: #8a8a8e !important;
+    border-radius: 6px !important;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    min-width: 32px;
+    height: 30px;
+}
+.tedarik-main .pickletable .divPagination .active button,
+.tedarik-main .pickletable .divPagination .active .page-link {
+    background: #fff !important;
+    color: #FF5A1F !important;
+    border-color: #FF5A1F !important;
+    font-weight: 700 !important;
+}
 </style>

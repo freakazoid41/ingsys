@@ -65,6 +65,10 @@
         gap: 14px;
         flex: 1;
     }
+    .field {
+        position: relative;
+        width: 100%;
+    }
     .input {
         width: 100%;
         height: 56px;
@@ -78,8 +82,34 @@
         transition: border-color .15s, box-shadow .15s;
         box-sizing: border-box;
     }
-    .input::placeholder { color: #9a9aa3; font-weight: 400; }
+    .input::placeholder { color: transparent; }
     .input:focus { border-color: #FF4A15; box-shadow: 0 0 0 3px rgba(255,74,21,0.08); }
+    .field label {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #fff;
+        padding: 0 6px;
+        color: #9a9aa3;
+        font-size: 15px;
+        font-weight: 400;
+        pointer-events: none;
+        transition: all .18s ease;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .field .input:focus + label,
+    .field .input:not(:placeholder-shown) + label,
+    .field .input:-webkit-autofill + label {
+        top: 0;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #FF4A15;
+    }
+    .field .input:not(:focus):not(:placeholder-shown) + label {
+        color: #7a7a80;
+    }
     .btn-main {
         margin-top: 26px;
         width: 100%;
@@ -200,8 +230,14 @@
                 @csrf
                 <input type="hidden" name="auth_panel" value="tedarik" />
 
-                <input required type="text" id="email" name="email" autocomplete="off" placeholder="E-Posta Adresi" class="input login-item" />
-                <input required type="password" id="password" name="password" autocomplete="off" placeholder="Şifreniz" class="input login-item" />
+                <div class="field">
+                    <input required type="text" id="email" name="email" autocomplete="off" placeholder=" " class="input login-item" />
+                    <label for="email">E-Posta Adresi</label>
+                </div>
+                <div class="field">
+                    <input required type="password" id="password" name="password" autocomplete="off" placeholder=" " class="input login-item" />
+                    <label for="password">Şifreniz</label>
+                </div>
 
                 @php $recaptchaSiteKey = config('services.recaptcha.site_key') ?: env('RECAPTCHA_SITE_KEY'); @endphp
                 @if($recaptchaSiteKey)

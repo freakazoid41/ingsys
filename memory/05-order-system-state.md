@@ -1,10 +1,10 @@
 # Order Management System — Current State (2026-09-02 late)
 
 > **This is the living snapshot. If you are LLM in a future session, read this first after `00-core-overview.md`.**
-> **Control panel conversion DONE. Public Tedarik Panel STARTED (`/tedarik` → `/tedarikpanel`). Tenants renamed CATES/YATAGAN → GDZ/ADM (2026-09-02). SAP cron group-by-EBELN defined.**
+> **Control panel conversion DONE. Public Tedarik Panel DONE & POLISHED (`/tedarik` → `/tedarikpanel` card 1360px, tabs 64px protruding). Tenants renamed CATES/YATAGAN → GDZ/ADM (2026-09-02). SAP cron group-by-EBELN defined.**
 > **⚠️ KEY CORRECTION (Master): Transfers are NOT a separate doc type — they ARE `op-doc-order` cloned with a new number (`EBELN-X`) only when partially split. `op-doc-transfer` seeded but NOT used.**
 > **Fresh SAP data (2026-09-02 08:20): 8 orders, 21 items (SAP `/tmp/sap_payload.json` 21 rows → 8 EBELN), 8 clients, 0 files, 0 serials, 37 trans — re-seeded after `migrate:fresh` GDZ (`php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh`). `grp_code=GDZ`×8.**
-> **2026-09-02 fixes: `OrderItemTable` rejected unlock + `OForm` still-rejected toast + `DList` grouping header full-length + `pickletable` header-cache + `DList` popup fix + `Document_files` join/old_versions. 2026-09-02 late: Tedarik login `/tedarik` orange 560×840 140px Gdz, unified orange 2FA (`loginSms` single file), `GDZ/ADM` rename + DB re-seed, `public/index.php` `adm ? ADM : GDZ`.**
+> **2026-09-02 fixes: `OrderItemTable` rejected unlock + `OForm` still-rejected toast + `DList` grouping header full-length + `pickletable` header-cache + `DList` popup fix + `Document_files` join/old_versions. 2026-09-02 late: Tedarik login `/tedarik` orange 560×840 140px Gdz, unified orange 2FA (`loginSms` single file), `GDZ/ADM` rename + DB re-seed, `public/index.php` `adm ? ADM : GDZ`. 2026-09-02 late polished: TedarikPanel 6 tabs 64×12 protruding -52 (38px outside, 10px gap), logo 82px + label, menu flex1 centered, OList card-rows + PickleTable overrides, `pickletable/script.js` height auto guard.***
 
 ## 1. What Changed Since Coal
 
@@ -126,6 +126,9 @@
 | `resources/views/auth/loginSms.blade.php` | **Unified 2FA** orange Gdz `560×720 110px` logo `Doğrulama Kodu` 6×52px inputs, `44px` countdown #FF4713, `Tekrar Gönder` |
 | `resources/views/tedarikapp.blade.php` + `layouts/TedarikPanel.vue` + `router/index.js:110` | **NEW `/tedarikpanel`** (`TedarikPanel` orange header) + `pages/tedarik/Dashboard.vue` placeholder, reuses `OrderList/OrderForm` for tedarik view |
 | `public/front/pages/tedariklogin/page.js` | Tedarik login JS `→ /tedarikpanel`, remember-me cookies |
+| `layouts/TedarikPanel.vue` | **POLISH 2026-09-02 late:** Card `f2f2f3` bg `22px 18px 18px 48px` root, frame `1360px` `12px` `overflow:visible` (protruding tabs), sidebar `210px` `overflow:visible z10`, logo `82px` + `Malzeme Tedarik İş Süreci` 11.5px label, menu `flex1 center` 6 tabs `64px 12px -52` (38px outside, 10px gap) `17.5/16.5px` `10→12px` → `16px` arrows / `20px` badge/logout icons unified, `OList` card-rows, `pickletable` overrides unscoped `.tedarik-main` |
+| `pages/coalsystem/Order/OList.vue` | **Tedarik mode `isTedarik` (`/tedarikpanel`):** `tedarik-card` `transparent` + header `Sipariş Listesi` + filters + card-rows `border-collapse:separate 0 7px` `auto` `13/13.5px` + solid pills + bottom note + hidden `mainSearch`. `pickletable` `height:'auto'` + scoped+unscoped overrides. **+Clone link** `Parçayı Sil` `deleteRow` |
+| `pickletable/assets/script.js` + `style.css` | **Guard `height:'auto'`:** Skip `setAttribute(style height)` + `table.style.width` when `auto`; add `pt-auto-height` class + card-row CSS `.tedarik-panel .pickletable table` `separate 0 7px` `auto`; also clone fix `Parçayı Sil` `deleteRow` |
 
 ## 5. How Data Flows Now
 

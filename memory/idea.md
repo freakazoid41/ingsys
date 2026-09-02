@@ -6,4 +6,10 @@
 
 ** admin panel dashboard
 
+** ön panel aramalar için detaylı filtreler
+** sipariş detayı ve süreçleri
+** eğitim videoları
+** raporlar
 
+
+** süreci iki paneldende full test et 

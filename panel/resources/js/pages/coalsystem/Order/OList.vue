@@ -12,6 +12,9 @@
             title: 'Sipariş Listesi'
         },
         setup() { return { useNavigationStore, useAuthStore, Swal } },
+        computed: {
+            isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); }
+        },
         mounted(){
             this.navigationStore.toggle(true);
             this.buildTable();
@@ -47,12 +50,13 @@
                 return val;
             },
             buildTable(){
+                const _isTedarik = this.isTedarik;
                 const headers = [
                     {
                         title: 'Sipariş No',
                         key: 'transfer_no',
                         order: true,
-                        width: '180px',
+                        width: _isTedarik ? '150px' : '180px',
                         type: 'string',
                         columnFormatter: (elm,row)=>{
                             const v = row.transfer_no || row.order_no || row.EBELN || row.id?.substring(0,12) || '-';
@@ -68,9 +72,13 @@
                             span.textContent = v;
                             span.style.fontWeight = '700';
                             span.style.color = '#0f172a';
+                            span.style.fontSize = _isTedarik ? '13px' : '14px';
                             span.title = v;
                             span.style.cursor = 'pointer';
-                            span.onclick = () => this.$router.push({name:'OrderForm', params:{id:row.id}});
+                            span.onclick = () => {
+                                const rName = _isTedarik ? 'TedarikOrderForm' : 'OrderForm';
+                                this.$router.push({name:rName, params:{id:row.id}});
+                            };
 
                             if(isClone && baseNo){
                                 const link = document.createElement('a');
@@ -160,7 +168,7 @@
                         title: 'Durum',
                         key: 'status',
                         order: true,
-                        width: '220px',
+                        width: _isTedarik ? '175px' : '220px',
                         type: 'string',
                         columnFormatter: (elm,row)=>{
                             const parts = String(row.status||'').split('**');
@@ -171,34 +179,52 @@
                             btn.style.display='inline-flex';
                             btn.style.alignItems='center';
                             btn.style.justifyContent='center';
-                            btn.style.padding='6px 14px';
-                            btn.style.borderRadius='8px';
-                            btn.style.fontSize='0.82rem';
-                            btn.style.fontWeight='700';
+                            btn.style.padding=_isTedarik ? '5px 10px' : '6px 12px';
+                            btn.style.borderRadius=_isTedarik ? '6px' : '8px';
+                            btn.style.fontSize=_isTedarik ? '11.5px' : '0.82rem';
+                            btn.style.fontWeight='600';
                             btn.style.whiteSpace='nowrap';
                             btn.style.cursor='pointer';
                             btn.style.border='1px solid transparent';
                             btn.style.gap='6px';
-                            if(opKey==='doc_trans_order_ready_for_shipment' || label.includes('Sipariş Sevke Hazır')){
-                                btn.style.background='#fef3c7';
-                                btn.style.color='#92400e';
-                                btn.style.borderColor='#fcd34d';
-                            } else if(label.includes('Kalite Onayı') || opKey==='doc_trans_transfer_approved' || opKey==='doc_trans_order_approved'){
-                                btn.style.background='#dcfce7';
-                                btn.style.color='#166534';
-                                btn.style.borderColor='#86efac';
-                            } else if(label.includes('Kontrol Ediliyor') || opKey==='doc_trans_transfer_sent' || opKey==='doc_trans_order_transfer_sent' || opKey==='doc_file_waiting'){
-                                btn.style.background='#ffedd5';
-                                btn.style.color='#9a3412';
-                                btn.style.borderColor='#fdba74';
-                            } else if(opKey.includes('rejected')){
-                                btn.style.background='#fee2e2';
-                                btn.style.color='#991b1b';
-                                btn.style.borderColor='#fca5a5';
+                            if(_isTedarik){
+                                // vivid solid pills as in screenshot
+                                if(label.includes('Kalite Onayı') || opKey==='doc_trans_transfer_approved' || opKey==='doc_trans_order_approved'){
+                                    btn.style.background='#22c55e';
+                                    btn.style.color='#ffffff';
+                                    btn.style.borderColor='#22c55e';
+                                } else if(opKey.includes('rejected')){
+                                    btn.style.background='#ef4444';
+                                    btn.style.color='#ffffff';
+                                    btn.style.borderColor='#ef4444';
+                                } else {
+                                    // Beklemede + Dosyalar Kontrol Ediliyor = orange solid
+                                    btn.style.background='#FF5A1F';
+                                    btn.style.color='#ffffff';
+                                    btn.style.borderColor='#FF5A1F';
+                                }
                             } else {
-                                btn.style.background='#f1f5f9';
-                                btn.style.color='#475569';
-                                btn.style.borderColor='#e2e8f0';
+                                if(opKey==='doc_trans_order_ready_for_shipment' || label.includes('Sipariş Sevke Hazır')){
+                                    btn.style.background='#fef3c7';
+                                    btn.style.color='#92400e';
+                                    btn.style.borderColor='#fcd34d';
+                                } else if(label.includes('Kalite Onayı') || opKey==='doc_trans_transfer_approved' || opKey==='doc_trans_order_approved'){
+                                    btn.style.background='#dcfce7';
+                                    btn.style.color='#166534';
+                                    btn.style.borderColor='#86efac';
+                                } else if(label.includes('Kontrol Ediliyor') || opKey==='doc_trans_transfer_sent' || opKey==='doc_trans_order_transfer_sent' || opKey==='doc_file_waiting'){
+                                    btn.style.background='#ffedd5';
+                                    btn.style.color='#9a3412';
+                                    btn.style.borderColor='#fdba74';
+                                } else if(opKey.includes('rejected')){
+                                    btn.style.background='#fee2e2';
+                                    btn.style.color='#991b1b';
+                                    btn.style.borderColor='#fca5a5';
+                                } else {
+                                    btn.style.background='#f1f5f9';
+                                    btn.style.color='#475569';
+                                    btn.style.borderColor='#e2e8f0';
+                                }
                             }
                             const statusIcons={
                                 doc_trans_order_created:'ki-outline ki-file-added',
@@ -244,13 +270,58 @@
                         title: '',
                         key: 'id',
                         order:false,
-                        width:'190px',
+                        width: _isTedarik ? '210px' : '190px',
                         type:'string',
                         columnFormatter:(elm,row)=>{
                             const wrap=document.createElement('div');
                             wrap.style.display='flex';
                             wrap.style.justifyContent='flex-end';
                             wrap.style.gap='6px';
+                            if(_isTedarik){
+                                const aks=document.createElement('button');
+                                aks.textContent='Aksiyonlar';
+                                aks.className='btn';
+                                aks.style.background='#8e8e93';
+                                aks.style.color='#ffffff';
+                                aks.style.border='1px solid #8e8e93';
+                                aks.style.borderRadius='8px';
+                                aks.style.padding='6px 14px';
+                                aks.style.fontSize='0.78rem';
+                                aks.style.fontWeight='600';
+                                aks.style.cursor='pointer';
+                                aks.onmouseenter=()=> aks.style.background='#7f7f84';
+                                aks.onmouseleave=()=> aks.style.background='#8e8e93';
+                                aks.onclick=(e)=>{
+                                    e.stopPropagation();
+                                    Swal.fire({
+                                        title:'Aksiyonlar',
+                                        showConfirmButton:false, showCloseButton:true,
+                                        html:`<div class="d-flex flex-column gap-2 p-2">
+                                            <button class="btn" style="background:#0e8ea4;color:#fff;border:none;" onclick="location.href='#detail'">Detayları Gör</button>
+                                            <button class="btn" style="background:#8e8e93;color:#fff;border:none;">Excel Çıktı</button>
+                                        </div>`,
+                                    });
+                                };
+                                wrap.appendChild(aks);
+                                const det=document.createElement('button');
+                                det.textContent='Detaylar';
+                                det.className='btn';
+                                det.style.background='#0e8ea4';
+                                det.style.color='#ffffff';
+                                det.style.border='1px solid #0e8ea4';
+                                det.style.borderRadius='8px';
+                                det.style.padding='6px 14px';
+                                det.style.fontSize='0.78rem';
+                                det.style.fontWeight='600';
+                                det.style.cursor='pointer';
+                                det.onmouseenter=()=> det.style.background='#0c7e90';
+                                det.onmouseleave=()=> det.style.background='#0e8ea4';
+                                det.onclick=()=>{
+                                    this.$router.push({name:'TedarikOrderForm', params:{id:row.id}});
+                                };
+                                wrap.appendChild(det);
+                                return wrap;
+                            }
                             const btn=document.createElement('button');
                             btn.textContent='Detay';
                             btn.className='btn';
@@ -291,7 +362,7 @@
                     }
                 ];
                 this.table = new PickleTable({
-                    container:'#div_table', headers, pageLimit:10, height:'70vh', type:'ajax', columnSearch:false, paginationType:'number',
+                    container:'#div_table', headers, pageLimit:10, height: _isTedarik ? 'auto' : '70vh', type:'ajax', columnSearch:false, paginationType:'number',
                     ajax:{ url:'/api/v1/table/documents', data:{} },
                     // Orders ARE transfers when partially sent: EBELN and EBELN-X are both op-doc-order.
                     // Screenshot shows EBELN-X rows which are cloned orders (partial shipment).
@@ -375,8 +446,9 @@
     }
 </script>
 <template>
-    <div class="order-list-card">
-        <div class="order-list-header">
+    <div :class="['order-list-card', { 'tedarik-card': isTedarik }]">
+        <!-- Admin header -->
+        <div v-if="!isTedarik" class="order-list-header">
             <div class="order-list-header-left">
                 <div class="order-list-icon">
                     <i class="ki-outline ki-document"></i>
@@ -393,9 +465,27 @@
                 <button class="order-btn order-btn-ghost" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel</button>
             </div>
         </div>
+        <!-- Tedarik header 1:1 from screenshot -->
+        <div v-else class="tedarik-list-top">
+            <div class="tedarik-list-title">
+                <span>Sipariş Listesi</span>
+                <i class="ki-outline ki-video tedarik-title-icon"></i>
+            </div>
+            <div class="tedarik-filters">
+                <a href="javascript:;" class="tedarik-filter"><i class="ki-outline ki-filter"></i> Detaylı Filtre</a>
+                <a href="javascript:;" class="tedarik-filter"><i class="ki-outline ki-filter"></i> Filtreler</a>
+                <a href="javascript:;" class="tedarik-filter" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel Çıktı</a>
+            </div>
+        </div>
         <div class="order-list-body">
             <div id="div_table"></div>
         </div>
+        <div v-if="isTedarik" class="tedarik-bottom-note">
+            <i class="ki-outline ki-information-5"></i>
+            <span>Beklemede olan siparişlerinizi <b>"Detaylar"</b> butonuna tıklayarak kontrollerinizi gerçekleştirmeyi unutmayınız.</span>
+        </div>
+        <!-- hidden search for tedarik filtering (keeps searchTable working) -->
+        <input v-if="isTedarik" id="mainSearch" type="hidden" value="" />
     </div>
 </template>
 <style scoped>
@@ -542,5 +632,298 @@
     background: #fff !important;
     border-top: 1px solid #f1f5f9 !important;
     padding: 10px 16px !important;
+}
+/* ===== TEDARIK 1:1 Overrides ===== */
+.tedarik-card {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+.tedarik-list-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 4px 18px;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-bottom: none;
+}
+.tedarik-list-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 19px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+.tedarik-title-icon {
+    font-size: 13px;
+    color: #9ca3af;
+    opacity: 1;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    width: 22px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+}
+.tedarik-filters {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+.tedarik-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #8a8a8e;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.tedarik-filter i { font-size: 13px; color: #a1a1a6; }
+.tedarik-filter:hover { color: #4b5563; }
+.tedarik-card .order-list-body {
+    background: transparent !important;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.tedarik-card :deep(.pickletable .divTable){
+    flex: 1;
+    height: auto !important;
+    overflow: visible !important;
+}
+.tedarik-card :deep(.pickletable table){
+    border-collapse: separate !important;
+    border-spacing: 0 7px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border: none !important;
+}
+.tedarik-card :deep(.pickletable thead th){
+    background: transparent !important;
+    color: #b0b0b5 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    padding: 0 14px 10px !important;
+    border: none !important;
+    border-bottom: none !important;
+    white-space: nowrap;
+    text-align: left !important;
+    box-shadow: none !important;
+    position: relative !important;
+    top: auto !important;
+}
+.tedarik-card :deep(.pickletable thead th:last-child){
+    text-align: right !important;
+}
+.tedarik-card :deep(.pickletable tbody tr){
+    background: transparent !important;
+    box-shadow: none !important;
+}
+.tedarik-card :deep(.pickletable tbody tr:hover td){
+    background: #fcfcfc !important;
+}
+.tedarik-card :deep(.pickletable tbody td){
+    background: #fff !important;
+    padding: 13px 14px !important;
+    font-size: 13.5px !important;
+    color: #2b2b33 !important;
+    border: 1px solid #e8e8ea !important;
+    border-left: 1px solid #e8e8ea !important;
+    border-right: 1px solid #e8e8ea !important;
+    vertical-align: middle !important;
+    white-space: nowrap;
+    font-weight: 400;
+    text-overflow: clip !important;
+    overflow: visible !important;
+}
+.tedarik-card :deep(.pickletable tbody td:first-child){
+    border-left: 1px solid #e8e8ea !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-left-radius: 8px !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+}
+.tedarik-card :deep(.pickletable tbody td:last-child){
+    border-right: 1px solid #e8e8ea !important;
+    border-top-right-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+}
+.tedarik-card :deep(.pickletable .divPagination){
+    background: transparent !important;
+    border-top: none !important;
+    padding: 10px 0 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    position: relative;
+}
+.tedarik-card :deep(.pickletable .divPagination .pagination){
+    gap: 5px;
+    margin-top: 14px;
+}
+.tedarik-card :deep(.pickletable .divPagination button),
+.tedarik-card :deep(.pickletable .divPagination .page-link){
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    color: #8a8a8e !important;
+    border-radius: 6px !important;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    min-width: 32px;
+    height: 30px;
+}
+.tedarik-card :deep(.pickletable .divPagination .active button),
+.tedarik-card :deep(.pickletable .divPagination .active .page-link){
+    background: #fff !important;
+    color: #FF5A1F !important;
+    border-color: #FF5A1F !important;
+    font-weight: 700 !important;
+}
+.tedarik-bottom-note {
+    margin-top: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 11.5px;
+    color: #8a8a8e;
+    line-height: 1.6;
+    justify-content: flex-end;
+    text-align: right;
+    margin-left: auto;
+    max-width: 520px;
+}
+.tedarik-bottom-note i {
+    color: #0e9cb8;
+    font-size: 13px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.tedarik-bottom-note b { color: #4b5563; font-weight: 700; }
+</style>
+<!-- UNSCOPED: override pickletable global defaults for tedarik card-rows -->
+<style>
+.tedarik-card .pickletable {
+    border: none !important;
+    height: auto !important;
+}
+.tedarik-card .pickletable .divTable {
+    height: auto !important;
+    overflow: visible !important;
+    border-bottom: none !important;
+}
+.tedarik-card .pickletable table {
+    border-collapse: separate !important;
+    border-spacing: 0 7px !important;
+    table-layout: auto !important;
+    border: none !important;
+    width: 100% !important;
+}
+.tedarik-card .pickletable th {
+    background: transparent !important;
+    color: #b0b0b5 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: relative !important;
+    top: auto !important;
+    padding: 0 14px 10px !important;
+}
+.tedarik-card .pickletable td {
+    background: #fff !important;
+    border: 1px solid #e8e8ea !important;
+    font-size: 13.5px !important;
+    padding: 13px 14px !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+}
+.tedarik-card .pickletable td:first-child {
+    border-left: 1px solid #e8e8ea !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-left-radius: 8px !important;
+    font-weight: 600 !important;
+}
+.tedarik-card .pickletable td:last-child {
+    border-right: 1px solid #e8e8ea !important;
+    border-top-right-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+}
+.tedarik-card .pickletable tr {
+    background: transparent !important;
+}
+.tedarik-card .pickletable tr:hover td {
+    background: #fcfcfc !important;
+}
+.tedarik-card .pickletable .divPagination {
+    border-top: none !important;
+}
+/* Card-row style for tedarik */
+.tedarik-card .pickletable .pt-auto-height {
+    border-collapse: separate !important;
+    border-spacing: 0 7px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border: none !important;
+}
+.tedarik-card .pickletable .pt-auto-height tbody tr {
+    background: white !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: none !important;
+}
+.tedarik-card .pickletable .pt-auto-height tbody tr:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+}
+.tedarik-card .pickletable .pt-auto-height tbody td {
+    background: transparent !important;
+    border: none !important;
+    padding: 14px 12px !important;
+    font-size: 13px !important;
+    color: #333 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    vertical-align: middle !important;
+}
+.tedarik-card .pickletable .pt-auto-height tbody td:first-child {
+    border-radius: 14px 0 0 14px !important;
+}
+.tedarik-card .pickletable .pt-auto-height tbody td:last-child {
+    border-radius: 0 14px 14px 0 !important;
+}
+/* Make table fill full page height */
+.tedarik-card .order-list-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.tedarik-card .pickletable {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.tedarik-card .pickletable .divTable {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 </style>

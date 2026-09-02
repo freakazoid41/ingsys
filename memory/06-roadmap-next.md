@@ -5,12 +5,12 @@
 
 ## 1. Immediate Next (Choose 1)
 
-### Option A: Tedarik Panel Orders → Build Client Order Flow (IN PROGRESS 2026-09-02)
-Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/tedarikpanel` `TedarikPanel.vue` + `Dashboard.vue` placeholder, route `router/index.js:110` reuses `OList/OForm`). Next:
-1. **Order List tedarik view:** filter by client LIFNR (`currentStatus.clientQnidList` if reseller), hide admin actions, show `transfer_sent/files_rejected` badges.
-2. **Order Detail tedarik:** order header readOnly + `OrderItemTable` with `readonly` + file upload (test+images) + transfer card at_once/partial + serials (KG/M required, ST optional), same `processOrderTransfer` payload.
+### Option A: Tedarik Panel Orders → Build Client Order Flow (DONE 2026-09-02 late — polish)
+Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/tedarikpanel` `TedarikPanel.vue:386` card 1360×12 sidebar 210 6 tabs 64×12 -52 protruding, logo 82 + label, menu flex1 centered, `OList isTedarik` card-rows `pickletable height auto`, `Dashboard.vue` placeholder, route `router/index.js:110` reuses `OList/OForm`). Next:
+1. **Order List tedarik view:** filter by client LIFNR (`currentStatus.clientQnidList` if reseller), hide admin actions, show `transfer_sent/files_rejected` badges — **UI DONE**, filter wiring PENDING.
+2. **Order Detail tedarik:** order header readOnly + `OrderItemTable` with `readonly` + file upload (test+images) + transfer card at_once/partial + serials (KG/M required, ST optional), same `processOrderTransfer` payload — **reuses OForm**.
 3. **File + serial wiring:** reuse `Form.vue` + `pickle.js` temp-upload (already done in admin OForm — clone for tedarik).
-4. **Rejected:** `files_rejected` orange + re-upload unlock + `still-rejected` toast.
+4. **Rejected:** `files_rejected` orange + re-upload unlock + `still-rejected` toast — done.
 
 ### Option B: Dashboard Rebuild
 1. Replace coal `topstats/monthlyoffers` with order queries (pending transfers, awaiting files, approved today)
@@ -28,7 +28,7 @@ All logged in `memory/05 §4`. Highlights:
 - Malzeme Kabul/Cins-Miktar PDF + reprint; file replacement v2 + `syncOrderStatusFromFiles`
 - SAP sync fresh data (8 orders / 21 items, 2026-09-02 08:20 re-seed GDZ, `grp_code=GDZ`)
 - 2026-09-02: rejected `Yeni Test Yükle` unlock + still-rejected toast + DList grouping header full-length + pickletable header-cache + popup + join fix
-- 2026-09-02 late: Tedarik public panel `/tedarik` → `/tedarikpanel` (orange 560×840 140px Gdz, unified 2FA 560×720), `GDZ/ADM` rename + DB re-seed, `public/index.php` `adm ? ADM : GDZ`
+- 2026-09-02 late: Tedarik public panel `/tedarik` → `/tedarikpanel` (orange 560×840 140px Gdz, unified 2FA 560×720), `GDZ/ADM` rename + DB re-seed, `public/index.php` `adm ? ADM : GDZ` + **TedarikPanel polish 2026-09-02 late: card 1360×12 sidebar 210 6×64px tabs -52 protruding 38px, logo 82 + label, menu centered, OList card-rows 0 7px, pickletable guard**
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 
