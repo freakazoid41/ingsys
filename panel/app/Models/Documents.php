@@ -344,6 +344,7 @@ class Documents extends Model
                         $where .= " and ".$column." not like '%".$f['value']."%' ";
                         break;
                     case 'transactions':
+                    case 'onay_durumu':
                         if(noInject(strip_tags($f['value'])) == 'null'){
                             $sql = "  and (select    so.op_key
                                                 from transactions as t
@@ -357,6 +358,51 @@ class Documents extends Model
                         }
                         
                         $where .= $sql;
+                        break;
+                    // Tedarik detailed search — order list filters (op-doc-order)
+                    case 'stok_kodu':
+                        // product code lives on order-item (child of order)
+                        $where .= " and exists (select 1 from documents di join sys_con_ops sco2 on sco2.main_id=di.id and sco2.conn_id=0 join sys_con_entities sce2 on sce2.conn_id=sco2.id where di.parent_id=i.id and di.status=1 and sce2.entity_tag='prod_code' and sce2.entity_value ilike '%".noInject($f['value'])."%') ";
+                        break;
+                    case 'siparis_kodu':
+                        $where .= " and exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='order_no' and se2.entity_value ilike '%".noInject($f['value'])."%') ";
+                        break;
+                    case 'alim_kodu':
+                        $where .= " and exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='buying_no' and se2.entity_value ilike '%".noInject($f['value'])."%') ";
+                        break;
+                    case 'seri_no':
+                        // serial_no on op-doc-order-serial whose parent item's parent is this order
+                        $where .= " and exists (select 1 from documents ds join sys_con_ops sco_s on sco_s.main_id=ds.id and sco_s.conn_id=0 join sys_con_entities sce_s on sce_s.conn_id=sco_s.id where ds.status=1 and sce_s.entity_tag='serial_no' and sce_s.entity_value ilike '%".noInject($f['value'])."%' and ds.parent_id in (select id from documents where parent_id=i.id and status=1)) ";
+                        break;
+                    case 'uretim_tarihi':
+                        $where .= " and exists (select 1 from documents ds join sys_con_ops sco_s on sco_s.main_id=ds.id and sco_s.conn_id=0 join sys_con_entities sce_s on sce_s.conn_id=sco_s.id where ds.status=1 and sce_s.entity_tag='production_date' and sce_s.entity_value ilike '%".noInject($f['value'])."%' and ds.parent_id in (select id from documents where parent_id=i.id and status=1)) ";
+                        break;
+                    case 'sirket':
+                    case 'tedarikci':
+                    case 'sirket_kodu':
+                    case 'tedarikci_kodu':
+                        // both filter by spec_code (LIFNR) or ctitle (company name) — selects give lifnr
+                        $v = noInject($f['value']);
+                        $where .= " and (exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value ilike '%".$v."%') or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='ctitle' and se2.entity_value ilike '%".$v."%')) ";
+                        break;
+                    case 'tarih_araligi':
+                    case 'tarih_baslangic':
+                        // value may be YYYY-MM-DD or DD/MM/YYYY — compare via i.created_at and entity created_at
+                        $v = noInject($f['value']);
+                        // try to normalize: if contains | it's a range start|end
+                        if(strpos($v, '|') !== false){
+                            [$s,$e] = explode('|', $v, 2);
+                            $s = trim($s); $e = trim($e);
+                            if($s !== '' && $e !== ''){
+                                $where .= " and i.created_at::date between '".noInject($s)."'::date and '".noInject($e)."'::date ";
+                            } elseif($s !== ''){
+                                $where .= " and i.created_at::date >= '".noInject($s)."'::date ";
+                            } elseif($e !== ''){
+                                $where .= " and i.created_at::date <= '".noInject($e)."'::date ";
+                            }
+                        } else {
+                            $where .= " and (i.created_at::text ilike '%".$v."%' or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='created_at' and se2.entity_value ilike '%".$v."%')) ";
+                        }
                         break;
                     case 'parent_id':
                         $where .= " and i.parent_id = '".intval($f['value'])."' ";

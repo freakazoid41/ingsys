@@ -50,6 +50,9 @@ Global middleware (`bootstrap/app.php:19-27`): `ParsePutMultipart` (broken, fall
 - `documentFileStatus` now calls `syncOrderStatusFromFiles` → any rejected active file under an order (or its items) auto-flips the order to `doc_trans_order_files_rejected`; all accepted → back to `transfer_sent`.
 - **Transfer send happens on the order-detail SAVE** (`PUT /v1/document/{qnid}`, payload `transfer_mode` + `selected_items`) → `DocumentServiceProvider::processOrderTransfer`: `at_once` sets order `transfer_sent`; `partial` clones `op-doc-order` `transfer_no=EBELN-X` + `moveOrderFilesToDocument` + `duplicateOrderItem` + `recordPartiallySent`, sets clone `transfer_sent`.
 - `POST /v1/orders/cancel` → `DocumentServiceProvider::cancelOrder` soft `status=0` + terminal rejected transaction (reject & cancel whole order).
+- **Tedarik detailed search (2026-09-02 late):** `OList.vue:52` `showDetailed` (default `false`, hover `absolute top:52 z40` 3×3 `tedarik-detailed-panel`) + 9 `Documents::tableList` keys (`stok_kodu/siparis_kodu/alim_kodu/seri_no/uretim_tarihi/sirket/tedarikci/onay_durumu/tarih_araligi` via EXISTS on items/serials/entities), selects: `Şirket Ara`=`op-doc-client` `lifnr` list, `Tedarikçi Ara`=same list but conceptually users with `lifnr` (fallback to client list), `Filtrele/Sıfırla/Excel` → `table.setFilter([])` merges `initialFilter`.
+- **Module Switcher (2026-09-02 late):** `Sidebar.vue:393` + `TedarikPanel.vue:64` `Modüller` btn above Çıkış → `teleport` modal `modules[]` (`Yönetim→/coalpanel`/`Tedarik→/tedarikpanel`) via `isModuleActive` + `$router.push`.
+- **Shared vs Fork decision 2026-09-02 late:** `OList/OForm` stay **SHARED** via `isTedarik` (do not fork) — keep DRY, tedarik UI lives as conditional branches + `OrderItemTable` shared brain; fork only if supplier flow diverges further.
 
 ### Permission Map — `docPermCheck(typeKey, perm)`
 

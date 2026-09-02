@@ -10,6 +10,25 @@ export default {
             navigationStore: useNavigationStore(),
             authStore: useAuthStore(),
             sysCode: 'ADM',
+            showModuleModal: false,
+            modules: [
+                {
+                    key: 'admin',
+                    title: 'Yönetim Paneli',
+                    desc: 'Siparişler, kullanıcılar ve sistem yönetimi',
+                    icon: 'ki-outline ki-shield-tick',
+                    path: '/coalpanel',
+                    color: '#154b91',
+                },
+                {
+                    key: 'tedarik',
+                    title: 'Tedarik Yönetim Panel',
+                    desc: 'Sipariş takibi ve tedarik süreçleri',
+                    icon: 'ki-outline ki-delivery',
+                    path: '/tedarikpanel',
+                    color: '#FF5A1F',
+                },
+            ],
         }
     },
     mounted() {
@@ -27,7 +46,19 @@ export default {
         isDokumanActive() { return this.$route.path.includes('/document'); },
     },
     methods: {
-        isActive(path) { return this.$route.path === path || this.$route.path.startsWith(path); }
+        isActive(path) { return this.$route.path === path || this.$route.path.startsWith(path); },
+        goModule(mod){
+            this.showModuleModal=false;
+            if(!mod||!mod.path) return;
+            const cur=window.location.pathname;
+            if(cur.startsWith(mod.path)) return;
+            try{ if(this.$router&&this.$router.push){ this.$router.push(mod.path); return; } }catch(e){}
+            window.location.href=mod.path;
+        },
+        isModuleActive(mod){
+            const cur=window.location.pathname;
+            return cur===mod.path||cur.startsWith(mod.path+'/');
+        }
     }
 }
 </script>
@@ -68,11 +99,46 @@ export default {
                         <span class="tedarik-info-badge">0</span>
                     </a>
 
+                    <a href="javascript:;" class="tedarik-modules-btn" @click="showModuleModal=true">
+                        <span>Modüller</span>
+                        <span class="tedarik-modules-icon"><i class="ki-outline ki-element-11"></i></span>
+                    </a>
+
                     <a href="/logout" class="tedarik-logout">
                         <span>TEST TALK</span>
                         <span class="tedarik-logout-icon"><i class="ki-outline ki-entrance-left"></i></span>
                     </a>
                 </div>
+
+                <teleport to="body">
+                    <div v-if="showModuleModal" class="module-modal-overlay tedarik-module-overlay" @click.self="showModuleModal=false">
+                        <div class="module-modal-card" role="dialog" aria-modal="true" aria-label="Modüller">
+                            <div class="module-modal-head">
+                                <div class="module-modal-title">
+                                    <span class="module-modal-icon-wrap"><i class="ki-outline ki-element-11"></i></span>
+                                    <div>
+                                        <div class="module-modal-title-text">Modüller</div>
+                                        <div class="module-modal-sub">Çalışmak istediğiniz panele geçin</div>
+                                    </div>
+                                </div>
+                                <button class="module-modal-close" @click="showModuleModal=false" aria-label="Kapat"><i class="ki-outline ki-cross fs-2"></i></button>
+                            </div>
+                            <div class="module-modal-body">
+                                <a v-for="mod in modules" :key="mod.key" href="javascript:;" class="module-card" :class="{ active: isModuleActive(mod) }" @click="goModule(mod)">
+                                    <span class="module-card-icon" :style="{ background: mod.color }"><i :class="mod.icon"></i></span>
+                                    <span class="module-card-text">
+                                        <span class="module-card-title">{{ mod.title }}</span>
+                                        <span class="module-card-desc">{{ mod.desc }}</span>
+                                        <span class="module-card-path">{{ mod.path }}</span>
+                                    </span>
+                                    <span class="module-card-arrow"><i class="ki-outline ki-right fs-3"></i></span>
+                                    <span v-if="isModuleActive(mod)" class="module-card-badge">Aktif</span>
+                                </a>
+                            </div>
+                            <div class="module-modal-foot">Admin olarak paneller arası serbest geçiş yapabilirsiniz.</div>
+                        </div>
+                    </div>
+                </teleport>
             </aside>
 
             <!-- Main -->
@@ -262,6 +328,16 @@ export default {
 }
 
 .tedarik-logout-icon i {font-size: 25px;}
+.tedarik-modules-btn{
+    height: 64px; border:1px solid #c7d2fe; border-radius:12px; background:#eef2ff;
+    display:flex; align-items:center; justify-content:space-between; padding:0 18px;
+    text-decoration:none; color:#3730a3; font-size:16.5px; font-weight:700;
+    transition: all .15s; margin-left:-52px; width:calc(100% + 52px); position:relative;
+    box-shadow:0 2px 8px rgba(0,0,0,0.04); cursor:pointer;
+}
+.tedarik-modules-btn:hover{ background:#e0e7ff; border-color:#a5b4fc; }
+.tedarik-modules-icon{ width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:18px; color:#6366f1; }
+.tedarik-module-overlay.module-modal-overlay{ padding: 18px 14px 18px 48px; justify-content: center; }
 .tedarik-main {
     flex: 1;
     min-width: 0;

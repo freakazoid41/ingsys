@@ -31,6 +31,25 @@ export default {
             sysCode     : document.querySelector('input[name="SYS_CODE"]').value,
             isMini      : false,
             searchQuery : '',
+            showModuleModal : false,
+            modules: [
+                {
+                    key: 'admin',
+                    title: 'Yönetim Paneli',
+                    desc: 'Siparişler, kullanıcılar ve sistem yönetimi',
+                    icon: 'ki-outline ki-shield-tick',
+                    path: '/coalpanel',
+                    color: '#154b91',
+                },
+                {
+                    key: 'tedarik',
+                    title: 'Tedarik Yönetim Panel',
+                    desc: 'Sipariş takibi ve tedarik süreçleri',
+                    icon: 'ki-outline ki-delivery',
+                    path: '/tedarikpanel',
+                    color: '#FF5A1F',
+                },
+            ],
         };
     },
     computed: {
@@ -118,6 +137,26 @@ export default {
                 }
                 label.classList.toggle('d-none', !anyVisible);
             });
+        },
+        openModules() { this.showModuleModal = true; },
+        closeModules() { this.showModuleModal = false; },
+        goModule(mod) {
+            this.showModuleModal = false;
+            if (!mod || !mod.path) return;
+            const cur = window.location.pathname;
+            if (cur.startsWith(mod.path)) return;
+            // SPA routes exist in same app — try router first, fallback to hard nav
+            try {
+                if (this.$router && this.$router.push) {
+                    this.$router.push(mod.path);
+                    return;
+                }
+            } catch(e) {}
+            window.location.href = mod.path;
+        },
+        isModuleActive(mod) {
+            const cur = window.location.pathname;
+            return cur === mod.path || cur.startsWith(mod.path + '/');
         },
     }
 }
@@ -352,7 +391,11 @@ export default {
         </div>
 
         <!-- Footer (8a tam genişlik) -->
-        <div class="aside-footer flex-shrink-0 px-3 py-3 border-top">
+        <div class="aside-footer flex-shrink-0 px-3 py-3 border-top d-flex flex-column gap-2">
+            <button @click="openModules" class="btn btn-light-primary w-100 d-flex align-items-center justify-content-center fw-bold" style="background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3;" :title="isMini ? 'Modüller' : ''">
+                <i class="ki-outline ki-element-11 fs-3 me-2"></i>
+                <span v-if="!isMini">Modüller</span>
+            </button>
             <a href="/logout" class="btn btn-light-danger w-100 d-flex align-items-center justify-content-center fw-bold">
                 <i class="ki-duotone ki-entrance-left fs-3 me-2">
                     <span class="path1"></span>
@@ -362,4 +405,93 @@ export default {
             </a>
         </div>
     </div>
+
+    <!-- Module Switcher Modal -->
+    <teleport to="body">
+        <div v-if="showModuleModal" class="module-modal-overlay" @click.self="closeModules" @keydown.esc="closeModules" tabindex="0">
+            <div class="module-modal-card" role="dialog" aria-modal="true" aria-label="Modüller">
+                <div class="module-modal-head">
+                    <div class="module-modal-title">
+                        <span class="module-modal-icon-wrap"><i class="ki-outline ki-element-11"></i></span>
+                        <div>
+                            <div class="module-modal-title-text">Modüller</div>
+                            <div class="module-modal-sub">Çalışmak istediğiniz panele geçin</div>
+                        </div>
+                    </div>
+                    <button class="module-modal-close" @click="closeModules" aria-label="Kapat"><i class="ki-outline ki-cross fs-2"></i></button>
+                </div>
+                <div class="module-modal-body">
+                    <a v-for="mod in modules" :key="mod.key" href="javascript:;" class="module-card" :class="{ active: isModuleActive(mod) }" @click="goModule(mod)">
+                        <span class="module-card-icon" :style="{ background: mod.color }"><i :class="mod.icon"></i></span>
+                        <span class="module-card-text">
+                            <span class="module-card-title">{{ mod.title }}</span>
+                            <span class="module-card-desc">{{ mod.desc }}</span>
+                            <span class="module-card-path">{{ mod.path }}</span>
+                        </span>
+                        <span class="module-card-arrow"><i class="ki-outline ki-right fs-3"></i></span>
+                        <span v-if="isModuleActive(mod)" class="module-card-badge">Aktif</span>
+                    </a>
+                </div>
+                <div class="module-modal-foot">Admin olarak paneller arası serbest geçiş yapabilirsiniz.</div>
+            </div>
+        </div>
+    </teleport>
 </template>
+
+<style>
+.module-modal-overlay{
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(15,23,42,0.48);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+}
+.module-modal-card{
+    width: 100%; max-width: 560px;
+    background: #fff; border-radius: 18px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+    overflow: hidden; animation: moduleModalIn .18s ease;
+}
+@keyframes moduleModalIn{ from{ transform: translateY(8px) scale(.98); opacity:0 } to{ transform:none; opacity:1 } }
+.module-modal-head{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 16px; border-bottom: 1px solid #eef2ff;
+}
+.module-modal-title{ display: flex; align-items: center; gap: 12px; }
+.module-modal-icon-wrap{
+    width: 40px; height: 40px; border-radius: 12px; background:#eef2ff; color:#3730a3;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 20px;
+}
+.module-modal-title-text{ font-size: 15px; font-weight: 800; color:#0f172a; line-height: 1; }
+.module-modal-sub{ font-size: 12px; color:#64748b; margin-top: 4px; }
+.module-modal-close{
+    width: 36px; height: 36px; border-radius: 10px; border:1px solid #e2e8f0; background:#fff; color:#64748b;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.module-modal-close:hover{ background:#f8fafc; color:#0f172a; }
+.module-modal-body{ padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.module-card{
+    position: relative; display: flex; align-items: center; gap: 14px;
+    padding: 16px 16px 16px 14px; border-radius: 14px; border:1px solid #e2e8f0; background:#fff;
+    text-decoration: none; cursor: pointer; transition: all .15s ease;
+}
+.module-card:hover{ border-color:#c7d2fe; background:#f8fafc; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.08); }
+.module-card.active{ border-color:#3730a3; background:#f5f3ff; }
+.module-card-icon{
+    width: 46px; height: 46px; border-radius: 13px; display:inline-flex; align-items:center; justify-content:center;
+    color:#fff; font-size: 22px; flex-shrink:0;
+}
+.module-card-text{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.module-card-title{ font-size: 14.5px; font-weight: 800; color:#0f172a; line-height:1.1; }
+.module-card-desc{ font-size: 12.5px; color:#64748b; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.module-card-path{ font-size: 11px; color:#94a3b8; font-family: ui-monospace, monospace; }
+.module-card-arrow{ color:#94a3b8; flex-shrink:0; }
+.module-card:hover .module-card-arrow{ color:#3730a3; }
+.module-card-badge{
+    position:absolute; top:12px; right:44px; background:#22c55e; color:#fff; font-size:10px; font-weight:800;
+    padding: 2px 8px; border-radius:999px; letter-spacing:.04em;
+}
+.module-modal-foot{
+    padding: 12px 20px 16px; font-size: 11.5px; color:#94a3b8; text-align:center; border-top: 1px solid #f1f5f9; background:#fcfcff;
+}
+</style>

@@ -19,15 +19,71 @@
             this.navigationStore.toggle(true);
             this.buildTable();
             setTimeout(() => this.navigationStore.toggle(false), 300);
+            if(this.isTedarik){
+                this.fetchClients();
+                this.fetchTedarikciler();
+            }
         },
         data() {
             return {
                 plib : new Plib(),
                 navigationStore : useNavigationStore(),
                 authStore : useAuthStore(),
+                showDetailed: false,
+                detay: {
+                    stokKodu: '',
+                    siparisKodu: '',
+                    alimKodu: '',
+                    seriNo: '',
+                    uretimTarihi: '',
+                    tedarikci: '',
+                    sirket: '',
+                    onayDurumu: '',
+                    tarihAraligi: '',
+                },
+                clientOptions: [],
+                tedarikciOptions: [],
             }
         },
         methods: {
+            toggleDetailed(){ this.showDetailed = !this.showDetailed; },
+            async fetchClients(){
+                try{
+                    const fd=new FormData();
+                    fd.append('tableReq', JSON.stringify({filter:[{key:'form-type',type:'=',value:'op-doc-client-form'},{key:'type',type:'=',value:'op-doc-client'}], scale:{page:1, limit:100}, order:{key:'id', style:'asc'}}));
+                    const rsp=await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
+                    const rows=rsp?.data?.data || rsp?.data || [];
+                    const list=Array.isArray(rows)?rows:(rows?.data||[]);
+                    const opts=[];
+                    list.forEach(r=>{
+                        try{
+                            const attrs=JSON.parse(r.main_attr||'[]');
+                            const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
+                            const title=(attrs.find(a=>a.Key==='title')||{}).Value||'';
+                            const label = title ? `${title} (${lifnr})` : lifnr;
+                            if(lifnr) opts.push({value: lifnr, label});
+                        }catch(e){}
+                    });
+                    this.clientOptions=opts;
+                    // Tedarikçi Ara same source but may be filtered by users containing client code — fallback to same list
+                    if(!this.tedarikciOptions.length) this.tedarikciOptions=opts.slice();
+                }catch(e){ console.error('fetchClients',e); }
+            },
+            async fetchTedarikciler(){
+                try{
+                    // Tedarikçi Ara: users that contain a client code (userclientgroup)
+                    // Try to fetch via persons, fallback to clients if empty
+                    const fd=new FormData();
+                    fd.append('tableReq', JSON.stringify({filter:[], scale:{page:1, limit:100}, order:{key:'id', style:'asc'}}));
+                    const rsp=await this.plib.request({url:'/api/v1/table/persons', method:'POST'}, null, fd);
+                    const rows=rsp?.data?.data || rsp?.data || [];
+                    const list=Array.isArray(rows)?rows:(rows?.data||[]);
+                    // Persons tableList doesn't expose client code, so we will not have lifnr here.
+                    // Keep fallback: if we got persons, map to username, but filter will still use lifnr from client list.
+                    // For now, if persons empty, keep clientOptions as tedarikci source.
+                    if(list.length){ /* could enhance later to fetch per-person client */ }
+                }catch(e){ /* silent fallback to clientOptions */ }
+            },
             searchTable(){
                 this.table.setFilter([{ key:'all', type:'=', value: document.getElementById('mainSearch').value.trim() }]);
             },
@@ -36,6 +92,29 @@
                 this.table.setFilter([]);
             },
             exportTable(){
+                this.plib.openTab('POST', '/api/v1/export/orders', this.table.currentFilter,'_blank');
+            },
+            applyDetailedFilter(){
+                const f=[];
+                const v=this.detay;
+                if(v.stokKodu.trim()) f.push({key:'stok_kodu', type:'like', value: v.stokKodu.trim()});
+                if(v.siparisKodu.trim()) f.push({key:'siparis_kodu', type:'like', value: v.siparisKodu.trim()});
+                if(v.alimKodu.trim()) f.push({key:'alim_kodu', type:'like', value: v.alimKodu.trim()});
+                if(v.seriNo.trim()) f.push({key:'seri_no', type:'like', value: v.seriNo.trim()});
+                if(v.uretimTarihi.trim()) f.push({key:'uretim_tarihi', type:'like', value: v.uretimTarihi.trim()});
+                if(v.tedarikci) f.push({key:'tedarikci', type:'like', value: v.tedarikci});
+                if(v.sirket) f.push({key:'sirket', type:'like', value: v.sirket});
+                if(v.onayDurumu) f.push({key:'transactions', type:'=', value: v.onayDurumu});
+                if(v.tarihAraligi.trim()) f.push({key:'tarih_araligi', type:'like', value: v.tarihAraligi.trim()});
+                this.table.setFilter(f);
+            },
+            resetDetailedFilter(){
+                this.detay={ stokKodu:'', siparisKodu:'', alimKodu:'', seriNo:'', uretimTarihi:'', tedarikci:'', sirket:'', onayDurumu:'', tarihAraligi:'' };
+                this.table.setFilter([]);
+            },
+            exportDetailed(){
+                if(!this.table || !this.table.currentFilter) return this.exportTable();
+                // If no detailed filter active, allow export of full list as per note
                 this.plib.openTab('POST', '/api/v1/export/orders', this.table.currentFilter,'_blank');
             },
             formatDate(val){
@@ -472,9 +551,52 @@
                 <i class="ki-outline ki-video tedarik-title-icon"></i>
             </div>
             <div class="tedarik-filters">
-                <a href="javascript:;" class="tedarik-filter"><i class="ki-outline ki-filter"></i> Detaylı Filtre</a>
-                <a href="javascript:;" class="tedarik-filter"><i class="ki-outline ki-filter"></i> Filtreler</a>
+                <a href="javascript:;" class="tedarik-filter" @click="toggleDetailed"><i class="ki-outline ki-filter"></i> Detaylı Filtre</a>
+                <a href="javascript:;" class="tedarik-filter" @click="toggleDetailed"><i class="ki-outline ki-filter"></i> Filtreler</a>
                 <a href="javascript:;" class="tedarik-filter" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel Çıktı</a>
+            </div>
+        </div>
+        <!-- Detailed search panel — tedarik only, toggles via Detaylı Filtre -->
+        <div v-if="isTedarik && showDetailed" class="tedarik-detailed-panel">
+            <div class="tedarik-detailed-grid">
+                <input v-model="detay.stokKodu" class="tedarik-detailed-input" placeholder="Stok Kodu Giriniz" />
+                <input v-model="detay.siparisKodu" class="tedarik-detailed-input" placeholder="Sipariş Kodu Giriniz" />
+                <input v-model="detay.alimKodu" class="tedarik-detailed-input" placeholder="Alım Kodu Giriniz" />
+                <input v-model="detay.seriNo" class="tedarik-detailed-input" placeholder="Seri No Giriniz" />
+                <input v-model="detay.uretimTarihi" class="tedarik-detailed-input" placeholder="Malzeme Üretim Tarihi" />
+                <div class="tedarik-detailed-select-wrap">
+                    <select v-model="detay.tedarikci" class="tedarik-detailed-select">
+                        <option value="">Tedarikçi Ara</option>
+                        <option v-for="opt in tedarikciOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                    <i class="ki-outline ki-down tedarik-detailed-arrow"></i>
+                </div>
+                <div class="tedarik-detailed-select-wrap">
+                    <select v-model="detay.sirket" class="tedarik-detailed-select">
+                        <option value="">Şirket Ara</option>
+                        <option v-for="opt in clientOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                    <i class="ki-outline ki-down tedarik-detailed-arrow"></i>
+                </div>
+                <div class="tedarik-detailed-select-wrap">
+                    <select v-model="detay.onayDurumu" class="tedarik-detailed-select">
+                        <option value="">Sipariş Onay Durumu</option>
+                        <option value="doc_trans_order_created">Sipariş Oluşturuldu</option>
+                        <option value="doc_trans_order_transfer_sent">Dosyalar Kontrol Ediliyor</option>
+                        <option value="doc_trans_order_ready_for_shipment">Sipariş Sevke Hazır</option>
+                        <option value="doc_trans_order_approved">Sipariş Onaylandı</option>
+                        <option value="doc_trans_order_rejected">Sipariş Reddedildi</option>
+                        <option value="doc_trans_order_files_rejected">Reddedilen Dosyalar Mevcut</option>
+                    </select>
+                    <i class="ki-outline ki-down tedarik-detailed-arrow"></i>
+                </div>
+                <input v-model="detay.tarihAraligi" class="tedarik-detailed-input" placeholder="Tarih Aralığı Seçiniz" />
+            </div>
+            <div class="tedarik-detailed-actions">
+                <button class="tedarik-btn-light" @click="applyDetailedFilter">Filtrele</button>
+                <button class="tedarik-btn-light" @click="resetDetailedFilter">Sıfırla</button>
+                <button class="tedarik-btn-orange" @click="exportDetailed"><i class="ki-outline ki-exit-down"></i> Excel Çıktı</button>
+                <span class="tedarik-detailed-note">Eğer yukarıdaki filtrelerden en az biri seçili olmazsa tüm listeyi Excel olarak çıktı alabilirsiniz.</span>
             </div>
         </div>
         <div class="order-list-body">
@@ -814,6 +936,60 @@
     flex-shrink: 0;
 }
 .tedarik-bottom-note b { color: #4b5563; font-weight: 700; }
+/* ===== Detailed search panel ===== */
+.tedarik-card{ position: relative; }
+.tedarik-detailed-panel{
+    position: absolute; top: 52px; left: 4px; right: 4px; z-index: 40;
+    background: #fff; border: 1px solid #e8e8ea; border-radius: 14px;
+    padding: 18px 18px 16px; margin: 0; box-shadow: 0 12px 32px rgba(0,0,0,0.14);
+    animation: tedarikDetailedIn .18s ease;
+}
+@keyframes tedarikDetailedIn{ from{ opacity:0; transform: translateY(-6px)} to{ opacity:1; transform:none } }
+.tedarik-detailed-grid{
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.tedarik-detailed-input{
+    height: 44px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff;
+    padding: 10px 14px; font-size: 13.5px; color: #1e293b; outline: none; width: 100%;
+    transition: border-color .15s, box-shadow .15s;
+}
+.tedarik-detailed-input::placeholder{ color:#9ca3af; }
+.tedarik-detailed-input:focus{ border-color: #FF5A1F; box-shadow: 0 0 0 3px rgba(255,90,31,0.12); }
+.tedarik-detailed-select-wrap{
+    position: relative; display: flex; align-items: center;
+}
+.tedarik-detailed-select{
+    height: 44px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff;
+    padding: 10px 36px 10px 14px; font-size: 13.5px; color: #1e293b; outline: none; width: 100%;
+    appearance: none; -webkit-appearance: none; cursor: pointer;
+}
+.tedarik-detailed-select:focus{ border-color: #FF5A1F; box-shadow: 0 0 0 3px rgba(255,90,31,0.12); }
+.tedarik-detailed-select-wrap .tedarik-detailed-arrow{
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 12px; color: #9ca3af; pointer-events: none;
+}
+.tedarik-detailed-actions{
+    display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap;
+}
+.tedarik-detailed-actions .tedarik-btn-light{ min-width: 140px; }
+.tedarik-detailed-actions .tedarik-btn-orange{ min-width: 180px; }
+.tedarik-btn-light{
+    height: 44px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff;
+    font-size: 14px; font-weight: 600; color: #475569; cursor: pointer; transition: all .15s;
+}
+.tedarik-btn-light:hover{ background:#f8fafc; border-color:#cbd5e1; color:#1e293b; }
+.tedarik-btn-orange{
+    height: 44px; border: none; border-radius: 10px; background: #FF5A1F; color:#fff;
+    font-size: 14px; font-weight: 700; cursor: pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    box-shadow: 0 2px 8px rgba(255,90,31,0.22); transition: background .15s;
+}
+.tedarik-btn-orange:hover{ background:#e0541b; }
+.tedarik-detailed-note{ font-size: 12px; color:#8a8a8e; line-height: 1.5; padding-left: 8px; }
+@media (max-width: 960px){
+    .tedarik-detailed-grid{ grid-template-columns: 1fr; }
+    .tedarik-detailed-actions{ grid-template-columns: 1fr; }
+    .tedarik-detailed-note{ padding-left:0; }
+}
 </style>
 <!-- UNSCOPED: override pickletable global defaults for tedarik card-rows -->
 <style>
