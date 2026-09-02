@@ -92,8 +92,12 @@
                 };
                 const container = document.createElement('div');
                 container.classList.add('bg-white','border','border-1','rounded','p-3','shadow-sm');
-                container.appendChild(makeLine('İlişki:', rowData.title ?? '—'));
-                container.appendChild(makeLine('Eklenme Tarihi:', dayjs(rowData.created_at).format('DD/MM/YYYY HH:mm') || '—'));
+                // İlişki: item files → product_name/title, order files → order_no (title is empty for orders)
+                const iliskiVal = rowData.product_name || rowData.title || rowData.order_no || rowData.buying_no || '—';
+                container.appendChild(makeLine('İlişki:', iliskiVal));
+                // Eklenme Tarihi: use pre-formatted _created_at_fmt (file's real date), not overwritten EAV created_at (DD/MM/YYYY)
+                const tarihVal = rowData._created_at_fmt && rowData._created_at_fmt !== '—' ? rowData._created_at_fmt : (()=>{ const d=dayjs(rowData._file_created_at || rowData.created_at); return d.isValid()?d.format('DD/MM/YYYY HH:mm'):'—'; })();
+                container.appendChild(makeLine('Eklenme Tarihi:', tarihVal));
                 const statusData = this.parseRowStatus(rowData.last_status);
                 const statusTitle = statusData?.title ?? 'Bekleniyor..';
                 const statusBadge = document.createElement('span');
@@ -170,7 +174,7 @@
             formatDocumentCard(rowData){
                 const fileType = rowData.file_type || '-';
                 const relationLabel = rowData.relation_type === 'op-doc-client' ? 'Müşteri' : rowData.relation_type === 'op-doc-offer' ? 'Teklif' : 'Belge';
-                const relationValue = rowData.relation_type === 'op-doc-offer' ? rowData.relation_qnid : (rowData.title ?? '-');
+                const relationValue = rowData.relation_type === 'op-doc-offer' ? rowData.relation_qnid : (rowData.product_name || rowData.title || rowData.order_no || '-');
                 const statusData = this.parseRowStatus(rowData.last_status);
                 const statusLabel = statusData?.title || 'Bekleniyor..';
                 const card = document.createElement('div');
@@ -205,7 +209,7 @@
                 body.classList.add('document-card__body');
                 const rows = [
                     { label: 'İlişki', value: relationValue },
-                    { label: 'Eklenme Tarihi', value: dayjs(rowData.created_at).format('DD/MM/YYYY HH:mm') || '-' },
+                    { label: 'Eklenme Tarihi', value: rowData._created_at_fmt || (()=>{ const d=dayjs(rowData._file_created_at || rowData.created_at); return d.isValid()?d.format('DD/MM/YYYY HH:mm'):'-'; })() },
                     { label: 'Durum', value: statusLabel }
                 ];
                 rows.forEach(item => {
@@ -358,6 +362,12 @@
                                 default:
                                     if(rowData.product_name){
                                         badge.textContent = rowData.product_name;
+                                        badge.classList.add('is-product');
+                                    } else if(rowData.order_no){
+                                        badge.textContent = rowData.order_no;
+                                        badge.classList.add('is-product');
+                                    } else if(columnData && columnData !== ''){
+                                        badge.textContent = columnData;
                                         badge.classList.add('is-product');
                                     } else {
                                         badge.textContent = '—';
@@ -560,9 +570,11 @@
                     nextPageIcon : '<i class="ki-outline ki-arrow-right "></i>',
                     prevPageIcon : '<i class="ki-outline ki-arrow-left"></i>',
                     rowFormatter:(elm,data)=>{
-                        const rawDate = data.created_at || '';
-                        if(rawDate){
-                            const d = dayjs(rawDate);
+                        // Preserve file's real created_at before EAV overwrite (EAV has DD/MM/YYYY which breaks dayjs)
+                        const fileCreatedAt = data.created_at || '';
+                        data._file_created_at = fileCreatedAt;
+                        if(fileCreatedAt){
+                            const d = dayjs(fileCreatedAt);
                             data._created_at_fmt = d.isValid() ? d.format('DD/MM/YYYY HH:mm') : '—';
                         } else {
                             data._created_at_fmt = '—';
@@ -572,7 +584,12 @@
                                 JSON.parse(data.relation_detail).forEach(element => {
                                     if(element && element.Key){
                                         const rawKey = element.Key.split('**')[0] || element.Key;
-                                        data[rawKey] = element.Value;
+                                        // Don't overwrite core file columns (file CreatedAt, id, file, qnid)
+                                        if(['created_at','id','file','qnid','_created_at_fmt','_file_created_at'].includes(rawKey)){
+                                            data['eav_'+rawKey] = element.Value;
+                                        } else {
+                                            data[rawKey] = element.Value;
+                                        }
                                         data[element['Key']] = element.Value;
                                     }
                                 });
