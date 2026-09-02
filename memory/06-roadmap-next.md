@@ -33,6 +33,7 @@ All logged in `memory/05 §4`. Highlights:
 - 2026-09-02 late: **Module Switcher + Detailed Search** — `Sidebar.vue:393`/`TedarikPanel.vue:64` `Modüller` above Çıkış → modal `Yönetim|Tedarik` `/coalpanel|/tedarikpanel`, `OList.vue` detailed 3×3 hover `absolute top:52 z40` hidden by default (`showDetailed:false`, `Detaylı Filtre` toggle) + `Documents::tableList` 9 keys, kept **SHARED** `OList/OForm` via `isTedarik` (decision 2026-09-02)
 - 2026-09-02 late: **Filter Overhaul** — `OList.vue` `Filtreler` dropdown `teleport fixed z9999` `9` radios + `Şirkete Göre Arama` → `client-modal 720px` `modalClients` lazy `200` `hardFallback 8` + `PickleTable local 8` + `flatpickr range Y-m-d → tarih_araligi |` `to_date` BEDAT, `Detaylı` twin `Şirket/Tedarikçi` `readonly` → same modal `single`, `persons` fetch killed, `Documents.php` ordering `alim/siparis` + multi `sirket/transactions IN`
 - 2026-09-02 late: **Filter Fixes** — `OList.vue:376 sirkete_gore` empty `showClientModal` → `openClientModal('multi')` + instant `hf` + `PickleTable data: localData` scope → `this.modalClients.slice()`; `Detaylı Filtrele/Sıfırla` auto-close `showDetailed=false` `OList.vue:519/533`
+- 2026-09-02 late: **Tedarik Detail Fresh Order 6-Step** — `OForm.vue:966` `isTedarik` header+warning+1 `OrderItemTable` +2 `tedarikDesc`+3 `tedarikImalatci`+4 `printMalzemeKabul/Cins`+5 file temp-upload+6 Gönder, `formatDate` fix `OForm.vue:963`, injected `dynamicF` + `dynamicFile` for `transfer_kabul|transfer_cins`
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 

@@ -21,7 +21,8 @@
             this.navigationStore.toggle(true);
             // Orders come from SAP — form requires a document id. No id = redirect to list.
             if(this.id === undefined || this.id === ''){
-                this.$router.replace({ name: 'OrderList' });
+                const listName = this.$route.path.startsWith('/tedarikpanel') ? 'TedarikOrderList' : 'OrderList';
+                this.$router.replace({ name: listName });
                 return;
             }
             const response = await this.plib.request({ url:'/api/v1/document/'+this.id, method:'GET' },null);
@@ -33,6 +34,9 @@
                 this.parsedStatus = JSON.parse(this.rawData?.document?.status || '[]');
             } catch(e) { this.parsedStatus = []; }
             this.loadForm = true;
+            // populate tedarik fields from existing entities (for edit / reprint)
+            try { this.tedarikDesc = this.orderFormEntities?.order_desc || ''; } catch(e){}
+            try { this.tedarikImalatci = this.orderFormEntities?.imalatci_firma_adi || ''; } catch(e){}
             setTimeout(() => this.navigationStore.toggle(false), 400);
             // New rule: if order was partitioned before (has active EBELN-X clones), force partial
             this.checkHasPartitions();
@@ -58,6 +62,13 @@
                 itemRemovedFiles: [],
                 printingKabul: false,
                 printingCins: false,
+                // tedarik detail (fresh order screenshot)
+                tedarikDesc: '',
+                tedarikImalatci: '',
+                tedarikKabulFile: null,
+                tedarikCinsFile: null,
+                tedarikKabulRef: null,
+                tedarikCinsRef: null,
             };
         },
         computed: {
@@ -104,6 +115,14 @@
             },
             isAtOnceDisabled(){
                 return this.hasPartitions;
+            },
+            isTedarik(){ return this.$route.path.startsWith('/tedarikpanel'); },
+            tedarikHeaderTitle(){
+                return this.orderEntities?.ctitle || this.orderEntities?.spec_code || 'Sipariş Detayı';
+            },
+            tedarikHeaderSub(){
+                // fallback e.g. HES HACILAR ... as in screenshot
+                return this.orderEntities?.order_no ? `Sipariş: ${this.orderEntities.order_no}` : '';
             },
         },
         methods: {
@@ -216,17 +235,98 @@
                 }
                 return true;
             },
+            getTedarikRowId(){
+                const form = this.rawData?.formFormat?.['op-doc-order-form'] || this.formDataStore?.rawData?.formFormat?.['op-doc-order-form'] || {};
+                const keys = Object.keys(form);
+                if(keys.length) return keys[0];
+                // also try to find via formData dynamicF if exists
+                if(this.formData && this.formData.dynamicF){
+                    for(const k in this.formData.dynamicF){
+                        if(k.startsWith('op-doc-order-form**')) return k.split('**')[1];
+                    }
+                }
+                return 'new-' + Date.now();
+            },
+            onTedarikKabulSelect(e){
+                const file = e.target.files && e.target.files[0];
+                this.tedarikKabulFile = file || null;
+                if(file){
+                    // try temp upload for faster save, but keep file as fallback
+                    this.handleTedarikTempUpload(file,'kabul');
+                }
+            },
+            onTedarikCinsSelect(e){
+                const file = e.target.files && e.target.files[0];
+                this.tedarikCinsFile = file || null;
+                if(file){
+                    this.handleTedarikTempUpload(file,'cins');
+                }
+            },
+            async handleTedarikTempUpload(file, type){
+                try{
+                    const fd=new FormData();
+                    fd.append('file', file);
+                    const rsp=await this.plib.request({url:'/api/v1/temp-upload', method:'POST'}, null, fd);
+                    if(rsp && rsp.success && rsp.data && rsp.data.reference_id){
+                        if(type==='kabul') this.tedarikKabulRef = rsp.data;
+                        else this.tedarikCinsRef = rsp.data;
+                    }
+                }catch(e){ console.warn('tedarik temp upload failed',e); }
+            },
             async submitForm(formData){
                 this.formData = formData;
                 this.navigationStore.toggle(true);
                 this.formData.typeKey = 'op-doc-order';
+
+                // Tedarik panel manual wiring — inject order_desc / imalatci / files before validation
+                if(this.isTedarik){
+                    const rowId = this.getTedarikRowId();
+                    const key = 'op-doc-order-form**' + rowId;
+                    if(!this.formData.dynamicF) this.formData.dynamicF = {};
+                    if(!this.formData.dynamicF[key]) this.formData.dynamicF[key] = { tag:'op-doc-order-form', entities:{} };
+                    if(!this.formData.dynamicF[key].entities) this.formData.dynamicF[key].entities = {};
+                    this.formData.dynamicF[key].entities['order_desc'] = this.tedarikDesc || '';
+                    this.formData.dynamicF[key].entities['imalatci_firma_adi'] = this.tedarikImalatci || '';
+                    if(!this.formData.files) this.formData.files = {};
+                    // map tedarik file inputs to EAV file keys
+                    const fileRowId = rowId;
+                    if(this.tedarikKabulFile){
+                        const fid='new-'+Date.now()+'-kabul';
+                        const fkey='dynamicFile**transfer_kabul**'+fid+'*-*transfer_kabul_file**transfer_kabul**'+fileRowId;
+                        if(this.tedarikKabulRef && this.tedarikKabulRef.reference_id){
+                            this.formData.files[fkey] = { reference: this.tedarikKabulRef };
+                        } else {
+                            this.formData.files[fkey] = { file: this.tedarikKabulFile };
+                        }
+                    }
+                    if(this.tedarikCinsFile){
+                        const fid='new-'+Date.now()+'-cins';
+                        const fkey='dynamicFile**transfer_cins**'+fid+'*-*transfer_cins_file**transfer_cins**'+fileRowId;
+                        if(this.tedarikCinsRef && this.tedarikCinsRef.reference_id){
+                            this.formData.files[fkey] = { reference: this.tedarikCinsRef };
+                        } else {
+                            this.formData.files[fkey] = { file: this.tedarikCinsFile };
+                        }
+                    }
+                }
 
                 if(this.buildTransferPayload() === false){
                     this.navigationStore.toggle(false);
                     return;
                 }
 
-                const rsp = this.plib.checkForm('.form-item');
+                // Tedarik manual validation bypasses DOM checkForm (Form hidden)
+                let rsp = null;
+                if(this.isTedarik){
+                    if(!this.tedarikImalatci || !this.tedarikImalatci.trim()){
+                        this.navigationStore.toggle(false);
+                        this.Swal.fire({ icon:'warning', title:'İmalatçı Firma Boş', text:'Lütfen imalatçı firma adını giriniz.', confirmButtonText:'Tamam' });
+                        return;
+                    }
+                    rsp = { valid: true };
+                } else {
+                    rsp = this.plib.checkForm('.form-item');
+                }
                 if(rsp.valid){
                     // Save item files BEFORE the order save. The partial-transfer flow
                     // (processOrderTransfer → moveOrderFilesToDocument) can only move item
@@ -284,12 +384,14 @@
                         } catch(e) {}
                         if (still.length) {
                             const html = `<div style="text-align:left"><div style="font-weight:700;color:#0f172a;margin-bottom:6px;">Kaydedildi — hala reddedilen dosyalar var</div><div style="font-size:0.88rem;color:#475569;margin-bottom:8px;">${still.join(', ')}</div><div style="font-size:0.82rem;color:#64748b;">Bu dosyaları yenileyip tekrar Kaydet yapın, aksi halde durum <b>Reddedilen Dosyalar Mevcut</b> olarak kalır.</div></div>`;
+                            const targetList = this.isTedarik ? 'TedarikOrderList' : 'OrderList';
                             this.Swal.fire({ icon: 'info', html, confirmButtonText: 'Anladım', allowOutsideClick: false }).then(() => {
-                                if (response.success) this.$router.push({ name: 'OrderList' });
+                                if (response.success) this.$router.push({ name: targetList });
                             });
                         } else {
+                            const targetList2 = this.isTedarik ? 'TedarikOrderList' : 'OrderList';
                             this.plib.toast(this.Swal, response.success ? 'success' : 'error', msg,() => {
-                                if(response.success) this.$router.push({ name: 'OrderList' });
+                                if(response.success) this.$router.push({ name: targetList2 });
                             });
                         }
                     }, 300);
@@ -326,8 +428,9 @@
                 if(!conf.isConfirmed) return;
                 const fd=new FormData(); fd.append('id',this.id); fd.append('note', isPartial ? 'Parça silindi, miktarlar ana siparişe iade edildi' : 'Sipariş reddedildi ve iptal edildi');
                 const rsp=await this.plib.request({url:'/api/v1/orders/cancel', method:'POST'}, null, fd);
+                const targetListCancel = this.isTedarik ? 'TedarikOrderList' : 'OrderList';
                 this.plib.toast(this.Swal, rsp.success?'success':'error', rsp.msg||'İşlem Tamamlandı',()=>{
-                    if(rsp.success) this.$router.push({name:'OrderList'});
+                    if(rsp.success) this.$router.push({name: targetListCancel});
                 });
             },
             async saveItemFiles(){
@@ -856,12 +959,147 @@
                     this.printingCins = false;
                     this.Swal.fire({ icon:'error', title:'PDF Oluşturulamadı', text:'PDF indirilemedi: ' + e.message, confirmButtonText:'Tamam' });
                 }
+            },
+            formatDate(val){
+                if(!val) return '-';
+                if(val.includes('.')) return val;
+                if(val.includes('-')){
+                    const parts = val.split(' ')[0].split('-');
+                    if(parts.length===3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+                try { const d=new Date(val); if(!isNaN(d)) return d.toLocaleDateString('tr-TR'); } catch(e){}
+                return val;
             }
         }
     }
 </script>
 <template>
-    <div style="padding-bottom: 100px;">
+    <!-- TEDARIK PANEL — screenshot 1:1 fresh order -->
+    <div v-if="isTedarik" style="padding-bottom: 100px;">
+        <div v-if="id && loadForm" class="tedarik-detail">
+            <!-- Header: company + meta -->
+            <div class="tedarik-detail-header">
+                <div class="tedarik-detail-header-top">
+                    <div class="tedarik-detail-header-left">
+                        <div class="tedarik-detail-title">{{ orderEntities.ctitle || orderEntities.spec_code || 'Sipariş Detayı' }}</div>
+                        <div class="tedarik-detail-sub">{{ orderEntities.spec_code ? 'Cari Kodu: ' + orderEntities.spec_code : '' }}</div>
+                    </div>
+                    <div class="tedarik-detail-meta">
+                        <div class="tedarik-meta-item"><span>Alım No</span><b>{{ orderEntities.buying_no || '-' }}</b></div>
+                        <div class="tedarik-meta-item"><span>Sipariş No</span><b>{{ orderEntities.order_no || '-' }}</b></div>
+                        <div class="tedarik-meta-item"><span>Tarih</span><b>{{ formatDate(orderEntities.created_at) }}</b></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Yellow warning -->
+            <div class="tedarik-warning">
+                <i class="ki-outline ki-information-2"></i>
+                <div>Siparişi tek seferde veya parçalı olarak gönderebilirsiniz. Sipariş onaylanıncaya kadar durumu sistem üzerinden takip edebilirsiniz.<br><span style="font-weight:600;">Not:</span> Tek seferde gönderimde tüm kalemler birlikte gönderilir. Parçalı gönderimde gönderilecek kalemleri işaretleyip miktar girmeniz zorunludur. Bir sipariş bir kez parçalı gönderildikten sonra sadece parçalı gönderim yapılabilir.</div>
+            </div>
+
+            <!-- Clone origin for tedarik -->
+            <div class="tedarik-clone-banner" v-if="isCloneOrder" style="margin-bottom:14px; background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%); border:1px solid #c7d2fe; border-radius:12px; padding:14px 18px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:12px;"><div style="width:36px; height:36px; border-radius:10px; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center;"><i class="ki-outline ki-arrow-top-right"></i></div><div><div style="font-size:0.82rem; color:#6366f1;">Kaynak Sipariş</div><div style="font-weight:700; color:#312e81;">{{ parentOrderNo }}</div></div></div>
+                <button @click="navigateToParentOrder" style="background:#fff; border:1px solid #c7d2fe; border-radius:10px; padding:8px 16px; color:#4f46e5; font-weight:600; cursor:pointer;">Orijinal Siparişe Git</button>
+            </div>
+
+            <!-- Step 1 -->
+            <div class="tedarik-step-card">
+                <div class="tedarik-step-head"><span class="tedarik-step-num">1</span><span>Malzeme ve tedarik tipini seçiniz.</span></div>
+                <div class="tedarik-step-body">
+                    <div style="margin-bottom:10px; font-size:13px; color:#475569;">Sevkiyat Tipi <span style="color:#ef4444;">*</span></div>
+                    <div style="display:flex; gap:12px; margin-bottom:14px;">
+                        <label class="tedarik-radio-card" :class="{ active: transferMode==='at_once', disabled: hasPartitions }" @click="!hasPartitions && (transferMode='at_once')">
+                            <input type="radio" value="at_once" v-model="transferMode" :disabled="hasPartitions" style="accent-color:#FF5A1F;">
+                            <span>Tek Parça Sevkiyat</span>
+                        </label>
+                        <label class="tedarik-radio-card" :class="{ active: transferMode==='partial' }" @click="transferMode='partial'">
+                            <input type="radio" value="partial" v-model="transferMode" style="accent-color:#FF5A1F;">
+                            <span>Parçalı Sevkiyat</span>
+                        </label>
+                    </div>
+                    <div v-if="hasPartitions" style="margin-bottom:12px; padding:10px 14px; background:#fef3c7; border:1px solid #fde68a; border-radius:8px; color:#92400e; font-size:0.85rem;">Bu sipariş daha önce parçalı gönderildiği için artık sadece <b>Parçalı</b> gönderim yapılabilir.</div>
+                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+                        <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')+'-tedarik'" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" :readonly="isLocked" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="tedarik-step-card">
+                <div class="tedarik-step-head"><span class="tedarik-step-num">2</span><span>İnceleme açıklamasını giriniz.</span></div>
+                <div class="tedarik-step-body">
+                    <textarea v-model="tedarikDesc" rows="4" placeholder="İnceleme sonrası gerekli açıklamayı yazınız" style="width:100%; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; font-size:13.5px; color:#1e293b; outline:none; resize:vertical;" :disabled="isLocked && isFilesLocked"></textarea>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="tedarik-step-card">
+                <div class="tedarik-step-head"><span class="tedarik-step-num">3</span><span>İmalatçı firma adını giriniz.</span></div>
+                <div class="tedarik-step-body">
+                    <input v-model="tedarikImalatci" placeholder="İmalatçı Firma Adı Giriniz *" style="width:100%; max-width:520px; height:44px; border:1px solid #e2e8f0; border-radius:10px; padding:0 14px; font-size:13.5px; color:#1e293b; outline:none;" :disabled="isLocked && isFilesLocked" />
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="tedarik-step-card">
+                <div class="tedarik-step-head"><span class="tedarik-step-num">4</span><span>Lütfen gerekli formları indirin.</span></div>
+                <div class="tedarik-step-body">
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button type="button" @click="printMalzemeKabul" :disabled="printingKabul" class="tedarik-orange-btn"><i :class="printingKabul ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingKabul ? 'animation:spin 1s linear infinite' : ''"></i> {{ printingKabul ? 'Oluşturuluyor...' : 'Malzeme Kabul Formu' }}</button>
+                        <button type="button" @click="printMalzemeCinsMiktar" :disabled="printingCins" class="tedarik-orange-btn"><i :class="printingCins ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingCins ? 'animation:spin 1s linear infinite' : ''"></i> {{ printingCins ? 'Oluşturuluyor...' : 'Malzeme Cins-Miktar Kabul Formu' }}</button>
+                    </div>
+                    <div style="margin-top:8px; font-size:12px; color:#64748b;">İndirdiğiniz formları ıslak imzalı olarak imzalayıp bir sonraki adımda yükleyeceksiniz.</div>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="tedarik-step-card">
+                <div class="tedarik-step-head"><span class="tedarik-step-num">5</span><span>Lütfen doldurduğunuz formları yükleyiniz <span style="color:#ef4444;">*</span></span></div>
+                <div class="tedarik-step-body">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Malzeme Kabul Formu</div>
+                            <label class="tedarik-file-wrap">
+                                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikKabulSelect" style="display:none;">
+                                <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikKabulFile ? tedarikKabulFile.name : 'Dosya seçilmedi' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
+                            </label>
+                            <div style="margin-top:6px; font-size:11.5px; color:#64748b;">Dosya yüklerken dosyanızın 42MB'dan küçük, JPG, PNG veya PDF formatında olduğundan emin olunuz.</div>
+                        </div>
+                        <div>
+                            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Malzeme Cins-Miktar Kabul Formu</div>
+                            <label class="tedarik-file-wrap">
+                                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikCinsSelect" style="display:none;">
+                                <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikCinsFile ? tedarikCinsFile.name : 'Dosya seçilmedi' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
+                            </label>
+                            <div style="margin-top:6px; font-size:11.5px; color:#64748b;">Dosya yüklerken dosyanızın 42MB'dan küçük, JPG, PNG veya PDF formatında olduğundan emin olunuz.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="tedarik-step-card">
+                <div class="tedarik-step-head"><span class="tedarik-step-num">6</span><span>Lütfen “Gönder” butonuna tıklamadan önce verilerin doğruluğuna emin olunuz.</span></div>
+                <div class="tedarik-step-body">
+                    <button @click="() => { const fd = ($refs.formRef && $refs.formRef.getCurrentFormData) ? $refs.formRef.getCurrentFormData() : { dynamicF:{}, files:{} }; submitForm(fd); }" class="tedarik-gonder-btn">Gönder</button>
+                    <div v-if="isLocked" style="margin-top:10px; display:flex; gap:8px; align-items:center;">
+                        <button v-if="orderStatus === 'doc_trans_order_files_rejected'" type="button" @click="printMalzemeKabul" class="tedarik-orange-btn small" :disabled="printingKabul"><i :class="printingKabul ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingKabul ? 'animation:spin 1s linear infinite' : ''"></i> {{ printingKabul ? 'Oluşturuluyor...' : 'Malzeme Kabul (yeniden yazdır)' }}</button>
+                        <button v-if="orderStatus === 'doc_trans_order_files_rejected'" type="button" @click="printMalzemeCinsMiktar" class="tedarik-orange-btn small" :disabled="printingCins"><i :class="printingCins ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingCins ? 'animation:spin 1s linear infinite' : ''"></i> {{ printingCins ? 'Oluşturuluyor...' : 'Cins-Miktar (yeniden yazdır)' }}</button>
+                        <button class="tedarik-cancel-btn" @click="cancelOrder" v-if="authStore.permissions?.includes('per-05-02')"><i class="ki-outline ki-trash"></i> {{ isCloneOrder ? 'Parçayı Sil' : 'İptal Et' }}</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- hidden Form for EAV scaffolding -->
+            <div style="display:none;">
+                <Form ref="formRef" formtypes="op-doc-order-form" v-if="loadForm" savebtntitle="Kaydet" :readonlyFields="readonlyFields" :savecallback="submitForm" />
+            </div>
+        </div>
+        <div v-else-if="id && !loadForm" style="padding:40px; text-align:center; color:#94a3b8;">Yükleniyor...</div>
+    </div>
+    <!-- ADMIN PANEL (unchanged) -->
+    <div v-else style="padding-bottom: 100px;">
         <div class="card mb-6" v-if="id && loadForm" style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02);">
             <div v-if="canSend" style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-bottom:1px solid #bfdbfe;padding:20px 24px;">
                 <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:16px;">
@@ -1221,4 +1459,34 @@
 }
 .print-kabul-btn:disabled, .print-cins-btn:disabled { opacity:0.72; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+/* ===== TEDARIK DETAIL (screenshot 1:1) ===== */
+.tedarik-detail { display:flex; flex-direction:column; gap:14px; }
+.tedarik-detail-header { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; }
+.tedarik-detail-header-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+.tedarik-detail-title { font-size:17px; font-weight:800; color:#0f172a; line-height:1.2; }
+.tedarik-detail-sub { font-size:12.5px; color:#64748b; margin-top:4px; }
+.tedarik-detail-meta { display:flex; gap:18px; flex-wrap:wrap; text-align:right; }
+.tedarik-meta-item { display:flex; flex-direction:column; gap:2px; min-width:110px; }
+.tedarik-meta-item span { font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+.tedarik-meta-item b { font-size:13px; color:#0f172a; font-weight:700; }
+.tedarik-warning { background:#fff8db; border:1px solid #fde68a; border-radius:12px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; color:#92400e; font-size:12.8px; line-height:1.6; }
+.tedarik-warning i { font-size:18px; color:#f59e0b; flex-shrink:0; margin-top:2px; }
+.tedarik-step-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }
+.tedarik-step-head { display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid #f1f5f9; font-size:13.5px; font-weight:700; color:#0f172a; background:#fcfcfd; }
+.tedarik-step-num { width:26px; height:26px; border-radius:999px; background:#FF5A1F; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; }
+.tedarik-step-body { padding:16px 18px; }
+.tedarik-radio-card { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border:1.5px solid #e2e8f0; border-radius:10px; background:#fff; cursor:pointer; font-size:13.5px; font-weight:600; color:#334155; transition:all .15s; }
+.tedarik-radio-card.active { border-color:#FF5A1F; background:#fff7ed; color:#9a3412; }
+.tedarik-radio-card.disabled { opacity:0.55; cursor:not-allowed; background:#f1f5f9; }
+.tedarik-orange-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 18px; background:#FF5A1F; color:#fff; border:none; border-radius:10px; font-weight:700; font-size:13.5px; cursor:pointer; box-shadow:0 2px 8px rgba(255,90,31,0.22); }
+.tedarik-orange-btn.small { padding:8px 14px; font-size:13px; }
+.tedarik-orange-btn:hover { background:#e0541b; }
+.tedarik-orange-btn:disabled { opacity:0.65; cursor:not-allowed; }
+.tedarik-file-wrap { display:block; }
+.tedarik-file-input { display:flex; align-items:center; justify-content:space-between; gap:12px; border:1px solid #e2e8f0; border-radius:10px; padding:0 0 0 14px; height:44px; background:#f8fafc; cursor:pointer; }
+.tedarik-file-btn { height:32px; padding:0 14px; background:#e2e8f0; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:600; color:#475569; margin-right:6px; }
+.tedarik-gonder-btn { background:#FF5A1F; color:#fff; border:none; border-radius:10px; padding:12px 28px; font-weight:800; font-size:14px; cursor:pointer; box-shadow:0 2px 8px rgba(255,90,31,0.22); }
+.tedarik-gonder-btn:hover { background:#e0541b; }
+.tedarik-cancel-btn { display:inline-flex; align-items:center; gap:6px; padding:10px 16px; background:#fff; color:#dc2626; border:1px solid #fecaca; border-radius:10px; font-weight:600; font-size:13px; cursor:pointer; }
+@media (max-width: 720px){ .tedarik-step-body > div[style*="grid-template-columns:1fr 1fr"]{ grid-template-columns:1fr !important; } .tedarik-detail-meta{ text-align:left; } }
 </style>
