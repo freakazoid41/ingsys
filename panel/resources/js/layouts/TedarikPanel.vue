@@ -43,6 +43,7 @@ export default {
         document.documentElement.style.overflow = '';
         document.body.style.overflow = '';
         document.body.style.height = '';
+        document.body.style.transition = 'height 0.35s cubic-bezier(0.4,0,0.2,1)';
         this.$nextTick(()=> this.setupTypewriterScroll());
         window.addEventListener('resize', this.setupTypewriterScroll);
         window.addEventListener('scroll', this.syncTypewriter, { passive: true });
@@ -73,6 +74,7 @@ export default {
         clearTimeout(this._roTimer);
         document.body.style.height = '';
         document.documentElement.style.height = '';
+        document.body.style.transition = '';
         const inner = document.querySelector('.tedarik-main-inner');
         if(inner) inner.style.transform = '';
     },
@@ -108,23 +110,31 @@ export default {
                 const inner = document.querySelector('.tedarik-main-inner');
                 const frame = document.querySelector('.tedarik-frame');
                 if(!inner || !frame) return;
-                inner.style.transform = '';
-                document.body.style.height = '';
+                // keep current transform - don't bounce to top
+                const curTransform = inner.style.transform;
                 setTimeout(()=>{
                     if(window.innerWidth <= 992) return;
                     const contentH = inner.scrollHeight;
                     const viewportH = window.innerHeight;
                     const frameChrome = 40;
                     const need = Math.max(contentH + frameChrome + 24, viewportH + 1);
+                    const curBodyH = document.body.style.height;
+                    const needStr = need + 'px';
                     if(contentH + 48 > viewportH){
-                        document.body.style.height = need + 'px';
-                        document.documentElement.style.height = need + 'px';
+                        if(curBodyH !== needStr){
+                            document.body.style.height = needStr;
+                            document.documentElement.style.height = needStr;
+                        }
                     } else {
-                        document.body.style.height = '';
-                        document.documentElement.style.height = '';
+                        if(curBodyH !== ''){
+                            document.body.style.height = '';
+                            document.documentElement.style.height = '';
+                        }
                     }
+                    // restore transform if it was there, then sync
+                    if(curTransform) inner.style.transform = curTransform;
                     this.syncTypewriter();
-                }, 120);
+                }, 60);
             } catch(e) {}
         },
         syncTypewriter(){

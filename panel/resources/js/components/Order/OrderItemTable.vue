@@ -1245,7 +1245,7 @@ export default {
                             </button>
                         </div>
 
-                        <div :class="hideHeader ? 'tedarik-additional' : ''" v-show="hideHeader ? !isTedarikDetailsCollapsed(row) : true">
+                        <div :class="hideHeader ? ['tedarik-additional', isTedarikDetailsCollapsed(row) ? 'is-collapsed' : 'is-expanded'] : ''">
                         <!-- Item file uploads (Test Dökümanı + Ürün Görselleri) -->
                         <div class="oic-item-files" @click.stop>
                             <div class="oic-item-files-header" @click="toggleItemFilesCollapse(row)">
@@ -1674,6 +1674,9 @@ export default {
 .oic-hide-header .oic-item-files-header,
 .oic-hide-header .oic-serial-header,
 .oic-hide-header .oic-serial-view-header { cursor:default !important; }
+.tedarik-additional { overflow:hidden; transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease; }
+.tedarik-additional.is-collapsed { max-height:0; opacity:0; pointer-events:none; }
+.tedarik-additional.is-expanded { max-height:3200px; opacity:1; }
 .order-item-header { background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); border-bottom:1px solid #e2e8f0; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
 .order-item-header-left { display:flex; align-items:center; gap:14px; }
 .order-item-icon { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#eff6ff,#dbeafe); display:flex; align-items:center; justify-content:center; color:#3b82f6; font-size:20px; }

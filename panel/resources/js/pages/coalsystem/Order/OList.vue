@@ -937,7 +937,8 @@
                         } catch(e) { return false; }
                     });
                     if(match){
-                        this.$router.push({name:'OrderForm', params:{id: match.id}});
+                        const target = this.isTedarik ? 'TedarikOrderForm' : 'OrderForm';
+                        this.$router.push({name: target, params:{id: match.id}});
                     } else {
                         this.plib.toast(this.Swal, 'info', 'Orijinal sipariş bulunamadı: ' + baseNo);
                     }
