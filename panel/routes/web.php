@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
 
 Route::get('/',                           [AuthController::class, 'coallogin'])->name('login');
+Route::get('/tedarik',                    [AuthController::class, 'tedariklogin'])->name('tedarik-login');
 Route::get('/register',                   [AuthController::class, 'register'])->name('register');
 //Route::get('/',                   [AuthController::class, 'login'])->name('login');
 Route::get('/logout',                     [AuthController::class, 'logout'])->name('logout');
@@ -51,6 +52,16 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
 
         Route::get('/coalpanel',$coalAuth)->name('app');
         Route::get('/coalpanel/{any}',$coalAuth)->where('any', '^((?!api).)*');
+
+        $tedarikAuth = function (){
+            if(session('type_key') !== null && session('2f_success') !== null){
+                return view('tedarikapp',['type' => session('type_key') == 'op-pert-admin' ? 'admin' : 'client']);
+            }else{
+                abort('403');
+            }
+        };
+        Route::get('/tedarikpanel',$tedarikAuth)->name('tedarik-app');
+        Route::get('/tedarikpanel/{any}',$tedarikAuth)->where('any', '^((?!api).)*');
 
         /*Route::get('/client',$auth)->name('app');
         Route::get('/client/{any}',$auth)->where('any', '^((?!api).)*');*/

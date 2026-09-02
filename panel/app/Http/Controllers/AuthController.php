@@ -57,17 +57,21 @@ class AuthController extends Controller
             'pageScript' => '/front/pages/' . __FUNCTION__ . '/page.js',
         ]);
     }
+
+    public function tedariklogin(){
+        return view('auth.tedariklogin', [
+            'scripts' => [],
+            'styles'  => [],
+            'pageScript' => '/front/pages/tedariklogin/page.js',
+        ]);
+    }
    
 
     public function loginSms(){
-        //list all cards on here
-        return view('auth.'. __FUNCTION__, [
-            'scripts' => [
-                
-            ],
-            'styles'  => [
-            ],
-            'pageScript' => '/front/pages/' . __FUNCTION__ . '/page.js',
+        return view('auth.loginSms', [
+            'scripts' => [],
+            'styles'  => [],
+            'pageScript' => '/front/pages/loginSms/page.js',
         ]);
     }
 
@@ -204,7 +208,12 @@ class AuthController extends Controller
 
     public function loginUser(Request $request){
         try {
+            $origin = $request->input('auth_panel') ?? $request->route('type') ?? null;
+            $isTedarik = ($origin === 'tedarik');
+            // flush but preserve origin for 2FA flow
             $request->session()->flush();
+            if ($isTedarik) session(['auth_panel' => 'tedarik']);
+            else session(['auth_panel' => 'admin']);
             //validate request sended parameters
             $validateUser = Validator::make($request->all(),[
                 'email'    => 'required',
@@ -214,18 +223,14 @@ class AuthController extends Controller
                 'g-recaptcha-response.required' => 'reCAPTCHA zorunludur.',
             ]);
 
+            $failRoute = $isTedarik ? 'tedarik-login' : 'login';
             if($validateUser->fails()){
-                return redirect()->route('login','admin')->with('login-error', 'Gerekli Bilgileri Doldurunuz...');
-                /*return response()->json([
-                    'success' => false,
-                    'message' => 'Form Validate Error',
-                    'error'   => $validateUser->errors()
-                ],401);*/
+                return redirect()->route($failRoute)->with('login-error', 'Gerekli Bilgileri Doldurunuz...');
             }
 
 
             $user   = User::where(['email' => $request->email,'status' => '1'])->first();
-            if(!$user) return redirect()->route('login','admin')->with('login-error', 'Bilgiler Hatalıdır...');
+            if(!$user) return redirect()->route($failRoute)->with('login-error', 'Bilgiler Hatalıdır...');
 
             // Lockout configuration
             $maxAttempts = 5;
@@ -237,7 +242,7 @@ class AuthController extends Controller
             if(Cache::has($lockKey)){
                 $lockedUntil = Cache::get($lockKey);
                 $remaining = Carbon::parse($lockedUntil)->diffInMinutes(Carbon::now());
-                return redirect()->route('login','admin')->with('login-error', 'Hesabınız geçici olarak kilitlendi. Lütfen '.($remaining > 0 ? $remaining : 1).' dakika sonra tekrar deneyiniz.');
+                return redirect()->route($failRoute)->with('login-error', 'Hesabınız geçici olarak kilitlendi. Lütfen '.($remaining > 0 ? $remaining : 1).' dakika sonra tekrar deneyiniz.');
             }
 
             $person = (new PersonsServiceProvider())->getPerson(null,null,true,$user->person_id)['person'][0] ?? [];
@@ -279,10 +284,10 @@ class AuthController extends Controller
                         // swallow logging errors to not break login flow
                     }
 
-                    return redirect()->route('login','admin')->with('login-error', 'Çok sayıda başarısız giriş nedeniyle hesabınız '. $lockMinutes .' dakika kilitlendi.');
+                    return redirect()->route($failRoute)->with('login-error', 'Çok sayıda başarısız giriş nedeniyle hesabınız '. $lockMinutes .' dakika kilitlendi.');
                 }
 
-                return redirect()->route('login','admin')->with('login-error', 'Bilgiler Hatalıdır... Kalan deneme hakkı: '.max(0, $maxAttempts - $attempts));
+                return redirect()->route($failRoute)->with('login-error', 'Bilgiler Hatalıdır... Kalan deneme hakkı: '.max(0, $maxAttempts - $attempts));
             }
             
 
@@ -300,7 +305,7 @@ class AuthController extends Controller
                 session(['ptitle'    => $person->name.' '.$person->surname]);
                 session(['grp_code'  => 'here']);
             }else{
-                return redirect()->route('login')->with('login-error', 'Bilgiler Hatalıdır...');
+                return redirect()->route($failRoute)->with('login-error', 'Bilgiler Hatalıdır...');
             }
             
             
@@ -310,7 +315,7 @@ class AuthController extends Controller
             $sendResult = $this->generateAndSendTwoFactorCode($user, $person, $token);
 
             if (empty($sendResult['success'])) {
-                return redirect()->route('login')->with('login-error', 'SMS gönderiminde hata oluştu: ' . ($sendResult['message'] ?? ''));
+                return redirect()->route($failRoute)->with('login-error', 'SMS gönderiminde hata oluştu: ' . ($sendResult['message'] ?? ''));
             }
 
             return redirect()->route('login-sms')->with('login-code', ($_SERVER['HTTP_HOST'] === 'localhost:8000' ? ($sendResult['debug_code'] ?? '') : ''));
@@ -330,8 +335,8 @@ class AuthController extends Controller
     public function checkCode(Request $request){
         
         $token      = session('token') ?? 'fake';
-        $type       = session('login_type') ?? 'ldap';
-        $loginRoute = $type == 'ldap' ? 'login' : 'login';
+        $panelOrigin = session('auth_panel') ?? 'admin';
+        $loginRoute = $panelOrigin === 'tedarik' ? 'tedarik-login' : 'login';
         $fileKey    = $token.'-'.session('login_person') ?? 'fake';
         $sendedCode = [];
         foreach($request->all() as $k => $v){
@@ -818,7 +823,9 @@ class AuthController extends Controller
                 'desc' => (session('ptitle') ?? '-').' Kullanıcısı sistemden çıkış yaptı',
             ),JSON_UNESCAPED_UNICODE)
         ]);
+        $wasTedarik = session('auth_panel') === 'tedarik';
         $request->session()->flush();
+        if ($wasTedarik) return redirect()->route('tedarik-login');
         return redirect()->route('login','admin');
     }
 

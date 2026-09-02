@@ -20,7 +20,7 @@ class RefreshPermissionsRegressionTest extends TestCase
             'email'     => 'reseller@test.local',
             'password'  => bcrypt('password'),
             'person_id' => 4242,
-            'grp_code'  => 'CATES',
+            'grp_code'  => 'GDZ',
         ]);
 
         ActiveSession::create([

@@ -74,7 +74,7 @@ class PersonsServiceProvider extends ServiceProvider
         $formData     = $data ?? [];
         $logData = [
             'user_id'     => auth('sanctum')->user()->id ?? 0,
-            'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'CATES',
+            'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'GDZ',
             'relation'    => 'persons',
             'relation_id' => $id,
             'type_id'     => Sys_options::where('op_key', 'log-person-update')->first()->id ?? 0,

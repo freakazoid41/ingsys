@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gdz - Sipariş Platformu</title>
+    <meta name="theme-color" content="#FF4A15" />
+    <link rel="apple-touch-icon" href="{{ asset('img/icons/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('/manifest.json') }}">
+    <link rel="icon" type="image/x-icon" href="/public/css/favicon.ico">
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
+    @vite([
+        'public/coaltheme/css/theme.css',
+        'public/coaltheme/css/plugins.css',
+        'public/coaltheme/css/custom.css',
+        'resources/js/app.js'
+    ])
+    <script src="/coaltheme/js/ktdrawer.js" defer></script>
+    <input hidden name="header" value="{{session('grp_title') ?? 'Tedarik Yönetim Paneli'}}">
+    <input hidden name="SYS_CUR" value="{{env('SYS_CUR')}}">
+    <input hidden name="SYS_CODE" value="{{$GLOBALS['SYS_CODE']}}">
+</head>
+<body class="header-fixed header-tablet-and-mobile-fixed aside-fixed aside-secondary-disabled">
+    <div id="app" class="d-flex flex-column flex-root"></div>
+</body>
+</html>

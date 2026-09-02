@@ -35,7 +35,7 @@ export default {
   },
   computed: {
     headerBgStyle() {
-      const bgMap = { CATES: 'cates.jpg', YATAGAN: 'yatagan.jpg' };
+      const bgMap = { GDZ: 'gdz.jpg', ADM: 'adm.jpg' };
       const img = bgMap[this.sysCode];
       if (!img) return {};
       return {

@@ -11,7 +11,7 @@
       </div>
     </div>
 
-    <div v-if="sysCode === 'CATES'" class="col-12 mt-5">
+    <div v-if="sysCode === 'GDZ'" class="col-12 mt-5">
       <div class="table-card">
         <div class="card-header">
           <h5 class="card-title">Son Talepler (Rödevans)</h5>
@@ -184,7 +184,7 @@ export default {
         }
       });
 
-      if (this.sysCode === 'CATES') {
+      if (this.sysCode === 'GDZ') {
         this.requestRodevansTable = new PickleTable({
           container: '#request-rodevans-table',
           headers,

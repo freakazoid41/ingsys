@@ -177,7 +177,7 @@ class SyncOrdersCommand extends Command
             $userId = $this->getSystemUserId();
             $log = UserLog::create([
                 'user_id' => $userId,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
                 'type_id' => $logTypeId,
@@ -245,7 +245,7 @@ class SyncOrdersCommand extends Command
             $userId = $this->getSystemUserId();
             $log = UserLog::create([
                 'user_id' => $userId,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
                 'type_id' => $logTypeId,
@@ -317,7 +317,7 @@ class SyncOrdersCommand extends Command
             $userId = $this->getSystemUserId();
             $log = UserLog::create([
                 'user_id' => $userId,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
                 'type_id' => $logTypeId,

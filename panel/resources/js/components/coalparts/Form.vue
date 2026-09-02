@@ -536,8 +536,8 @@
                                         label    : 'Alıcı',
                                         options  : [
                                             {
-                                                text  : 'Yatağan',
-                                                value : 'Yatağan'
+                                                text  : 'ADM',
+                                                value : 'ADM'
                                             },
                                             {
                                                 text  : 'ÇATES',
@@ -1369,8 +1369,8 @@
                                         label    : 'Alıcı',
                                         options  : [
                                             {
-                                                text  : 'Yatağan',
-                                                value : 'Yatağan'
+                                                text  : 'ADM',
+                                                value : 'ADM'
                                             },
                                             {
                                                 text  : 'ÇATES',

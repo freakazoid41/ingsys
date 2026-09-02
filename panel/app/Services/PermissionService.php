@@ -128,7 +128,7 @@ class PermissionService
             $authUser = auth('sanctum')->user() ?? auth()->user();
             UserLog::create([
                 'user_id'     => $authUser->id ?? 0,
-                'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                 'relation'    => 'persons',
                 'relation_id' => $personId,
                 'type_id'     => Sys_options::where('op_key', 'log-user-logout')->value('id') ?? 0,

@@ -34,7 +34,7 @@ class PurgeDocumentsCommandTest extends TestCase
             'status' => 1,
             'title' => 'Test '.$typeKey,
             'person_id' => '-',
-            'grp_code' => 'CATES',
+            'grp_code' => 'GDZ',
         ]);
 
         $conn = Sys_con_ops::create([
@@ -53,7 +53,7 @@ class PurgeDocumentsCommandTest extends TestCase
         ]);
 
         UserLog::create([
-            'user_id' => 0, 'sys_code' => 'CATES', 'relation' => 'documents',
+            'user_id' => 0, 'sys_code' => 'GDZ', 'relation' => 'documents',
             'relation_id' => $document->id, 'type_id' => 0, 'description' => '{}',
         ]);
 

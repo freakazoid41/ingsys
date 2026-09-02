@@ -39,7 +39,7 @@ class Documents extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            if(!isset($post->grp_code))$post->grp_code = $GLOBALS['SYS_CODE'] ?? 'CATES';
+            if(!isset($post->grp_code))$post->grp_code = $GLOBALS['SYS_CODE'] ?? 'GDZ';
             // add other column as well
         });
 
@@ -163,7 +163,7 @@ class Documents extends Model
             case 'op-doc-request':
             case 'op-doc-offer':
                 if(isset($GLOBALS['SYS_CODE']) &&  session('type_key') !== 'op-pert-admin'){
-                    //$key = $GLOBALS['SYS_CODE'] == 'CATES' ? 'Çates' : 'Yatağan';
+                    //$key = $GLOBALS['SYS_CODE'] == 'GDZ' ? 'Çates' : 'ADM';
                     /*$where .= " and (
                                     main_attr.main_attr ilike '%{\"Key\" : \"target_type\", \"Value\" : \"$key\"}%' 
                                     or main_attr.main_attr ilike '%{\"Key\" : \"target_type\", \"Value\" : \"her ikisi\"}%'

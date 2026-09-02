@@ -45,7 +45,7 @@ class OfferCancellationReportingTest extends TestCase
             'status' => $documentStatus,
             'title' => 'Teklif',
             'person_id' => '-',
-            'grp_code' => 'CATES',
+            'grp_code' => 'GDZ',
         ]);
 
         $conn = Sys_con_ops::create([

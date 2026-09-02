@@ -42,7 +42,7 @@
       </router-link>
     </div>
 
-    <div class="info-card requests-card" v-if="sysCode == 'CATES'">
+    <div class="info-card requests-card" v-if="sysCode == 'GDZ'">
       <div class="info-header">
         <h5 class="section-title mb-0">Talepler (Rodevans)</h5>
       </div>
@@ -294,7 +294,7 @@ export default {
         },
       });
 
-      if (this.sysCode == 'CATES') {
+      if (this.sysCode == 'GDZ') {
         this.requestRodevansTable = new PickleTable({
           container: '#request-rodevans-table',
           headers: headers,

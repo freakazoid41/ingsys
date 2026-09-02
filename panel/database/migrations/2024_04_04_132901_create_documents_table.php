@@ -27,7 +27,7 @@ return new class extends Migration
             $table->text('person_id')->default('-'); // this is persons table qnid for easy reporting or logging
             
             $table->string('title',300)->default('-');
-            $table->string('grp_code',100)->nullable()->default('CATES');
+            $table->string('grp_code',100)->nullable()->default('GDZ');
             $table->text('qnid')->nullable();
 
             $table->timestamp('starting_at')->nullable();

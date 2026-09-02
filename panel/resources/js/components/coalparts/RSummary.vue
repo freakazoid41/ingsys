@@ -49,8 +49,8 @@ export default {
         },
         logoSrc() {
             const t = this.entities?.target_type ?? '';
-            if (t.includes('ÇATES') || t.toUpperCase().includes('CATES')) return '/coaltheme/CATES.svg';
-            if (t.includes('Yatağan') || t.toUpperCase().includes('YATAGAN')) return '/coaltheme/YATAGAN.svg';
+            if (t.toUpperCase().includes('GDZ')) return '/coaltheme/GDZ.svg';
+            if (t.toUpperCase().includes('ADM')) return '/coaltheme/ADM.svg';
             return null;
         },
         bothLogos() {
@@ -133,8 +133,8 @@ export default {
                 <span class="rs-eyebrow">Talep Detayı</span>
                 <div class="d-flex align-items-center gap-3">
                     <template v-if="bothLogos">
-                        <img src="/coaltheme/CATES.svg"   class="rs-logo" alt="ÇATES" />
-                        <img src="/coaltheme/YATAGAN.svg" class="rs-logo" alt="Yatağan" />
+                        <img src="/coaltheme/GDZ.svg"   class="rs-logo" alt="GDZ" />
+                        <img src="/coaltheme/ADM.svg" class="rs-logo" alt="ADM" />
                     </template>
                     <img v-else-if="logoSrc" :src="logoSrc" class="rs-logo" alt="" />
                 </div>

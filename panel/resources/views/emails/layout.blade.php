@@ -31,7 +31,7 @@
                                 // this layout is also reached through @include from other mail
                                 // views, which do not always carry sysCode — never hard-require it
                                 $sysCode = $sysCode ?? $sys_code ?? '';
-                                $logoSrc = $sysCode == 'CATES' ? 'https://www.cates.com.tr/storage/logo/cates.jpg' : 'https://www.cates.com.tr/storage/logo/yatagan.jpg';
+                                $logoSrc = $sysCode == 'GDZ' ? 'https://www.gdz.com.tr/storage/logo/gdz.jpg' : 'https://www.gdz.com.tr/storage/logo/adm.jpg';
 
 
                             @endphp

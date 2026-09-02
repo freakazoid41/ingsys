@@ -14,7 +14,7 @@ class CspMiddleware
         $nonce = base64_encode(random_bytes(16));
 
         // Hardcoded domains for dual-domain setup (fallback: env can also be used)
-        $hardcodedDomains = 'komurtedarik.cates.com.tr,komurtedarik.yatagantermik.com.tr';
+        $hardcodedDomains = 'komurtedarik.gdz.com.tr,komurtedarik.admtermik.com.tr';
         $extraHosts = trim((string) env('CSP_ADDITIONAL_HOSTS', $hardcodedDomains));
         $extraList = $extraHosts !== '' ? array_filter(array_map('trim', explode(',', $extraHosts))) : [];
 

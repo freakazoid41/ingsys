@@ -143,11 +143,11 @@ class ReportServiceProvider extends ServiceProvider
             $key = '-';
             if(function_exists('mb_stripos')){
                 if(mb_stripos($raw,'Çates',0,'UTF-8') !== false) $key = 'Çates';
-                if(mb_stripos($raw,'Yatağan',0,'UTF-8') !== false) $key = 'Yatağan';
+                if(mb_stripos($raw,'ADM',0,'UTF-8') !== false) $key = 'ADM';
                 if(mb_stripos($raw,'Her İkisi',0,'UTF-8') !== false) $key = 'Her İkisi';
             } else {
                 if(strpos($raw,'Çates') !== false) $key = 'Çates';
-                if(strpos($raw,'Yatağan') !== false) $key = 'Yatağan';
+                if(strpos($raw,'ADM') !== false) $key = 'ADM';
                 if(strpos($raw,'Her İkisi') !== false) $key = 'Her İkisi';
             }
 
@@ -162,11 +162,11 @@ class ReportServiceProvider extends ServiceProvider
             $key = '-';
             if(function_exists('mb_stripos')){
                 if(mb_stripos($raw,'Çates',0,'UTF-8') !== false) $key = 'Çates';
-                if(mb_stripos($raw,'Yatağan',0,'UTF-8') !== false) $key = 'Yatağan';
+                if(mb_stripos($raw,'ADM',0,'UTF-8') !== false) $key = 'ADM';
                 if(mb_stripos($raw,'Her İkisi',0,'UTF-8') !== false) $key = 'Her İkisi';
             } else {
                 if(strpos($raw,'Çates') !== false) $key = 'Çates';
-                if(strpos($raw,'Yatağan') !== false) $key = 'Yatağan';
+                if(strpos($raw,'ADM') !== false) $key = 'ADM';
                 if(strpos($raw,'Her İkisi') !== false) $key = 'Her İkisi';
             }
 

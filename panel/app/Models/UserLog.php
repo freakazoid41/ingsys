@@ -13,7 +13,7 @@ class UserLog extends Model
         parent::boot();
 
         static::creating(function ($post) {
-            $post->sys_code = $GLOBALS['SYS_CODE'] ?? 'CATES';
+            $post->sys_code = $GLOBALS['SYS_CODE'] ?? 'GDZ';
             $post->ip = request()->ip();
             // add other column as well
         });

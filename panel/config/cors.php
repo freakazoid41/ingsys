@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', 'komurtedarik.cates.com.tr,komurtedarik.yatagantermik.com.tr'))),
+    'allowed_origins' => array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', 'komurtedarik.gdz.com.tr,komurtedarik.admtermik.com.tr'))),
 
     'allowed_origins_patterns' => [],
 

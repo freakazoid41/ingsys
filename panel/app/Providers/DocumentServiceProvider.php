@@ -41,7 +41,7 @@ class DocumentServiceProvider extends ServiceProvider
         try {
             $logData = [
                 'user_id' => auth('sanctum')->user()->id,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $id,
                 'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
@@ -483,7 +483,7 @@ class DocumentServiceProvider extends ServiceProvider
             // change only when it is absent, and the entities are unchanged by a cancellation anyway
             UserLog::create([
                 'user_id' => auth('sanctum')->user()->id ?? 0,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
                 'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
@@ -550,7 +550,7 @@ class DocumentServiceProvider extends ServiceProvider
     {
         UserLog::create([
             'user_id' => auth('sanctum')->user()->id ?? 0,
-            'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+            'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
             'relation' => 'documents',
             'relation_id' => $document->id,
             'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
@@ -626,7 +626,7 @@ class DocumentServiceProvider extends ServiceProvider
 
         UserLog::create([
             'user_id' => auth('sanctum')->user()->id ?? DB::table('users')->where('status',1)->value('id') ?? 0,
-            'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+            'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
             'relation' => 'documents',
             'relation_id' => $document->id,
             'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
@@ -642,7 +642,7 @@ class DocumentServiceProvider extends ServiceProvider
 
         UserLog::create([
             'user_id'     => auth('sanctum')->user()->id,
-            'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'CATES',
+            'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'GDZ',
             'relation'    => 'documents',
             'relation_id' => $document->id,
             'type_id'     => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
@@ -1148,7 +1148,7 @@ class DocumentServiceProvider extends ServiceProvider
 
         $log = UserLog::create([
             'user_id' => auth('sanctum')->user()->id ?? 0,
-            'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+            'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
             'relation' => 'documents',
             'relation_id' => $doc->id,
             'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
@@ -1427,7 +1427,7 @@ class DocumentServiceProvider extends ServiceProvider
         }
     }
 
-    /** Duplicates a single order item under a new parent order id, with optional split amount. */
+    /** Dupligdz a single order item under a new parent order id, with optional split amount. */
     private function duplicateOrderItem($itemQnid, $newParentId, $splitAmount = 0)
     {
         $item = Documents::where('qnid', $itemQnid)->first();
@@ -1610,7 +1610,7 @@ class DocumentServiceProvider extends ServiceProvider
                 $userId = DB::table('users')->where('status', 1)->first()?->id ?? 0;
                 $log = UserLog::create([
                     'user_id' => $userId,
-                    'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                    'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                     'relation' => 'documents',
                     'relation_id' => $doc->id,
                     'type_id' => $logTypeId,
@@ -1818,7 +1818,7 @@ class DocumentServiceProvider extends ServiceProvider
 
             $log = UserLog::create([
                 'user_id' => auth('sanctum')->user()->id ?? 0,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'CATES',
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
                 'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id

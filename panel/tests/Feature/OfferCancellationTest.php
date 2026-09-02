@@ -49,7 +49,7 @@ class OfferCancellationTest extends TestCase
             'status' => $documentStatus,
             'title' => 'Test '.$typeKey,
             'person_id' => '-',
-            'grp_code' => 'CATES',
+            'grp_code' => 'GDZ',
         ]);
 
         $conn = Sys_con_ops::create([
@@ -197,7 +197,7 @@ class OfferCancellationTest extends TestCase
     }
 
     /**
-     * Authenticates by token only, with no session attributes — the shape a non-SPA
+     * Authentigdz by token only, with no session attributes — the shape a non-SPA
      * (no Origin/Referer) API call arrives in.
      */
     private function actAsUserWithoutSession(array $permissions = []): User
@@ -600,7 +600,7 @@ class OfferCancellationTest extends TestCase
             'status' => 1,
             'title' => 'Test op-doc-offer',
             'person_id' => '-',
-            'grp_code' => 'CATES',
+            'grp_code' => 'GDZ',
         ]);
 
         // first form row deliberately carries no cliid

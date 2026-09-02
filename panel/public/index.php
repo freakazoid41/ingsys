@@ -8,9 +8,9 @@ define('LARAVEL_START', microtime(true));
 
 
 
-$GLOBALS['SYS_CODE'] = 'CATES';
-if (strpos($_SERVER['HTTP_HOST'], 'yatagantermik') !== false) {
-    $GLOBALS['SYS_CODE'] = 'YATAGAN';
+$GLOBALS['SYS_CODE'] = 'GDZ';
+if (strpos($_SERVER['HTTP_HOST'], 'adm') !== false) {
+    $GLOBALS['SYS_CODE'] = 'ADM';
     
 }
 

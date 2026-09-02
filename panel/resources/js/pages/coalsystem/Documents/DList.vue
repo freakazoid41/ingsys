@@ -552,7 +552,7 @@
                     pageLimit : pageLimit,
                     height    : tableHeight,
                     type      : 'ajax',
-                    columnSearch : true,
+                    columnSearch : false,
                     paginationType : 'scroll',
                     groupBy : 'group_key',
                     groupFormatter : (groupValue, rowCount) => {

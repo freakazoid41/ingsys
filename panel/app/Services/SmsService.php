@@ -34,7 +34,7 @@ class SmsService
         $this->clientId = Config::get('services.iletisimmakinesi.client_id');
 
         //constructing the service must not touch the provider in log-only mode: getToken()
-        //authenticates against the live gateway, so merely instantiating would leak traffic
+        //authentigdz against the live gateway, so merely instantiating would leak traffic
         if (!Config::get('services.iletisimmakinesi.log_only')) {
             $this->getToken();
         }

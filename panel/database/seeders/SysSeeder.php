@@ -39,10 +39,10 @@ class SysSeeder extends Seeder
         $apartment = [
             [
                 'parent_id' => 0,
-                'title'     => 'Cates Sistem',
+                'title'     => 'GDZ Sistem',
                 'ttitle'    => 'Sys_options',
                 'ctitle'    => 'type_id',
-                'op_key'    => 'CATES',
+                'op_key'    => 'GDZ',
                 'group_key' => 'op-apt-types',
             ]
         ];

@@ -39,7 +39,7 @@ class Document_files extends Model
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            $post->grp_code = $GLOBALS['SYS_CODE'] ?? 'CATES';
+            $post->grp_code = $GLOBALS['SYS_CODE'] ?? 'GDZ';
             // add other column as well
         });
         
@@ -126,7 +126,7 @@ class Document_files extends Model
             'product_name'      => "(SELECT sce2.entity_value FROM sys_con_entities sce2
                                      INNER JOIN sys_con_ops sco2 ON sco2.id = sce2.conn_id
                                      WHERE sco2.main_id = d.id AND sce2.entity_tag = 'title'
-                                     AND sce2.table_tag = 'sys_con_ops' LIMIT 1) as product_name",
+                                     AND sce2.table_tag = 'sys_con_ops' LIMIT 1)  as  product_name",
             
             
         );
@@ -139,9 +139,9 @@ class Document_files extends Model
                     inner join sys_options as dt on dt.id = d.type_id
                     inner join sys_options as sf on sf.op_key = 'op-'|| SPLIT_PART(se.entity_tag, '**', 1)";
         
-        $where  = " where i.description!='' and i.status = 1 "; //  and i.grp_code='".($GLOBALS['SYS_CODE'] ?? 'CATES')."'"; 
+        $where  = " where i.description!='' and i.status = 1 "; //  and i.grp_code='".($GLOBALS['SYS_CODE'] ?? 'GDZ')."'"; 
         //all documents in document list are belong the clients so split company from clients
-        $where  .= " and d.grp_code='".($GLOBALS['SYS_CODE'] ?? 'CATES')."' and d.status = 1 ";
+        $where  .= " and d.grp_code='".($GLOBALS['SYS_CODE'] ?? 'GDZ')."' and d.status = 1 ";
 
         $where  .= " and sf.op_key not in ('op-offer_otherdocs_file') ";
         // Exclude product images from files listing — they are per-item and not actionable

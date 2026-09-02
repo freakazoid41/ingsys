@@ -18,7 +18,7 @@ class NotificationMailTest extends TestCase
      */
     public function test_client_activation_mail_renders_with_the_tenant_logo(): void
     {
-        $job = new SendNotificationMailJob(['sys_code' => 'CATES']);
+        $job = new SendNotificationMailJob(['sys_code' => 'GDZ']);
 
         $job->clientActivation([
             'name' => 'Test Kullanıcı',
@@ -28,12 +28,12 @@ class NotificationMailTest extends TestCase
 
         $log = NotificationLog::latest('id')->first();
         $this->assertNotNull($log, 'Aktivasyon maili hiç oluşturulmadı');
-        $this->assertStringContainsString('cates.jpg', $log->body);
+        $this->assertStringContainsString('gdz.jpg', $log->body);
     }
 
-    public function test_client_activation_mail_uses_the_yatagan_logo_for_the_other_tenant(): void
+    public function test_client_activation_mail_uses_the_adm_logo_for_the_other_tenant(): void
     {
-        $job = new SendNotificationMailJob(['sys_code' => 'YATAGAN']);
+        $job = new SendNotificationMailJob(['sys_code' => 'ADM']);
 
         $job->clientActivation([
             'name' => 'Test Kullanıcı',
@@ -43,7 +43,7 @@ class NotificationMailTest extends TestCase
 
         $log = NotificationLog::latest('id')->first();
         $this->assertNotNull($log);
-        $this->assertStringContainsString('yatagan.jpg', $log->body);
+        $this->assertStringContainsString('adm.jpg', $log->body);
     }
 
     /**

@@ -50,7 +50,7 @@ class SetStatusRegressionTest extends TestCase
             'qnid'      => 'test-offer-doc',
             'title'     => 'Test Teklif',
             'person_id' => '-',
-            'grp_code'  => 'CATES',
+            'grp_code'  => 'GDZ',
         ]);
     }
 

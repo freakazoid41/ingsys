@@ -19,6 +19,9 @@ import NList from "@/pages/coalsystem/NotificationLogs/NList.vue";
 // Order Management System (new)
 import OrderList from "@/pages/coalsystem/Order/OList.vue";
 import OrderForm from "@/pages/coalsystem/Order/OForm.vue";
+// Tedarik Public Panel
+import TedarikPanel from '@/layouts/TedarikPanel.vue';
+import TedarikDashboard from '@/pages/tedarik/Dashboard.vue';
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -45,6 +48,15 @@ const router = createRouter({
         { path: "/coalpanel/documents", name: 'DList', component: DList},
         { path: "/coalpanel/sistem-loglari", name: 'LList', component: LList},
         { path: "/coalpanel/notifikasyon-loglari", name: 'NList', component: NList},
+      ]
+    },
+    {
+      path: '/tedarikpanel',
+      component: TedarikPanel,
+      children: [
+        { path: "/tedarikpanel", name: 'TedarikDashboard', component: TedarikDashboard },
+        { path: "/tedarikpanel/orders", name: 'TedarikOrderList', component: OrderList },
+        { path: "/tedarikpanel/orders/form/:id?", name: 'TedarikOrderForm', component: OrderForm },
       ]
     },
     /*{
