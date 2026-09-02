@@ -18,7 +18,8 @@ export default {
         highlightQnid: { type: String, default: null },
         containerSuffix: { type: String, default: '' },
         orderDate: { type: String, default: '' },
-        readonly: { type: Boolean, default: false }
+        readonly: { type: Boolean, default: false },
+        hideHeader: { type: Boolean, default: false }
     },
     data(){
         return {
@@ -1100,8 +1101,8 @@ export default {
 }
 </script>
 <template>
-    <div class="order-item-card" ref="rootEl">
-        <div class="order-item-header">
+    <div class="order-item-card" :class="{ 'oic-hide-header': hideHeader }" ref="rootEl">
+        <div class="order-item-header" v-if="!hideHeader">
             <div class="order-item-header-left">
                 <div class="order-item-icon">
                     <i class="ki-outline ki-bullet-list"></i>
@@ -1541,6 +1542,9 @@ export default {
 </template>
 <style scoped>
 .order-item-card { border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02); }
+.order-item-card.oic-hide-header { border:none; border-radius:10px; box-shadow:none; background:transparent; }
+.order-item-card.oic-hide-header .oic-list-wrap { padding:0; }
+.order-item-card.oic-hide-header .oic-list { max-height:none; overflow:visible; padding-right:0; }
 .order-item-header { background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); border-bottom:1px solid #e2e8f0; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
 .order-item-header-left { display:flex; align-items:center; gap:14px; }
 .order-item-icon { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#eff6ff,#dbeafe); display:flex; align-items:center; justify-content:center; color:#3b82f6; font-size:20px; }

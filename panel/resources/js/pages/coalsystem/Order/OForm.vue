@@ -1019,17 +1019,15 @@
                         </label>
                     </div>
                     <div v-if="hasPartitions" style="margin-bottom:12px; padding:10px 14px; background:#fef3c7; border:1px solid #fde68a; border-radius:8px; color:#92400e; font-size:0.85rem;">Bu sipariş daha önce parçalı gönderildiği için artık sadece <b>Parçalı</b> gönderim yapılabilir.</div>
-                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
-                        <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')+'-tedarik'" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" :readonly="isLocked" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
-                    </div>
+                    <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')+'-tedarik'" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" :readonly="isLocked" :hideHeader="true" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
                 </div>
             </div>
 
             <!-- Step 2 -->
             <div class="tedarik-step-card">
-                <div class="tedarik-step-head"><span class="tedarik-step-num">2</span><span>İnceleme açıklamasını giriniz.</span></div>
+                <div class="tedarik-step-head"><span class="tedarik-step-num">2</span><span>İsterseniz açıklama girebilirsiniz.</span></div>
                 <div class="tedarik-step-body">
-                    <textarea v-model="tedarikDesc" rows="4" placeholder="İnceleme sonrası gerekli açıklamayı yazınız" style="width:100%; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; font-size:13.5px; color:#1e293b; outline:none; resize:vertical;" :disabled="isLocked && isFilesLocked"></textarea>
+                    <textarea v-model="tedarikDesc" rows="4" placeholder="Tercih ettiğiniz açıklamayı yazınız.." style="width:100%; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; font-size:13.5px; color:#1e293b; outline:none; resize:vertical;" :disabled="isLocked && isFilesLocked"></textarea>
                 </div>
             </div>
 
@@ -1460,7 +1458,7 @@
 .print-kabul-btn:disabled, .print-cins-btn:disabled { opacity:0.72; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 /* ===== TEDARIK DETAIL (screenshot 1:1) ===== */
-.tedarik-detail { display:flex; flex-direction:column; gap:14px; }
+.tedarik-detail { display:flex; flex-direction:column; gap:14px; background:#ffffff; border-radius:12px; }
 .tedarik-detail-header { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; }
 .tedarik-detail-header-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
 .tedarik-detail-title { font-size:17px; font-weight:800; color:#0f172a; line-height:1.2; }

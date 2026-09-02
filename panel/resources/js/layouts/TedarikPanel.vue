@@ -37,22 +37,44 @@ export default {
             const el = document.querySelector('input[name="SYS_CODE"]');
             if (el && el.value) this.sysCode = el.value;
         } catch(e) {}
-        // keep bg grey + lock page scroll — only inner .tedarik-main-inner scrolls (tabs stay fixed)
+        // typewriter: ONLY tedarik-main travels, frame+tabs stay — hidden at browser limit
         document.body.style.background = '#f2f2f3';
-        this._prevHtmlOverflow = document.documentElement.style.overflow;
-        this._prevBodyOverflow = document.body.style.overflow;
-        this._prevBodyHeight = document.body.style.height;
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
-        document.body.style.height = '100vh';
-        try { document.body.style.height = '100dvh'; } catch(e) {}
+        try { document.documentElement.style.scrollBehavior = 'smooth'; } catch(e) {}
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+        document.body.style.height = '';
+        this.$nextTick(()=> this.setupTypewriterScroll());
+        window.addEventListener('resize', this.setupTypewriterScroll);
+        window.addEventListener('scroll', this.syncTypewriter, { passive: true });
+        // keep body height in sync when inner content grows (pickletable async)
+        this.$nextTick(()=>{
+            try {
+                const inner = document.querySelector('.tedarik-main-inner');
+                if(inner && window.ResizeObserver){
+                    this._ro = new ResizeObserver(()=> {
+                        clearTimeout(this._roTimer);
+                        this._roTimer = setTimeout(()=> this.setupTypewriterScroll(), 80);
+                    });
+                    this._ro.observe(inner);
+                }
+            } catch(e) {}
+        });
+    },
+    watch: {
+        '$route.path'(){
+            this.$nextTick(()=> setTimeout(()=> this.setupTypewriterScroll(), 220));
+        }
     },
     beforeUnmount() {
-        try {
-            document.documentElement.style.overflow = this._prevHtmlOverflow || '';
-            document.body.style.overflow = this._prevBodyOverflow || '';
-            document.body.style.height = this._prevBodyHeight || '';
-        } catch(e) {}
+        try { document.documentElement.style.scrollBehavior = ''; } catch(e) {}
+        window.removeEventListener('resize', this.setupTypewriterScroll);
+        window.removeEventListener('scroll', this.syncTypewriter);
+        try { if(this._ro) this._ro.disconnect(); } catch(e) {}
+        clearTimeout(this._roTimer);
+        document.body.style.height = '';
+        document.documentElement.style.height = '';
+        const inner = document.querySelector('.tedarik-main-inner');
+        if(inner) inner.style.transform = '';
     },
     computed: {
         userName() { return this.authStore.userName || this.authStore.currentStatus?.main_name || ''; },
@@ -72,6 +94,48 @@ export default {
         isModuleActive(mod){
             const cur=window.location.pathname;
             return cur===mod.path||cur.startsWith(mod.path+'/');
+        },
+        setupTypewriterScroll(){
+            try {
+                // mobile: disable typewriter, let normal page scroll
+                if(window.innerWidth <= 992){
+                    document.body.style.height = '';
+                    document.documentElement.style.height = '';
+                    const innerM = document.querySelector('.tedarik-main-inner');
+                    if(innerM) innerM.style.transform = '';
+                    return;
+                }
+                const inner = document.querySelector('.tedarik-main-inner');
+                const frame = document.querySelector('.tedarik-frame');
+                if(!inner || !frame) return;
+                inner.style.transform = '';
+                document.body.style.height = '';
+                setTimeout(()=>{
+                    if(window.innerWidth <= 992) return;
+                    const contentH = inner.scrollHeight;
+                    const viewportH = window.innerHeight;
+                    const frameChrome = 40;
+                    const need = Math.max(contentH + frameChrome + 24, viewportH + 1);
+                    if(contentH + 48 > viewportH){
+                        document.body.style.height = need + 'px';
+                        document.documentElement.style.height = need + 'px';
+                    } else {
+                        document.body.style.height = '';
+                        document.documentElement.style.height = '';
+                    }
+                    this.syncTypewriter();
+                }, 120);
+            } catch(e) {}
+        },
+        syncTypewriter(){
+            try {
+                if(window.innerWidth <= 992) return;
+                const inner = document.querySelector('.tedarik-main-inner');
+                if(!inner) return;
+                const st = window.scrollY || document.documentElement.scrollTop || 0;
+                inner.style.transform = `translateY(${-st}px)`;
+                inner.style.willChange = 'transform';
+            } catch(e) {}
         }
     }
 }
@@ -167,6 +231,8 @@ export default {
 <style scoped>
 .tedarik-root {
     background: #f2f2f3;
+    position: fixed;
+    inset: 0;
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
@@ -181,13 +247,11 @@ export default {
     max-width: 1360px;
     height: calc(100vh - 40px);
     height: calc(100dvh - 40px);
-    max-height: calc(100vh - 40px);
-    max-height: calc(100dvh - 40px);
-    min-height: 0;
     background: #ffffff;
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.07);
     display: flex;
+    align-items: stretch;
     overflow: visible;
     position: relative;
 }
@@ -204,7 +268,6 @@ export default {
     position: relative;
     z-index: 10;
     height: 100%;
-    min-height: 0;
     flex-shrink: 0;
     align-self: stretch;
 }
@@ -368,43 +431,28 @@ export default {
     min-width: 0;
     min-height: 0;
     height: 100%;
-    background: transparent;
+    background: #ffffff;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
     border-left: 1px solid #f2f2f3;
     border-radius: 0 12px 12px 0;
     position: relative;
     z-index: 1;
+    align-self: stretch;
 }
 .tedarik-main-inner {
-    flex: 1;
-    min-height: 0;
-    height: 0;
+    flex: 0 0 auto;
+    min-height: min-content;
+    height: auto;
     padding: 22px 24px 10px 20px;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: visible;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 #f8fafc;
-    -webkit-overflow-scrolling: touch;
-}
-.tedarik-main-inner::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-.tedarik-main-inner::-webkit-scrollbar-track {
-    background: #f8fafc;
-    border-radius: 999px;
-}
-.tedarik-main-inner::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 999px;
-}
-.tedarik-main-inner::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    will-change: transform;
+    background: #ffffff;
+    border-radius: 0 12px 0 0;
 }
 .tedarik-main-inner > * {
     flex: 0 0 auto;
@@ -413,11 +461,11 @@ export default {
     min-height: min-content;
 }
 @media (max-width: 992px) {
-    .tedarik-root { padding: 0; height: auto; min-height: 100vh; overflow: visible; align-items: flex-start; }
-    .tedarik-frame { border-radius: 0; height: auto; max-height: none; min-height: 100vh; flex-direction: column; overflow: visible; }
-    .tedarik-sidebar { width: 100%; min-width: 0; height: auto; min-height: 0; border-right: none; border-bottom: 1px solid #f1f5f9; overflow: visible; align-self: auto; }
-    .tedarik-main { height: auto; min-height: 0; overflow: visible; }
-    .tedarik-main-inner { height: auto; min-height: 0; overflow: visible; }
+    .tedarik-root { position: relative; inset: auto; height: auto; min-height: 100vh; overflow: visible; align-items: flex-start; padding: 0; }
+    .tedarik-frame { border-radius: 0; height: auto; max-height: none; min-height: 100vh; flex-direction: column; overflow: visible; align-items: stretch; position: relative; }
+    .tedarik-sidebar { position: relative; top: auto; width: 100%; min-width: 0; height: auto; min-height: 0; max-height: none; border-right: none; border-bottom: 1px solid #f1f5f9; overflow: visible; align-self: auto; }
+    .tedarik-main { height: auto; min-height: 0; overflow: visible; align-self: auto; }
+    .tedarik-main-inner { height: auto; min-height: 0; overflow: visible; transform: none !important; will-change: auto; }
     .tedarik-menu-item { margin-left: 0; width: 100%; }
     .tedarik-info-card { margin-left: 0; width: 100%; }
     .tedarik-logout { margin-left: 0; width: 100%; }
