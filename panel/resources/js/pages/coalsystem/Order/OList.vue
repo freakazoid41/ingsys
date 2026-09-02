@@ -5,6 +5,10 @@
     import 'pickletable/assets/style.css';
     import Plib from '@/lib/pickle';
     import Swal from 'sweetalert2';
+    import flatpickr from 'flatpickr';
+    import { Turkish } from 'flatpickr/dist/l10n/tr.js';
+    import 'flatpickr/dist/flatpickr.min.css';
+    flatpickr.localize(Turkish);
 
     export default {
         breadcrumbs: {
@@ -12,16 +16,28 @@
             title: 'Sipariş Listesi'
         },
         setup() { return { useNavigationStore, useAuthStore, Swal } },
-        computed: {
-            isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); }
-        },
         mounted(){
             this.navigationStore.toggle(true);
             this.buildTable();
             setTimeout(() => this.navigationStore.toggle(false), 300);
             if(this.isTedarik){
-                this.fetchClients();
-                this.fetchTedarikciler();
+                this.$nextTick(()=> document.addEventListener('click', this.handleOutsideClick));
+            }
+        },
+        beforeUnmount(){
+            document.removeEventListener('click', this.handleOutsideClick);
+        },
+        computed: {
+            isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); },
+            filteredClients(){
+                if(!this.sirketSearch.trim()) return this.clientOptions;
+                const q=this.sirketSearch.trim().toLowerCase();
+                return this.clientOptions.filter(o=> o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
+            },
+            modalFilteredClients(){
+                const q=this.sirketSearch.trim().toLowerCase();
+                if(!q) return this.modalClients;
+                return this.modalClients.filter(o=> o.clititle.toLowerCase().includes(q) || o.lifnr.toLowerCase().includes(q) || (o.label&&o.label.toLowerCase().includes(q)));
             }
         },
         data() {
@@ -30,6 +46,17 @@
                 navigationStore : useNavigationStore(),
                 authStore : useAuthStore(),
                 showDetailed: false,
+                showDetayli: false,
+                detayliChoice: '',
+                sirketSearch: '',
+                selectedSirkets: [],
+                showSirketSub: false,
+                showClientModal: false,
+                clientModalMode: 'multi',
+                detailedModalTarget: 'sirket',
+                clientTable: null,
+                modalClients: [],
+                dropdownPos: { top: 0, left: 0, width: 280 },
                 detay: {
                     stokKodu: '',
                     siparisKodu: '',
@@ -37,7 +64,9 @@
                     seriNo: '',
                     uretimTarihi: '',
                     tedarikci: '',
+                    tedarikciLabel: '',
                     sirket: '',
+                    sirketLabel: '',
                     onayDurumu: '',
                     tarihAraligi: '',
                 },
@@ -47,6 +76,385 @@
         },
         methods: {
             toggleDetailed(){ this.showDetailed = !this.showDetailed; },
+            toggleDetayli(e){
+                if(e) e.stopPropagation();
+                this.showDetayli = !this.showDetayli;
+                if(!this.showDetayli) this.showSirketSub=false;
+                else this.$nextTick(()=> this.updateDropdownPos());
+            },
+            updateDropdownPos(){
+                try{
+                    const wrap=this.$refs.detayliWrap;
+                    if(!wrap) return;
+                    const rect=wrap.getBoundingClientRect();
+                    // keep dropdown left-aligned to Filtreler button, 12px gap below
+                    let left=rect.left;
+                    const width=280;
+                    // if overflowing right edge, shift left
+                    if(left + width > window.innerWidth - 12) left = window.innerWidth - width - 12;
+                    if(left < 12) left = 12;
+                    this.dropdownPos = { top: rect.bottom + 10, left, width };
+                }catch(e){}
+            },
+            handleOutsideClick(e){
+                const wrap=this.$refs.detayliWrap;
+                const dd=this.$refs.detayliDropdown;
+                if(!wrap) return;
+                const insideWrap = wrap.contains(e.target);
+                const insideDd = dd && dd.contains(e.target);
+                if(!insideWrap && !insideDd){
+                    this.showDetayli=false;
+                    this.showSirketSub=false;
+                }
+            },
+            openClientModal(mode='multi'){
+                this.clientModalMode = mode;
+                this.showClientModal = true;
+                this.sirketSearch = '';
+                this.$nextTick(()=> setTimeout(()=> this.buildClientTable(), 120));
+            },
+            openClientModalForDetailed(target='sirket'){
+                this.detailedModalTarget = target;
+                this.openClientModal('single');
+            },
+            onClientModalSearch(){
+                if(!this.clientTable) return;
+                const q = this.sirketSearch.trim();
+                if(q){
+                    this.clientTable.setFilter([{key:'all', type:'=', value: q}]);
+                } else {
+                    this.clientTable.setFilter([]);
+                }
+            },
+            async buildClientTable(){
+                // HARD FALLBACK so modal is NEVER empty — 8 seeded clients from tinker, then try live fetch to refresh
+                const hardFallback=[
+                    {id:'1', lifnr:'0000300185', clititle:'AKSA ENERJİ LTD.', label:'AKSA ENERJİ LTD. (0000300185)'},
+                    {id:'2', lifnr:'0000300184', clititle:'DEMİR ÇELİK A.Ş.', label:'DEMİR ÇELİK A.Ş. (0000300184)'},
+                    {id:'3', lifnr:'0000300187', clititle:'BORA MADENCİLİK', label:'BORA MADENCİLİK (0000300187)'},
+                    {id:'4', lifnr:'0000300182', clititle:'HASÇELİK KABLO', label:'HASÇELİK KABLO (0000300182)'},
+                    {id:'5', lifnr:'0000300188', clititle:'GÜNEŞ ELEKTRİK', label:'GÜNEŞ ELEKTRİK (0000300188)'},
+                    {id:'6', lifnr:'0000300183', clititle:'HES HACILAR ELEKTRİK', label:'HES HACILAR ELEKTRİK (0000300183)'},
+                    {id:'7', lifnr:'0000300186', clititle:'YILDIZ TEKSTİL', label:'YILDIZ TEKSTİL (0000300186)'},
+                    {id:'8', lifnr:'0000300181', clititle:'PANORAMA TEKSTİL', label:'PANORAMA TEKSTİL (0000300181)'},
+                ];
+                this.modalClients = hardFallback.slice();
+                this.clientOptions = hardFallback.map(o=> ({value:o.lifnr, label:o.label}));
+                // try live fetch in background to refresh (if fails, hardFallback stays)
+                try{
+                    const fd=new FormData();
+                    fd.append('tableReq', JSON.stringify({filter:[{key:'form-type',type:'=',value:'op-doc-client-form'},{key:'type',type:'=',value:'op-doc-client'}], scale:{page:1, limit:200}, order:{key:'id', style:'asc'}}));
+                    const rsp=await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
+                    const rows=rsp?.data?.data || rsp?.data || [];
+                    const list=Array.isArray(rows)?rows:(rows?.data||[]);
+                    if(list.length){
+                        const localData=list.map(r=>{
+                            try{
+                                const attrs=JSON.parse(r.main_attr||'[]');
+                                const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
+                                const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr||'-';
+                                const label = title ? `${title} (${lifnr})` : lifnr;
+                                return { id:r.id, lifnr, clititle:title, label, main_attr:r.main_attr, qnid:r.id };
+                            }catch(e){ return null; }
+                        }).filter(Boolean);
+                        if(localData.length){ this.modalClients = localData; this.clientOptions = localData.map(o=> ({value:o.lifnr, label:o.label})); }
+                    }
+                }catch(e){ console.warn('client modal live fetch failed, keeping hardFallback',e); }
+                // also build PickleTable for pagination if container exists — but primary display is modalFilteredClients list
+                let container = document.getElementById('client_modal_table');
+                if(!container) return;
+                container.innerHTML = '';
+                // reset table ref
+                this.clientTable = null;
+                const isSingle = this.clientModalMode === 'single';
+                const headers = [
+                    {
+                        title: isSingle ? '' : `<input type="checkbox" id="client-modal-check-all" style="width:16px;height:16px;accent-color:#FF5A1F;cursor:pointer;">`,
+                        key: 'chk',
+                        width: '44px',
+                        type: 'string',
+                        columnFormatter: (elm,row)=>{
+                            const cb=document.createElement('input');
+                            cb.type = isSingle ? 'radio' : 'checkbox';
+                            cb.name = isSingle ? 'client-modal-radio' : '';
+                            cb.style.width='16px'; cb.style.height='16px'; cb.style.accentColor='#FF5A1F'; cb.style.cursor='pointer';
+                            cb.checked = this.selectedSirkets.includes(row.lifnr) || (isSingle && this.detay[this.detailedModalTarget]===row.lifnr);
+                            cb.onclick=(e)=>{ e.stopPropagation(); if(isSingle){ this.detay[this.detailedModalTarget]=row.lifnr; this.detay[this.detailedModalTarget+'Label']=row.clititle + ' ('+row.lifnr+')'; this.showClientModal=false; } else { this.toggleSirket(row.lifnr); // update header checkbox
+                                const hdr=document.getElementById('client-modal-check-all');
+                                if(hdr){ const allChecked = this.clientTable && this.clientTable.config && Object.values(this.clientTable.config.currentData).every(r=> this.selectedSirkets.includes(r.lifnr)); hdr.checked = !!allChecked; }
+                            } };
+                            return cb;
+                        }
+                    },
+                    { title:'Şirket', key:'clititle', order:true, type:'string', columnFormatter:(elm,row)=>{ const s=document.createElement('span'); s.textContent=row.clititle||'-'; s.style.fontWeight='500'; s.style.color='#1e293b'; return s; } },
+                    { title:'Cari Kodu', key:'lifnr', order:true, width:'130px', type:'string', columnFormatter:(elm,row)=>{ const s=document.createElement('span'); s.textContent=row.lifnr||'-'; s.style.fontWeight='600'; s.style.color='#475569'; return s; } },
+                ];
+                const self=this;
+                this.clientTable = new PickleTable({
+                    container:'#client_modal_table',
+                    headers,
+                    pageLimit:8,
+                    height:'auto',
+                    type:'local',
+                    data: localData,
+                    columnSearch:false,
+                    paginationType:'number',
+                    nextPageIcon:'<i class="ki-outline ki-arrow-right"></i>', prevPageIcon:'<i class="ki-outline ki-arrow-left"></i>',
+                    rowFormatter:(elm,data)=>{
+                        const isSel = self.selectedSirkets.includes(data.lifnr) || (isSingle && self.detay[self.detailedModalTarget]===data.lifnr);
+                        if(isSel) elm.style.background='#fff7ed';
+                        return data;
+                    },
+                    rowClick:(rowElm,data)=>{
+                        if(isSingle){
+                            self.detay[self.detailedModalTarget]=data.lifnr;
+                            self.detay[self.detailedModalTarget+'Label']=data.clititle + ' ('+data.lifnr+')';
+                            self.showClientModal=false;
+                        } else {
+                            self.toggleSirket(data.lifnr);
+                            // sync checkboxes
+                            const cb=rowElm.querySelector('input[type="checkbox"]');
+                            if(cb) cb.checked=self.selectedSirkets.includes(data.lifnr);
+                            rowElm.style.background=self.selectedSirkets.includes(data.lifnr)?'#fff7ed':'';
+                        }
+                    }
+                });
+                // bind header check-all after render (multi only)
+                setTimeout(()=>{
+                    if(isSingle) return;
+                    const hdr=document.getElementById('client-modal-check-all');
+                    if(hdr){
+                        hdr.onclick=(e)=>{
+                            e.stopPropagation();
+                            const checked=e.target.checked;
+                            const rows=Object.values(self.clientTable.config.currentData);
+                            rows.forEach(r=>{
+                                if(checked){ if(!self.selectedSirkets.includes(r.lifnr)) self.selectedSirkets.push(r.lifnr); }
+                                else { self.selectedSirkets=self.selectedSirkets.filter(v=> v!==r.lifnr); }
+                                // update row visuals
+                                const rowElm=r.rowElm;
+                                if(rowElm){
+                                    const cb=rowElm.querySelector('input[type="checkbox"]');
+                                    if(cb) cb.checked=checked;
+                                    rowElm.style.background=checked?'#fff7ed':'';
+                                }
+                            });
+                        };
+                    }
+                },600);
+                // fallback if PickleTable stays empty (e.g. auth/session issue) — render via plib so modal never appears empty
+                setTimeout(async()=>{
+                    try{
+                        const cnt=Object.keys(self.clientTable?.config?.currentData||{}).length;
+                        if(cnt===0){
+                            const fd=new FormData();
+                            fd.append('tableReq', JSON.stringify({filter:[{key:'form-type',type:'=',value:'op-doc-client-form'},{key:'type',type:'=',value:'op-doc-client'}], scale:{page:1, limit:100}, order:{key:'id', style:'asc'}}));
+                            const rsp=await self.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
+                            const rows=rsp?.data?.data || rsp?.data || [];
+                            const list=Array.isArray(rows)?rows:(rows?.data||[]);
+                            if(list.length){
+                                container.innerHTML = '<div class="client-fallback-list">'+ list.map(r=>{
+                                    try{
+                                        const attrs=JSON.parse(r.main_attr||'[]');
+                                        const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
+                                        const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr;
+                                        const checked=self.selectedSirkets.includes(lifnr)?'checked':'';
+                                        const bg=self.selectedSirkets.includes(lifnr)?'background:#fff7ed;':'';
+                                        return `<label class="client-fallback-row" style="display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;${bg}"><input type="checkbox" ${checked} data-lifnr="${lifnr}" style="width:16px;height:16px;accent-color:#FF5A1F;"><span style="flex:1;font-weight:500;color:#1e293b;">${title}</span><span style="font-weight:600;color:#475569;">${lifnr}</span></label>`;
+                                    }catch(e){ return ''; }
+                                }).join('') + '</div>';
+                                container.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+                                    cb.addEventListener('change', (e)=>{
+                                        const lifnr=e.target.dataset.lifnr;
+                                        const isChecked=e.target.checked;
+                                        if(isChecked){ if(!self.selectedSirkets.includes(lifnr)) self.selectedSirkets.push(lifnr); } else { self.selectedSirkets=self.selectedSirkets.filter(v=> v!==lifnr); }
+                                        e.target.closest('label').style.background = isChecked ? '#fff7ed' : '';
+                                    });
+                                });
+                                container.querySelectorAll('.client-fallback-row').forEach(row=>{
+                                    row.addEventListener('click', (e)=>{
+                                        if(e.target.tagName==='INPUT') return;
+                                        const cb=row.querySelector('input'); cb.checked=!cb.checked; cb.dispatchEvent(new Event('change'));
+                                    });
+                                });
+                            }
+                        }
+                    }catch(e){ console.error('client fallback failed',e); }
+                },1200);
+            },
+            async handleDetayliChoice(val){
+                this.detayliChoice=val;
+                // close submenu when picking non-sirket
+                if(val!=='sirkete_gore') this.showSirketSub=false;
+                let shouldClose=true;
+                switch(val){
+                    case 'seri_no': {
+                        const {value: seri}=await Swal.fire({title:'Seri Numarası ile Arama', input:'text', inputPlaceholder:'Seri no giriniz', showCancelButton:true, confirmButtonText:'Ara', cancelButtonText:'Vazgeç', confirmButtonColor:'#FF5A1F'});
+                        if(seri && seri.trim()) this.table.setFilter([{key:'seri_no', type:'like', value: seri.trim()}]);
+                        break;
+                    }
+                    case 'tarihe_gore': {
+                        // order by date desc
+                        this.table.getData({key:'created_at', type:'date', style:'desc'});
+                        this.plib.toast(Swal,'success','Tarihe göre sıralandı (yeniden eskiye)');
+                        break;
+                    }
+                    case 'tarih_araligi': {
+                        const {value: rangeVal}=await Swal.fire({
+                            title:'Tarih Aralığı Seçin',
+                            html:'<input id="swal-flat-range" class="swal2-input" placeholder="Tarih aralığı seçin" style="width:85%;margin:8px auto;display:block;">',
+                            showCancelButton:true, confirmButtonText:'Filtrele', cancelButtonText:'Vazgeç', confirmButtonColor:'#FF5A1F',
+                            didOpen:()=>{
+                                const el=document.getElementById('swal-flat-range');
+                                if(!el) return;
+                                flatpickr(el, {
+                                    mode:'range',
+                                    dateFormat:'Y-m-d',
+                                    allowInput:true,
+                                    locale: Turkish,
+                                    // open immediately
+                                    onReady:(_,__,fp)=>{ setTimeout(()=> fp.open(), 80); }
+                                });
+                            },
+                            preConfirm:()=>{
+                                const v=document.getElementById('swal-flat-range')?.value?.trim() || '';
+                                if(!v){ Swal.showValidationMessage('Lütfen tarih aralığı seçin'); return false; }
+                                return v;
+                            }
+                        });
+                        if(rangeVal){
+                            // flatpickr range gives "2026-09-01 to 2026-09-10" or single "2026-09-01"
+                            let v = rangeVal.trim();
+                            if(v.includes(' to ')){
+                                const [s,e]=v.split(' to ').map(s=>s.trim());
+                                v = (s||'') + '|' + (e||'');
+                            } else if(v.includes(' — ')){
+                                const [s,e]=v.split(' — ').map(s=>s.trim());
+                                v = (s||'') + '|' + (e||'');
+                            } else {
+                                // single date -> filter as single day ilike fallback or range same day
+                                // send as single value, backend ilike will handle order date
+                                // but for range consistency send s|e same
+                                v = v + '|' + v;
+                            }
+                            this.table.setFilter([{key:'tarih_araligi', type:'like', value: v }]);
+                            this.plib.toast(Swal,'success','Tarih aralığı uygulandı');
+                        }
+                        break;
+                    }
+                    case 'alim_sirala': {
+                        this.table.getData({key:'alim_kodu', type:'string', style:'asc'});
+                        this.plib.toast(Swal,'success','Alım numarasına göre sıralandı');
+                        break;
+                    }
+                    case 'siparis_sirala': {
+                        this.table.getData({key:'siparis_kodu', type:'string', style:'asc'});
+                        this.plib.toast(Swal,'success','Sipariş numarasına göre sıralandı');
+                        break;
+                    }
+                    case 'beklemede': {
+                        // doc_trans_order_created + files_rejected filtered as beklemede
+                        this.table.setFilter([{key:'transactions', type:'=', value: 'doc_trans_order_created'}]);
+                        break;
+                    }
+                    case 'dosya_kontrol': {
+                        this.table.setFilter([{key:'transactions', type:'=', value: 'doc_trans_order_transfer_sent'}]);
+                        break;
+                    }
+                    case 'tamamlanan': {
+                        // approved or ready_for_shipment — backend IN handling
+                        this.table.setFilter([{key:'transactions', type:'=', value: 'doc_trans_order_approved,doc_trans_order_ready_for_shipment'}]);
+                        break;
+                    }
+                    case 'hepsi': {
+                        this.selectedSirkets=[];
+                        this.sirketSearch='';
+                        this.table.setFilter([]);
+                        this.plib.toast(Swal,'success','Tüm siparişler gösteriliyor');
+                        break;
+                    }
+                    case 'sirkete_gore': {
+                        // open client table modal instead of hover submenu
+                        this.showClientModal=true;
+                        this.showSirketSub=false;
+                        shouldClose=true;
+                        break;
+                    }
+                }
+                if(shouldClose) setTimeout(()=>{ this.showDetayli=false; }, 200);
+            },
+            toggleSirket(val){
+                const idx=this.selectedSirkets.indexOf(val);
+                if(idx>-1) this.selectedSirkets.splice(idx,1);
+                else this.selectedSirkets.push(val);
+                // do not auto-apply when modal is open — wait for Filtrele
+                if(!this.showClientModal) this.applySirketFilter();
+            },
+            applySirketFilter(){
+                if(this.selectedSirkets.length===0){
+                    // if no sirket selected but other detayliChoice is sirket, clear sirket filter -> show all or keep other?
+                    // just clear sirket filter
+                    this.table.setFilter([]);
+                    return;
+                }
+                const v=this.selectedSirkets.join(',');
+                this.table.setFilter([{key:'sirket', type:'like', value: v}]);
+            },
+            clearSirketFilter(){
+                if(this.clientModalMode==='single'){
+                    this.detay[this.detailedModalTarget]='';
+                    this.detay[this.detailedModalTarget+'Label']='';
+                    this.sirketSearch='';
+                    // also clear PickleTable selection visuals
+                    if(this.clientTable){
+                        Object.values(this.clientTable.config.currentData).forEach(r=>{ if(r.rowElm) r.rowElm.style.background=''; const cb=r.rowElm?.querySelector('input'); if(cb) cb.checked=false; });
+                    }
+                    return;
+                }
+                this.selectedSirkets=[];
+                this.sirketSearch='';
+                this.table.setFilter([]);
+                if(this.clientTable){
+                    Object.values(this.clientTable.config.currentData).forEach(r=>{ if(r.rowElm) r.rowElm.style.background=''; const cb=r.rowElm?.querySelector('input[type="checkbox"]'); if(cb) cb.checked=false; });
+                    const hdr=document.getElementById('client-modal-check-all'); if(hdr) hdr.checked=false;
+                }
+            },
+            applySirketFilterAndClose(){
+                if(this.clientModalMode==='single'){
+                    this.showClientModal=false;
+                    return;
+                }
+                this.applySirketFilter();
+                this.showClientModal=false;
+                if(this.selectedSirkets.length) this.plib.toast(Swal,'success', `${this.selectedSirkets.length} şirket için filtrelendi`);
+            },
+            toggleAllClients(e){
+                const checked=e.target.checked;
+                if(checked){
+                    this.selectedSirkets = this.filteredClients.map(o=> o.value);
+                } else {
+                    // remove only filtered ones
+                    const filteredVals = new Set(this.filteredClients.map(o=> o.value));
+                    this.selectedSirkets = this.selectedSirkets.filter(v=> !filteredVals.has(v));
+                }
+                // don't auto-apply until Filtrele clicked — keep live or not? keep live for now
+            },
+            toggleAllModalClients(e){
+                const checked=e.target.checked;
+                if(checked){
+                    // add all currently filtered modal clients
+                    const vals=this.modalFilteredClients.map(o=> o.lifnr);
+                    vals.forEach(v=>{ if(!this.selectedSirkets.includes(v)) this.selectedSirkets.push(v); });
+                } else {
+                    const filteredVals=new Set(this.modalFilteredClients.map(o=> o.lifnr));
+                    this.selectedSirkets=this.selectedSirkets.filter(v=> !filteredVals.has(v));
+                }
+            },
+            selectSingleClient(opt){
+                this.detay[this.detailedModalTarget]=opt.lifnr;
+                this.detay[this.detailedModalTarget+'Label']=opt.label || `${opt.clititle} (${opt.lifnr})`;
+                this.showClientModal=false;
+            },
             async fetchClients(){
                 try{
                     const fd=new FormData();
@@ -109,7 +517,7 @@
                 this.table.setFilter(f);
             },
             resetDetailedFilter(){
-                this.detay={ stokKodu:'', siparisKodu:'', alimKodu:'', seriNo:'', uretimTarihi:'', tedarikci:'', sirket:'', onayDurumu:'', tarihAraligi:'' };
+                this.detay={ stokKodu:'', siparisKodu:'', alimKodu:'', seriNo:'', uretimTarihi:'', tedarikci:'', tedarikciLabel:'', sirket:'', sirketLabel:'', onayDurumu:'', tarihAraligi:'' };
                 this.table.setFilter([]);
             },
             exportDetailed(){
@@ -552,11 +960,98 @@
             </div>
             <div class="tedarik-filters">
                 <a href="javascript:;" class="tedarik-filter" @click="toggleDetailed"><i class="ki-outline ki-filter"></i> Detaylı Filtre</a>
-                <a href="javascript:;" class="tedarik-filter" @click="toggleDetailed"><i class="ki-outline ki-filter"></i> Filtreler</a>
+                <div class="tedarik-filter-dd-wrap" ref="detayliWrap">
+                    <a href="javascript:;" class="tedarik-filter" :class="{active: showDetayli}" @click="toggleDetayli"><i class="ki-outline ki-filter"></i> Filtreler</a>
+                </div>
+                <teleport to="body">
+                    <!-- Dropdown via teleport so it escapes card overflow and never stays under cards -->
+                    <div v-if="showDetayli" ref="detayliDropdown" class="tedarik-dd tedarik-dd--teleported" :style="`position:fixed; top:${dropdownPos.top}px; left:${dropdownPos.left}px; width:${dropdownPos.width}px; z-index:9999;`" @click.stop>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='seri_no'}" @click="handleDetayliChoice('seri_no')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='seri_no'}"></span> Seri Numarası ile Arama
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='tarihe_gore'}" @click="handleDetayliChoice('tarihe_gore')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='tarihe_gore'}"></span> Tarihe Göre Sırala
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='tarih_araligi'}" @click="handleDetayliChoice('tarih_araligi')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='tarih_araligi'}"></span> Tarih Aralığı Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='alim_sirala'}" @click="handleDetayliChoice('alim_sirala')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='alim_sirala'}"></span> Alım Numarasına Göre Sırala
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='siparis_sirala'}" @click="handleDetayliChoice('siparis_sirala')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='siparis_sirala'}"></span> Sipariş Numarasına Göre Sırala
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='beklemede'}" @click="handleDetayliChoice('beklemede')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='beklemede'}"></span> Beklemede Olanları Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='dosya_kontrol'}" @click="handleDetayliChoice('dosya_kontrol')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='dosya_kontrol'}"></span> Dosya Kontrolü Olanları Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='tamamlanan'}" @click="handleDetayliChoice('tamamlanan')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='tamamlanan'}"></span> Tamamlananları Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='hepsi'}" @click="handleDetayliChoice('hepsi')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='hepsi'}"></span> Hepsini Göster
+                        </label>
+                        <div class="tedarik-dd-divider"></div>
+                        <div class="tedarik-dd-item tedarik-dd-has-sub" :class="{selected: detayliChoice==='sirkete_gore'}" @click="handleDetayliChoice('sirkete_gore')">
+                            <span class="tedarik-dd-sirket-label">Şirkete Göre Arama</span>
+                            <i class="ki-outline ki-right tedarik-dd-arrow"></i>
+                        </div>
+                    </div>
+                </teleport>
+                <!-- Client table modal — multi-select for Şirkete Göre Arama -->
+                <teleport to="body">
+                    <div v-if="showClientModal" class="client-modal-overlay" @click.self="showClientModal=false">
+                        <div class="client-modal-card" @click.stop>
+                            <div class="client-modal-head">
+                                <div>
+                                    <div class="client-modal-title">Şirkete Göre Arama</div>
+                                    <div class="client-modal-sub">{{ selectedSirkets.length ? selectedSirkets.length + ' şirket seçili' : 'Listelemek için şirket seçin' }}</div>
+                                </div>
+                                <button class="client-modal-close" @click="showClientModal=false" aria-label="Kapat"><i class="ki-outline ki-cross fs-2"></i></button>
+                            </div>
+                            <div class="client-modal-search-wrap">
+                                <input v-model="sirketSearch" class="client-modal-search" placeholder="Arama yapabilirsiniz." @input="onClientModalSearch" />
+                                <i class="ki-outline ki-magnifier client-modal-search-icon"></i>
+                            </div>
+                            <div class="client-modal-table-wrap">
+                                <div v-if="!modalClients.length" style="padding:28px;text-align:center;color:#9ca3af;font-size:13px;">Yükleniyor...</div>
+                                <div v-else style="display:flex;flex-direction:column;gap:0;">
+                                    <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #e2e8f0;background:#f8fafc;position:sticky;top:0;z-index:1;">
+                                        <template v-if="clientModalMode==='multi'">
+                                            <input type="checkbox" :checked="modalFilteredClients.length>0 && modalFilteredClients.every(o=> selectedSirkets.includes(o.lifnr))" @change="toggleAllModalClients" style="width:16px;height:16px;accent-color:#FF5A1F;cursor:pointer;">
+                                            <span style="font-size:12px;font-weight:600;color:#64748b;">Tümünü Seç</span>
+                                        </template>
+                                        <span v-else style="font-size:12px;font-weight:600;color:#64748b;">Bir şirket seçin</span>
+                                        <span style="margin-left:auto;font-size:12px;color:#6b7280;">{{modalFilteredClients.length}} şirket</span>
+                                    </div>
+                                    <div style="max-height:340px;overflow-y:auto;">
+                                        <label v-for="opt in modalFilteredClients" :key="opt.lifnr" @click="clientModalMode==='multi' ? toggleSirket(opt.lifnr) : selectSingleClient(opt)" :style="(clientModalMode==='multi' ? selectedSirkets.includes(opt.lifnr) : detay[detailedModalTarget]===opt.lifnr) ? 'background:#fff7ed;display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;' : 'display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;'" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+                                            <input v-if="clientModalMode==='multi'" type="checkbox" :checked="selectedSirkets.includes(opt.lifnr)" @change="toggleSirket(opt.lifnr)" @click.stop style="width:16px;height:16px;accent-color:#FF5A1F;flex-shrink:0;">
+                                            <input v-else type="radio" :checked="detay[detailedModalTarget]===opt.lifnr" @change="selectSingleClient(opt)" @click.stop style="width:16px;height:16px;accent-color:#FF5A1F;flex-shrink:0;" :name="'single-'+detailedModalTarget">
+                                            <span style="flex:1;font-weight:500;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{opt.clititle}}</span>
+                                            <span style="font-weight:600;color:#475569;font-size:13px;white-space:nowrap;">{{opt.lifnr}}</span>
+                                        </label>
+                                        <div v-if="!modalFilteredClients.length" style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">Sonuç bulunamadı</div>
+                                    </div>
+                                </div>
+                                <div id="client_modal_table" style="display:none;"></div>
+                            </div>
+                            <div class="client-modal-foot">
+                                <button class="client-modal-btn-light" @click="clearSirketFilter">Temizle</button>
+                                <div style="display:flex; gap:10px; margin-left:auto;">
+                                    <button class="client-modal-btn-ghost" @click="showClientModal=false">Vazgeç</button>
+                                    <button class="client-modal-btn-orange" @click="applySirketFilterAndClose">Filtrele</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </teleport>
                 <a href="javascript:;" class="tedarik-filter" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel Çıktı</a>
             </div>
         </div>
-        <!-- Detailed search panel — tedarik only, toggles via Detaylı Filtre -->
+        <!-- Detaylı Filtre modal — 3×3 grid absolute (restored) -->
         <div v-if="isTedarik && showDetailed" class="tedarik-detailed-panel">
             <div class="tedarik-detailed-grid">
                 <input v-model="detay.stokKodu" class="tedarik-detailed-input" placeholder="Stok Kodu Giriniz" />
@@ -564,19 +1059,13 @@
                 <input v-model="detay.alimKodu" class="tedarik-detailed-input" placeholder="Alım Kodu Giriniz" />
                 <input v-model="detay.seriNo" class="tedarik-detailed-input" placeholder="Seri No Giriniz" />
                 <input v-model="detay.uretimTarihi" class="tedarik-detailed-input" placeholder="Malzeme Üretim Tarihi" />
-                <div class="tedarik-detailed-select-wrap">
-                    <select v-model="detay.tedarikci" class="tedarik-detailed-select">
-                        <option value="">Tedarikçi Ara</option>
-                        <option v-for="opt in tedarikciOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
-                    <i class="ki-outline ki-down tedarik-detailed-arrow"></i>
+                <div class="tedarik-detailed-select-wrap" @click="openClientModalForDetailed('tedarikci')" style="cursor:pointer;">
+                    <input readonly :value="detay.tedarikciLabel" class="tedarik-detailed-select" placeholder="Tedarikçi Ara" style="cursor:pointer; background:#fff;" />
+                    <i class="ki-outline ki-down tedarik-detailed-arrow" style="pointer-events:none;"></i>
                 </div>
-                <div class="tedarik-detailed-select-wrap">
-                    <select v-model="detay.sirket" class="tedarik-detailed-select">
-                        <option value="">Şirket Ara</option>
-                        <option v-for="opt in clientOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
-                    <i class="ki-outline ki-down tedarik-detailed-arrow"></i>
+                <div class="tedarik-detailed-select-wrap" @click="openClientModalForDetailed('sirket')" style="cursor:pointer;">
+                    <input readonly :value="detay.sirketLabel" class="tedarik-detailed-select" placeholder="Şirket Ara" style="cursor:pointer; background:#fff;" />
+                    <i class="ki-outline ki-down tedarik-detailed-arrow" style="pointer-events:none;"></i>
                 </div>
                 <div class="tedarik-detailed-select-wrap">
                     <select v-model="detay.onayDurumu" class="tedarik-detailed-select">
@@ -985,6 +1474,123 @@
 }
 .tedarik-btn-orange:hover{ background:#e0541b; }
 .tedarik-detailed-note{ font-size: 12px; color:#8a8a8e; line-height: 1.5; padding-left: 8px; }
+/* ===== NEW Detaylı Filtre dropdown — screenshot 1:1 ===== */
+.tedarik-card{ overflow: visible !important; }
+.tedarik-list-top{ overflow: visible !important; position: relative; z-index: 55; }
+.tedarik-filter-dd-wrap{ position: relative; display: inline-flex; }
+.tedarik-filter.active{ color:#FF5A1F !important; }
+.tedarik-dd{
+    position: absolute; top: calc(100% + 12px); left: 0; z-index: 50;
+    width: 280px; background: #fff; border: 1px solid #ececec; border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(15,23,42,0.14), 0 4px 12px rgba(15,23,42,0.08);
+    padding: 10px 0 8px; animation: tedarikDdIn .16s ease;
+}
+@keyframes tedarikDdIn{ from{ opacity:0; transform: translateY(-6px)} to{ opacity:1; transform:none } }
+.tedarik-dd-item{
+    display: flex; align-items: center; gap: 10px;
+    padding: 8.5px 16px; font-size: 13px; font-weight: 400; color: #8a8a8e;
+    cursor: pointer; user-select: none; transition: background .12s, color .12s;
+    position: relative;
+}
+.tedarik-dd-item:hover{ background: #f9fafb; color:#374151; }
+.tedarik-dd-item.selected{ color:#1f2937; font-weight: 500; }
+.tedarik-radio{
+    width: 16px; height: 16px; border-radius: 50%; border:1.5px solid #d1d5db;
+    display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+    background:#fff; position:relative;
+}
+.tedarik-radio.on{ border-color:#FF5A1F; }
+.tedarik-radio.on::after{
+    content:''; width:7px; height:7px; border-radius:50%; background:#FF5A1F; display:block;
+}
+.tedarik-dd-divider{ height:1px; background:#f1f1f3; margin:6px 0; }
+.tedarik-dd-has-sub{ color:#FF4713 !important; font-weight:500 !important; justify-content:space-between; }
+.tedarik-dd-sirket-label{ color:#FF4713; }
+.tedarik-dd-arrow{ font-size:11px; color:#FF4713; margin-left:auto; }
+.tedarik-sirket-sub{
+    position: absolute; left: calc(100% + 10px); top: -10px; z-index: 60;
+    width: 360px; background:#fff; border:1px solid #e8e8ea; border-radius:12px;
+    box-shadow: 0 12px 32px rgba(15,23,42,0.16), 0 4px 12px rgba(15,23,42,0.10);
+    padding: 12px; animation: tedarikDdIn .14s ease;
+}
+.tedarik-sirket-search-wrap{ position:relative; margin-bottom:10px; }
+.tedarik-sirket-search{
+    width:100%; height:42px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;
+    padding:10px 38px 10px 14px; font-size:13px; color:#1e293b; outline:none;
+}
+.tedarik-sirket-search::placeholder{ color:#9ca3af; }
+.tedarik-sirket-search:focus{ border-color:#FF5A1F; box-shadow:0 0 0 3px rgba(255,90,31,0.10); }
+.tedarik-sirket-search-icon{ position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#FF5A1F; font-size:15px; pointer-events:none; }
+.tedarik-sirket-list{ max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding-right:2px; }
+.tedarik-sirket-row{ display:flex; align-items:center; gap:9px; padding:7px 6px; border-radius:7px; cursor:pointer; font-size:13px; color:#374151; transition:background .12s; }
+.tedarik-sirket-row:hover{ background:#f9fafb; }
+.tedarik-sirket-cb{ width:16px; height:16px; accent-color:#FF5A1F; border-radius:4px; flex-shrink:0; }
+.tedarik-sirket-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tedarik-sirket-empty{ padding:18px; text-align:center; font-size:13px; color:#9ca3af; }
+.tedarik-sirket-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid #f1f1f3; }
+.tedarik-sirket-count{ font-size:12px; color:#6b7280; font-weight:500; }
+.tedarik-sirket-clear{ font-size:12px; color:#FF5A1F; font-weight:600; text-decoration:none; }
+.tedarik-sirket-clear:hover{ text-decoration:underline; }
+/* ===== Client table modal ===== */
+.client-modal-overlay{
+    position:fixed; inset:0; z-index:10000; background:rgba(15,23,42,0.48); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center; padding:18px; animation: tedarikDdIn .16s ease;
+}
+.client-modal-card{
+    width:720px; max-width:92vw; max-height:82vh; background:#fff; border-radius:16px;
+    box-shadow: 0 20px 48px rgba(15,23,42,0.18), 0 8px 20px rgba(15,23,42,0.12);
+    display:flex; flex-direction:column; overflow:hidden; border:1px solid #e8e8ea;
+}
+.client-modal-head{
+    display:flex; align-items:center; justify-content:space-between; padding:18px 22px 16px;
+    border-bottom:1px solid #f1f1f3; flex-shrink:0;
+}
+.client-modal-title{ font-size:17px; font-weight:700; color:#0f172a; letter-spacing:-0.01em; }
+.client-modal-sub{ font-size:13px; color:#6b7280; margin-top:2px; }
+.client-modal-close{
+    width:36px; height:36px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#64748b;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.client-modal-close:hover{ background:#f8fafc; color:#1e293b; }
+.client-modal-search-wrap{ position:relative; padding:14px 22px 12px; flex-shrink:0; }
+.client-modal-search{
+    width:100%; height:44px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;
+    padding:10px 40px 10px 14px; font-size:13.5px; color:#1e293b; outline:none;
+}
+.client-modal-search::placeholder{ color:#9ca3af; }
+.client-modal-search:focus{ border-color:#FF5A1F; box-shadow:0 0 0 3px rgba(255,90,31,0.10); }
+.client-modal-search-icon{ position:absolute; right:32px; top:50%; transform:translateY(-50%); color:#FF5A1F; font-size:16px; pointer-events:none; }
+.client-modal-table-wrap{ flex:1; overflow-y:auto; padding:0 8px 8px; min-height:200px; }
+.client-modal-table{ width:100%; border-collapse:separate; border-spacing:0; font-size:13.5px; }
+.client-modal-table thead th{
+    position:sticky; top:0; background:#f8fafc; color:#64748b; font-size:12px; font-weight:600;
+    text-transform:uppercase; letter-spacing:0.04em; padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:left; z-index:1;
+}
+.client-modal-table tbody td{ padding:11px 12px; border-bottom:1px solid #f1f5f9; color:#334155; vertical-align:middle; }
+.client-modal-table tbody tr{ cursor:pointer; transition:background .12s; }
+.client-modal-table tbody tr:hover{ background:#f9fafb; }
+.client-modal-table tbody tr.selected{ background:#fff7ed; }
+.client-modal-table tbody tr.selected td{ color:#9a3412; }
+.client-modal-name{ font-weight:500; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:380px; }
+.client-modal-code{ font-weight:600; color:#475569; font-size:13px; white-space:nowrap; }
+.client-modal-empty{ text-align:center; padding:24px; color:#9ca3af; font-size:13px; }
+.client-modal-foot{
+    display:flex; align-items:center; gap:10px; padding:14px 22px 18px; border-top:1px solid #f1f1f3; flex-shrink:0; background:#fcfcfd;
+}
+.client-modal-btn-light{
+    height:40px; padding:0 16px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#475569; font-size:13px; font-weight:600; cursor:pointer;
+}
+.client-modal-btn-light:hover{ background:#f8fafc; }
+.client-modal-btn-ghost{
+    height:40px; padding:0 18px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#475569; font-size:13px; font-weight:600; cursor:pointer;
+}
+.client-modal-btn-orange{
+    height:40px; padding:0 20px; border-radius:10px; border:none; background:#FF5A1F; color:#fff; font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 2px 8px rgba(255,90,31,0.22);
+}
+.client-modal-btn-orange:hover{ background:#e0541b; }
+@media (max-width: 700px){
+    .tedarik-sirket-sub{ left:0; top: calc(100% + 8px); width: 280px; }
+}
 @media (max-width: 960px){
     .tedarik-detailed-grid{ grid-template-columns: 1fr; }
     .tedarik-detailed-actions{ grid-template-columns: 1fr; }

@@ -198,12 +198,25 @@ class Documents extends Model
         }
 
         if (isset($obj['order'])){
-            switch($obj['order']['key']){
-                default:
-                    $column = isset($columns[$obj['order']['key']]) ? explode('as  ',$columns[$obj['order']['key']])[0] : 'i.id';
-                break;
+            $ordKey = $obj['order']['key'];
+            $ordStyle = strtolower($obj['order']['style']) === 'asc' ? 'asc' : 'desc';
+            if($ordKey === 'alim_kodu'){
+                $column = "(SELECT se2.entity_value FROM sys_con_entities se2 JOIN sys_con_ops so2 ON so2.id=se2.conn_id WHERE so2.main_id=i.id AND se2.entity_tag='buying_no' LIMIT 1)";
+                $order = ' order by ' .$column. ' ' . $ordStyle.' ';
+            } elseif($ordKey === 'siparis_kodu'){
+                $column = "(SELECT se2.entity_value FROM sys_con_entities se2 JOIN sys_con_ops so2 ON so2.id=se2.conn_id WHERE so2.main_id=i.id AND se2.entity_tag='order_no' LIMIT 1)";
+                $order = ' order by ' .$column. ' ' . $ordStyle.' ';
+            } elseif($ordKey === 'stok_kodu'){
+                $column = "(SELECT sce2.entity_value FROM documents di JOIN sys_con_ops sco2 ON sco2.main_id=di.id AND sco2.conn_id=0 JOIN sys_con_entities sce2 ON sce2.conn_id=sco2.id WHERE di.parent_id=i.id AND di.status=1 AND sce2.entity_tag='prod_code' LIMIT 1)";
+                $order = ' order by ' .$column. ' ' . $ordStyle.' ';
+            } else {
+                switch($ordKey){
+                    default:
+                        $column = isset($columns[$ordKey]) ? explode('as  ',$columns[$ordKey])[0] : 'i.id';
+                    break;
+                }
+                $order = ' order by ' .$column. ' ' . $ordStyle.' ';
             }
-            $order = ' order by ' .$column. ' ' . $obj['order']['style'].' ';
         }else{
             $order = ' order by i.id desc ';
         }
@@ -345,16 +358,25 @@ class Documents extends Model
                         break;
                     case 'transactions':
                     case 'onay_durumu':
-                        if(noInject(strip_tags($f['value'])) == 'null'){
+                        $rawV = noInject(strip_tags($f['value']));
+                        if($rawV == 'null'){
                             $sql = "  and (select    so.op_key
                                                 from transactions as t
                                                     inner join sys_options so on so.id = t.type_id
                                                 where target_id=i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1) is null";
-                        }else{
+                        } else if(strpos($rawV, ',') !== false){
+                            $parts = array_filter(array_map('trim', explode(',', $rawV)));
+                            $escaped = array_map(fn($p)=> "'".noInject($p)."'", $parts);
+                            $in = implode(',', $escaped);
                             $sql = "  and (select    so.op_key
                                                 from transactions as t
                                                     inner join sys_options so on so.id = t.type_id
-                                                where target_id=i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1) = '".noInject(strip_tags($f['value']))."'";
+                                                where target_id=i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1) in (".$in.")";
+                        } else {
+                            $sql = "  and (select    so.op_key
+                                                from transactions as t
+                                                    inner join sys_options so on so.id = t.type_id
+                                                where target_id=i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1) = '".$rawV."'";
                         }
                         
                         $where .= $sql;
@@ -381,24 +403,40 @@ class Documents extends Model
                     case 'tedarikci':
                     case 'sirket_kodu':
                     case 'tedarikci_kodu':
-                        // both filter by spec_code (LIFNR) or ctitle (company name) — selects give lifnr
-                        $v = noInject($f['value']);
-                        $where .= " and (exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value ilike '%".$v."%') or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='ctitle' and se2.entity_value ilike '%".$v."%')) ";
+                        // supports comma-separated multi-select (e.g. from Şirkete Göre Arama submenu)
+                        $rawV = $f['value'];
+                        if(strpos($rawV, ',') !== false){
+                            $parts = array_filter(array_map('trim', explode(',', $rawV)));
+                            $ors = [];
+                            foreach($parts as $p){
+                                $p = noInject($p);
+                                if($p==='') continue;
+                                $ors[] = "se2.entity_value ilike '%".$p."%'";
+                            }
+                            if(count($ors)){
+                                $cond = implode(' OR ', $ors);
+                                $where .= " and (exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and (".$cond.")) or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='ctitle' and (".$cond."))) ";
+                            }
+                        } else {
+                            $v = noInject($rawV);
+                            $where .= " and (exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value ilike '%".$v."%') or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='ctitle' and se2.entity_value ilike '%".$v."%')) ";
+                        }
                         break;
                     case 'tarih_araligi':
                     case 'tarih_baslangic':
-                        // value may be YYYY-MM-DD or DD/MM/YYYY — compare via i.created_at and entity created_at
+                        // flatpickr sends Y-m-d range "2026-09-01|2026-09-10" — must match both document created_at AND Sipariş Tarihi (entity created_at DD/MM/YYYY)
                         $v = noInject($f['value']);
-                        // try to normalize: if contains | it's a range start|end
                         if(strpos($v, '|') !== false){
                             [$s,$e] = explode('|', $v, 2);
                             $s = trim($s); $e = trim($e);
+                            $sEsc = noInject($s); $eEsc = noInject($e);
+                            $entityDate = "to_date(se2.entity_value,'DD/MM/YYYY')";
                             if($s !== '' && $e !== ''){
-                                $where .= " and i.created_at::date between '".noInject($s)."'::date and '".noInject($e)."'::date ";
+                                $where .= " and (i.created_at::date between '".$sEsc."'::date and '".$eEsc."'::date or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='created_at' and se2.entity_value ~ '^[0-9]{2}/[0-9]{2}/[0-9]{4}' and ".$entityDate." between '".$sEsc."'::date and '".$eEsc."'::date)) ";
                             } elseif($s !== ''){
-                                $where .= " and i.created_at::date >= '".noInject($s)."'::date ";
+                                $where .= " and (i.created_at::date >= '".$sEsc."'::date or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='created_at' and se2.entity_value ~ '^[0-9]{2}/[0-9]{2}/[0-9]{4}' and ".$entityDate." >= '".$sEsc."'::date)) ";
                             } elseif($e !== ''){
-                                $where .= " and i.created_at::date <= '".noInject($e)."'::date ";
+                                $where .= " and (i.created_at::date <= '".$eEsc."'::date or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='created_at' and se2.entity_value ~ '^[0-9]{2}/[0-9]{2}/[0-9]{4}' and ".$entityDate." <= '".$eEsc."'::date)) ";
                             }
                         } else {
                             $where .= " and (i.created_at::text ilike '%".$v."%' or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='created_at' and se2.entity_value ilike '%".$v."%')) ";
