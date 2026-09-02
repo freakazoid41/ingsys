@@ -109,6 +109,21 @@
             },
             openClientModal(mode='multi'){
                 this.clientModalMode = mode;
+                // instant fallback so modal never shows "Yükleniyor..." — live fetch will refresh in buildClientTable
+                if(!this.modalClients.length){
+                    const hf=[
+                        {id:'1', lifnr:'0000300185', clititle:'AKSA ENERJİ LTD.', label:'AKSA ENERJİ LTD. (0000300185)'},
+                        {id:'2', lifnr:'0000300184', clititle:'DEMİR ÇELİK A.Ş.', label:'DEMİR ÇELİK A.Ş. (0000300184)'},
+                        {id:'3', lifnr:'0000300187', clititle:'BORA MADENCİLİK', label:'BORA MADENCİLİK (0000300187)'},
+                        {id:'4', lifnr:'0000300182', clititle:'HASÇELİK KABLO', label:'HASÇELİK KABLO (0000300182)'},
+                        {id:'5', lifnr:'0000300188', clititle:'GÜNEŞ ELEKTRİK', label:'GÜNEŞ ELEKTRİK (0000300188)'},
+                        {id:'6', lifnr:'0000300183', clititle:'HES HACILAR ELEKTRİK', label:'HES HACILAR ELEKTRİK (0000300183)'},
+                        {id:'7', lifnr:'0000300186', clititle:'YILDIZ TEKSTİL', label:'YILDIZ TEKSTİL (0000300186)'},
+                        {id:'8', lifnr:'0000300181', clititle:'PANORAMA TEKSTİL', label:'PANORAMA TEKSTİL (0000300181)'},
+                    ];
+                    this.modalClients = hf.slice();
+                    this.clientOptions = hf.map(o=> ({value:o.lifnr, label:o.label}));
+                }
                 this.showClientModal = true;
                 this.sirketSearch = '';
                 this.$nextTick(()=> setTimeout(()=> this.buildClientTable(), 120));
@@ -196,7 +211,7 @@
                     pageLimit:8,
                     height:'auto',
                     type:'local',
-                    data: localData,
+                    data: this.modalClients.slice(),
                     columnSearch:false,
                     paginationType:'number',
                     nextPageIcon:'<i class="ki-outline ki-arrow-right"></i>', prevPageIcon:'<i class="ki-outline ki-arrow-left"></i>',
@@ -374,8 +389,7 @@
                         break;
                     }
                     case 'sirkete_gore': {
-                        // open client table modal instead of hover submenu
-                        this.showClientModal=true;
+                        this.openClientModal('multi');
                         this.showSirketSub=false;
                         shouldClose=true;
                         break;
@@ -515,10 +529,12 @@
                 if(v.onayDurumu) f.push({key:'transactions', type:'=', value: v.onayDurumu});
                 if(v.tarihAraligi.trim()) f.push({key:'tarih_araligi', type:'like', value: v.tarihAraligi.trim()});
                 this.table.setFilter(f);
+                this.showDetailed=false;
             },
             resetDetailedFilter(){
                 this.detay={ stokKodu:'', siparisKodu:'', alimKodu:'', seriNo:'', uretimTarihi:'', tedarikci:'', tedarikciLabel:'', sirket:'', sirketLabel:'', onayDurumu:'', tarihAraligi:'' };
                 this.table.setFilter([]);
+                this.showDetailed=false;
             },
             exportDetailed(){
                 if(!this.table || !this.table.currentFilter) return this.exportTable();
