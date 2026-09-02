@@ -36,6 +36,8 @@ All logged in `memory/05 §4`. Highlights:
 - 2026-09-02 late: **Tedarik Detail Fresh Order 6-Step** — `OForm.vue:966` `isTedarik` header+warning+1 `OrderItemTable` +2 `tedarikDesc`+3 `tedarikImalatci`+4 `printMalzemeKabul/Cins`+5 file temp-upload+6 Gönder, `formatDate` fix `OForm.vue:963`, injected `dynamicF` + `dynamicFile` for `transfer_kabul|transfer_cins`
 - 2026-09-02 late: **Typewriter Scroll — holder-fixed/paper-feed** — `TedarikPanel.vue:551` `root:fixed inset:0 overflow:hidden` + `frame:calc(100vh-40px) overflow:visible` + `main:overflow:visible bg:#fff` + `main-inner:height:auto bg:#fff translateY(-scrollY)` + `body height=scrollHeight+40` + `ResizeObserver` + `watch $route` — only `tedarik-main` travels, hidden at browser viewport, `frame+tabs` pinned, `scrollBehavior:smooth`, mobile disabled
 - 2026-09-02 late: **White BG Fix** — `OForm.vue:1463 tedarik-detail bg:#fff` + `TedarikPanel main/main-inner bg:#fff` — gaps between `tedarik-step-card`s not floating on grey emptiness outside `frame`; overflow white paper clipped at viewport (browser limit)
+- 2026-09-02 late: **Tedarik Items Theme image 1:1** — `OrderItemTable hideHeader` + `tedarik-thead` + `oic-row--tedarik` (orange pill + gray Detaylar, `getKPartiNo`/`getTedarikDurum`), header `Sipariş Kalemleri` + `#28` removed, wrapper double border removed, `oic-hide-header` borderless
+- 2026-09-02 late: **Header/Wrapper Cleanup** — `Sipariş Kalemleri` header stripped for tedarik only, outer wrapper `bg:#fff border` removed, `oic-hide-header` makes card flush
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 

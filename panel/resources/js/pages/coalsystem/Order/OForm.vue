@@ -121,8 +121,30 @@
                 return this.orderEntities?.ctitle || this.orderEntities?.spec_code || 'Sipariş Detayı';
             },
             tedarikHeaderSub(){
-                // fallback e.g. HES HACILAR ... as in screenshot
                 return this.orderEntities?.order_no ? `Sipariş: ${this.orderEntities.order_no}` : '';
+            },
+            tedarikStatus(){
+                const arr = Array.isArray(this.parsedStatus) ? this.parsedStatus : [];
+                const last = arr.length ? arr[arr.length - 1] : null;
+                const op = last?.op_key || this.orderStatus || 'doc_trans_order_created';
+                const rawLabel = last?.title || last?.name || '';
+                let label = rawLabel || 'Beklemede';
+                let cls = 'tedarik-status--waiting';
+                let icon = 'ki-outline ki-file-added';
+                if(op === 'doc_trans_order_approved' || /Onay/i.test(label)){
+                    label = 'Kalite Onayı Verildi'; cls = 'tedarik-status--approved'; icon = 'ki-outline ki-check-circle';
+                } else if(op === 'doc_trans_order_ready_for_shipment' || /Sevke Hazır/i.test(label)){
+                    label = 'Sipariş Sevke Hazır'; cls = 'tedarik-status--ready'; icon = 'ki-outline ki-truck';
+                } else if(op === 'doc_trans_order_transfer_sent' || /Kontrol/i.test(label)){
+                    label = 'Dosyalar Kontrol Ediliyor'; cls = 'tedarik-status--waiting'; icon = 'ki-outline ki-magnifier';
+                } else if(op === 'doc_trans_order_files_rejected' || /Reddedilen/i.test(label)){
+                    label = 'Reddedilen Dosyalar Mevcut'; cls = 'tedarik-status--rejected'; icon = 'ki-outline ki-cross-circle';
+                } else if(op === 'doc_trans_order_rejected' || /Reddedildi/i.test(label)){
+                    label = 'Reddedildi'; cls = 'tedarik-status--rejected'; icon = 'ki-outline ki-cross-circle';
+                } else if(op === 'doc_trans_order_created' || /Beklemede/i.test(label)){
+                    label = 'Beklemede'; cls = 'tedarik-status--waiting'; icon = 'ki-outline ki-time';
+                }
+                return { label, cls, icon, op };
             },
         },
         methods: {
@@ -990,6 +1012,11 @@
                         <div class="tedarik-meta-item"><span>Tarih</span><b>{{ formatDate(orderEntities.created_at) }}</b></div>
                     </div>
                 </div>
+                <!-- Drum — order current status -->
+                <div class="tedarik-status-drum" :class="tedarikStatus.cls">
+                    <i :class="tedarikStatus.icon"></i>
+                    <span>{{ tedarikStatus.label }}</span>
+                </div>
             </div>
             <!-- Yellow warning -->
             <div class="tedarik-warning">
@@ -1019,7 +1046,7 @@
                         </label>
                     </div>
                     <div v-if="hasPartitions" style="margin-bottom:12px; padding:10px 14px; background:#fef3c7; border:1px solid #fde68a; border-radius:8px; color:#92400e; font-size:0.85rem;">Bu sipariş daha önce parçalı gönderildiği için artık sadece <b>Parçalı</b> gönderim yapılabilir.</div>
-                    <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')+'-tedarik'" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" :readonly="isLocked" :hideHeader="true" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
+                    <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')+'-tedarik'" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" :readonly="isLocked" :hideHeader="true" :tedarikOrderStatus="tedarikStatus" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
                 </div>
             </div>
 
@@ -1461,6 +1488,12 @@
 .tedarik-detail { display:flex; flex-direction:column; gap:14px; background:#ffffff; border-radius:12px; }
 .tedarik-detail-header { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; }
 .tedarik-detail-header-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+.tedarik-status-drum { margin-top:12px; display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:999px; font-size:12.5px; font-weight:700; border:1px solid transparent; line-height:1; }
+.tedarik-status-drum i { font-size:14px; }
+.tedarik-status-drum.tedarik-status--waiting { background:#FF5A1F; color:#fff; border-color:#FF5A1F; box-shadow:0 2px 8px rgba(255,90,31,0.22); }
+.tedarik-status-drum.tedarik-status--ready { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+.tedarik-status-drum.tedarik-status--approved { background:#dcfce7; color:#166534; border-color:#86efac; }
+.tedarik-status-drum.tedarik-status--rejected { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
 .tedarik-detail-title { font-size:17px; font-weight:800; color:#0f172a; line-height:1.2; }
 .tedarik-detail-sub { font-size:12.5px; color:#64748b; margin-top:4px; }
 .tedarik-detail-meta { display:flex; gap:18px; flex-wrap:wrap; text-align:right; }

@@ -19,7 +19,8 @@ export default {
         containerSuffix: { type: String, default: '' },
         orderDate: { type: String, default: '' },
         readonly: { type: Boolean, default: false },
-        hideHeader: { type: Boolean, default: false }
+        hideHeader: { type: Boolean, default: false },
+        tedarikOrderStatus: { type: Object, default: null }
     },
     data(){
         return {
@@ -31,6 +32,7 @@ export default {
             serialEnabled: {},
             serialCollapsed: {},
             serialViewCollapsed: {},
+            tedarikDetailsCollapsed: {},
             excelFileInputs: {},
             items: [],
             loading: true,
@@ -402,7 +404,17 @@ export default {
             this.serialCollapsed = { ...this.serialCollapsed };
         },
         isCollapsed(item){
+            if(this.hideHeader && this.atOnceMode && this.serialCollapsed[item.id] === undefined) return true;
             return !!this.serialCollapsed[item.id];
+        },
+        isTedarikDetailsCollapsed(row){
+            if(this.hideHeader && this.tedarikDetailsCollapsed[row.id] === undefined) return true;
+            return !!this.tedarikDetailsCollapsed[row.id];
+        },
+        toggleTedarikDetails(row){
+            const next = !this.isTedarikDetailsCollapsed(row);
+            this.tedarikDetailsCollapsed[row.id] = next;
+            this.tedarikDetailsCollapsed = { ...this.tedarikDetailsCollapsed };
         },
         isViewCollapsed(item){
             // Default collapsed
@@ -419,6 +431,30 @@ export default {
             if(parts.length >= 2) return parts[1] + '.' + parts[0];
             if(val.includes('.')) return val;
             return val;
+        },
+        getKPartiNo(row){
+            const pc = row.prod_code || '';
+            if(pc.includes('**')) return pc.split('**')[1] || pc;
+            if(pc.includes('**')) return pc.split('**').pop();
+            // fallback: try to extract from raw
+            return pc.split(' ').pop() || pc;
+        },
+        getTedarikDurum(row){
+            // Master wants Durum to show ORDER status, not item file status
+            if(this.tedarikOrderStatus && this.tedarikOrderStatus.label){
+                const s = this.tedarikOrderStatus;
+                // strip <br/> for single-line order pills (keep v-html safe)
+                const label = String(s.label).replace('<br/>',' ').replace('<br>',' ');
+                return { label, cls: s.cls || 'tedarik-status--waiting' };
+            }
+            const f = this.existingTestFiles[row.id]?.[0];
+            if(f && f.last_status){
+                const k = f.last_status.op_key || '';
+                if(k === 'doc_file_accepted') return { label: 'Onaylandı', cls: 'tedarik-status--accepted' };
+                if(k === 'doc_file_rejected') return { label: 'Reddedildi', cls: 'tedarik-status--rejected' };
+                if(k === 'doc_file_waiting') return { label: 'Beklemede', cls: 'tedarik-status--waiting' };
+            }
+            return { label: 'Test Dokümanı<br/>Bekleniyor', cls: 'tedarik-status--waiting' };
         },
         triggerExcelUpload(item){
             this._excelUploadSplitAmt = parseFloat(this.splitAmounts[item.id]) || 0;
@@ -593,9 +629,17 @@ export default {
             this.selected[qnid] = !wasSelected;
             if(!wasSelected){
                 this.splitAmounts[qnid] = parseFloat(row.quantity) || 0;
+                if(this.hideHeader){
+                    this.tedarikDetailsCollapsed[qnid] = false;
+                    this.tedarikDetailsCollapsed = { ...this.tedarikDetailsCollapsed };
+                }
             } else {
                 delete this.splitAmounts[qnid];
                 delete this.serials[qnid];
+                if(this.hideHeader){
+                    this.tedarikDetailsCollapsed[qnid] = true;
+                    this.tedarikDetailsCollapsed = { ...this.tedarikDetailsCollapsed };
+                }
             }
             this.notifySelect();
         },
@@ -1134,10 +1178,44 @@ export default {
                 <span style="color:#94a3b8;font-size:0.85rem;">Henüz kalem eklenmemiş</span>
             </div>
             <div v-else class="oic-list-wrap">
-                <div class="oic-list">
+                <div v-if="hideHeader" class="tedarik-thead">
+                    <span v-if="selectable" class="th-check"></span>
+                    <span class="th-malzeme">Malzeme Adı</span>
+                    <span class="th-kparti">K.Parti No</span>
+                    <span class="th-birim">Birimi</span>
+                    <span class="th-miktar">S.Miktarı /<br/>Stokta Mevcut</span>
+                    <span class="th-durum">Durum</span>
+                    <span class="th-ayr"></span>
+                </div>
+                <div class="oic-list" :class="{ 'oic-list--tedarik': hideHeader }">
                     <div v-for="(row, idx) in items" :key="row.id" class="oic-row-wrap" :data-item-qnid="row.id">
-                        <!-- Main row -->
-                        <div class="oic-row" :class="{ 'oic-selected': isSelected(row), 'oic-selectable': selectable }" @click="toggleCard(row)">
+                        <!-- Main row — tedarik theme -->
+                        <div v-if="hideHeader" class="oic-row oic-row--tedarik" :class="{ 'oic-selected': isSelected(row), 'oic-selectable': selectable }" @click="toggleCard(row)">
+                            <div v-if="selectable" class="tedarik-col tedarik-col--check" @click.stop="toggleCard(row)">
+                                <div class="oic-check" :class="{ checked: isSelected(row) }">
+                                    <i class="ki-outline ki-check" v-if="isSelected(row)"></i>
+                                </div>
+                            </div>
+                            <div class="tedarik-col tedarik-col--malzeme" :title="row.title">{{ row.title }}</div>
+                            <div class="tedarik-col tedarik-col--kparti">{{ getKPartiNo(row) }}</div>
+                            <div class="tedarik-col tedarik-col--birim">{{ row.unit }}</div>
+                            <div class="tedarik-col tedarik-col--miktar">
+                                <span v-if="quantityChanged(row)">
+                                    <span style="text-decoration:line-through;color:#94a3b8;font-weight:500;">{{ row.original_quantity }}</span>
+                                    <span style="color:#94a3b8;margin:0 4px;">→</span>
+                                    <strong>{{ row.quantity }}</strong>
+                                </span>
+                                <strong v-else>{{ row.quantity }}</strong>
+                            </div>
+                            <div class="tedarik-col tedarik-col--durum">
+                                <span class="tedarik-status-btn" :class="getTedarikDurum(row).cls" v-html="getTedarikDurum(row).label"></span>
+                            </div>
+                            <div class="tedarik-col tedarik-col--detay">
+                                <button class="tedarik-details-btn" @click.stop="toggleTedarikDetails(row)">{{ 'Detaylar' }}</button>
+                            </div>
+                        </div>
+                        <!-- Main row — admin (default) -->
+                        <div v-else class="oic-row" :class="{ 'oic-selected': isSelected(row), 'oic-selectable': selectable }" @click="toggleCard(row)">
                             <div class="oic-idx">{{ idx + 1 }}</div>
                             <div v-if="selectable" class="oic-check" :class="{ checked: isSelected(row) }" @click.stop="toggleCard(row)">
                                 <i class="ki-outline ki-check" v-if="isSelected(row)"></i>
@@ -1167,18 +1245,19 @@ export default {
                             </button>
                         </div>
 
+                        <div :class="hideHeader ? 'tedarik-additional' : ''" v-show="hideHeader ? !isTedarikDetailsCollapsed(row) : true">
                         <!-- Item file uploads (Test Dökümanı + Ürün Görselleri) -->
                         <div class="oic-item-files" @click.stop>
                             <div class="oic-item-files-header" @click="toggleItemFilesCollapse(row)">
                                 <i class="ki-outline ki-file" style="font-size:13px;color:#6366f1;"></i>
                                 <span>Dosyalar (Test - Ürün Resmi)</span>
                                 <span v-if="hasItemFiles(row)" class="oic-file-badge">var</span>
-                                <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                <span v-if="!hideHeader" style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                     {{ isItemFilesCollapsed(row) ? 'Genişlet' : 'Daralt' }}
                                     <i :class="isItemFilesCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
                                 </span>
                             </div>
-                            <div v-show="!isItemFilesCollapsed(row)" class="oic-item-files-body">
+                            <div v-show="hideHeader ? true : !isItemFilesCollapsed(row)" class="oic-item-files-body">
                                     <!-- Test Dökümanı (single slot — like Malzeme Kabul) -->
                                 <div class="oic-item-file-section">
                                     <div class="oic-item-file-label">
@@ -1289,12 +1368,12 @@ export default {
                             <div class="oic-serial-view-header" @click="toggleViewCollapse(row)">
                                 <i class="ki-outline ki-hash" style="font-size:13px;color:#6366f1;"></i>
                                 <span>Seri Numaraları ({{ row.serials.length }} adet)</span>
-                                <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                <span v-if="!hideHeader" style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                     {{ isViewCollapsed(row) ? 'Genişlet' : 'Daralt' }}
                                     <i :class="isViewCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
                                 </span>
                             </div>
-                            <div v-show="!isViewCollapsed(row)" class="oic-serial-scroll">
+                            <div v-show="hideHeader ? true : !isViewCollapsed(row)" class="oic-serial-scroll">
                                 <div class="oic-serial-view-table">
                                     <div class="oic-serial-view-row oic-serial-view-header-row">
                                         <span style="flex:0 0 40px;text-align:center;">#</span>
@@ -1320,7 +1399,7 @@ export default {
                                     <label class="oic-toggle-label" @click.stop>
                                         <input type="checkbox" class="oic-toggle-cb" :checked="serialEnabled[row.id]" @change="toggleSerials(row)" />
                                         <span class="oic-toggle-switch"></span>
-                                        <span class="oic-toggle-text">Seri Numarası Girilecek? <em>(Evet)</em></span>
+                                        <span class="oic-toggle-text">Seri Numarası Girilecek mi ? <em>(Evet)</em></span>
                                     </label>
                                 </div>
 
@@ -1338,12 +1417,12 @@ export default {
                                             <span>Şablon</span>
                                         </button>
                                         <input type="file" :ref="el => { if(el) excelFileInputs[row.id] = el }" accept=".xls,.xlsx" style="display:none" @change="onExcelFileSelected(row, $event)" />
-                                        <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                        <span v-if="!hideHeader" style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                             {{ isCollapsed(row) ? 'Genişlet' : 'Daralt' }}
                                             <i :class="isCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
                                         </span>
                                     </div>
-                                    <div v-show="!isCollapsed(row)" class="oic-serial-scroll">
+                                    <div v-show="hideHeader ? true : !isCollapsed(row)" class="oic-serial-scroll">
                                         <div class="oic-serial-grid">
                                             <div v-for="(ser, si) in (serials[row.id] || [])" :key="si" class="oic-serial-row">
                                                 <div class="oic-serial-field">
@@ -1379,12 +1458,12 @@ export default {
                                             <i class="ki-outline ki-plus" style="font-size:13px;"></i>
                                             <span>Satır Ekle</span>
                                         </button>
-                                        <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                        <span v-if="!hideHeader" style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                             {{ isCollapsed(row) ? 'Genişlet' : 'Daralt' }}
                                             <i :class="isCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
                                         </span>
                                     </div>
-                                    <div v-show="!isCollapsed(row)" class="oic-serial-scroll">
+                                    <div v-show="hideHeader ? true : !isCollapsed(row)" class="oic-serial-scroll">
                                         <div class="oic-serial-table">
                                             <div class="oic-serial-table-header">
                                                 <span style="flex:0 0 40px;">#</span>
@@ -1427,7 +1506,7 @@ export default {
                                 <label class="oic-toggle-label" @click.stop>
                                     <input type="checkbox" class="oic-toggle-cb" :checked="serialEnabled[row.id]" @change="toggleSerials(row)" />
                                     <span class="oic-toggle-switch"></span>
-                                    <span class="oic-toggle-text">Seri Numarası Girilecek? <em>(Evet)</em></span>
+                                    <span class="oic-toggle-text">Seri Numarası Girilecek mi ? <em>(Evet)</em></span>
                                 </label>
                             </div>
 
@@ -1445,7 +1524,7 @@ export default {
                                         <span>Şablon</span>
                                     </button>
                                     <input type="file" :ref="el => { if(el) excelFileInputs[row.id] = el }" accept=".xls,.xlsx" style="display:none" @change="onExcelFileSelected(row, $event)" />
-                                    <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                    <span v-if="!hideHeader" style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                         {{ isCollapsed(row) ? 'Genişlet' : 'Daralt' }}
                                         <i :class="isCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
                                     </span>
@@ -1486,7 +1565,7 @@ export default {
                                         <i class="ki-outline ki-plus" style="font-size:13px;"></i>
                                         <span>Satır Ekle</span>
                                     </button>
-                                    <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
+                                    <span v-if="!hideHeader" style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:0.78rem;color:#6366f1;">
                                         {{ isCollapsed(row) ? 'Genişlet' : 'Daralt' }}
                                         <i :class="isCollapsed(row) ? 'ki-outline ki-arrow-down' : 'ki-outline ki-arrow-up'" style="font-size:12px;"></i>
                                     </span>
@@ -1513,6 +1592,7 @@ export default {
                                     </div>
                                 </div>
                             </div>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -1544,7 +1624,56 @@ export default {
 .order-item-card { border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02); }
 .order-item-card.oic-hide-header { border:none; border-radius:10px; box-shadow:none; background:transparent; }
 .order-item-card.oic-hide-header .oic-list-wrap { padding:0; }
-.order-item-card.oic-hide-header .oic-list { max-height:none; overflow:visible; padding-right:0; }
+.order-item-card.oic-hide-header .oic-list { max-height:none; overflow:visible; padding-right:0; display:flex; flex-direction:column; gap:8px; }
+.order-item-card.oic-hide-header .oic-list--tedarik { gap:8px; }
+/* Tedarik header — Malzeme Adı | K.Parti No | Birimi | S.Miktarı / Stokta Mevcut | Durum */
+.tedarik-thead { display:flex; align-items:flex-end; gap:12px; padding:6px 18px 10px; font-size:11.5px; font-weight:600; color:#6b7280; line-height:1.2; }
+.tedarik-thead .th-check { flex:0 0 28px; }
+.tedarik-thead .th-malzeme { flex:1.4; min-width:0; }
+.tedarik-thead .th-kparti { flex:0 0 90px; }
+.tedarik-thead .th-birim { flex:0 0 60px; text-align:center; }
+.tedarik-thead .th-miktar { flex:0 0 110px; text-align:center; }
+.tedarik-thead .th-durum { flex:0 0 140px; text-align:center; }
+.tedarik-thead .th-ayr { flex:0 0 90px; }
+.tedarik-col--check { flex:0 0 28px; justify-content:center; }
+/* Tedarik row — image 1:1 */
+.oic-row--tedarik { display:flex; align-items:center; gap:12px; padding:12px 16px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; min-height:56px; font-size:13px; }
+.oic-row--tedarik:hover { border-color:#cbd5e1; background:#fcfcfd; }
+.oic-row--tedarik.oic-selected { border-color:#FF5A1F; background:#fff7ed; box-shadow:0 0 0 2px rgba(255,90,31,0.12); }
+.tedarik-col { min-width:0; display:flex; align-items:center; }
+.tedarik-col--malzeme { flex:1.4; font-weight:600; color:#0f172a; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tedarik-col--kparti { flex:0 0 90px; font-weight:500; color:#334155; font-size:12.5px; }
+.tedarik-col--birim { flex:0 0 60px; justify-content:center; font-weight:600; color:#334155; font-size:12.5px; }
+.tedarik-col--miktar { flex:0 0 110px; justify-content:center; font-weight:700; color:#0f172a; font-size:13px; }
+.tedarik-col--durum { flex:0 0 140px; justify-content:center; }
+.tedarik-col--detay { flex:0 0 90px; justify-content:flex-end; }
+.tedarik-status-btn { display:inline-flex; align-items:center; justify-content:center; text-align:center; padding:7px 10px; border-radius:6px; font-size:11.5px; font-weight:700; line-height:1.15; color:#fff; min-width:118px; min-height:32px; border:none; }
+.tedarik-status-btn.tedarik-status--waiting { background:#FF5A1F; }
+.tedarik-status-btn.tedarik-status--accepted { background:#22c55e; }
+.tedarik-status-btn.tedarik-status--rejected { background:#ef4444; }
+.tedarik-details-btn { display:inline-flex; align-items:center; justify-content:center; padding:7px 14px; border-radius:6px; font-size:12px; font-weight:600; color:#fff; background:#6b7280; border:1px solid #6b7280; cursor:pointer; min-width:72px; }
+.tedarik-details-btn:hover { background:#57534e; border-color:#57534e; }
+/* Tedarik file/serial sections — closer to screenshot */
+.oic-hide-header .oic-item-files { background:#fff; border:1px solid #e2e8f0; border-top:none; border-radius:0 0 8px 8px; margin-top:-1px; }
+.oic-hide-header .oic-item-files-body { padding:12px 16px 14px; gap:14px; }
+.oic-hide-header .oic-serial-section { background:#fff; padding:12px 16px; }
+.oic-hide-header .oic-serial-header { font-size:12.5px; color:#334155; }
+.oic-hide-header .oic-serial-input,
+.oic-hide-header .oic-serial-table-input,
+.oic-hide-header .oic-fp-month { border:1px solid #d1d5db; border-radius:6px; background:#fff; font-size:13px; }
+.oic-hide-header .oic-serial-input:focus,
+.oic-hide-header .oic-serial-table-input:focus,
+.oic-hide-header .oic-fp-month:focus { border-color:#FF5A1F; box-shadow:0 0 0 2px rgba(255,90,31,0.12); }
+.oic-hide-header .oic-item-file-section { gap:8px; }
+.oic-hide-header .oic-item-file-label { font-size:12.5px; color:#334155; }
+.oic-hide-header .oic-item-file-btn { border:1px solid #d1d5db; background:#fff; color:#374151; font-size:12.5px; }
+.oic-hide-header .oic-item-file-btn:hover { background:#f9fafb; border-color:#9ca3af; }
+.oic-hide-header .oic-item-files-header { display:none !important; }
+.oic-hide-header .oic-serial-view-header span:last-child,
+.oic-hide-header .oic-serial-header span[style*="margin-left:auto"] { display:none !important; }
+.oic-hide-header .oic-item-files-header,
+.oic-hide-header .oic-serial-header,
+.oic-hide-header .oic-serial-view-header { cursor:default !important; }
 .order-item-header { background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); border-bottom:1px solid #e2e8f0; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
 .order-item-header-left { display:flex; align-items:center; gap:14px; }
 .order-item-icon { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#eff6ff,#dbeafe); display:flex; align-items:center; justify-content:center; color:#3b82f6; font-size:20px; }
