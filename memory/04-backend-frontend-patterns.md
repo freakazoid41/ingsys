@@ -25,10 +25,10 @@ Global middleware (`bootstrap/app.php:19-27`): `ParsePutMultipart` (broken, fall
 
 | Method | Frontend call | Backend does | Guard |
 |--------|---------------|--------------|-------|
-| `GET /v1/document/{qnid}` | `plib.request({url:'/api/v1/document/'+id, method:'GET'})` | `getFormData(qnid)` → `{document, formFormat}` | `docPermCheck(read)` + supplier `clientQnidList` for client + `offerOwnershipCheck` |
-| `POST /v1/document` | `FormData {data: JSON.stringify({typeKey, dynamicF, removedData}), dynamicFile*: File|ref}` → POST | `registerContent(0, data, files)` → `Transactions created` → `sendOfferGiven` if offer | `docPermCheck(edit)` + `canResponse` for offers |
-| `PUT /v1/document/{qnid}` | same FormData, method PUT | same `registerContent(qnid, ...)` → `clientPermInfo refresh` if client+supplier → `sendClientChanged` + `updatePersonClients` + `doc_trans_offer_revised` auto | same + offer edit state guard (`revision|created|draft` for suppliers) + cancelled 422 |
-| `DELETE /v1/document/{qnid}` | DELETE | `removeContent(qnid)` → `status=0` (+ deactivate users if client) | `docPermCheck(edit)` — offers blocked (use cancel-offer) |
+| `GET /v1/document/{qnid}` | `plib.request({url:'/api/v1/document/'+id, method:'GET'})` | `getFormData(qnid)` → `{document, formFormat}` | `docPermCheck(read)` |
+| `POST /v1/document` | `FormData {data: JSON.stringify({typeKey, dynamicF, removedData}), dynamicFile*: File\|ref}` → POST | `registerContent(0, data, files)` → `Transactions created` | `docPermCheck(edit)` |
+| `PUT /v1/document/{qnid}` | same FormData, method PUT | same `registerContent(qnid, ...)` | `docPermCheck(edit)` + order edit state guard |
+| `DELETE /v1/document/{qnid}` | DELETE | `removeContent(qnid)` → `status=0` | `docPermCheck(edit)` |
 
 `registerContent` is atomic DB transaction + `UserLog` before/after. File keys `dynamicFile*` merged from `FormData` (multipart string refs re-merged in controller:92,154).
 
@@ -42,9 +42,6 @@ Global middleware (`bootstrap/app.php:19-27`): `ParsePutMultipart` (broken, fall
 ### 2.3 Status Machine — Controlled Writes
 `POST /v1/trans/set-status` → `DocumentController::setStatus:260-295` → `DocumentServiceProvider::setStatus(id, opKey, note)` (`DocumentServiceProvider.php:712-781`)
 - Resolves `op_key→sys_options.id`, creates `UserLog log-document-status-update` + `Transactions` (op_id 0)
-- Offer special: if `document.status==0` (cancelled) → revive `status=1` + `logOfferReopened` (status write can revive cancelled offers, requires `per-05-02`/admin)
-
-`POST /v1/trans/cancel-offer|reopen-offer` → dedicated endpoints with `required|uuid` validation + `per-08-02 + offerOwnershipCheck` + conditional `UPDATE status=0|1 WHERE status=1|0` (race-safe) + `UserLog` without before (timeline classification). (`DocumentController.php:302-367`, `DocumentServiceProvider.php:407-515`)
 
 `POST /v1/trans/set-file-status|set-file-status-all|disable-document` → `documentFileStatus` (file transactions `op_id=1`) + `refreshAllUserPermissions` + `sendClientFileStatus` mail.
 
@@ -70,9 +67,9 @@ Global middleware (`bootstrap/app.php:19-27`): `ParsePutMultipart` (broken, fall
 ### 2.4 Listing & Export — TableList Pattern
 `panel/app/Http/Controllers/SystemController.php:100` `POST /v1/table/{model}` → `(new $model)->tableList(params)` → raw SQL with filters.
 
-`Documents::tableList` (`app/Models/Documents.php:398`) is the monster: tenant `grp_code` filter, supplier `clientQnidList` injection, `her_ikisi` OR, `main_attr JSON` lateral, `showExpired|today-ended|is-rodevans|request_id` etc. `Users/Persons/Document_files/UserLog/NotificationLog` each have simpler `tableList`.
+`Documents::tableList` (`app/Models/Documents.php:398`) is the monster: tenant `grp_code` filter, `her_ikisi` OR, `main_attr JSON` lateral, `Document_files` join with `group_key` (COALESCE same-conn `order_no` + parent `order_no` fallback), `product_name` subquery. `Users/Persons/Document_files/UserLog/NotificationLog` each have simpler `tableList`.
 
-Export mirrors list: `POST /v1/export/{model}/{type?}` → `ExportController@index` → `ExportService::exportExcel` (PhpSpreadsheet streamed Xlsx, NO perm check) or `POST /export/offer` → dompdf `exports/offer.blade.php` + attachments ZIP.
+Export: `POST /v1/export/{model}/{type?}` → `ExportController@index` → `ExportService::exportExcel` (PhpSpreadsheet streamed Xlsx). Order-specific: `POST /v1/export/malzeme-kabul` + `POST /v1/export/malzeme-cins-miktar-kabul` → dompdf PDFs.
 
 ### 2.5 Auth & Session — Deep
 `AuthController.php:873`
@@ -123,7 +120,7 @@ await plib.request({url, method}, null, env);
 | `events` | `events.js:76` | `tasks, events` | `setTaskData→GET /v1/dashboard/getOngoingTasks`, `setEventData→GET /v1/dashboard/monthlyEvents` (legacy dead) |
 | `formdata` | `formdata.js:16` | `formData, addional, rawData` | `setData(data, addional), getData()` — no API, list→form carrier |
 
-### 3.3 Router — `router/index.js:103` (17 routes, no guard)
+### 3.3 Router — `router/index.js:103` (routes, no guard)
 All under `/coalpanel`, parent `layouts/CoalPanel.vue`. `beforeEach/afterEach` only closes `KTDrawer`, no auth. Server `web.php` `$coalAuth` closure is the real gate. `createWebHistory()` → needs `public/index.php` fallback for SPA.
 
 Copy pattern for new entity:
@@ -155,18 +152,16 @@ methods:{
 ```
 Template:
 ```vue
-<RSummary v-if="supplierView" :entities="..." :document="..." :addOfferCallback="addOffer" />
-<Form v-else formtypes="op-doc-X-form" :savecallback="submitForm" />
-<OfferRequestTable v-if="id" :requestId="id" />
-<RequestLogTimeline :requestQnid="id" />
+<Form formtypes="op-doc-X-form" :savecallback="submitForm" />
+<!-- Order system example: -->
+<!-- <OForm> has transfer card + Kabul/Cins PDF print + OrderItemTable (items + split + serials + files) -->
 ```
-Supplier read-only vs admin edit branch is common (see `RForm.vue:150`).
 
 ### 3.5 Components — Presentational + Data-Fetching Split
 - **Layout:** `CoalPanel.vue` (Sidebar+Header+Simplebar + `localStorage sa-theme`), `App.vue` (pure router-view)
-- **Coalparts:** `Form.vue` (engine), `Sidebar.vue` (menu, `per-*` gated, `toggleMini`, `markActiveRoute` DOM), `Header.vue` (breadcrumb via `navigationStore`, notifications bell → Swal modal via `getNotifications`), `RSummary/OfferSummary` (read-only hero + spec grid + calory table + status badge, props-driven, no API), `RequestLogTimeline/OfferLogTimeline` (fetches `POST /v1/table/userlog` `filter doc_qnid`, diffs `before/after` entities), `AppFab.vue` (floating bar/wheel, `fabtype=bar|leftIcon`)
-- **Dashboard:** `pages/coalsystem/Dashboard.vue` picks `Admin.vue` (8 widgets) or `Client.vue` (5) or `Default.vue` by `typeKey`; widgets each call `/api/v1/dashboard/{topstats|monthlyoffers|monthlydistribution|importantinfo}` + 3 duplicate `mergeNotifications` functions + Chart.js/FullCalendar
-- **Offer:** `OfferRequestTable` (table of offers for a request), `OfferTable` (dead, unused), `OfferLogTimeline`, `OfferSummary`
+- **Coalparts:** `Form.vue` (engine), `Sidebar.vue` (menu, `per-*` gated, `toggleMini`, `markActiveRoute` DOM), `Header.vue` (breadcrumb via `navigationStore`, notifications bell → Swal modal via `getNotifications`), `AppFab.vue` (floating bar/wheel, `fabtype=bar|leftIcon`)
+- **Order System:** `OrderItemTable.vue` (items + split + serials + file uploads), `DList.vue` (file grouping), `OForm.vue` (order form + transfer card + Kabul/Cins PDF print), `OList.vue` (order list with clone links)
+- **Dashboard:** `pages/coalsystem/Dashboard.vue` picks `Admin.vue` (8 widgets) or `Client.vue` (5) by `typeKey`; widgets each call `/api/v1/dashboard/{topstats|monthlyoffers|monthlydistribution|importantinfo}` + Chart.js/FullCalendar
 
 ### 3.6 Styling / Build
 `vite.config.js:49` — entry `resources/js/app.js + coal-swal.js`, 4 coaltheme CSS, alias `@→resources/js`, `sourcemap:true`. `tailwind.config.js` + `postcss`. Build: `npm run dev|build`. Auth pages use separate `@vite(['resources/js/coal-swal.js', 'resources/views/auth/...'])` per blade.
@@ -181,7 +176,7 @@ Supplier read-only vs admin edit branch is common (see `RForm.vue:150`).
 | **Mail** | `.env MAIL_* + MAIL_USE_RELAY`, `MailService.php:395` | `renderHtmlMessage → emails/layout.blade.php` (logo by SYS_CODE) → SMTP or relay:25 (verify_peer false) → `NotificationLog` |
 | **TCMB FX** | `Classes/Currencies/TCMB.php:70` | `GET https://www.tcmb.gov.tr/kurlar/today.xml` → parse `BanknoteSelling` → `Currencies::truncate()+create` per `SYS_CUR_INFO` |
 | **reCAPTCHA v2** | `RECAPTCHA_*`, `Rules/Recaptcha.php:42` | `POST google.com/recaptcha/api/siteverify` (test key `6LeIx...` in env) |
-| **PDF/Excel** | `ExportService.php:117` | `PhpSpreadsheet` Xlsx streamed; `dompdf+mpdf` for `exports/offer.blade.php` + ZIP decrypt attachments |
+| **PDF/Excel** | `ExportService.php:117` | `PhpSpreadsheet` Xlsx streamed; `dompdf` for order Kabul/Cins PDFs + `exports/offer.blade.php` (legacy) |
 
 ---
 

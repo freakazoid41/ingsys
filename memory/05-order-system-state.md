@@ -285,3 +285,17 @@ php artisan serve --host=127.0.0.1 --port=8000
 - **ST serial max** — capped at 300 rows (matches qty cap). ST >= 300 = no serial entry.
 - **PHP `??` vs `?:`** — `??` (null coalescing) doesn't fall through on empty string `''`. Always use `?:` or `!empty()` when checking frontend values that could be `''` (2026-08-31 lesson learned: imalatci_firma_adi bug).
 - **Route ordering** — Export routes MUST be before `{model}` wildcard in `api.php` or they'll never match (Laravel matches first route).
+
+## 11. Memory File Map
+
+| File | Contents |
+|------|----------|
+| `00` | architecture brain-dump: stack, entry points, EAV, auth, permissions, gotchas |
+| `01` | Form.vue schema-driven engine deep-dive |
+| `02` | EAV tables, dictionary, read/write summary |
+| `03` | how to build a new doc-type app (recipe) |
+| `04` | backend/frontend patterns, request flow, pitfalls |
+| `05` | **LIVE order-system state** — read after `00` |
+| `06` | roadmap: next steps + decision tree |
+| `07` | SAP sync command reference |
+| `idea` | original spec (front panel, partitioning, serials) |

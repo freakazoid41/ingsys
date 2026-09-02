@@ -7,9 +7,9 @@
 > **Read first:** `panel/docs/01-mimari-genel-bakis.md`, `panel/docs/TEKNIK_DOKUMANTASYON.md` then `memory/05-order-system-state.md`
 
 ## 1. What This App Is
-KomurTedarik — coal procurement / tender ERP. Two roles, one DB, two domains:
-- **Admin** `op-pert-admin` — creates suppliers, approves docs, opens requests (ihale), evaluates offers
-- **Supplier** `op-pert-reseller` — self-registers (`user_status=-1`), fills firm form + uploads files, after `doc_file_accepted` can bid
+Tedarik Yönetim Sistemi — Order Management System (converted from KomurTedarik coal ERP). Generic EAV document engine wearing order-management skin. Two roles, one DB:
+- **Admin** `op-pert-admin` — manages orders, clients, file approvals
+- **Supplier** `op-pert-reseller` — self-registers, fills firm form + uploads files
 
 Multi-tenant via `panel/public/index.php:11-15` → `Host contains yatagantermik ? YATAGAN : CATES` → `$GLOBALS['SYS_CODE']` → `documents.grp_code`, `user_logs.sys_code`.
 
@@ -54,12 +54,11 @@ sys_con_entities  — field value: conn_id→sys_con_ops, entity_tag = field**gr
 - No FKs, soft delete (`status=0`), raw SQL everywhere.
 
 ## 6. Document Types & State Machines
-`sys_options group op-doc`: `op-doc-request`, `op-doc-offer`, `op-doc-client` (+ `op-doc-*-form` in `op-doc-forms`)
+`sys_options group op-doc`: `op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, parent_id=order), `op-doc-order-serial` (Seri, parent_id=item), `op-doc-client` (Cari). `op-doc-transfer` seeded but **NOT used** (clones are `op-doc-order` with `transfer_no=EBELN-X`).
 
-- **Request:** `doc_trans_created → started → finished | cancelled`
-- **Offer:** `created/draft → sended → review → approved|rejected|revision → revised → review…`
+- **Order:** `doc_trans_order_created → transfer_sent → ready_for_shipment → approved/rejected` + `files_rejected`
 - **File:** `doc_file_waiting → accepted | rejected → refreshed`
-Every transition = `transactions` row + `user_logs` row. `setStatus()` resolves `op_key→sys_options.id` — null if typo → crash. Known bug: two components send `doc_trans_offer_accepted` not in dict.
+- **Serial:** `op-doc-order-serial` docs parented to items. Entities: `serial_no`, `production_date` (YYYY-MM-01), `quantity`, `unit`
 
 ## 7. Routing — 8 web + ~30 api
 **Web** `routes/web.php:69`: `/`, `/register`, `/logout`, `/smscallback`, `/auth/passwordreset/{code}`, `POST /auth/passchange`, `/coalpanel{any}`, `/order-file/{doc}`, `POST /export/offer`, `GET /export/{model}/{type?}`  
@@ -78,7 +77,7 @@ Frontend `stores/auth.js:43` heartbeat 30s + `pickle.js:105-154` 401 handlers (`
 Per-person JSON array in EAV `op-doc-user-permission-form`. Runtime via `PermissionService::has()` → `DEV_ADMIN backdoor` → `session sper-{code}` → `file cache permissions.user.{id}` (30d, `microtime*1e6` version). Helpers: `checkPerm()`, `docPermCheck(typeKey, read|edit|status)` in `PermissionHelpers.php:215`. Frontend `GET /v1/getpermissions` drives menu/button visibility. `updateUserPermissions()` fans out role changes + `bumpUserPermissionVersion`.
 
 ## 10. Frontend Skeleton
-`router/index.js:103` (17 routes under `/coalpanel`, NO auth guard) → `layouts/App.vue:35` → `layouts/CoalPanel.vue:82` (Sidebar+Header+Simplebar) → pages in `resources/js/pages/coalsystem/` (18 pages: Request/*, Offer/*, Client/*, Users/*, Roles/*, Documents/DList, Logs/LList, NotificationLogs/NList, Notifications/NSettings, Dashboard.vue, Example/*)
+`router/index.js:103` (routes under `/coalpanel`, NO auth guard) → `layouts/App.vue:35` → `layouts/CoalPanel.vue:82` (Sidebar+Header+Simplebar) → pages in `resources/js/pages/coalsystem/` (Orders/OList+OForm, Documents/DList, Users/*, Roles/*, Logs/LList, NotificationLogs/NList, Notifications/NSettings, Dashboard.vue)
 
 5 Pinia stores: `auth`, `permissiondata`, `navigation` (breadcrumbs+notifications+sys_code DOM read), `events` (legacy), `formdata` (list→form carrier, typo `addional`)
 
@@ -95,8 +94,8 @@ Central client `lib/pickle.js:824` — fetch wrapper (CSRF meta + Bearer localSt
 ## 12. Doc Map
 - `panel/docs/01-mimari-genel-bakis.md` — overview
 - `panel/docs/TEKNIK_DOKUMANTASYON.md:411` — full guide
-- `panel/docs/02-bulgular-ve-dogrulama.md` — all bugs/findings
-- `panel/docs/03-iliski-haritasi.md` — endpoint ↔ screen cross-table
-- `panel/docs/mapping/*.md` (11 files) — file-by-file maps: 10-models, 11-http, 12-services, 13-infra, 14-config-database, 15-frontend-core, 16-frontend-pages, 17-frontend-components, 18-views-i18n-mail, 19-mevcut-dokuman-inceleme, 20-misc
+- `panel/docs/mapping/*.md` (11 files) — file-by-file maps
 - `panel/docs/mapping/10-models.md` — start here for DB
 - `panel/docs/mapping/15-frontend-core.md` + `17-frontend-components.md` — start here for Form.vue
+- `memory/05-order-system-state.md` — LIVE order system state (read after `00`)
+- `memory/06-roadmap-next.md` — next steps + decision tree
