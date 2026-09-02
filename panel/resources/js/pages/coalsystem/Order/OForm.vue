@@ -1074,9 +1074,9 @@
             <div class="tedarik-detail-header tedarik-header--beautified">
                 <div class="tedarik-detail-header-top">
                     <div class="tedarik-detail-header-left">
-                        <button @click="goBackToList" class="tedarik-back-link" title="Listeye Dön" aria-label="Geri">
+                        <button @click="goBackToList" class="tedarik-back-link" title="Siparişler" aria-label="Geri">
                             <i class="ki-outline ki-arrow-left"></i>
-                            <span>Tedarikçi Bilgileri</span>
+                            <span>Tüm Siparişler</span>
                         </button>
                         <div class="tedarik-company-row">
                             <span class="tedarik-company-icon"><i class="ki-outline ki-office-bag"></i></span>
@@ -1085,9 +1085,9 @@
                         </div>
                     </div>
                     <div class="tedarik-detail-meta">
-                        <div class="tedarik-meta-item"><i class="ki-outline ki-document" style="font-size:13px;color:#94a3b8;"></i><span>Alım No :</span><b>{{ orderEntities.buying_no || '-' }}</b></div>
-                        <div class="tedarik-meta-item"><i class="ki-outline ki-tag" style="font-size:13px;color:#94a3b8;"></i><span>Sipariş No :</span><b>{{ orderEntities.order_no || '-' }}</b></div>
-                        <div class="tedarik-meta-item"><i class="ki-outline ki-calendar-8" style="font-size:13px;color:#94a3b8;"></i><span>Tarih :</span><b>{{ formatDate(orderEntities.created_at) }}</b></div>
+                        <div class="tedarik-meta-item"><span>Alım No :</span><b>{{ orderEntities.buying_no || '-' }}</b></div>
+                        <div class="tedarik-meta-item"><span>Sipariş No :</span><b>{{ orderEntities.order_no || '-' }}</b></div>
+                        <div class="tedarik-meta-item"><span>Tarih :</span><b>{{ formatDate(orderEntities.created_at) }}</b></div>
                     </div>
                 </div>
                 <!-- Drum — order current status -->
@@ -1613,21 +1613,26 @@
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 /* ===== TEDARIK DETAIL (screenshot 1:1) ===== */
 .tedarik-detail { display:flex; flex-direction:column; gap:14px; background:#ffffff; border-radius:12px; }
-.tedarik-detail-header { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; }
-.tedarik-detail-header-top { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap; }
-.tedarik-back-link { display:inline-flex; align-items:center; gap:6px; background:none; border:none; color:#FF5A1F; font-size:12px; font-weight:600; cursor:pointer; padding:0; line-height:1; }
-.tedarik-back-link i { font-size:14px; }
-.tedarik-back-link:hover { color:#e0541b; }
-.tedarik-status-drum { margin-top:12px; display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:999px; font-size:12.5px; font-weight:700; border:1px solid transparent; line-height:1; }
-.tedarik-status-drum i { font-size:14px; }
-.tedarik-status-drum.tedarik-status--waiting { background:#FF5A1F; color:#fff; border-color:#FF5A1F; box-shadow:0 2px 8px rgba(255,90,31,0.22); }
-.tedarik-status-drum.tedarik-status--ready { background:#fef3c7; color:#92400e; border-color:#fde68a; }
-.tedarik-status-drum.tedarik-status--approved { background:#dcfce7; color:#166534; border-color:#86efac; }
-.tedarik-status-drum.tedarik-status--rejected { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+.tedarik-detail-header { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px 22px 16px; position:relative; overflow:hidden; }
+.tedarik-detail-header::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #FF5A1F 0%, #fb923c 50%, #FF5A1F 100%); }
+.tedarik-detail-header-top { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid #f1f5f9; margin-bottom:10px; }
+.tedarik-back-link { display:inline-flex; align-items:center; gap:7px; background:linear-gradient(135deg, #fff7ed 0%, #fff 100%); border:1.5px solid #fed7aa; color:#ea580c; font-size:12px; font-weight:700; cursor:pointer; padding:6px 14px 6px 10px; border-radius:999px; line-height:1; transition:all 0.2s ease; margin-bottom:8px; box-shadow:0 1px 4px rgba(234,88,12,0.08); letter-spacing:0.02em; }
+.tedarik-back-link i { font-size:14px; transition:transform 0.2s ease; }
+.tedarik-back-link:hover { background:linear-gradient(135deg, #ffedd5 0%, #fff7ed 100%); border-color:#fb923c; color:#c2410c; box-shadow:0 2px 8px rgba(234,88,12,0.15); transform:translateX(-2px); }
+.tedarik-back-link:hover i { transform:translateX(-2px); }
+.tedarik-company-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.tedarik-company-icon { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #FF5A1F 0%, #fb923c 100%); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:16px; flex-shrink:0; box-shadow:0 4px 12px rgba(255,90,31,0.22); }
+.tedarik-detail-title { font-size:15.5px; font-weight:800; color:#0f172a; line-height:1.3; letter-spacing:-0.01em; }
+.tedarik-tdno-badge { display:inline-flex; align-items:center; padding:4px 8px; border-radius:6px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:11px; font-weight:700; letter-spacing:0.02em; white-space:nowrap; }
+.tedarik-detail-sub { font-size:12.5px; color:#64748b; margin-top:2px; }
+.tedarik-meta-item span { font-size:11.5px; color:#94a3b8; font-weight:500; white-space:nowrap; }
+.tedarik-meta-item b { font-size:13px; color:#0f172a; font-weight:700; white-space:nowrap; }
+.tedarik-status-drum { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:0.02em; box-shadow:0 2px 8px rgba(0,0,0,0.06); transition:all 0.2s ease; }
+.tedarik-status-dot { width:7px; height:7px; border-radius:999px; background:currentColor; opacity:0.9; display:inline-block; }
 .tedarik-detail-title { font-size:15px; font-weight:800; color:#0f172a; line-height:1.3; }
 .tedarik-detail-sub { font-size:12.5px; color:#64748b; margin-top:2px; }
-.tedarik-detail-meta { display:flex; flex-direction:column; gap:4px; align-items:flex-end; text-align:right; min-width:180px; }
-.tedarik-meta-item { display:flex; align-items:center; gap:8px; min-width:0; justify-content:flex-end; }
+.tedarik-detail-meta { display:flex; flex-direction:column; gap:3px; align-items:flex-end; text-align:right; }
+.tedarik-meta-item { display:flex; align-items:center; gap:8px; white-space:nowrap; }
 .tedarik-meta-item span { font-size:12px; color:#94a3b8; font-weight:500; white-space:nowrap; }
 .tedarik-meta-item b { font-size:13px; color:#0f172a; font-weight:700; white-space:nowrap; }
 .tedarik-warning { background:#fff8db; border:1px solid #fde68a; border-radius:12px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; color:#92400e; font-size:12.8px; line-height:1.6; }
@@ -1652,21 +1657,26 @@
 @media (max-width: 720px){ .tedarik-step-body > div[style*="grid-template-columns:1fr 1fr"]{ grid-template-columns:1fr !important; } .tedarik-detail-meta{ text-align:left; } }
 
 /* Beautified header — overrides */
-.tedarik-detail-header { background:#ffffff !important; border:1px solid #e5e7eb !important; border-radius:12px !important; padding:14px 18px 14px !important; box-shadow:0 1px 3px rgba(0,0,0,0.04) !important; position:relative; overflow:hidden; }
-.tedarik-detail-header::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:#FF5A1F; border-radius:12px 12px 0 0; }
-.tedarik-detail-header-top { gap:20px !important; }
-.tedarik-back-link { display:inline-flex !important; align-items:center !important; gap:5px !important; background:#fff !important; border:1px solid #fde68a !important; color:#ea580c !important; font-size:11px !important; font-weight:600 !important; cursor:pointer !important; padding:4px 10px !important; border-radius:999px !important; line-height:1 !important; }
-.tedarik-back-link i { font-size:13px !important; }
-.tedarik-back-link:hover { background:#fff7ed !important; border-color:#fed7aa !important; color:#e0541b !important; transform:translateX(-1px) !important; }
-.tedarik-company-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px; }
-.tedarik-company-icon { width:28px; height:28px; border-radius:8px; background:#FF5A1F; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:14px; flex-shrink:0; }
-.tedarik-detail-title { font-size:13.5px !important; font-weight:800 !important; color:#0f172a !important; line-height:1.3 !important; letter-spacing:0 !important; }
-.tedarik-tdno-badge { display:inline-flex; align-items:center; padding:3px 7px; border-radius:6px; background:#fff7ed; border:1px solid #fde68a; color:#92400e; font-size:11px; font-weight:600; letter-spacing:0; white-space:nowrap; }
-.tedarik-detail-meta { display:flex !important; flex-direction:column !important; gap:3px !important; align-items:flex-end !important; text-align:right !important; min-width:180px !important; background:transparent !important; border:none !important; padding:0 !important; }
-.tedarik-meta-item { display:flex !important; align-items:center !important; gap:6px !important; min-width:0 !important; justify-content:flex-end !important; }
-.tedarik-meta-item span { font-size:11px !important; color:#9ca3af !important; font-weight:500 !important; white-space:nowrap !important; }
-.tedarik-meta-item b { font-size:12.5px !important; color:#1f2937 !important; font-weight:700 !important; white-space:nowrap !important; }
-.tedarik-status-drum { margin-top:10px !important; padding:6px 12px !important; border-radius:999px !important; font-size:11.5px !important; font-weight:700 !important; box-shadow:none !important; border:1px solid transparent !important; }
+.tedarik-detail-header { background: linear-gradient(135deg, #ffffff 0%, #fcfdff 100%) !important; border:1px solid #e2e8f0 !important; border-radius:16px !important; padding:18px 22px 16px !important; box-shadow:0 8px 24px rgba(15,23,42,0.04), 0 2px 8px rgba(15,23,42,0.03) !important; position:relative; overflow:hidden; }
+.tedarik-detail-header::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #FF5A1F 0%, #fb923c 50%, #FF5A1F 100%); }
+.tedarik-detail-header-top { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid #f1f5f9; margin-bottom:10px; }
+.tedarik-back-link { display:inline-flex; align-items:center; gap:7px; background:linear-gradient(135deg, #fff7ed 0%, #fff 100%); border:1.5px solid #fed7aa; color:#ea580c; font-size:12px; font-weight:700; cursor:pointer; padding:6px 14px 6px 10px; border-radius:999px; line-height:1; transition:all 0.2s ease; margin-bottom:8px; box-shadow:0 1px 4px rgba(234,88,12,0.08); letter-spacing:0.02em; }
+.tedarik-back-link i { font-size:14px; transition:transform 0.2s ease; }
+.tedarik-back-link:hover { background:linear-gradient(135deg, #ffedd5 0%, #fff7ed 100%); border-color:#fb923c; color:#c2410c; box-shadow:0 2px 8px rgba(234,88,12,0.15); transform:translateX(-2px); }
+.tedarik-back-link:hover i { transform:translateX(-2px); }
+.tedarik-company-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.tedarik-company-icon { width:36px; height:36px; border-radius:10px; background: linear-gradient(135deg, #FF5A1F 0%, #fb923c 100%); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:16px; flex-shrink:0; box-shadow:0 4px 12px rgba(255,90,31,0.22); }
+.tedarik-detail-title { font-size:15.5px; font-weight:800; color:#0f172a; line-height:1.3; letter-spacing:-0.01em; }
+.tedarik-tdno-badge { display:inline-flex; align-items:center; padding:4px 8px; border-radius:6px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:11px; font-weight:700; letter-spacing:0.02em; white-space:nowrap; }
+.tedarik-detail-meta { display:flex; flex-direction:column; gap:3px; align-items:flex-end; text-align:right; }
+.tedarik-meta-item { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+.tedarik-meta-item span { font-size:11.5px; color:#94a3b8; font-weight:500; white-space:nowrap; }
+.tedarik-meta-item b { font-size:13px; color:#0f172a; font-weight:700; white-space:nowrap; }
+.tedarik-status-drum { display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:999px; font-size:12px; font-weight:700; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 .tedarik-status-dot { width:7px; height:7px; border-radius:999px; background:currentColor; opacity:0.9; display:inline-block; }
+.tedarik-status-drum.tedarik-status--waiting { background:#FF5A1F; color:#fff; border-color:#FF5A1F; box-shadow:0 2px 8px rgba(255,90,31,0.22); }
+.tedarik-status-drum.tedarik-status--ready { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+.tedarik-status-drum.tedarik-status--approved { background:#dcfce7; color:#166534; border-color:#86efac; }
+.tedarik-status-drum.tedarik-status--rejected { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
 
 </style>

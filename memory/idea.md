@@ -4,6 +4,8 @@
  - Siparişler için cari hesapları (cari kodları bağlanabilir olanlar)
  - Yetki haritalarını sistem için yeniden düzenle
  - modül geçişi için yetki koymayı unutma
+ - Sipariş durumlarını sadece admin değiştirebilir
+
 
 ** admin panel dashboard
 ** excel çıktıları
@@ -17,3 +19,12 @@
 
 ** süreci iki paneldende full test et 
 ** veri aktarımı
+
+
+** tedarik panel dökümanlar
+** tedarik panel kitli sipariş görünümü
+** tedarik panel sipariş listesi aksiyonlar
+** tedairk raporlar
+** excel çıktıları
+** dashboard
+** bilgilendirmeler

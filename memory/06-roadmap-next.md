@@ -38,6 +38,12 @@ All logged in `memory/05 §4`. Highlights:
 - 2026-09-02 late: **White BG Fix** — `OForm.vue:1463 tedarik-detail bg:#fff` + `TedarikPanel main/main-inner bg:#fff` — gaps between `tedarik-step-card`s not floating on grey emptiness outside `frame`; overflow white paper clipped at viewport (browser limit)
 - 2026-09-02 late: **Tedarik Items Theme image 1:1** — `OrderItemTable hideHeader` + `tedarik-thead` + `oic-row--tedarik` (orange pill + gray Detaylar, `getKPartiNo`/`getTedarikDurum`), header `Sipariş Kalemleri` + `#28` removed, wrapper double border removed, `oic-hide-header` borderless
 - 2026-09-02 late: **Header/Wrapper Cleanup** — `Sipariş Kalemleri` header stripped for tedarik only, outer wrapper `bg:#fff border` removed, `oic-hide-header` makes card flush
+- 2026-09-02 late: **Transfer Locked** — `isTransferLocked`/`tedarikDisplayMode` disables radio + banner on locked, step 6 hidden on locked (not new/rejected), `mounted` syncs `transferMode`
+- 2026-09-02 late: **Existing Files Locked** — `parseTedarikExistingFiles` + `getTedarikDisplayName` + `previewTedarikFile` + status badges + lock note
+- 2026-09-02 late: **Panel-Aware Routes** — `navigateToParentOrder`/`findAndNavigateToOrder`/`goBackToList` → panel-specific route names
+- 2026-09-02 late: **Header Beautified** — `← Tüm Siparişler` fancy pill + `office-bag` icon + `TDNO` badge + right-aligned meta + `tedarik-status-dot` + gradient top bar
+- 2026-09-02 late: **Step 6 Hidden** — Gönder only for new/rejected, not locked (transfer_sent/ready/approved/rejected)
+- 2026-09-02 late: **Checklist Cleanup** — duplicate `Genişlet/Daralt` removed, file header grey bar gone, memoized ResizeObserver + body height transition
 - 2026-09-02 late: **Drum Status** — `OForm tedarikStatus` pill in `tedarik-detail-header` shows order current status (`Beklemede`/`Kontrol`/`Sevke`/`Onay`/`Red`)
 - 2026-09-02 late: **At_Once Collapsed + Detaylar Master** — `isCollapsed` default true for atOnce tedarik, `tedarikDetailsCollapsed` + `Detaylar` toggles whole `tedarik-additional` (files+serial+split) + `Genişlet/Daralt` hidden `v-if="!hideHeader"` + empty file header `display:none`
 - 2026-09-02 late: **Checkbox Auto** — tedarik partial checkbox `toggleCard` auto opens/closes whole drawer via `tedarikDetailsCollapsed`
