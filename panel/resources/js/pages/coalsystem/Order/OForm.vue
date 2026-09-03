@@ -78,6 +78,7 @@
                 itemRemovedFiles: [],
                 printingKabul: false,
                 printingCins: false,
+                isSubmitting: false,
                 // tedarik detail (fresh order screenshot)
                 tedarikDesc: '',
                 tedarikImalatci: '',
@@ -366,9 +367,50 @@
                     showCloseButton: true, showConfirmButton: false, width: 900
                 });
             },
+            getTedarikNote(file){
+                const st = file?.last_status || {};
+                let raw = st.note ?? st.description ?? '';
+                // last_status.note is actually JSON string {"file_id":7,"desc":"...","note":"dfadfa"} — unwrap inner note
+                if(typeof raw === 'string' && raw.trim().startsWith('{')){
+                    try{ const inner = JSON.parse(raw); if(inner && typeof inner.note === 'string' && inner.note.trim() !== '') raw = inner.note; else if(inner && inner.desc) raw = inner.note || raw; }catch(e){}
+                }
+                if(typeof raw === 'string') raw = raw.trim();
+                return raw && raw !== '-' ? raw : '';
+            },
+            hasTedarikNote(file){
+                return !!this.getTedarikNote(file);
+            },
+            showTedarikFileNote(file){
+                const st = file?.last_status || {};
+                const isAccepted = st.op_key === 'doc_file_accepted';
+                const title = isAccepted ? 'Dosya Onaylandı' : st.op_key === 'doc_file_rejected' ? 'Dosya Reddedildi' : 'Dosya Notu';
+                const who = st.name || '-';
+                const note = this.getTedarikNote(file) || '-';
+                const when = st.created_at ? new Date(st.created_at).toLocaleString('tr-TR') : '';
+                Swal.fire({
+                    title,
+                    html: `<div style="text-align:left; padding:8px 4px;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                            <span style="font-size:12px; font-weight:700; padding:4px 8px; border-radius:6px; ${isAccepted ? 'background:#dcfce7;color:#166534' : 'background:#fee2e2;color:#991b1b'}">${isAccepted ? 'Onaylandı' : 'Reddedildi'}</span>
+                            <span style="font-size:13px; color:#0f172a; font-weight:600;">${this.getTedarikDisplayName(file,'Dosya')}</span>
+                        </div>
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; margin-bottom:8px;">
+                            <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;">İşlemi Yapan</div>
+                            <div style="font-size:13px; font-weight:600; color:#0f172a;">${who}</div>
+                            ${when ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${when}</div>` : ''}
+                        </div>
+                        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;">
+                            <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Not / Gerekçe</div>
+                            <div style="font-size:13px; color:#334155; line-height:1.6; white-space:pre-wrap; word-break:break-word;">${note}</div>
+                        </div>
+                    </div>`,
+                    showCloseButton:true, showConfirmButton:true, confirmButtonText:'Kapat', confirmButtonColor:'#6366f1', width:520
+                });
+            },
             async submitForm(formData){
                 this.formData = formData;
                 this.navigationStore.toggle(true);
+                this.isSubmitting = true;
                 this.formData.typeKey = 'op-doc-order';
 
                 // Tedarik panel manual wiring — inject order_desc / imalatci / files before validation
@@ -409,6 +451,7 @@
 
                 if(this.buildTransferPayload() === false){
                     this.navigationStore.toggle(false);
+                    this.isSubmitting = false;
                     return;
                 }
 
@@ -417,6 +460,7 @@
                 if(this.isTedarik){
                     if(!this.tedarikImalatci || !this.tedarikImalatci.trim()){
                         this.navigationStore.toggle(false);
+                        this.isSubmitting = false;
                         this.Swal.fire({ icon:'warning', title:'İmalatçı Firma Boş', text:'Lütfen imalatçı firma adını giriniz.', confirmButtonText:'Tamam' });
                         return;
                     }
@@ -430,7 +474,11 @@
                     // files that are already linked (finalized + entities) to the original
                     // items. Saving after the order PUT leaves them on the originals and the
                     // clone ships without test docs/images.
-                    if(!(await this.saveItemFiles())) return;
+                    if(!(await this.saveItemFiles())){
+                        this.navigationStore.toggle(false);
+                        this.isSubmitting = false;
+                        return;
+                    }
                     const envelope = new FormData();
                     envelope.append('data', JSON.stringify(this.formData));
                     for(const [key, fileItem] of Object.entries(this.formData.files || {})){
@@ -440,12 +488,21 @@
                             envelope.append(key, fileItem.file);
                         }
                     }
-                    const response = await this.plib.request({
-                        url: '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),
-                        method: this.id !== undefined ? 'PUT' : 'POST',
-                    },null,envelope);
+                    let response;
+                    try{
+                        response = await this.plib.request({
+                            url: '/api/v1/document'+(this.id !== undefined ? '/'+this.id : ''),
+                            method: this.id !== undefined ? 'PUT' : 'POST',
+                        },null,envelope);
+                    }catch(err){
+                        this.navigationStore.toggle(false);
+                        this.isSubmitting = false;
+                        this.plib.toast(this.Swal,'error', err?.msg || 'Kaydetme sırasında hata oluştu');
+                        return;
+                    }
                     setTimeout(async () => {
                         this.navigationStore.toggle(false);
+                        this.isSubmitting = false;
                         const msg = response?.data?.transfer_msg || response.msg || 'İşlem Tamamlandı';
                         // Slutty helper: if order still in files_rejected, list which slots are still rejected
                         let still = [];
@@ -494,6 +551,7 @@
                     }, 300);
                 }else{
                     this.navigationStore.toggle(false);
+                    this.isSubmitting = false;
                     this.plib.toast(this.Swal,'info','Eksik Alanları Doldurmalısınız..',()=>{});
                 }
             },
@@ -1185,6 +1243,13 @@
                                 <span v-if="tedarikExistingKabul.last_status" style="font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;" :style="tedarikExistingKabul.last_status.op_key==='doc_file_accepted' ? 'background:#dcfce7;color:#166534' : tedarikExistingKabul.last_status.op_key==='doc_file_rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef3c7;color:#92400e'">{{ tedarikExistingKabul.last_status.op_key==='doc_file_accepted' ? 'Onaylandı' : tedarikExistingKabul.last_status.op_key==='doc_file_rejected' ? 'Reddedildi' : 'Beklemede' }}</span>
                                 <button type="button" @click="previewTedarikFile(tedarikExistingKabul)" style="width:28px; height:28px; border-radius:6px; border:1px solid #e0e7ff; background:#eef2ff; color:#6366f1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="ki-outline ki-eye" style="font-size:14px;"></i></button>
                             </div>
+                            <div v-if="isFilesLocked && tedarikExistingKabul && tedarikExistingKabul.last_status" style="margin-top:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+                                <div style="font-size:12px; color:#475569; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    <span style="font-weight:700;">{{ tedarikExistingKabul.last_status.op_key==='doc_file_accepted' ? 'Onaylayan' : tedarikExistingKabul.last_status.op_key==='doc_file_rejected' ? 'Reddeden' : 'İşlem' }}:</span>
+                                    {{ tedarikExistingKabul.last_status.name || '-' }}
+                                </div>
+                                <button v-if="hasTedarikNote(tedarikExistingKabul)" type="button" @click="showTedarikFileNote(tedarikExistingKabul)" style="font-size:11px; font-weight:700; padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; cursor:pointer; flex-shrink:0;">Notu Gör</button>
+                            </div>
                             <div v-else-if="isFilesLocked && !tedarikExistingKabul" style="padding:12px; background:#f8fafc; border:1px dashed #e2e8f0; border-radius:8px; font-size:13px; color:#94a3b8; text-align:center;">Henüz yüklenmedi — sipariş kilitli</div>
                             <template v-else>
                                 <!-- Existing rejected: show rejected + upload to replace -->
@@ -1195,14 +1260,35 @@
                                         <span style="font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; background:#fee2e2;color:#991b1b;">Reddedildi</span>
                                         <button type="button" @click="previewTedarikFile(tedarikExistingKabul)" style="width:28px; height:28px; border-radius:6px; border:1px solid #e0e7ff; background:#eef2ff; color:#6366f1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="ki-outline ki-eye" style="font-size:14px;"></i></button>
                                     </div>
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px;">
+                                        <div style="font-size:12px; color:#9a3412; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                            <span style="font-weight:700;">Reddeden:</span> {{ tedarikExistingKabul.last_status?.name || '-' }}
+                                        </div>
+                                        <button v-if="hasTedarikNote(tedarikExistingKabul)" type="button" @click="showTedarikFileNote(tedarikExistingKabul)" style="font-size:11px; font-weight:700; padding:5px 10px; border-radius:6px; border:1px solid #fed7aa; background:#ffedd5; color:#9a3412; cursor:pointer; flex-shrink:0;">Notu Gör</button>
+                                    </div>
                                     <label class="tedarik-file-wrap">
                                         <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikKabulSelect" style="display:none;">
                                         <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikKabulFile ? tedarikKabulFile.name : 'Yeni dosya seç' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
                                     </label>
                                 </div>
+                                <div v-else-if="tedarikExistingKabul" style="display:flex; flex-direction:column; gap:8px;">
+                                    <div style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:#f0fdf4; border:1px solid #86efac; border-radius:8px; min-width:0; overflow:hidden;">
+                                        <i class="ki-outline ki-document" style="font-size:16px;color:#16a34a;"></i>
+                                        <span style="flex:1; min-width:0; font-size:13px; font-weight:500; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="getTedarikDisplayName(tedarikExistingKabul,'Malzeme Kabul Formu')">{{ getTedarikDisplayName(tedarikExistingKabul,'Malzeme Kabul Formu') }}</span>
+                                        <span style="font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;" :style="tedarikExistingKabul.last_status?.op_key==='doc_file_accepted' ? 'background:#dcfce7;color:#166534' : 'background:#fef3c7;color:#92400e'">{{ tedarikExistingKabul.last_status?.op_key==='doc_file_accepted' ? 'Onaylandı' : 'Beklemede' }}</span>
+                                        <button type="button" @click="previewTedarikFile(tedarikExistingKabul)" style="width:28px; height:28px; border-radius:6px; border:1px solid #bbf7d0; background:#dcfce7; color:#16a34a; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="ki-outline ki-eye" style="font-size:14px;"></i></button>
+                                    </div>
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+                                        <div style="font-size:12px; color:#475569; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                            <span style="font-weight:700;">{{ tedarikExistingKabul.last_status?.op_key==='doc_file_accepted' ? 'Onaylayan' : 'İşlem' }}:</span>
+                                            {{ tedarikExistingKabul.last_status?.name || '-' }}
+                                        </div>
+                                        <button v-if="hasTedarikNote(tedarikExistingKabul)" type="button" @click="showTedarikFileNote(tedarikExistingKabul)" style="font-size:11px; font-weight:700; padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; cursor:pointer; flex-shrink:0;">Notu Gör</button>
+                                    </div>
+                                </div>
                                 <label v-else class="tedarik-file-wrap" :style="isFilesLocked ? 'opacity:0.55;pointer-events:none;' : ''">
                                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikKabulSelect" :disabled="isFilesLocked" style="display:none;">
-                                    <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikKabulFile ? tedarikKabulFile.name : (tedarikExistingKabul ? getTedarikDisplayName(tedarikExistingKabul,'Malzeme Kabul Formu') : 'Dosya seçilmedi') }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
+                                    <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikKabulFile ? tedarikKabulFile.name : 'Dosya seçilmedi' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
                                 </label>
                             </template>
                             <div style="margin-top:6px; font-size:11.5px; color:#64748b;">Dosya yüklerken dosyanızın 42MB'dan küçük, JPG, PNG veya PDF formatında olduğundan emin olunuz.</div>
@@ -1216,6 +1302,13 @@
                                 <span v-if="tedarikExistingCins.last_status" style="font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;" :style="tedarikExistingCins.last_status.op_key==='doc_file_accepted' ? 'background:#dcfce7;color:#166534' : tedarikExistingCins.last_status.op_key==='doc_file_rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef3c7;color:#92400e'">{{ tedarikExistingCins.last_status.op_key==='doc_file_accepted' ? 'Onaylandı' : tedarikExistingCins.last_status.op_key==='doc_file_rejected' ? 'Reddedildi' : 'Beklemede' }}</span>
                                 <button type="button" @click="previewTedarikFile(tedarikExistingCins)" style="width:28px; height:28px; border-radius:6px; border:1px solid #e0e7ff; background:#f5f3ff; color:#7c3aed; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="ki-outline ki-eye" style="font-size:14px;"></i></button>
                             </div>
+                            <div v-if="isFilesLocked && tedarikExistingCins && tedarikExistingCins.last_status" style="margin-top:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+                                <div style="font-size:12px; color:#475569; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    <span style="font-weight:700;">{{ tedarikExistingCins.last_status.op_key==='doc_file_accepted' ? 'Onaylayan' : tedarikExistingCins.last_status.op_key==='doc_file_rejected' ? 'Reddeden' : 'İşlem' }}:</span>
+                                    {{ tedarikExistingCins.last_status.name || '-' }}
+                                </div>
+                                <button v-if="hasTedarikNote(tedarikExistingCins)" type="button" @click="showTedarikFileNote(tedarikExistingCins)" style="font-size:11px; font-weight:700; padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; cursor:pointer; flex-shrink:0;">Notu Gör</button>
+                            </div>
                             <div v-else-if="isFilesLocked && !tedarikExistingCins" style="padding:12px; background:#f8fafc; border:1px dashed #e2e8f0; border-radius:8px; font-size:13px; color:#94a3b8; text-align:center;">Henüz yüklenmedi — sipariş kilitli</div>
                             <template v-else>
                                 <div v-if="tedarikExistingCins && tedarikExistingCins.last_status?.op_key==='doc_file_rejected'" style="display:flex; flex-direction:column; gap:8px;">
@@ -1225,14 +1318,35 @@
                                         <span style="font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; background:#fee2e2;color:#991b1b;">Reddedildi</span>
                                         <button type="button" @click="previewTedarikFile(tedarikExistingCins)" style="width:28px; height:28px; border-radius:6px; border:1px solid #e0e7ff; background:#f5f3ff; color:#7c3aed; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="ki-outline ki-eye" style="font-size:14px;"></i></button>
                                     </div>
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px;">
+                                        <div style="font-size:12px; color:#9a3412; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                            <span style="font-weight:700;">Reddeden:</span> {{ tedarikExistingCins.last_status?.name || '-' }}
+                                        </div>
+                                        <button v-if="hasTedarikNote(tedarikExistingCins)" type="button" @click="showTedarikFileNote(tedarikExistingCins)" style="font-size:11px; font-weight:700; padding:5px 10px; border-radius:6px; border:1px solid #fed7aa; background:#ffedd5; color:#9a3412; cursor:pointer; flex-shrink:0;">Notu Gör</button>
+                                    </div>
                                     <label class="tedarik-file-wrap">
                                         <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikCinsSelect" style="display:none;">
                                         <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikCinsFile ? tedarikCinsFile.name : 'Yeni dosya seç' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
                                     </label>
                                 </div>
+                                <div v-else-if="tedarikExistingCins" style="display:flex; flex-direction:column; gap:8px;">
+                                    <div style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:#f0fdf4; border:1px solid #86efac; border-radius:8px; min-width:0; overflow:hidden;">
+                                        <i class="ki-outline ki-document" style="font-size:16px;color:#7c3aed;"></i>
+                                        <span style="flex:1; min-width:0; font-size:13px; font-weight:500; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="getTedarikDisplayName(tedarikExistingCins,'Malzeme Cins-Miktar Kabul Formu')">{{ getTedarikDisplayName(tedarikExistingCins,'Malzeme Cins-Miktar Kabul Formu') }}</span>
+                                        <span style="font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;" :style="tedarikExistingCins.last_status?.op_key==='doc_file_accepted' ? 'background:#dcfce7;color:#166534' : 'background:#fef3c7;color:#92400e'">{{ tedarikExistingCins.last_status?.op_key==='doc_file_accepted' ? 'Onaylandı' : 'Beklemede' }}</span>
+                                        <button type="button" @click="previewTedarikFile(tedarikExistingCins)" style="width:28px; height:28px; border-radius:6px; border:1px solid #bbf7d0; background:#f5f3ff; color:#7c3aed; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="ki-outline ki-eye" style="font-size:14px;"></i></button>
+                                    </div>
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+                                        <div style="font-size:12px; color:#475569; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                            <span style="font-weight:700;">{{ tedarikExistingCins.last_status?.op_key==='doc_file_accepted' ? 'Onaylayan' : 'İşlem' }}:</span>
+                                            {{ tedarikExistingCins.last_status?.name || '-' }}
+                                        </div>
+                                        <button v-if="hasTedarikNote(tedarikExistingCins)" type="button" @click="showTedarikFileNote(tedarikExistingCins)" style="font-size:11px; font-weight:700; padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; cursor:pointer; flex-shrink:0;">Notu Gör</button>
+                                    </div>
+                                </div>
                                 <label v-else class="tedarik-file-wrap" :style="isFilesLocked ? 'opacity:0.55;pointer-events:none;' : ''">
                                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikCinsSelect" :disabled="isFilesLocked" style="display:none;">
-                                    <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikCinsFile ? tedarikCinsFile.name : (tedarikExistingCins ? getTedarikDisplayName(tedarikExistingCins,'Malzeme Cins-Miktar Kabul Formu') : 'Dosya seçilmedi') }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
+                                    <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikCinsFile ? tedarikCinsFile.name : 'Dosya seçilmedi' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
                                 </label>
                             </template>
                             <div style="margin-top:6px; font-size:11.5px; color:#64748b;">Dosya yüklerken dosyanızın 42MB'dan küçük, JPG, PNG veya PDF formatında olduğundan emin olunuz.</div>
@@ -1246,7 +1360,8 @@
             <div class="tedarik-step-card" v-if="canSend || orderStatus === 'doc_trans_order_files_rejected'">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">6</span><span>Lütfen “Gönder” butonuna tıklamadan önce verilerin doğruluğuna emin olunuz.</span></div>
                 <div class="tedarik-step-body">
-                    <button @click="() => { const fd = ($refs.formRef && $refs.formRef.getCurrentFormData) ? $refs.formRef.getCurrentFormData() : { dynamicF:{}, files:{} }; submitForm(fd); }" class="tedarik-gonder-btn">Gönder</button>
+                    <button @click="() => { if(isSubmitting) return; const fd = ($refs.formRef && $refs.formRef.getCurrentFormData) ? $refs.formRef.getCurrentFormData() : { dynamicF:{}, files:{} }; submitForm(fd); }" class="tedarik-gonder-btn" :disabled="isSubmitting" :style="isSubmitting ? 'opacity:0.72;cursor:not-allowed;' : ''"><i v-if="isSubmitting" class="ki-outline ki-loading" style="font-size:14px; animation:spin 1s linear infinite; margin-right:6px;"></i> {{ isSubmitting ? 'Gönderiliyor...' : 'Gönder' }}</button>
+                    <div v-if="isSubmitting" style="margin-top:8px; font-size:12px; color:#6366f1; display:flex; align-items:center; gap:6px;"><i class="ki-outline ki-loading" style="font-size:12px; animation:spin 1s linear infinite;"></i> Kaydediliyor, lütfen bekleyin...</div>
                     <div v-if="orderStatus === 'doc_trans_order_files_rejected'" style="margin-top:10px; display:flex; gap:8px; align-items:center;">
                         <button type="button" @click="printMalzemeKabul" class="tedarik-orange-btn small" :disabled="printingKabul"><i :class="printingKabul ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingKabul ? 'animation:spin 1s linear infinite' : ''"></i> {{ printingKabul ? 'Oluşturuluyor...' : 'Malzeme Kabul (yeniden yazdır)' }}</button>
                         <button type="button" @click="printMalzemeCinsMiktar" class="tedarik-orange-btn small" :disabled="printingCins"><i :class="printingCins ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingCins ? 'animation:spin 1s linear infinite' : ''"></i> {{ printingCins ? 'Oluşturuluyor...' : 'Cins-Miktar (yeniden yazdır)' }}</button>

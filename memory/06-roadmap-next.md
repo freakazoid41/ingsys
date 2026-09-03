@@ -54,6 +54,10 @@ All logged in `memory/05 §4`. Highlights:
 - 2026-09-03: **File split** — admin mechanic mirror (like prefix, reuse old.tag) 3510004600-2 7→0 + 19.replaced_id=7 + tag repair
 - 2026-09-03: **Status label** — Transfer Gönderildi→Dosyalar Kontrol Ediliyor, Approved→Kalite Onayı Verildi, DB UPDATE + labelMap
 
+- 2026-09-03 late: **Who/Why visible** — getTedarikNote unwraps JSON t.description.note, inline Reddeden/Onaylayan + Notu Gör modal with who+when+note
+- 2026-09-03 late: **Accepted visible** — step5 accepted not hidden when other rejected, green lock + status
+- 2026-09-03 late: **Gönder loading** — isSubmitting + ki-loading spin + Kaydediliyor
+
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 
 - ✅ **Mechanics DONE (2026-09-01):** blade template, controller method, route, Vue method, 2 purple buttons, CSS — all cloned from Malzeme Kabul

@@ -18,6 +18,7 @@
 
 ** süreci iki paneldende full test et 
 ** veri aktarımı
+** eski sistemi kurallar için kontrol et
 
 
 ** tedarik panel dökümanlar
@@ -29,5 +30,4 @@
 ** bilgilendirmeler
 
 
-** sipariş durum değişiminde  Oluşturuldu aşamasına dönüş yok
-** tedarik panel sipariş listesi aksiyonlar
+** sipariş durum değişiminde  Oluşturuldu aşamasına dönüş yok ?
