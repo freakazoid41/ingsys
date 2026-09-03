@@ -31,8 +31,57 @@
             setTimeout(() => {
                 this.navigationStore.toggle(false);
                 this.handleResponsiveTable();
-            }, 300);
+                // fix unnecessary height: make containers content-driven, not viewport-stretched
+                try {
+                    if(this.isTedarik){
+                        const frame=document.querySelector('.tedarik-frame');
+                        const main=document.querySelector('.tedarik-main');
+                        const inner=document.querySelector('.tedarik-main-inner');
+                        if(frame){ frame.style.height='auto'; frame.style.minHeight='0'; }
+                        if(main){ main.style.height='auto'; main.style.minHeight='0'; }
+                        if(inner){ inner.style.transform='none'; }
+                        document.body.style.height=''; document.documentElement.style.height='';
+                    } else {
+                        const kt=document.getElementById('kt_content');
+                        const wrapper=document.getElementById('kt_wrapper');
+                        const container=document.getElementById('kt_content_container');
+                        if(kt){ kt.style.flex='0 0 auto'; kt.style.height='auto'; kt.style.minHeight='0'; }
+                        if(wrapper){ wrapper.style.height='auto'; wrapper.style.minHeight='0'; }
+                        if(container){ container.style.height='auto'; container.style.minHeight='0'; }
+                        // kill Simplebar's 100% stretch — all wrappers
+                        document.querySelectorAll('#kt_content_container .simplebar-wrapper, #kt_content_container .simplebar-mask, #kt_content_container .simplebar-offset, #kt_content_container .simplebar-content-wrapper, #kt_content_container .simplebar-content').forEach(el=>{
+                            el.style.height='auto'; el.style.minHeight='0'; el.style.maxHeight='none';
+                        });
+                        document.body.style.height='auto'; document.documentElement.style.height='auto';
+                    }
+                } catch(e){}
+            }, 400);
+        },
+        beforeUnmount(){
+            try{
+                if(this.isTedarik){
+                    const frame=document.querySelector('.tedarik-frame');
+                    const main=document.querySelector('.tedarik-main');
+                    if(frame){ frame.style.height=''; frame.style.minHeight=''; }
+                    if(main){ main.style.height=''; main.style.minHeight=''; }
+                    document.body.style.height=''; document.documentElement.style.height='';
+                } else {
+                    const kt=document.getElementById('kt_content');
+                    const wrapper=document.getElementById('kt_wrapper');
+                    const container=document.getElementById('kt_content_container');
+                    if(kt){ kt.style.flex=''; kt.style.height=''; kt.style.minHeight=''; }
+                    if(wrapper){ wrapper.style.height=''; wrapper.style.minHeight=''; }
+                    if(container){ container.style.height=''; container.style.minHeight=''; }
+                    document.querySelectorAll('#kt_content_container .simplebar-wrapper, #kt_content_container .simplebar-mask, #kt_content_container .simplebar-offset, #kt_content_container .simplebar-content-wrapper, #kt_content_container .simplebar-content').forEach(el=>{
+                        el.style.height=''; el.style.minHeight=''; el.style.maxHeight='';
+                    });
+                    document.body.style.height=''; document.documentElement.style.height='';
+                }
+            }catch(e){}
         },  
+        computed: {
+            isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); },
+        },
         data() {
             return {
                 plib : new Plib(),
@@ -197,7 +246,7 @@
                 const statusBadge = document.createElement('span');
                 statusBadge.classList.add('document-card__status');
                 statusBadge.textContent = statusLabel;
-                if (this.useAuthStore().permissions?.includes('per-07-02')) {
+                if (!this.isTedarik && this.useAuthStore().permissions?.includes('per-07-02')) {
                     statusBadge.classList.add('document-card__status--clickable');
                     statusBadge.title = 'Detayları Gör';
                     statusBadge.onclick = () => this.showDetailModal(rowData);
@@ -240,22 +289,39 @@
                 openBtn.innerHTML = '<i class="ki-outline ki-eye"></i> Aç';
                 openBtn.onclick = () => window.open('/order-file/'+(rowData?.id ?? rowData?.file), '_blank');
                 footer.appendChild(openBtn);
-                if (this.useAuthStore().permissions?.includes('per-07')) {
+                // İlişki button — panel-aware + order support
+                const showIliski = this.isTedarik || this.useAuthStore().permissions?.includes('per-07');
+                if (showIliski) {
                     const viewFormBtn = document.createElement('button');
                     viewFormBtn.classList.add('document-card__action-btn');
                     viewFormBtn.type = 'button';
                     viewFormBtn.innerHTML = '<i class="ki-outline ki-arrow-right"></i> İlişki';
                     viewFormBtn.onclick = () => {
+                        const isTed = this.isTedarik;
                         switch(rowData.relation_type){
                             case 'op-doc-client':
                                 this.$router.push({ name: 'CForm', params: { id: rowData.relation_qnid } });
                                 break;
                             case 'op-doc-offer':
-                                this.$router.push({ name: 'OForm', params: { id: rowData.relation_qnid } });
+                                this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OForm', params: { id: rowData.relation_qnid } });
+                                break;
+                            case 'op-doc-order':
+                            case 'op-doc-order-item':
+                                this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OrderForm', params: { id: rowData.relation_qnid } });
+                                break;
+                            default:
+                                // fallback: try order if product_name exists
+                                if(rowData.relation_qnid){
+                                    const rName = isTed ? 'TedarikOrderForm' : 'OrderForm';
+                                    this.$router.push({ name: rName, params: { id: rowData.relation_qnid } });
+                                }
                                 break;
                         }
                     };
                     footer.appendChild(viewFormBtn);
+                }
+                // Devre Dışı — admin only, never in tedarik
+                if (!this.isTedarik && this.useAuthStore().permissions?.includes('per-07')) {
                     const disableBtn = document.createElement('button');
                     disableBtn.classList.add('document-card__action-btn');
                     disableBtn.type = 'button';
@@ -308,7 +374,7 @@
                         title : 'Belge Başlık',
                         key   : 'file_type',
                         order : true,
-                        width : '30%',
+                        width : '22%',
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
                             const wrap = document.createElement('div');
@@ -340,10 +406,27 @@
                             return wrap;
                         }
                     },{
+                        title : 'Sipariş Kodu',
+                        key   : 'group_key',
+                        order : true,
+                        width : '14%',
+                        type  : 'string',
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const v = rowData.group_key || rowData.order_no || columnData || '—';
+                            const wrap = document.createElement('div');
+                            wrap.classList.add('dlist-ordercode');
+                            const badge = document.createElement('span');
+                            badge.classList.add('dlist-ordercode__badge');
+                            badge.textContent = v;
+                            badge.title = v;
+                            wrap.appendChild(badge);
+                            return wrap;
+                        }
+                    },{
                         title : 'İlişki',
                         key   : 'title',
                         order : true,
-                        width : '15%',
+                        width : '13%',
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
                             const wrap = document.createElement('div');
@@ -400,7 +483,7 @@
                         title : 'Güncel Durum',
                         key   : 'last_status',
                         order : false,
-                        width : '26%',
+                        width : '22%',
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
                             const pill = document.createElement('button');
@@ -436,7 +519,8 @@
                             }
                             pill.innerHTML = icon+'<span>'+label+'</span>';
                             pill.type = 'button';
-                            if(this.useAuthStore().permissions?.includes('per-07-02')){
+                            // tedarik list is read-only — status changes only on detail page (per Master 2026-09-03)
+                            if(!this.isTedarik && this.useAuthStore().permissions?.includes('per-07-02')){
                                 pill.onclick = (e) => {
                                     Swal.fire({
                                         showConfirmButton : false,
@@ -526,24 +610,38 @@
                                 return b;
                             };
                             wrap.appendChild(mkBtn('ki-notepad-edit','Detay','is-detail', () => this.showDetailModal(rowData)));
-                            wrap.appendChild(mkBtn('ki-eye','Önizle','is-view', () => window.open('/order-file/'+(rowData?.id ?? rowData?.file))));
-                            wrap.appendChild(mkBtn('ki-magnifier','İlişkiye Git','is-link', () => {
-                                switch(rowData.relation_type){
-                                    case 'op-doc-client':
-                                        this.$router.push({ name: 'CForm' , params: { id: rowData.relation_qnid }});
-                                        break;
-                                    case  'op-doc-offer':
-                                        this.$router.push({ name: 'OForm' , params: { id: rowData.relation_qnid }});
-                                        break;
-                                }
-                            }));
-                            return this.useAuthStore().permissions?.includes('per-07') ? wrap : wrap;
+                            wrap.appendChild(mkBtn('ki-eye','Önizle','is-view', () => window.open('/order-file/'+(rowData?.id ?? rowData?.file),'_blank')));
+                            // İlişki — panel aware, support orders/items; show for tedarik even without per-07
+                            const canSeeLink = this.isTedarik || this.useAuthStore().permissions?.includes('per-07');
+                            if(canSeeLink){
+                                wrap.appendChild(mkBtn('ki-magnifier','İlişkiye Git','is-link', () => {
+                                    const isTed = this.isTedarik;
+                                    switch(rowData.relation_type){
+                                        case 'op-doc-client':
+                                            this.$router.push({ name: 'CForm' , params: { id: rowData.relation_qnid }});
+                                            break;
+                                        case 'op-doc-offer':
+                                            this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OForm' , params: { id: rowData.relation_qnid }});
+                                            break;
+                                        case 'op-doc-order':
+                                        case 'op-doc-order-item':
+                                            this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OrderForm', params: { id: rowData.relation_qnid }});
+                                            break;
+                                        default:
+                                            if(rowData.relation_qnid){
+                                                this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OrderForm', params: { id: rowData.relation_qnid }});
+                                            }
+                                            break;
+                                    }
+                                }));
+                            }
+                            return wrap;
                         }
                     }
                 ];
                 
                 const isMobile = window.innerWidth < 768;
-                const tableHeight = isMobile ? '50vh' : '70vh';
+                const tableHeight = 'auto';
                 const pageLimit = isMobile ? 5 : 10;
 
                 this.table = new PickleTable({
@@ -553,15 +651,7 @@
                     height    : tableHeight,
                     type      : 'ajax',
                     columnSearch : false,
-                    paginationType : 'scroll',
-                    groupBy : 'group_key',
-                    groupFormatter : (groupValue, rowCount) => {
-                        if(!groupValue || groupValue === 'null' || groupValue === '') return `Belge — ${rowCount} belge`;
-                        // rich html: order_no + count pill - pickletable renders as text, so we return plain; styled via CSS + JS after?
-                        // We'll return string and style via CSS; count part will be wrapped via JS after render
-                        return `${groupValue} — ${rowCount} belge`;
-                    },
-                    groupToggleCallback : null,
+                    paginationType : 'number',
                     ajax:{
                         url:'/api/v1/table/document_files',
                         data:{}
@@ -598,41 +688,43 @@
                         return data;
                     },
                 });
-                // enhance group headers after render (inner card, full-length, head-safe)
-                const enhanceGroupHeader = (td) => {
-                    if (td.querySelector('.dlist-group__inner')) return;
-                    const tr = td.closest('tr');
-                    const collapsed = tr?.dataset.collapsed === 'true';
-                    const raw = td.textContent.trim().replace(/^›\s*/, '');
-                    const m = raw.match(/^(.+)\s—\s(\d+ belge)$/);
-                    if(!m) return;
-                    const cleanNo = (tr?.dataset.groupValue || m[1]).trim().replace(/^›\s*/, '');
-                    const cnt = m[2].trim();
-                    td.innerHTML = '';
-                    td.style.padding = '6px 0';
-                    td.style.background = 'transparent';
-                    td.style.border = 'none';
-                    const inner = document.createElement('div');
-                    inner.className = 'dlist-group__inner';
-                    inner.innerHTML = `<span class="group-toggle-icon" style="transform:${collapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}">›</span><span class="dlist-group__icon"><i class="ki-outline ki-folder fs-5"></i></span><span class="dlist-group__no">${cleanNo}</span><span class="dlist-group__count">${cnt}</span>`;
-                    td.appendChild(inner);
-                };
-                setTimeout(()=> {
-                    document.querySelectorAll('.table-group-header td').forEach(enhanceGroupHeader);
-                }, 400);
-                // re-enhance on pagination scroll / new pages
-                const obs = new MutationObserver(()=> {
-                    document.querySelectorAll('.table-group-header td:not(:has(.dlist-group__inner))').forEach(enhanceGroupHeader);
-                });
-                const container = document.getElementById('div_table');
-                if(container) obs.observe(container, { childList:true, subtree:true });
             },
         }
     }
 
 </script>
 <template>
-    <div class="dlist-page">
+    <!-- Tedarik Doküman — same shared component, tedarik gets orange-card chrome like OList (height:auto, number pagination) -->
+    <div v-if="isTedarik" :class="['order-list-card', 'tedarik-card', 'tedarik-docs-page']">
+        <div class="tedarik-list-top">
+            <div class="tedarik-list-title">
+                <span>Doküman Listesi</span>
+                <i class="ki-outline ki-document tedarik-title-icon"></i>
+            </div>
+            <div class="tedarik-filters">
+                <a href="javascript:;" class="tedarik-filter" @click="searchTable"><i class="ki-outline ki-magnifier"></i> Ara</a>
+                <a href="javascript:;" class="tedarik-filter" @click="resetSearch"><i class="ki-outline ki-cross"></i> Sıfırla</a>
+                <a href="javascript:;" class="tedarik-filter" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel Çıktı</a>
+            </div>
+        </div>
+        <!-- search row — matches OList detailed but simpler for docs -->
+        <div class="tedarik-docs-searchrow">
+            <div class="tedarik-docs-searchbox">
+                <i class="ki-outline ki-magnifier tedarik-docs-search-icon"></i>
+                <input type="text" id="mainSearch" class="tedarik-docs-search-input" placeholder="Dosya ara — belge, sipariş no, ürün, seri..." @keydown.enter="searchTable">
+            </div>
+            <button type="button" class="tedarik-btn-light tedarik-docs-btn" @click="searchTable">Ara</button>
+            <button type="button" class="tedarik-btn-light tedarik-docs-btn tedarik-docs-btn--ghost" @click="resetSearch">Sıfırla</button>
+        </div>
+        <div class="order-list-body">
+            <div id="div_table"></div>
+        </div>
+        <div class="tedarik-bottom-note">
+            <i class="ki-outline ki-information-5"></i>
+            <span>Belgeler tekil listelenir — <b>Sipariş Kodu</b> kolonundan bağlı siparişi görün. Önizlemek için <b>"Önizle"</b>, detay için <b>"Detay"</b>.</span>
+        </div>
+    </div>
+    <div v-else class="dlist-page">
         <div class="dlist-card card">
             <div class="dlist-toolbar">
                 <div class="dlist-toolbar__left">
@@ -659,7 +751,7 @@
 .dlist-card {
     border: 1px solid #e2e8f0;
     border-radius: 16px;
-    overflow: visible;
+    overflow: hidden;
     background: #fff;
     box-shadow: 0 8px 32px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04);
 }
@@ -708,10 +800,25 @@
     width: 100%;
     overflow: visible;
 }
-:deep(.pickletable){ overflow: visible !important; display:block !important; }
-:deep(.pickletable .divTable){ overflow: visible !important; border:none !important; }
+:deep(.pickletable){ overflow: visible !important; display:block !important; height:auto !important; }
+:deep(.pickletable .divTable){ overflow: visible !important; border:none !important; height:auto !important; }
 :deep(.pickletable table){ table-layout: fixed !important; width:100% !important; min-width:0 !important; border:none !important; margin:0 !important; border-collapse: collapse !important; background: #fff !important; }
 :deep(.pickletable .table-responsive){ overflow:visible !important; }
+:deep(.pickletable .divPagination){
+    display:flex !important; justify-content:flex-end !important; align-items:center !important;
+    padding:14px 18px !important; border-top:1px solid #f1f5f9 !important; background:#fff !important;
+    border-radius:0 0 16px 16px !important; gap:6px; flex-wrap:wrap;
+}
+:deep(.pickletable .divPagination button),
+:deep(.pickletable .divPagination .page-link){
+    border:1px solid #e2e8f0 !important; background:#fff !important; color:#475569 !important;
+    border-radius:8px !important; padding:6px 12px !important; font-size:13px !important; font-weight:600 !important;
+    min-width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;
+}
+:deep(.pickletable .divPagination .active button),
+:deep(.pickletable .divPagination .active .page-link){
+    background:#0f172a !important; color:#fff !important; border-color:#0f172a !important;
+}
 
 /* hide first hidden pickletable column */
 :deep(.pickletable tr:not(.table-group-header) td:first-child),
@@ -846,6 +953,17 @@
 :deep(.dlist-relation__badge.is-offer){ background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
 :deep(.dlist-relation__badge.is-empty){ background:#f8fafc; color:#94a3b8; border-color:#e2e8f0; }
 
+/* order code */
+:deep(.dlist-ordercode){ display:flex; align-items:center; }
+:deep(.dlist-ordercode__badge){
+    display:inline-flex; align-items:center; padding:5px 11px; border-radius:999px;
+    font-size:12px; font-weight:800; letter-spacing:.01em; background:#f8fafc; color:#1e293b;
+    border:1px solid #e2e8f0; white-space:nowrap; max-width:160px; overflow:hidden; text-overflow:ellipsis;
+}
+.tedarik-docs-page :deep(.dlist-ordercode__badge){
+    background:#fff7ed; color:#7c2d12; border-color:#fed7aa;
+}
+
 /* date */
 :deep(.dlist-date){ display:inline-flex; align-items:center; gap:2px; color:#334155; font-weight:600; font-size:12.5px; white-space:nowrap; }
 :deep(.dlist-date__text){ color:#0f172a; }
@@ -915,4 +1033,120 @@
     :deep(.pickletable table){ table-layout:auto !important; min-width:unset !important; width:100% !important; }
     :deep(.pickletable th), :deep(.pickletable td){ font-size:.75rem !important; }
 }
+
+/* ===== TEDARIK DOKÜMAN — 1:1 with OList tedarik chrome (card + paper-feed friendly) ===== */
+.tedarik-docs-page{
+    border:none !important; border-radius:0 !important; box-shadow:none !important;
+    background:transparent !important; overflow:visible !important;
+}
+.tedarik-docs-page .tedarik-list-top{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:2px 4px 16px; gap:12px; flex-wrap:wrap; border-bottom:none;
+}
+.tedarik-docs-page .tedarik-list-title{
+    display:flex; align-items:center; gap:10px;
+    font-size:19px; font-weight:700; color:#1e293b; letter-spacing:-0.02em; line-height:1;
+}
+.tedarik-docs-page .tedarik-title-icon{
+    font-size:13px; color:#9ca3af; border:1px solid #e2e8f0; border-radius:5px;
+    width:22px; height:18px; display:inline-flex; align-items:center; justify-content:center; background:#fff;
+}
+.tedarik-docs-page .tedarik-filters{ display:flex; align-items:center; gap:22px; }
+.tedarik-docs-page .tedarik-filter{
+    display:inline-flex; align-items:center; gap:6px; font-size:13.5px; font-weight:500;
+    color:#8a8a8e; text-decoration:none; cursor:pointer; white-space:nowrap;
+}
+.tedarik-docs-page .tedarik-filter i{ font-size:13px; color:#a1a1a6; }
+.tedarik-docs-page .tedarik-filter:hover{ color:#4b5563; }
+.tedarik-docs-searchrow{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:#fff; border:1px solid #e8e8ea; border-radius:14px; padding:12px 14px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+    margin:0 0 14px;
+}
+.tedarik-docs-searchbox{
+    position:relative; display:flex; align-items:center; flex:1; min-width:240px;
+    background:#f8fafc; border:1px solid #e2e8f0; border-radius:999px;
+    padding:0 14px 0 38px; height:42px; transition:all .18s;
+}
+.tedarik-docs-searchbox:focus-within{ background:#fff; border-color:#cbd5e1; box-shadow:0 0 0 4px rgba(255,90,31,.10); }
+.tedarik-docs-search-icon{ position:absolute; left:12px; font-size:18px; color:#94a3b8; }
+.tedarik-docs-search-input{
+    border:none; outline:none; background:transparent; width:100%;
+    font-size:13.5px; color:#0f172a;
+}
+.tedarik-docs-search-input::placeholder{ color:#94a3b8; }
+.tedarik-docs-btn{
+    height:42px; padding:0 18px; border-radius:10px; border:1px solid #e5e7eb; background:#fff;
+    font-size:13px; font-weight:700; color:#475569; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    transition: all .15s; white-space:nowrap;
+}
+.tedarik-docs-btn:hover{ background:#f8fafc; border-color:#cbd5e1; color:#1e293b; }
+.tedarik-docs-btn--ghost{ background:#f1f5f9; }
+.tedarik-docs-page .order-list-body{
+    background:transparent !important; flex:0 0 auto; display:block; min-height:0; height:auto;
+}
+/* pickletable tedarik overrides — mimics OList .tedarik-card :deep overrides */
+.tedarik-docs-page :deep(.pickletable .divTable){
+    flex:0 0 auto; height:auto !important; min-height:0 !important; overflow:visible !important;
+}
+.tedarik-docs-page :deep(.pickletable){
+    height:auto !important; min-height:0 !important;
+}
+.tedarik-docs-page :deep(.pickletable table){
+    border-collapse:separate !important; border-spacing:0 7px !important;
+    width:100% !important; table-layout:auto !important; border:none !important;
+}
+.tedarik-docs-page :deep(.pickletable thead th){
+    background:transparent !important; color:#b0b0b5 !important;
+    font-size:13px !important; font-weight:500 !important; text-transform:none !important;
+    letter-spacing:0 !important; padding:0 14px 10px !important; border:none !important; border-bottom:none !important;
+    white-space:nowrap; text-align:left !important; box-shadow:none !important; position:relative !important; top:auto !important;
+}
+.tedarik-docs-page :deep(.pickletable thead th:last-child){ text-align:right !important; }
+.tedarik-docs-page :deep(.pickletable tbody tr){ background:transparent !important; box-shadow:none !important; }
+.tedarik-docs-page :deep(.pickletable tbody tr:hover td){ background:#fcfcfc !important; }
+.tedarik-docs-page :deep(.pickletable tbody td){
+    background:#fff !important; padding:13px 14px !important; font-size:13.5px !important;
+    color:#2b2b33 !important; border:1px solid #e8e8ea !important;
+    border-left:1px solid #e8e8ea !important; border-right:1px solid #e8e8ea !important;
+    vertical-align:middle !important; white-space:nowrap; font-weight:400;
+    text-overflow:clip !important; overflow:visible !important;
+}
+.tedarik-docs-page :deep(.pickletable tbody td:first-child){
+    border-left:1px solid #e8e8ea !important; border-top-left-radius:8px !important; border-bottom-left-radius:8px !important;
+    font-weight:600 !important; color:#111827 !important;
+}
+.tedarik-docs-page :deep(.pickletable tbody td:last-child){
+    border-right:1px solid #e8e8ea !important; border-top-right-radius:8px !important; border-bottom-right-radius:8px !important;
+}
+.tedarik-docs-page :deep(.pickletable .divPagination){
+    background:transparent !important; border-top:none !important; padding:10px 0 0 !important;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; position:relative;
+}
+.tedarik-docs-page :deep(.pickletable .divPagination button),
+.tedarik-docs-page :deep(.pickletable .divPagination .page-link){
+    border:1px solid #e5e7eb !important; background:#fff !important; color:#8a8a8e !important;
+    border-radius:6px !important; padding:5px 10px !important; font-size:12px !important; font-weight:500 !important;
+    min-width:32px; height:30px;
+}
+.tedarik-docs-page :deep(.pickletable .divPagination .active button),
+.tedarik-docs-page :deep(.pickletable .divPagination .active .page-link){
+    background:#fff !important; color:#FF5A1F !important; border-color:#FF5A1F !important; font-weight:700 !important;
+}
+.tedarik-docs-page :deep(.table-group-header td){
+    padding:6px 0 !important; background:transparent !important; border:none !important;
+}
+.tedarik-docs-page :deep(.dlist-group__inner){
+    background:linear-gradient(135deg, #fff7ed 0%, #fff 100%) !important;
+    border:1px solid #fed7aa !important; border-left:3px solid #FF5A1F !important;
+}
+.tedarik-docs-page :deep(.group-toggle-icon){
+    background:linear-gradient(135deg,#FF5A1F,#ea580c) !important;
+}
+.tedarik-docs-page :deep(.dlist-group__no){ color:#7c2d12 !important; }
+.tedarik-docs-page :deep(.dlist-group__count){
+    background:#fff7ed !important; border-color:#fed7aa !important; color:#9a3412 !important;
+}
+.tedarik-docs-page :deep(.dlist-group__count::before){ background:#FF5A1F !important; }
 </style>

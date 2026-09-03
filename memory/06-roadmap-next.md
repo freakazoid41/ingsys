@@ -58,6 +58,11 @@ All logged in `memory/05 §4`. Highlights:
 - 2026-09-03 late: **Accepted visible** — step5 accepted not hidden when other rejected, green lock + status
 - 2026-09-03 late: **Gönder loading** — isSubmitting + ki-loading spin + Kaydediliyor
 
+
+- 2026-09-03: **Tedarik Doküman LIVE** — `DList.vue isTedarik` `/tedarikpanel/documents` (shared, `isTedarik` flat list grouping REMOVED expensive → `Sipariş Kodu` `group_key` for test files parent, LIFNR-scoped `Document_files::tableList` for reseller, `router/index.js:58` + `TedarikPanel.vue:164` menu fix, `height:auto number` both panels)
+- 2026-09-03 late: **Height fix** — `pickletable height:auto` both panels (was 100%/90% + calc(100vh-280) → blank), `DList` card `overflow:hidden 16px`, `CoalPanel Simplebar` + `Tedarik typewriter` content-driven (docs page `frame/main height:auto` early-return), `DList` `order-list-body flex:0 0 auto`, `tedarik-docs` orange `fff7ed`
+- 2026-09-03 late: **Grouping removed** — `DList` `groupBy` + `enhanceGroupHeader` deleted, `Sipariş Kodu` column live for order+test files
+
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 
 - ✅ **Mechanics DONE (2026-09-01):** blade template, controller method, route, Vue method, 2 purple buttons, CSS — all cloned from Malzeme Kabul

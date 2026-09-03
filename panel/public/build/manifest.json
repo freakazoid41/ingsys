@@ -162,7 +162,7 @@
     "isEntry": true
   },
   "public/coaltheme/css/theme.css": {
-    "file": "assets/theme-B0ILI074.css",
+    "file": "assets/theme-B1Akfqi6.css",
     "src": "public/coaltheme/css/theme.css",
     "isEntry": true
   },
@@ -172,7 +172,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-D8ecOEfC.js",
+    "file": "assets/app-D2PEgzRG.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -180,7 +180,7 @@
       "_sweetalert2.esm.all-0Z_61IYw.js"
     ],
     "css": [
-      "assets/app-Dv1HTV7I.css"
+      "assets/app-BPFCx33q.css"
     ]
   },
   "resources/js/coal-swal.js": {

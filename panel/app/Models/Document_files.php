@@ -146,6 +146,42 @@ class Document_files extends Model
         $where  .= " and sf.op_key not in ('op-offer_otherdocs_file') ";
         // Exclude product images from files listing — they are per-item and not actionable
         $where  .= " and se.entity_tag not like '%item_images_file%' ";
+
+        // Tedarik supplier scope: reseller sees only own files (LIFNR-matched orders/items + own client docs)
+        // Mirrors Documents::tableList clientQnidList gating — fails closed for reseller, open for admin
+        if (session('currentStatus') !== null && !empty(session('currentStatus')['clientQnidList'])) {
+            if (session('type_key') == 'op-pert-reseller') {
+                $qnids = session('currentStatus')['clientQnidList'];
+                $qnidIn = "'" . implode("','", array_map('noInject', $qnids)) . "'";
+                // resolve LIFNRs for these client qnids (op-doc-client lifnr)
+                $lifRows = [];
+                try {
+                    $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+                } catch (\Throwable $e) { $lifRows = []; }
+                $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
+                if (!empty($lifnrs)) {
+                    $lifList = "'" . implode("','", array_map('noInject', $lifnrs)) . "'";
+                    $where .= " and ( d.qnid IN ($qnidIn)"
+                             . " or exists (select 1 from sys_con_entities sce3 join sys_con_ops sco3 on sco3.id=sce3.conn_id where sco3.main_id=d.id and sce3.entity_tag='spec_code' and sce3.entity_value IN ($lifList) )"
+                             . " or exists (select 1 from documents pd join sys_con_ops sco_p on sco_p.main_id=pd.id and sco_p.conn_id=0 join sys_con_entities sce_p on sce_p.conn_id=sco_p.id where pd.id = d.parent_id and pd.status=1 and sce_p.entity_tag='spec_code' and sce_p.entity_value IN ($lifList) )"
+                             . " or exists (select 1 from sys_con_entities sce4 join sys_con_ops sco4 on sco4.id=sce4.conn_id where sco4.main_id=d.id and sce4.entity_tag='lifnr' and sce4.entity_value IN ($lifList) )"
+                             . " ) ";
+                } else {
+                    // no LIFNR yet — at least allow own client doc files (imza sirküleri etc)
+                    $where .= " and d.qnid IN ($qnidIn) ";
+                }
+            }
+        } else {
+            if (session('type_key') == 'op-pert-reseller') {
+                return array(
+                    'data'          => [],
+                    'pageCount'     => 0,
+                    'totalCount'    => 0,
+                    'filteredCount' => 0,
+                    'last_page'     => 0,
+                );
+            }
+        }
         
         if (isset($obj['scale']['page']) && isset($obj['scale']['limit'])) {
             $start = (intval($obj['scale']['page']) * intval($obj['scale']['limit'])) - intval($obj['scale']['limit']);

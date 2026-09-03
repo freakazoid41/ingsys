@@ -57,6 +57,7 @@ const router = createRouter({
         { path: "/tedarikpanel", name: 'TedarikDashboard', component: TedarikDashboard },
         { path: "/tedarikpanel/orders", name: 'TedarikOrderList', component: OrderList },
         { path: "/tedarikpanel/orders/form/:id?", name: 'TedarikOrderForm', component: OrderForm },
+        { path: "/tedarikpanel/documents", name: 'TedarikDList', component: DList },
       ]
     },
     /*{
