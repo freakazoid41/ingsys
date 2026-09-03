@@ -63,17 +63,7 @@ export default {
 </template>
 
 <style>
-#kt_content_container {
-  max-height: unset !important;
-  height: auto !important;
-  overflow: visible !important;
-}
-
-.container-xxl {
-  max-height: unset !important;
-  height: auto !important;
-  overflow: visible !important;
-}
+/* let Simplebar handle scroll — don't force container to auto (was breaking scroll) */
 </style>
 
 

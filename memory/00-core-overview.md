@@ -2,10 +2,9 @@
 
 > **⚠️ CURRENT STATE 2026-09-03 late: Order Management System + Public Tedarik Panel POLISHED + Tedarik Doküman + File-Detail OLD-APP REPLICA LIVE.** DB `tedarikNewApp` :5431, 7 files live (3×4400-1 +2×4600-2 +2×3500-1) 8/21/8/37 trans `grp_code=GDZ`. `EBELN-X` clones, `op-doc-transfer` PURGED. `LIFNR` link, `GDZ/ADM`. `/tedarik` → `/tedarikpanel` 1360px 12px 210px 6 tabs. **Shared `OList/OForm/DList/DForm` via `isTedarik`**, Module Switcher, Detailed search, `group_key`. **2026-09-03: `/tedarikpanel/documents` LIVE** flat `group_key` with `Sipariş / İlişki 27%` merge (slash removed), LIFNR-scoped, `height:auto number` + Simplebar/typewriter fixes. **`GET /api/v1/file-detail/:qnid` OLD-APP replica:** order header + `1fr 110 90` items + files `1fr 130 300 90` `TİP/TARİH/DURUM` with `isOldVersion status0` locked & `isDecidable waiting/refreshed` lock after `accepted/rejected` (`İşlem tamamlandı`), `İncele` in `90px` solo, `Onayla/Reddet 50/50 → Kaydet 100% → Red box 100%` same width, header centered. **`Yeniden Talep Et` pill text + `Kaydet/Red` modals nice.**
 
-> **👉 READ FIRST: `memory/08-session-summary.md` (clean 2-min handoff), then `05-order-system-state.md` (LIVE), `06-roadmap-next.md`. This file = architecture reference.**
+> **👉 READ FIRST: `memory/05-order-system-state.md` (LIVE), then `06-roadmap-next.md`. This file = architecture reference.**
 
-> **Source:** `panel/` is the real app. `memory/` is empty baseline, `panel/docs/` has 11 mapping docs (2026-08-01) — coal docs are now STALE, see `memory/05`. This file is the 30-second brain dump.
-> **Read first:** `panel/docs/01-mimari-genel-bakis.md`, `panel/docs/TEKNIK_DOKUMANTASYON.md` then `memory/05-order-system-state.md`
+> **Source:** `panel/` is the real app. `memory/` is empty baseline, `panel/docs/` has 11 mapping docs (2026-08-01) — coal docs are now STALE, see `memory/05`. This file is the 30-second brain dump. Read first: `panel/docs/01-mimari-genel-bakis.md`, `panel/docs/TEKNIK_DOKUMANTASYON.md` then `memory/05`.
 
 ## 1. What This App Is
 Tedarik Yönetim Sistemi — Order Management System (converted from KomurTedarik coal ERP). Generic EAV document engine wearing order-management skin. Two roles, one DB:

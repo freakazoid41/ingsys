@@ -11,6 +11,7 @@
 ** excel çıktıları
 ** ön panel aramalar için detaylı filtreler
  - Tedarikçi ara olayı cari kullanıcıları üzerinden arama ama aynı kod
+ - Dosya ararkende filtreler var
 ** sipariş detayı ve süreçleri
 ** eğitim videoları
 ** raporlar
@@ -21,8 +22,7 @@
 ** eski sistemi kurallar için kontrol et
 
 
-** tedarik panel dökümanlar
-** tedarik panel kitli sipariş görünümü
+
 
 ** tedairk raporlar
 ** excel çıktıları

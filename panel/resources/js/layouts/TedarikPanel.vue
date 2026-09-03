@@ -99,18 +99,6 @@ export default {
         },
         setupTypewriterScroll(){
             try {
-                // docs page: no typewriter, content-height frame (avoid huge blank with 2 rows)
-                if(window.location.pathname.includes('/documents')){
-                    document.body.style.height = '';
-                    document.documentElement.style.height = '';
-                    const innerM = document.querySelector('.tedarik-main-inner');
-                    if(innerM) innerM.style.transform = 'none';
-                    const frame=document.querySelector('.tedarik-frame');
-                    if(frame){ frame.style.height='auto'; frame.style.minHeight='0'; }
-                    const main=document.querySelector('.tedarik-main');
-                    if(main){ main.style.height='auto'; main.style.minHeight='0'; }
-                    return;
-                }
                 // mobile: disable typewriter, let normal page scroll
                 if(window.innerWidth <= 992){
                     document.body.style.height = '';
@@ -151,7 +139,6 @@ export default {
         },
         syncTypewriter(){
             try {
-                if(window.location.pathname.includes('/documents')) return;
                 if(window.innerWidth <= 992) return;
                 const inner = document.querySelector('.tedarik-main-inner');
                 if(!inner) return;
@@ -186,10 +173,6 @@ export default {
                             <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                         </a>
                     </router-link>
-                    <a class="tedarik-menu-item" @click="() => {}">
-                        <span>Kullanıcılar</span>
-                        <i class="ki-outline ki-right tedarik-menu-arrow"></i>
-                    </a>
                     <a class="tedarik-menu-item" @click="() => {}">
                         <span>Raporlar</span>
                         <i class="ki-outline ki-right tedarik-menu-arrow"></i>
@@ -499,7 +482,6 @@ export default {
 </style>
 <!-- UNSCOPED GLOBAL: override pickletable defaults for entire tedarik panel -->
 <style>
-#kt_content_container { max-height: unset !important; height: auto !important; overflow: visible !important; }
 
 /* PickleTable overrides — tedarik panel */
 .tedarik-main .pickletable {

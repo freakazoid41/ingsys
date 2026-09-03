@@ -31,52 +31,12 @@
             setTimeout(() => {
                 this.navigationStore.toggle(false);
                 this.handleResponsiveTable();
-                // fix unnecessary height: make containers content-driven, not viewport-stretched
-                try {
-                    if(this.isTedarik){
-                        const frame=document.querySelector('.tedarik-frame');
-                        const main=document.querySelector('.tedarik-main');
-                        const inner=document.querySelector('.tedarik-main-inner');
-                        if(frame){ frame.style.height='auto'; frame.style.minHeight='0'; }
-                        if(main){ main.style.height='auto'; main.style.minHeight='0'; }
-                        if(inner){ inner.style.transform='none'; }
-                        document.body.style.height=''; document.documentElement.style.height='';
-                    } else {
-                        const kt=document.getElementById('kt_content');
-                        const wrapper=document.getElementById('kt_wrapper');
-                        const container=document.getElementById('kt_content_container');
-                        if(kt){ kt.style.flex='0 0 auto'; kt.style.height='auto'; kt.style.minHeight='0'; }
-                        if(wrapper){ wrapper.style.height='auto'; wrapper.style.minHeight='0'; }
-                        if(container){ container.style.height='auto'; container.style.minHeight='0'; }
-                        // kill Simplebar's 100% stretch — all wrappers
-                        document.querySelectorAll('#kt_content_container .simplebar-wrapper, #kt_content_container .simplebar-mask, #kt_content_container .simplebar-offset, #kt_content_container .simplebar-content-wrapper, #kt_content_container .simplebar-content').forEach(el=>{
-                            el.style.height='auto'; el.style.minHeight='0'; el.style.maxHeight='none';
-                        });
-                        document.body.style.height='auto'; document.documentElement.style.height='auto';
-                    }
-                } catch(e){}
             }, 400);
         },
         beforeUnmount(){
             try{
-                if(this.isTedarik){
-                    const frame=document.querySelector('.tedarik-frame');
-                    const main=document.querySelector('.tedarik-main');
-                    if(frame){ frame.style.height=''; frame.style.minHeight=''; }
-                    if(main){ main.style.height=''; main.style.minHeight=''; }
-                    document.body.style.height=''; document.documentElement.style.height='';
-                } else {
-                    const kt=document.getElementById('kt_content');
-                    const wrapper=document.getElementById('kt_wrapper');
-                    const container=document.getElementById('kt_content_container');
-                    if(kt){ kt.style.flex=''; kt.style.height=''; kt.style.minHeight=''; }
-                    if(wrapper){ wrapper.style.height=''; wrapper.style.minHeight=''; }
-                    if(container){ container.style.height=''; container.style.minHeight=''; }
-                    document.querySelectorAll('#kt_content_container .simplebar-wrapper, #kt_content_container .simplebar-mask, #kt_content_container .simplebar-offset, #kt_content_container .simplebar-content-wrapper, #kt_content_container .simplebar-content').forEach(el=>{
-                        el.style.height=''; el.style.minHeight=''; el.style.maxHeight='';
-                    });
-                    document.body.style.height=''; document.documentElement.style.height='';
-                }
+                if(this._heightObs) this._heightObs.disconnect();
+                if(this._enforceTedarikHeight) window.removeEventListener('resize', this._enforceTedarikHeight);
             }catch(e){}
         },  
         computed: {
@@ -97,14 +57,11 @@
                 if(!table) return;
                 const updateResponsive = () => {
                     const isMobile = window.innerWidth < 768;
-                    const tableWrapper = container.closest('#div_table');
                     if(isMobile){
-                        tableWrapper.style.overflowX = 'auto';
                         table.style.minWidth = '100%';
                         table.style.width = 'auto';
                     } else {
-                        tableWrapper.style.overflowX = 'visible';
-                        table.style.minWidth = '100%';
+                        table.style.minWidth = '760px';
                         table.style.width = '100%';
                     }
                 };
@@ -433,14 +390,43 @@
                         title : 'Belge Başlık',
                         key   : 'file_type',
                         order : true,
-                        width : '22%',
+                        width : this.isTedarik ? '180px' : '18%',
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
+                            if(this.isTedarik){
+                                const wrap=document.createElement('div');
+                                wrap.style.display='flex';
+                                wrap.style.alignItems='center';
+                                wrap.style.gap='10px';
+                                const iconBox=document.createElement('div');
+                                iconBox.style.width='36px'; iconBox.style.height='36px'; iconBox.style.borderRadius='10px'; iconBox.style.display='inline-flex'; iconBox.style.alignItems='center'; iconBox.style.justifyContent='center'; iconBox.style.flexShrink='0'; iconBox.style.border='1px solid #e2e8f0';
+                                const ft=(columnData||'').toLowerCase();
+                                let icon='ki-document'; let bg='#f1f5f9'; let col='#475569'; let bd='#e2e8f0';
+                                if(ft.includes('test')){ icon='ki-flask'; bg='#fef3ff'; col='#a21caf'; bd='#f5d0fe'; }
+                                else if(ft.includes('cins')){ icon='ki-chart-simple'; bg='#fff7ed'; col='#c2410c'; bd='#fed7aa'; }
+                                else if(ft.includes('kabul')){ icon='ki-clipboard'; bg='#ecfdf5'; col='#047857'; bd='#a7f3d0'; }
+                                iconBox.style.background=bg; iconBox.style.color=col; iconBox.style.borderColor=bd;
+                                iconBox.innerHTML=`<i class="ki-outline ${icon}" style="font-size:18px;"></i>`;
+                                const span=document.createElement('span');
+                                span.textContent=columnData || '—';
+                                span.title=columnData || '—';
+                                span.style.fontWeight='700';
+                                span.style.color='#0f172a';
+                                span.style.fontSize='13px';
+                                span.style.display='inline-block';
+                                span.style.maxWidth='140px';
+                                span.style.overflow='hidden';
+                                span.style.textOverflow='ellipsis';
+                                span.style.whiteSpace='nowrap';
+                                span.style.verticalAlign='middle';
+                                wrap.appendChild(iconBox);
+                                wrap.appendChild(span);
+                                return wrap;
+                            }
                             const wrap = document.createElement('div');
                             wrap.classList.add('dlist-filecell');
                             const iconBox = document.createElement('div');
                             iconBox.classList.add('dlist-filecell__icon');
-                            // pick icon by file_type
                             const ft = (columnData||'').toLowerCase();
                             let icon = 'ki-document';
                             if(ft.includes('test')) icon = 'ki-flask';
@@ -459,7 +445,6 @@
                             const sub = document.createElement('div');
                             sub.classList.add('dlist-filecell__sub');
                             sub.textContent = rowData.file_qnid ? rowData.file_qnid.slice(0,8)+'…' : 'Belge';
-                            // textBox.appendChild(sub);
                             wrap.appendChild(iconBox);
                             wrap.appendChild(textBox);
                             return wrap;
@@ -468,11 +453,10 @@
                         title : 'Sipariş / İlişki',
                         key   : 'group_key',
                         order : true,
-                        width : '27%',
+                        width : this.isTedarik ? '170px' : '27%',
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
                             const orderCode = rowData.group_key || rowData.order_no || columnData || '';
-                            // resolve ilişki value same as old İlişki formatter
                             let iliski = '';
                             let iliskiCls = 'is-product';
                             switch(rowData.relation_type){
@@ -490,12 +474,25 @@
                                     else if(columnData && columnData !== '') { iliski=columnData; iliskiCls='is-product'; }
                                     else { iliski=''; iliskiCls='is-empty'; }
                             }
+                            if(this.isTedarik){
+                                const display = (orderCode||'').trim() || (iliski||'').trim() || '—';
+                                const span=document.createElement('span');
+                                span.textContent=display;
+                                span.title=display;
+                                span.style.color='#334155';
+                                span.style.display='inline-block';
+                                span.style.maxWidth='160px';
+                                span.style.overflow='hidden';
+                                span.style.textOverflow='ellipsis';
+                                span.style.whiteSpace='nowrap';
+                                span.style.verticalAlign='middle';
+                                return span;
+                            }
                             const wrap=document.createElement('div');
                             wrap.classList.add('dlist-merged');
-                            wrap.style.display='flex'; wrap.style.alignItems='center'; wrap.style.gap='6px'; wrap.style.flexWrap='wrap';
+                            wrap.style.display='flex'; wrap.style.alignItems='center'; wrap.style.gap='6px'; wrap.style.flexWrap='nowrap'; wrap.style.overflow='hidden';
                             const oc=orderCode?.trim() || '';
                             const ic=iliski?.trim() || '';
-                            // if same (e.g. order file where iliski == orderCode) show only one badge
                             if(!ic || ic==='—' || oc===ic){
                                 const b=document.createElement('span');
                                 b.classList.add('dlist-ordercode__badge');
@@ -504,7 +501,6 @@
                                 wrap.appendChild(b);
                                 return wrap;
                             }
-                            // different: two pills with gap, no slash (pills already distinct)
                             const b1=document.createElement('span');
                             b1.classList.add('dlist-ordercode__badge');
                             b1.textContent=oc; b1.title=oc;
@@ -519,8 +515,15 @@
                         key   : '_created_at_fmt',
                         order : false,
                         type  : 'string',
-                        width : '14%',
+                        width : this.isTedarik ? '120px' : '13%',
                         columnFormatter : (elm,rowData) => {
+                            if(this.isTedarik){
+                                const s=document.createElement('span');
+                                s.textContent=rowData._created_at_fmt || '—';
+                                s.style.color='#334155';
+                                s.style.whiteSpace='nowrap';
+                                return s;
+                            }
                             const wrap = document.createElement('div');
                             wrap.classList.add('dlist-date');
                             const d = document.createElement('span');
@@ -537,17 +540,60 @@
                         title : 'Güncel Durum',
                         key   : 'last_status',
                         order : false,
-                        width : '22%',
+                        width : this.isTedarik ? '175px' : '18%',
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
-                            const pill = document.createElement('button');
-                            pill.classList.add('dlist-pill');
                             let statusData = {};
                             try { statusData = JSON.parse(columnData || '{}'); } catch(e){ statusData={}; }
                             const key = statusData?.op_key;
-                            let icon = '<i class="ki-outline ki-time fs-5"></i>';
                             let label = statusData?.title || 'Bekleniyor';
                             if(!statusData?.title) label = 'Kontrol Bekleniyor';
+                            // tedarik: solid pills exactly like order list
+                            if(this.isTedarik){
+                                const sKey = key || '';
+                                let iconCls='ki-outline ki-magnifier';
+                                if(sKey==='doc_file_accepted') iconCls='ki-outline ki-check-circle';
+                                else if(sKey==='doc_file_rejected') iconCls='ki-outline ki-cross-circle';
+                                else if(sKey==='doc_file_refreshed') iconCls='ki-outline ki-arrows-loop';
+                                else iconCls='ki-outline ki-magnifier';
+                                const pill=document.createElement('span');
+                                pill.style.display='inline-flex';
+                                pill.style.alignItems='center';
+                                pill.style.justifyContent='center';
+                                pill.style.padding='5px 10px';
+                                pill.style.borderRadius='6px';
+                                pill.style.fontSize='11.5px';
+                                pill.style.fontWeight='600';
+                                pill.style.whiteSpace='nowrap';
+                                pill.style.border='1px solid transparent';
+                                pill.style.gap='6px';
+                                const icon=document.createElement('i');
+                                icon.className=iconCls;
+                                icon.style.fontSize='14px';
+                                pill.appendChild(icon);
+                                const txt=document.createElement('span');
+                                txt.textContent=statusData?.title || label;
+                                // map to order-like labels
+                                if(sKey==='doc_file_waiting' || !sKey) txt.textContent='Kontrol Bekleniyor';
+                                else if(sKey==='doc_file_accepted') txt.textContent=statusData.title || 'Doküman Onaylandı';
+                                else if(sKey==='doc_file_rejected') txt.textContent=statusData.title || 'Doküman Reddedildi';
+                                else if(sKey==='doc_file_refreshed') txt.textContent=statusData.title || 'Doküman Onay Yenilendi';
+                                pill.appendChild(txt);
+                                if(sKey==='doc_file_accepted'){
+                                    pill.style.background='#22c55e'; pill.style.color='#fff'; pill.style.borderColor='#22c55e';
+                                } else if(sKey==='doc_file_rejected'){
+                                    pill.style.background='#ef4444'; pill.style.color='#fff'; pill.style.borderColor='#ef4444';
+                                } else if(sKey==='doc_file_refreshed'){
+                                    pill.style.background='#facc15'; pill.style.color='#713f12'; pill.style.borderColor='#fcd34d';
+                                } else {
+                                    pill.style.background='#FF5A1F'; pill.style.color='#fff'; pill.style.borderColor='#FF5A1F';
+                                }
+                                pill.style.cursor='default';
+                                return pill;
+                            }
+                            const pill = document.createElement('button');
+                            pill.classList.add('dlist-pill');
+                            let icon = '<i class="ki-outline ki-time fs-5"></i>';
                             switch(key){
                                 case 'doc_file_waiting':
                                 default:
@@ -651,9 +697,71 @@
                         order : false,
                         colAlign : 'center',
                         headAlign : 'center',
-                        width : '15%',
+                        width : this.isTedarik ? '210px' : '24%',
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
+                            if(this.isTedarik){
+                                const wrap=document.createElement('div');
+                                wrap.style.display='flex';
+                                wrap.style.justifyContent='flex-end';
+                                wrap.style.gap='6px';
+                                const aks=document.createElement('button');
+                                aks.textContent='Aksiyonlar';
+                                aks.className='btn';
+                                aks.style.background='#8e8e93';
+                                aks.style.color='#ffffff';
+                                aks.style.border='1px solid #8e8e93';
+                                aks.style.borderRadius='8px';
+                                aks.style.padding='6px 14px';
+                                aks.style.fontSize='0.78rem';
+                                aks.style.fontWeight='600';
+                                aks.style.cursor='pointer';
+                                aks.onmouseenter=()=> aks.style.background='#7f7f84';
+                                aks.onmouseleave=()=> aks.style.background='#8e8e93';
+                                aks.onclick=(e)=>{
+                                    e.stopPropagation();
+                                    const canRetake = this.useAuthStore().permissions?.includes('per-07-02');
+                                    const html = `<div class="d-flex flex-column gap-2 p-2">
+                                        <button id="aks-preview" class="btn" style="background:#f8fafc;color:#334155;border:1px solid #e2e8f0;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-eye" style="font-size:16px;"></i> Önizle</button>
+                                        ${canRetake ? `<button id="aks-retake" class="btn" style="background:#FF5A1F;color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-arrows-loop" style="font-size:16px;"></i> Yeniden Talep Et</button>` : ''}
+                                        <button id="aks-detail" class="btn" style="background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-notepad-edit" style="font-size:16px;"></i> Detay</button>
+                                        <button id="aks-link" class="btn" style="background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-magnifier" style="font-size:16px;"></i> İlişkiye Git</button>
+                                    </div>`;
+                                    Swal.fire({title:'Aksiyonlar', showConfirmButton:false, showCloseButton:true, html, willOpen:()=>{
+                                        document.getElementById('aks-preview')?.addEventListener('click', ()=>{ Swal.close(); window.open('/order-file/'+(rowData?.id ?? rowData?.file),'_blank'); });
+                                        document.getElementById('aks-retake')?.addEventListener('click', ()=>{ Swal.close(); this.handleRetake(rowData); });
+                                        document.getElementById('aks-detail')?.addEventListener('click', ()=>{ Swal.close(); this.$router.push({ name:'TedarikDForm', params:{ id: rowData.id }}); });
+                                        document.getElementById('aks-link')?.addEventListener('click', ()=>{
+                                            Swal.close();
+                                            const isTed=this.isTedarik;
+                                            switch(rowData.relation_type){
+                                                case 'op-doc-client': this.$router.push({ name: 'CForm' , params: { id: rowData.relation_qnid }}); break;
+                                                case 'op-doc-offer': this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OForm' , params: { id: rowData.relation_qnid }}); break;
+                                                case 'op-doc-order':
+                                                case 'op-doc-order-item': this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OrderForm', params: { id: rowData.relation_qnid }}); break;
+                                                default: if(rowData.relation_qnid){ this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OrderForm', params: { id: rowData.relation_qnid }}); } break;
+                                            }
+                                        });
+                                    }});
+                                };
+                                wrap.appendChild(aks);
+                                const det=document.createElement('button');
+                                det.textContent='Detaylar';
+                                det.className='btn';
+                                det.style.background='#0e8ea4';
+                                det.style.color='#ffffff';
+                                det.style.border='1px solid #0e8ea4';
+                                det.style.borderRadius='8px';
+                                det.style.padding='6px 14px';
+                                det.style.fontSize='0.78rem';
+                                det.style.fontWeight='600';
+                                det.style.cursor='pointer';
+                                det.onmouseenter=()=> det.style.background='#0c7e90';
+                                det.onmouseleave=()=> det.style.background='#0e8ea4';
+                                det.onclick=()=>{ this.$router.push({ name:'TedarikDForm', params:{ id: rowData.id }}); };
+                                wrap.appendChild(det);
+                                return wrap;
+                            }
                             const wrap = document.createElement('div');
                             wrap.classList.add('dlist-actions');
                             const mkBtn = (iconClass, title, variant, onClick) => {
@@ -683,7 +791,6 @@
                                 rb.onclick=()=> this.handleRetake(rowData);
                                 wrap.appendChild(rb);
                             }
-                            // İlişki — panel aware, support orders/items; show for tedarik even without per-07
                             const canSeeLink = this.isTedarik || this.useAuthStore().permissions?.includes('per-07');
                             if(canSeeLink){
                                 wrap.appendChild(mkBtn('ki-magnifier','İlişkiye Git','is-link', () => {
@@ -713,7 +820,7 @@
                 ];
                 
                 const isMobile = window.innerWidth < 768;
-                const tableHeight = 'auto';
+                const tableHeight = this.isTedarik ? '75vh' : '70vh';
                 const pageLimit = isMobile ? 5 : 10;
 
                 this.table = new PickleTable({
@@ -759,6 +866,24 @@
                         }
                         return data;
                     },
+                });
+                // enforce tedarik 75vh inline — beats any stylesheet
+                this.$nextTick(()=>{
+                    const enforceTedarikHeight = ()=>{
+                        if(!this.isTedarik) return;
+                        const el = document.querySelector('.tedarik-docs-page .pickletable');
+                        if(el){
+                            if(el.style.getPropertyValue('height') !== '75vh'){
+                                el.style.setProperty('height','75vh','important');
+                            }
+                            if(el.style.getPropertyValue('min-height') !== 'calc(75vh - 280px)'){
+                                el.style.setProperty('min-height','calc(75vh - 280px)','important');
+                            }
+                        }
+                    };
+                    enforceTedarikHeight();
+                    setTimeout(enforceTedarikHeight, 300);
+                    setTimeout(enforceTedarikHeight, 1000);
                 });
             },
         }
@@ -829,7 +954,9 @@
 }
 .dlist-tablewrap {
     border-radius: 0 0 16px 16px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
 }
 .dlist-toolbar {
     display:flex; align-items:center; justify-content:space-between;
@@ -866,15 +993,21 @@
 .dlist-btn--export { background:#fff; color:#0f172a; border-color:#e2e8f0; }
 .dlist-btn--export:hover { background:#f8fafc; border-color:#cbd5e1; }
 
-.dlist-tablewrap { padding:0; }
+.dlist-tablewrap { padding:0; border-radius:0 0 16px 16px; overflow:hidden; }
+.dlist-page .dlist-tablewrap { overflow:hidden; }
 
 #div_table {
     width: 100%;
-    overflow: visible;
+    min-width: 0;
 }
-:deep(.pickletable){ overflow: visible !important; display:block !important; height:auto !important; }
-:deep(.pickletable .divTable){ overflow: visible !important; border:none !important; height:auto !important; }
-:deep(.pickletable table){ table-layout: fixed !important; width:100% !important; min-width:0 !important; border:none !important; margin:0 !important; border-collapse: collapse !important; background: #fff !important; }
+/* admin: 70vh container, internal scroll; tedarik: auto, page scroll */
+:deep(.pickletable){ min-width: 0; }
+:deep(.pickletable.pt-auto-height){ overflow: visible !important; display:block !important; height:auto !important; }
+:deep(.pickletable:not(.pt-auto-height)){ display:flex !important; flex-direction:column !important; overflow:hidden !important; }
+:deep(.pickletable .divTable){ min-width: 0; border:none !important; }
+:deep(.pickletable.pt-auto-height .divTable){ overflow: visible !important; height:auto !important; }
+:deep(.pickletable:not(.pt-auto-height) .divTable){ overflow:auto !important; height:90% !important; }
+:deep(.pickletable table){ table-layout: auto !important; width:100% !important; min-width:680px !important; border:none !important; margin:0 !important; border-collapse: collapse !important; background: #fff !important; }
 :deep(.pickletable .table-responsive){ overflow:visible !important; }
 :deep(.pickletable .divPagination){
     display:flex !important; justify-content:flex-end !important; align-items:center !important;
@@ -944,6 +1077,11 @@
     color:#0f172a !important;
     border:none !important;
     overflow:hidden;
+    white-space:nowrap;
+}
+:deep(.pickletable tbody td:last-child){
+    overflow:visible !important;
+    white-space:nowrap !important;
 }
 :deep(.pickletable tbody tr:last-child){ border-bottom:none !important; }
 
@@ -1018,7 +1156,7 @@
 :deep(.dlist-relation__badge){
     display:inline-flex; align-items:center; padding:5px 11px; border-radius:999px;
     font-size:12px; font-weight:700; letter-spacing:.01em; border:1px solid transparent;
-    max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    max-width:145px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex-shrink:1; min-width:0;
 }
 :deep(.dlist-relation__badge.is-product){ background:#eef2ff; color:#4338ca; border-color:#c7d2fe; }
 :deep(.dlist-relation__badge.is-client){ background:#f0fdf4; color:#15803d; border-color:#bbf7d0; }
@@ -1030,8 +1168,9 @@
 :deep(.dlist-ordercode__badge){
     display:inline-flex; align-items:center; padding:5px 11px; border-radius:999px;
     font-size:12px; font-weight:800; letter-spacing:.01em; background:#f8fafc; color:#1e293b;
-    border:1px solid #e2e8f0; white-space:nowrap; max-width:160px; overflow:hidden; text-overflow:ellipsis;
+    border:1px solid #e2e8f0; white-space:nowrap; max-width:125px; overflow:hidden; text-overflow:ellipsis; flex-shrink:0;
 }
+:deep(.dlist-merged){ display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden; max-width:100%; }
 .tedarik-docs-page :deep(.dlist-ordercode__badge){
     background:#fff7ed; color:#7c2d12; border-color:#fed7aa;
 }
@@ -1160,12 +1299,9 @@
 .tedarik-docs-page .order-list-body{
     background:transparent !important; flex:0 0 auto; display:block; min-height:0; height:auto;
 }
-/* pickletable tedarik overrides — mimics OList .tedarik-card :deep overrides */
+/* pickletable tedarik — divTable scroll for 75vh */
 .tedarik-docs-page :deep(.pickletable .divTable){
-    flex:0 0 auto; height:auto !important; min-height:0 !important; overflow:visible !important;
-}
-.tedarik-docs-page :deep(.pickletable){
-    height:auto !important; min-height:0 !important;
+    overflow:auto !important;
 }
 .tedarik-docs-page :deep(.pickletable table){
     border-collapse:separate !important; border-spacing:0 7px !important;
@@ -1178,21 +1314,22 @@
     white-space:nowrap; text-align:left !important; box-shadow:none !important; position:relative !important; top:auto !important;
 }
 .tedarik-docs-page :deep(.pickletable thead th:last-child){ text-align:right !important; }
-.tedarik-docs-page :deep(.pickletable tbody tr){ background:transparent !important; box-shadow:none !important; }
-.tedarik-docs-page :deep(.pickletable tbody tr:hover td){ background:#fcfcfc !important; }
+.tedarik-docs-page :deep(.pickletable tbody tr){ background:transparent !important; box-shadow:none !important; transition: transform 0.15s ease, box-shadow 0.15s ease !important; }
+.tedarik-docs-page :deep(.pickletable tbody tr:hover){ transform: translateY(-1px) !important; }
+.tedarik-docs-page :deep(.pickletable tbody tr:hover td){ background:#fcfcfc !important; box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important; }
 .tedarik-docs-page :deep(.pickletable tbody td){
     background:#fff !important; padding:13px 14px !important; font-size:13.5px !important;
-    color:#2b2b33 !important; border:1px solid #e8e8ea !important;
-    border-left:1px solid #e8e8ea !important; border-right:1px solid #e8e8ea !important;
+    color:#2b2b33 !important; border-top:1px solid #e8e8ea !important; border-bottom:1px solid #e8e8ea !important; border-left:none !important; border-right:none !important;
     vertical-align:middle !important; white-space:nowrap; font-weight:400;
     text-overflow:clip !important; overflow:visible !important;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04) !important;
 }
-.tedarik-docs-page :deep(.pickletable tbody td:first-child){
-    border-left:1px solid #e8e8ea !important; border-top-left-radius:8px !important; border-bottom-left-radius:8px !important;
+.tedarik-docs-page :deep(.pickletable tbody td:nth-child(2)){
+    border-left:1px solid #e8e8ea !important; border-top-left-radius:12px !important; border-bottom-left-radius:12px !important; border-right:none !important;
     font-weight:600 !important; color:#111827 !important;
 }
 .tedarik-docs-page :deep(.pickletable tbody td:last-child){
-    border-right:1px solid #e8e8ea !important; border-top-right-radius:8px !important; border-bottom-right-radius:8px !important;
+    border-right:1px solid #e8e8ea !important; border-top-right-radius:12px !important; border-bottom-right-radius:12px !important; border-left:none !important;
 }
 .tedarik-docs-page :deep(.pickletable .divPagination){
     background:transparent !important; border-top:none !important; padding:10px 0 0 !important;
@@ -1223,4 +1360,52 @@
     background:#fff7ed !important; border-color:#fed7aa !important; color:#9a3412 !important;
 }
 .tedarik-docs-page :deep(.dlist-group__count::before){ background:#FF5A1F !important; }
+
+/* TEDARIK FILE LIST — user height rule, NEVER override */
+.tedarik-docs-page :deep(.pickletable),
+.tedarik-docs-page :deep(#div_table.pickletable) {
+    height: 75vh !important;
+    min-height: calc(75vh - 280px) !important;
+}
+</style>
+
+<!-- UNSCOPED: override TedarikPanel global .tedarik-main .pickletable height:auto for docs page only -->
+<style>
+.tedarik-main .tedarik-docs-page .pickletable,
+.tedarik-main .tedarik-docs-page #div_table.pickletable,
+.tedarik-main .tedarik-docs-page .pickletable.pt-auto-height {
+    height: 75vh !important;
+    min-height: calc(75vh - 280px) !important;
+}
+/* Card-row style — replicate OList (shadow+radius on tr, transparent borderless td) */
+.tedarik-main .tedarik-docs-page .pickletable { border:none !important; }
+.tedarik-main .tedarik-docs-page .pickletable table {
+    border:none !important; border-collapse:separate !important; border-spacing:0 7px !important;
+}
+.tedarik-main .tedarik-docs-page .pickletable tbody td {
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+    padding:13px 14px !important;
+    font-size:13.5px !important;
+    color:#2b2b33 !important;
+    white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;
+    vertical-align:middle !important; font-weight:400;
+    border-radius:0 !important;
+}
+.tedarik-main .tedarik-docs-page .pickletable tbody tr {
+    background:#fff !important;
+    border:none !important;
+    border-radius:14px !important;
+    box-shadow:0 2px 8px rgba(0,0,0,0.06) !important;
+    transition:transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+.tedarik-main .tedarik-docs-page .pickletable tbody tr:hover {
+    transform:translateY(-2px) !important;
+    box-shadow:0 4px 16px rgba(0,0,0,0.12) !important;
+}
+.tedarik-main .tedarik-docs-page .pickletable tbody td:first-child { display:none !important; }
+.tedarik-main .tedarik-docs-page .pickletable tbody td:nth-child(2) { border-radius:14px 0 0 14px !important; }
+.tedarik-main .tedarik-docs-page .pickletable tbody td:last-child { border-radius:0 14px 14px 0 !important; }
+.tedarik-main .tedarik-docs-page .pickletable tbody tr:hover td { background:transparent !important; box-shadow:none !important; }
 </style>
