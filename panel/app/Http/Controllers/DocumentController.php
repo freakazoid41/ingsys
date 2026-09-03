@@ -597,4 +597,129 @@ class DocumentController extends Controller
         return response()->json($result, $result['success'] ? 200 : 404);
     }
 
+    public function fileDetail(Request $request){
+        $fileQnid = $request->id;
+        if(empty($fileQnid)) return response()->json(['success'=>false,'msg'=>'Missing id'],422);
+        // resolve file -> order (or client) with lifnr scope check
+        $file = \Illuminate\Support\Facades\DB::selectOne("SELECT * FROM document_files WHERE qnid = ? LIMIT 1", [$fileQnid]);
+        if(!$file) return response()->json(['success'=>false,'msg'=>'Belge bulunamadı'],404);
+        $d = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.id = ? LIMIT 1", [(int)$file->relation_id]);
+        if(!$d) return response()->json(['success'=>false,'msg'=>'İlişki bulunamadı'],404);
+
+        // determine order
+        $order = null;
+        $orderId = null;
+        if($d->type_key === 'op-doc-order'){
+            $order = $d;
+            $orderId = $d->id;
+        } elseif($d->type_key === 'op-doc-order-item'){
+            $order = \Illuminate\Support\Facades\DB::selectOne("SELECT d2.*, so2.op_key as type_key FROM documents d2 JOIN sys_options so2 ON so2.id=d2.type_id WHERE d2.id = ? LIMIT 1", [(int)$d->parent_id]);
+            $orderId = $order ? $order->id : null;
+        } else {
+            // client or other — treat as is (no order)
+            $order = $d;
+            $orderId = $d->id;
+        }
+        if(!$orderId) return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
+
+        // LIFNR scope for reseller
+        if(session('type_key') === 'op-pert-reseller'){
+            $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
+            if(empty($clientQnids)){
+                return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
+            }
+            $qnidIn = "'" . implode("','", array_map('noInject', $clientQnids)) . "'";
+            $lifRows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+            $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
+            // fetch order spec_code
+            $specRow = \Illuminate\Support\Facades\DB::selectOne("SELECT sce.entity_value as spec FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id WHERE sco.main_id = ? AND sce.entity_tag = 'spec_code' LIMIT 1", [$orderId]);
+            $spec = trim($specRow->spec ?? '');
+            $allowed = false;
+            if(in_array($order->qnid ?? '', $clientQnids, true)) $allowed = true;
+            if(!empty($lifnrs) && in_array($spec, $lifnrs, true)) $allowed = true;
+            // also check if file's group_key matches lifnr? keep simple
+            if(!$allowed) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
+        }
+
+        // fetch order header via getFormData for easy entities
+        $orderQnid = $order->qnid;
+        $orderData = (new \App\Providers\DocumentServiceProvider())->getFormData($orderQnid);
+        $orderEntities = [];
+        if(!empty($orderData['formFormat'])){
+            foreach($orderData['formFormat'] as $formKey => $rows){
+                foreach($rows as $r){
+                    foreach(($r['entities'] ?? []) as $k=>$v) $orderEntities[explode('**',$k)[0]] = $v;
+                }
+            }
+        }
+        // fallback from raw table if getFormData empty (e.g. client)
+        $orderHeader = [
+            'qnid' => $orderQnid,
+            'order_no' => $orderEntities['order_no'] ?? '',
+            'buying_no' => $orderEntities['buying_no'] ?? '',
+            'ctitle' => $orderEntities['ctitle'] ?? ($orderEntities['clititle'] ?? ''),
+            'spec_code' => $orderEntities['spec_code'] ?? ($orderEntities['lifnr'] ?? ''),
+            'created_at' => $orderEntities['created_at'] ?? '',
+            'lifnr' => $orderEntities['lifnr'] ?? ($orderEntities['spec_code'] ?? ''),
+        ];
+
+        // fetch order items (only for op-doc-order)
+        $items = [];
+        if(($d->type_key === 'op-doc-order' || $d->type_key === 'op-doc-order-item') && $orderId){
+            $itemOrderTypeId = \Illuminate\Support\Facades\DB::table('sys_options')->where('op_key','op-doc-order-item')->value('id');
+            $rawItems = \Illuminate\Support\Facades\DB::select("SELECT id, qnid FROM documents WHERE parent_id = ? AND type_id = ? AND status = 1 ORDER BY id ASC", [$orderId, $itemOrderTypeId]);
+            foreach($rawItems as $it){
+                $ents = \Illuminate\Support\Facades\DB::select("SELECT sce.entity_tag, sce.entity_value FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id = sce.conn_id WHERE sco.main_id = ? AND sco.conn_id = 0", [$it->id]);
+                $map = [];
+                foreach($ents as $e) $map[explode('**',$e->entity_tag)[0]] = $e->entity_value;
+                $items[] = [
+                    'qnid' => $it->qnid,
+                    'prod_code' => $map['prod_code'] ?? ($map['MATNR'] ?? ''),
+                    'title' => $map['title'] ?? ($map['TXZ01'] ?? ''),
+                    'unit' => $map['unit'] ?? ($map['MEINS'] ?? ''),
+                    'quantity' => $map['quantity'] ?? ($map['MENGE'] ?? ''),
+                ];
+            }
+        }
+
+        // fetch ALL files for order (including old versions status 0/1, single query)
+        $files = \Illuminate\Support\Facades\DB::select("
+            SELECT i.qnid as file_qnid, i.id as file_id, i.status as file_status, i.created_at as file_created_at,
+                   i.description as file_desc,
+                   sf.title as file_type, sf.op_key as file_type_key, se.entity_tag,
+                   d.qnid as relation_qnid, dt.op_key as relation_type,
+                   (SELECT json_build_object('op_key', sot.op_key, 'title', sot.title, 'name', p.name, 'note', t.description, 'created_at', t.created_at)
+                    FROM transactions t
+                    JOIN sys_options sot ON sot.id = t.type_id
+                    JOIN user_logs ul ON ul.id = t.log_id
+                    JOIN users u ON u.id = ul.user_id
+                    JOIN persons p ON p.id = u.person_id
+                    WHERE t.target_id = i.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) as last_status
+            FROM document_files i
+            JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag = 'document_files'
+            JOIN documents d ON d.id = i.relation_id::int
+            JOIN sys_options dt ON dt.id = d.type_id
+            JOIN sys_options sf ON sf.op_key = 'op-'||split_part(se.entity_tag,'**',1)
+            WHERE (d.id = ? OR d.parent_id = ?)
+              AND se.entity_tag NOT LIKE '%item_images_file%'
+              AND i.description != ''
+            ORDER BY i.created_at DESC
+        ", [$orderId, $orderId]);
+
+        // parse last_status json strings
+        foreach($files as &$f){
+            if(is_string($f->last_status)) { try{ $f->last_status = json_decode($f->last_status, true) ?? json_decode($f->last_status); }catch(\Throwable $e){} }
+        }
+
+        return response()->json([
+            'success'=>true,
+            'data'=>[
+                'file_qnid' => $fileQnid,
+                'order' => $orderHeader,
+                'items' => $items,
+                'files' => $files,
+            ]
+        ]);
+    }
+
 }

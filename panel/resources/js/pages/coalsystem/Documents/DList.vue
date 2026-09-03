@@ -207,6 +207,49 @@
                     }
                 });
             },
+            async handleRetake(rowData){
+                const { value: note, isConfirmed } = await Swal.fire({
+                    title: '',
+                    html: `<div style="display:flex; flex-direction:column; align-items:center; gap:14px; padding:6px 4px 2px; text-align:center;">
+                        <div style="width:64px; height:64px; border-radius:50%; background: linear-gradient(135deg, #fff7ed, #ffedd5); border:1.5px solid #fed7aa; display:flex; align-items:center; justify-content:center; color:#ea580c; font-size:28px; box-shadow:0 4px 16px rgba(234,88,12,0.12);"><i class="ki-outline ki-arrows-loop"></i></div>
+                        <div style="font-size:18px; font-weight:800; color:#0f172a; letter-spacing:-0.01em;">Yeniden Talep Et</div>
+                        <div style="font-size:13.5px; color:#475569; line-height:1.6; max-width:360px;">Bu belge <b style="color:#9a3412; background:#fff7ed; padding:2px 6px; border-radius:6px; border:1px solid #fed7aa;">Reddedildi</b> olarak işaretlenecek ve tedarikçiden yeniden yüklemesi istenecek.</div>
+                        <div style="width:100%; text-align:left; margin-top:4px;">
+                            <label style="font-size:12px; font-weight:700; color:#334155; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><i class="ki-outline ki-notepad" style="color:#94a3b8;"></i> Not <span style="font-weight:400; color:#94a3b8;">(opsiyonel)</span></label>
+                            <textarea id="retake-note" placeholder="Reddetme nedenini yazın... Örn: Görsel bulanık, imza eksik" style="width:100%; min-height:110px; border:1.5px solid #e2e8f0; border-radius:12px; padding:12px 14px; font-size:13.5px; outline:none; resize:vertical; background:#f8fafc; transition:border-color .15s; font-family:inherit;"></textarea>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:6px; display:flex; align-items:center; gap:4px;"><i class="ki-outline ki-information-2" style="font-size:12px;"></i> Tedarikçi bu notu detayda görecek.</div>
+                        </div>
+                    </div>`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Reddet ve Talep Et',
+                    cancelButtonText: 'Vazgeç',
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#e2e8f0',
+                    customClass: { popup:'swal-retake', confirmButton:'swal-retake-confirm', cancelButton:'swal-retake-cancel' },
+                    focusConfirm: false,
+                    preConfirm: () => document.getElementById('retake-note')?.value?.trim() ?? ''
+                });
+                if(!isConfirmed) return;
+                const n = (note || '').trim();
+                const fd=new FormData();
+                fd.append('id', rowData.id);
+                fd.append('op_key', 'doc_file_rejected');
+                fd.append('note', n);
+                Swal.fire({ title:'İşleniyor...', allowOutsideClick:false, didOpen:()=> Swal.showLoading() });
+                try{
+                    const rsp=await this.plib.request({ url:'/api/v1/trans/set-file-status', method:'POST' }, null, fd);
+                    if(rsp && rsp.success){
+                        const upd={ op_key:'doc_file_rejected', title: rsp.data || 'Reddedildi', note: n };
+                        try{ this.table.updateRow(rowData.id, { last_status: JSON.stringify(upd) }); }catch(e){}
+                        Swal.close();
+                        this.plib.toast(Swal,'success','Yeniden talep edildi — belge reddedildi');
+                    } else {
+                        Swal.fire({ icon:'error', title:'Hata', text: rsp?.msg || rsp?.message || 'İşlem başarısız' });
+                    }
+                }catch(e){
+                    Swal.fire({ icon:'error', title:'Hata', text: e?.msg || e?.message || String(e) });
+                }
+            },
             searchTable(){
                 this.table.setFilter(
                     [{
@@ -281,7 +324,13 @@
                 detailBtn.classList.add('document-card__action-btn');
                 detailBtn.type = 'button';
                 detailBtn.innerHTML = '<i class="ki-outline ki-magnifier"></i> Detay';
-                detailBtn.onclick = () => this.showDetailModal(rowData);
+                detailBtn.onclick = () => {
+                    if(this.isTedarik){
+                        this.$router.push({ name:'TedarikDForm', params:{ id: rowData.id }});
+                    } else {
+                        this.showDetailModal(rowData);
+                    }
+                };
                 footer.appendChild(detailBtn);
                 const openBtn = document.createElement('button');
                 openBtn.classList.add('document-card__action-btn');
@@ -289,6 +338,16 @@
                 openBtn.innerHTML = '<i class="ki-outline ki-eye"></i> Aç';
                 openBtn.onclick = () => window.open('/order-file/'+(rowData?.id ?? rowData?.file), '_blank');
                 footer.appendChild(openBtn);
+                // Yeniden Talep Et — reject file (admin)
+                if(this.useAuthStore().permissions?.includes('per-07-02')){
+                    const retakeBtn=document.createElement('button');
+                    retakeBtn.classList.add('document-card__action-btn');
+                    retakeBtn.type='button';
+                    retakeBtn.innerHTML='<i class="ki-outline ki-arrows-loop"></i> Yeniden Talep Et';
+                    retakeBtn.style.background='#fff7ed'; retakeBtn.style.borderColor='#fed7aa'; retakeBtn.style.color='#9a3412';
+                    retakeBtn.onclick=()=> this.handleRetake(rowData);
+                    footer.appendChild(retakeBtn);
+                }
                 // İlişki button — panel-aware + order support
                 const showIliski = this.isTedarik || this.useAuthStore().permissions?.includes('per-07');
                 if (showIliski) {
@@ -406,58 +465,53 @@
                             return wrap;
                         }
                     },{
-                        title : 'Sipariş Kodu',
+                        title : 'Sipariş / İlişki',
                         key   : 'group_key',
                         order : true,
-                        width : '14%',
+                        width : '27%',
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
-                            const v = rowData.group_key || rowData.order_no || columnData || '—';
-                            const wrap = document.createElement('div');
-                            wrap.classList.add('dlist-ordercode');
-                            const badge = document.createElement('span');
-                            badge.classList.add('dlist-ordercode__badge');
-                            badge.textContent = v;
-                            badge.title = v;
-                            wrap.appendChild(badge);
-                            return wrap;
-                        }
-                    },{
-                        title : 'İlişki',
-                        key   : 'title',
-                        order : true,
-                        width : '13%',
-                        type  : 'string',
-                        columnFormatter : (elm,rowData,columnData) => {
-                            const wrap = document.createElement('div');
-                            wrap.classList.add('dlist-relation');
-                            const badge = document.createElement('span');
-                            badge.classList.add('dlist-relation__badge');
+                            const orderCode = rowData.group_key || rowData.order_no || columnData || '';
+                            // resolve ilişki value same as old İlişki formatter
+                            let iliski = '';
+                            let iliskiCls = 'is-product';
                             switch(rowData.relation_type){
                                 case 'op-doc-client':
-                                    badge.textContent = columnData ?? '—';
-                                    badge.classList.add('is-client');
+                                    iliski = rowData.title || columnData || '';
+                                    iliskiCls='is-client';
                                     break;
-                                case  'op-doc-offer':
-                                    badge.textContent = rowData.relation_qnid;
-                                    badge.classList.add('is-offer');
+                                case 'op-doc-offer':
+                                    iliski = rowData.relation_qnid || '';
+                                    iliskiCls='is-offer';
                                     break;
                                 default:
-                                    if(rowData.product_name){
-                                        badge.textContent = rowData.product_name;
-                                        badge.classList.add('is-product');
-                                    } else if(rowData.order_no){
-                                        badge.textContent = rowData.order_no;
-                                        badge.classList.add('is-product');
-                                    } else if(columnData && columnData !== ''){
-                                        badge.textContent = columnData;
-                                        badge.classList.add('is-product');
-                                    } else {
-                                        badge.textContent = '—';
-                                        badge.classList.add('is-empty');
-                                    }
+                                    if(rowData.product_name) { iliski=rowData.product_name; iliskiCls='is-product'; }
+                                    else if(rowData.order_no) { iliski=rowData.order_no; iliskiCls='is-product'; }
+                                    else if(columnData && columnData !== '') { iliski=columnData; iliskiCls='is-product'; }
+                                    else { iliski=''; iliskiCls='is-empty'; }
                             }
-                            wrap.appendChild(badge);
+                            const wrap=document.createElement('div');
+                            wrap.classList.add('dlist-merged');
+                            wrap.style.display='flex'; wrap.style.alignItems='center'; wrap.style.gap='6px'; wrap.style.flexWrap='wrap';
+                            const oc=orderCode?.trim() || '';
+                            const ic=iliski?.trim() || '';
+                            // if same (e.g. order file where iliski == orderCode) show only one badge
+                            if(!ic || ic==='—' || oc===ic){
+                                const b=document.createElement('span');
+                                b.classList.add('dlist-ordercode__badge');
+                                b.textContent= oc || ic || '—';
+                                b.title=b.textContent;
+                                wrap.appendChild(b);
+                                return wrap;
+                            }
+                            // different: two pills with gap, no slash (pills already distinct)
+                            const b1=document.createElement('span');
+                            b1.classList.add('dlist-ordercode__badge');
+                            b1.textContent=oc; b1.title=oc;
+                            const b2=document.createElement('span');
+                            b2.classList.add('dlist-relation__badge', iliskiCls);
+                            b2.textContent=ic; b2.title=ic;
+                            wrap.appendChild(b1); wrap.appendChild(b2);
                             return wrap;
                         }
                     },{
@@ -542,14 +596,16 @@
                                             document.querySelectorAll('.doc-status').forEach(btn => {
                                                 btn.addEventListener('click', e => {
                                                     Swal.fire({
-                                                        confirmButtonText : 'Kaydet..',
+                                                        confirmButtonText : 'Kaydet',
                                                         showCloseButton : true,
-                                                        html : `<small class="mb-5">Durum Notu Giriniz (Boş Olabilir)</small>
-                                                                <div class="row m-5 justify-content-center">
-                                                                    <div class="col-12">
-                                                                        <textarea class="form-control" id="exampleFormControlTextarea1" rows="3" placeholder="..."></textarea>
-                                                                    </div>
-                                                                </div>`,
+                                                        html : `<div style="display:flex; flex-direction:column; align-items:center; gap:14px; padding:6px 4px 2px; text-align:center;">
+                                                            <div style="width:56px; height:56px; border-radius:50%; background:#f8fafc; border:1.5px solid #e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:26px;"><i class="ki-outline ki-notepad"></i></div>
+                                                            <div style="font-size:17px; font-weight:800; color:#0f172a;">Not Ekle</div>
+                                                            <div style="font-size:13px; color:#64748b; line-height:1.5;">İstersen bir not ekle <span style="color:#94a3b8;">(opsiyonel)</span></div>
+                                                            <div style="width:100%; text-align:left; margin-top:4px;">
+                                                                <textarea id="exampleFormControlTextarea1" placeholder="Notunuz..." style="width:100%; min-height:110px; border:1.5px solid #e2e8f0; border-radius:12px; padding:12px 14px; font-size:13.5px; outline:none; resize:vertical; background:#f8fafc; font-family:inherit;"></textarea>
+                                                            </div>
+                                                        </div>`,
                                                         allowOutsideClick: () => !Swal.isLoading(),
                                                         preConfirm : async () => {
                                                             try {
@@ -609,8 +665,24 @@
                                 b.onclick = onClick;
                                 return b;
                             };
-                            wrap.appendChild(mkBtn('ki-notepad-edit','Detay','is-detail', () => this.showDetailModal(rowData)));
+                            wrap.appendChild(mkBtn('ki-notepad-edit','Detay','is-detail', () => {
+                                if(this.isTedarik){
+                                    this.$router.push({ name:'TedarikDForm', params:{ id: rowData.id }});
+                                } else {
+                                    this.showDetailModal(rowData);
+                                }
+                            }));
                             wrap.appendChild(mkBtn('ki-eye','Önizle','is-view', () => window.open('/order-file/'+(rowData?.id ?? rowData?.file),'_blank')));
+                            if(this.useAuthStore().permissions?.includes('per-07-02')){
+                                const rb=document.createElement('button');
+                                rb.type='button';
+                                rb.className='dlist-actions__btn is-retake';
+                                rb.title='Yeniden Talep Et';
+                                rb.innerHTML='<i class="ki-outline ki-arrows-loop fs-5"></i><span style="margin-left:4px; font-size:12px; font-weight:700; white-space:nowrap;">Yeniden Talep Et</span>';
+                                rb.style.width='auto'; rb.style.padding='0 14px'; rb.style.gap='6px';
+                                rb.onclick=()=> this.handleRetake(rowData);
+                                wrap.appendChild(rb);
+                            }
                             // İlişki — panel aware, support orders/items; show for tedarik even without per-07
                             const canSeeLink = this.isTedarik || this.useAuthStore().permissions?.includes('per-07');
                             if(canSeeLink){
@@ -1002,6 +1074,8 @@
 :deep(.dlist-actions__btn.is-view:hover){ background:#f0fdf4; color:#15803d; border-color:#bbf7d0; }
 :deep(.dlist-actions__btn.is-link){ background:#fff; }
 :deep(.dlist-actions__btn.is-link:hover){ background:#f8fafc; color:#0f172a; border-color:#cbd5e1; }
+:deep(.dlist-actions__btn.is-retake){ background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+:deep(.dlist-actions__btn.is-retake:hover){ background:#ffedd5; color:#7c2d12; border-color:#fdba74; }
 
 /* document-card mobile */
 :deep(.document-card){ width:100%; border:1px solid #e2e8f0; border-radius:18px; overflow:hidden; background:#fff; box-shadow:0 8px 24px rgba(15,23,42,.06); }

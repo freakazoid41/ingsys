@@ -13,6 +13,7 @@ import UForm from "@/pages/coalsystem/Users/UForm.vue";
 import TreeExample from "@/pages/coalsystem/treeTest.vue";
 import Roles from "@/pages/coalsystem/Roles/Roles.vue";
 import DList from "@/pages/coalsystem/Documents/DList.vue";
+import DForm from "@/pages/coalsystem/Documents/DForm.vue";
 import NSettings from "@/pages/coalsystem/Notifications/NSettings.vue";
 import LList from "@/pages/coalsystem/Logs/LList.vue";
 import NList from "@/pages/coalsystem/NotificationLogs/NList.vue";
@@ -46,6 +47,7 @@ const router = createRouter({
         { path: "/coalpanel/users/form/:id?", name: 'UForm', component: UForm},
         { path: "/coalpanel/roles", name: 'Roles', component: Roles},
         { path: "/coalpanel/documents", name: 'DList', component: DList},
+        { path: "/coalpanel/documents/:id", name: 'DForm', component: DForm},
         { path: "/coalpanel/sistem-loglari", name: 'LList', component: LList},
         { path: "/coalpanel/notifikasyon-loglari", name: 'NList', component: NList},
       ]
@@ -58,6 +60,7 @@ const router = createRouter({
         { path: "/tedarikpanel/orders", name: 'TedarikOrderList', component: OrderList },
         { path: "/tedarikpanel/orders/form/:id?", name: 'TedarikOrderForm', component: OrderForm },
         { path: "/tedarikpanel/documents", name: 'TedarikDList', component: DList },
+        { path: "/tedarikpanel/documents/:id", name: 'TedarikDForm', component: DForm },
       ]
     },
     /*{

@@ -63,6 +63,8 @@ All logged in `memory/05 §4`. Highlights:
 - 2026-09-03 late: **Height fix** — `pickletable height:auto` both panels (was 100%/90% + calc(100vh-280) → blank), `DList` card `overflow:hidden 16px`, `CoalPanel Simplebar` + `Tedarik typewriter` content-driven (docs page `frame/main height:auto` early-return), `DList` `order-list-body flex:0 0 auto`, `tedarik-docs` orange `fff7ed`
 - 2026-09-03 late: **Grouping removed** — `DList` `groupBy` + `enhanceGroupHeader` deleted, `Sipariş Kodu` column live for order+test files
 
+- 2026-09-03 late: **File-Detail OLD-APP replica LIVE** — `GET /api/v1/file-detail` + `DForm.vue` `Gdz` header `1fr 130 300 90` `isOldVersion` lock, `isDecidable` lock after accepted/rejected, `İncele` excluded to `90px`, widths unified `300px`, `Sipariş / İlişki` merge, `Yeniden Talep Et` text pill + nice modals, `goOrder` shortcut
+
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 
 - ✅ **Mechanics DONE (2026-09-01):** blade template, controller method, route, Vue method, 2 purple buttons, CSS — all cloned from Malzeme Kabul
