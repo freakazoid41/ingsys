@@ -224,10 +224,15 @@ class DocumentServiceProvider extends ServiceProvider
                 $stypeId = (Sys_options::where(['ctitle' => 'sub_type_id', 'op_key' => 'form-file'])->first())->id;
                 foreach ($dynamicFiles as $fkey => $file) {
                     if (strpos($fkey, $id) !== false) {
-                        $fileName = explode('*-*', $fkey)[1];
+                        $fileName = explode('*-*', $fkey)[1] ?? '';
 
-                        $typeTag = explode('**', $fileName)[0];
-                        $fileId = explode('**', $fkey)[2];
+                        $typeTag = explode('**', $fileName)[0] ?? '';
+                        // Robust fid parse: handle both tedarik "fid**rowId*-*tag" and legacy "fid*-*tag"
+                        $leftPart = explode('*-*', $fkey)[0] ?? $fkey;
+                        $fileIdParts = explode('**', $leftPart);
+                        $fileId = $fileIdParts[2] ?? 0;
+                        // Non-numeric "new-..." means brand new slot, not a replacement — coerce to 0 so addFileToDb doesn't query with garbage bigint
+                        if (!is_numeric($fileId)) $fileId = 0;
 
                         // here add short info about file log
                         $fileTypeInfo = (Sys_options::where(['ctitle' => 'type_id', 'op_key' => 'op-'.$typeTag])->first());
@@ -237,7 +242,11 @@ class DocumentServiceProvider extends ServiceProvider
                         // On first upload there is no entity yet ($oldFileEntity = null, $existingFileId = 0).
                         // On re-upload, the ACTIVE entity is the one whose file is still active
                         // (document_files.status=1); older version rows are ignored.
-                        $oldFileEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])
+                        // Tedarik panel historically used timestamp rowIds (new-...) while admin uses stable conn_id —
+                        // so exact entity_tag match fails and creates duplicate rows (see 3510004600-2). Search by prefix instead.
+                        $oldFileEntity = Sys_con_entities::where('conn_id', $conn->id)
+                            ->where('entity_tag', 'like', $typeTag . '**%')
+                            ->where('table_tag', 'document_files')
                             ->whereIn('entity_value', function ($q) {
                                 $q->selectRaw('id::text')->from('document_files')->where('status', 1);
                             })
@@ -267,8 +276,8 @@ class DocumentServiceProvider extends ServiceProvider
                                 throw new \Exception('Geçersiz dosya referansı');
                             }
                         }else{
-                            // Traditional upload: file is a File object
-                            $fileResponse = addFileToDb($file, 'form-file', $fileId, 'documents', $document->id, ($fileTypeInfo.' Dosyası Sisteme Eklendi'));
+                            // Traditional upload: file is a File object — use existingFileId for replacement (fid is "new-..." garbage)
+                            $fileResponse = addFileToDb($file, 'form-file', $existingFileId, 'documents', $document->id, ($fileTypeInfo.' Dosyası Sisteme Eklendi'));
                             if ($fileResponse['success'] == false) {
                                 throw new \Exception('Dosya Sisteme Eklenemedi...');
                             }
@@ -278,10 +287,12 @@ class DocumentServiceProvider extends ServiceProvider
                         // now add file connection — every upload creates a NEW entity row so the
                         // version history lives in the entity rows (old_versions/DList).
                         // Activeness is derived from the linked document_files.status.
+                        // Reuse old tag when replacing — otherwise tedarik timestamp vs stable conn_id creates split rows (3510004600-2)
+                        $entityTagToUse = $oldFileEntity ? $oldFileEntity->entity_tag : $fileName;
                         $entity = new Sys_con_entities;
                         $entity->table_tag = 'document_files';
                         $entity->conn_id = $conn->id;
-                        $entity->entity_tag = $fileName;
+                        $entity->entity_tag = $entityTagToUse;
                         $entity->entity_value = strip_tags($fileId);
                         $entity->save();
                         $lastFileEntity = $entity;
@@ -872,6 +883,13 @@ class DocumentServiceProvider extends ServiceProvider
                 $this->logOfferReopened($document, 'Durum değişikliğiyle geri açıldı: '.$type->title);
             }
 
+            // Tedarik Aksiyonlar "Kalite Onayı Ver ve Kapat": approve the order AND
+            // accept every active file under it (order-level + its item files). Supplier
+            // should not need to approve files one by one.
+            if (($documentType->op_key ?? null) === 'op-doc-order' && $statusKey === 'doc_trans_order_approved') {
+                $this->acceptAllOrderFiles($document->id);
+            }
+
             return [
                 'data' => $type->title,
                 'detail' => $this->getFormData($id),
@@ -882,6 +900,70 @@ class DocumentServiceProvider extends ServiceProvider
                 'success' => false,
                 'msg' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Accept every active file (status=1) belonging to an order or its direct items.
+     * Used by "Kalite Onayı Ver ve Kapat" so the order closure also clears file queue.
+     */
+    private function acceptAllOrderFiles(int $orderId): void
+    {
+        try {
+            $acceptedType = Sys_options::where('op_key', 'doc_file_accepted')->first();
+            if (empty($acceptedType)) return;
+
+            $rows = DB::select(
+                "SELECT df.id, df.qnid FROM document_files df
+                 JOIN sys_con_entities sce ON sce.entity_value = df.id::text AND sce.table_tag = 'document_files'
+                 JOIN sys_con_ops sco ON sco.id = sce.conn_id
+                 JOIN documents d ON d.id = sco.main_id
+                 WHERE df.status = 1 AND df.relation = 'documents'
+                   AND (d.id = ? OR d.parent_id = ?)",
+                [$orderId, $orderId]
+            );
+
+            foreach ($rows as $r) {
+                // skip if already accepted (avoid duplicate accepted transactions)
+                $lastOp = DB::table('transactions as t')
+                    ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                    ->where('t.target_id', $r->id)
+                    ->where('t.op_id', 1)
+                    ->orderBy('t.id', 'desc')
+                    ->value('so.op_key');
+                if ($lastOp === 'doc_file_accepted') continue;
+
+                $entity = Sys_con_entities::where(['entity_value' => (string) $r->id, 'table_tag' => 'document_files'])->first();
+                $fileTitle = 'Dosya';
+                if ($entity) {
+                    $fileTitle = Sys_options::where('op_key', 'op-'.explode('**', $entity->entity_tag)[0])->first()->title ?? 'Dosya';
+                }
+                $log = UserLog::create([
+                    'user_id' => auth('sanctum')->user()->id ?? 0,
+                    'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+                    'relation' => 'documents',
+                    'relation_id' => $r->id,
+                    'type_id' => $acceptedType->id,
+                    'description' => json_encode([
+                        'file_id' => $r->id,
+                        'desc' => $fileTitle.' Dosya Kalite Onayı ile kabul edildi',
+                        'note' => 'Kalite Onayı Ver ve Kapat',
+                    ], JSON_UNESCAPED_UNICODE),
+                ]);
+                Transactions::create([
+                    'op_id' => 1,
+                    'type_id' => $acceptedType->id,
+                    'log_id' => $log->id,
+                    'target_id' => $r->id,
+                    'description' => json_encode([
+                        'file_id' => $r->id,
+                        'desc' => 'Dosya Kalite Onayı ile kabul edildi',
+                        'note' => 'Kalite Onayı Ver ve Kapat',
+                    ], JSON_UNESCAPED_UNICODE),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // never break order status transition if file bulk fails
         }
     }
 
@@ -1843,6 +1925,107 @@ class DocumentServiceProvider extends ServiceProvider
         }
 
         return ['success' => true];
+    }
+
+    /**
+     * Tedarik Aksiyonlar: rename partitioned order number (EBELN-X -> given).
+     * Only clones (order_no contains -X) are renamable. Updates both order_no
+     * and transfer_no EAV entities if present, rejects duplicate numbers.
+     */
+    public function renameOrder($qnid, $newOrderNo)
+    {
+        $newOrderNo = trim((string) $newOrderNo);
+        if ($newOrderNo === '') {
+            return ['success' => false, 'msg' => 'Sipariş numarası boş olamaz.'];
+        }
+        if (mb_strlen($newOrderNo) > 64) {
+            return ['success' => false, 'msg' => 'Sipariş numarası çok uzun (max 64).'];
+        }
+
+        $document = Documents::where('qnid', $qnid)->first();
+        if (empty($document)) {
+            return ['success' => false, 'msg' => 'Sipariş bulunamadı: '.$qnid];
+        }
+        $docType = Sys_options::where('id', $document->type_id)->value('op_key');
+        if ($docType !== 'op-doc-order') {
+            return ['success' => false, 'msg' => 'Bu belge tipi yeniden adlandırılamaz.'];
+        }
+
+        // Resolve current order_no to verify partitioned (EBELN-X)
+        $conn = Sys_con_ops::where('main_id', $document->id)->where('conn_id', 0)
+            ->whereHas('type', fn($q) => $q->where('op_key', 'op-doc-order-form'))
+            ->first();
+        if (empty($conn)) {
+            return ['success' => false, 'msg' => 'Sipariş formu bulunamadı.'];
+        }
+        $orderNoEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'order_no', 'table_tag' => 'sys_con_ops'])->first();
+        $currentOrderNo = $orderNoEntity?->entity_value ?? '';
+        if (!preg_match('/-\d+$/', (string) $currentOrderNo)) {
+            return ['success' => false, 'msg' => 'Sadece parçalı siparişler (EBELN-X) yeniden adlandırılabilir.'];
+        }
+        if ($newOrderNo === $currentOrderNo) {
+            return ['success' => true, 'msg' => 'Sipariş numarası zaten bu değerde.', 'order_no' => $newOrderNo];
+        }
+
+        // Only suffix (-X) is editable — base EBELN must stay identical
+        $currentBase = preg_replace('/-\d+$/', '', (string) $currentOrderNo);
+        $newBase = preg_replace('/-\d+$/', '', (string) $newOrderNo);
+        if ($currentBase !== $newBase) {
+            return ['success' => false, 'msg' => 'Sadece parça numarası (-X) değiştirilebilir, ana sipariş numarası aynı kalmalı: '.$currentBase];
+        }
+        $newSuffix = substr((string) $newOrderNo, strrpos((string) $newOrderNo, '-') + 1);
+        if (!preg_match('/^\d+$/', (string) $newSuffix) || (int)$newSuffix < 1) {
+            return ['success' => false, 'msg' => 'Parça numarası sadece pozitif sayı olabilir.'];
+        }
+
+        // Duplicate check among active orders
+        $dup = DB::selectOne(
+            "SELECT d.id FROM sys_con_entities sce
+             JOIN sys_con_ops sco ON sco.id = sce.conn_id
+             JOIN documents d ON d.id = sco.main_id
+             JOIN sys_options so ON so.id = d.type_id
+             WHERE so.op_key='op-doc-order' AND sce.entity_tag='order_no' AND sce.entity_value=? AND d.status=1 AND d.id != ? LIMIT 1",
+            [$newOrderNo, $document->id]
+        );
+        if (!empty($dup)) {
+            return ['success' => false, 'msg' => 'Bu sipariş numarası zaten kullanımda: '.$newOrderNo];
+        }
+
+        try {
+            DB::beginTransaction();
+            // Update order_no
+            if ($orderNoEntity) {
+                $orderNoEntity->entity_value = strip_tags($newOrderNo);
+                $orderNoEntity->save();
+            }
+            // Keep transfer_no in sync if it matches old order_no or is present as clone identifier
+            $transferEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'transfer_no', 'table_tag' => 'sys_con_ops'])->first();
+            if ($transferEntity) {
+                $transferEntity->entity_value = strip_tags($newOrderNo);
+                $transferEntity->save();
+            }
+
+            UserLog::create([
+                'user_id' => auth('sanctum')->user()->id ?? 0,
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+                'relation' => 'documents',
+                'relation_id' => $document->id,
+                'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
+                    ?? Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+                'description' => json_encode([
+                    'after' => ['document' => ['op_key' => $docType, 'qnid' => $document->qnid]],
+                    'desc' => 'Sipariş Numarası Düzenlendi',
+                    'note' => $currentOrderNo.' → '.$newOrderNo,
+                ], JSON_UNESCAPED_UNICODE),
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return ['success' => false, 'msg' => $e->getMessage()];
+        }
+
+        return ['success' => true, 'msg' => 'Sipariş numarası güncellendi.', 'order_no' => $newOrderNo, 'old_order_no' => $currentOrderNo];
     }
 
     public function disableDocument($qnid)

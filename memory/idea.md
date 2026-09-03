@@ -12,7 +12,6 @@
 ** ön panel aramalar için detaylı filtreler
  - Tedarikçi ara olayı cari kullanıcıları üzerinden arama ama aynı kod
 ** sipariş detayı ve süreçleri
-** sipariş durum değişiminde  Oluşturuldu aşamasına dönüş yok
 ** eğitim videoları
 ** raporlar
 ** log olayları detay istiyor olabilir süreç için detaylandırma yap
@@ -23,8 +22,12 @@
 
 ** tedarik panel dökümanlar
 ** tedarik panel kitli sipariş görünümü
-** tedarik panel sipariş listesi aksiyonlar
+
 ** tedairk raporlar
 ** excel çıktıları
 ** dashboard
 ** bilgilendirmeler
+
+
+** sipariş durum değişiminde  Oluşturuldu aşamasına dönüş yok
+** tedarik panel sipariş listesi aksiyonlar

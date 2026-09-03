@@ -312,9 +312,14 @@
                     const fd=new FormData();
                     fd.append('file', file);
                     const rsp=await this.plib.request({url:'/api/v1/temp-upload', method:'POST'}, null, fd);
-                    if(rsp && rsp.success && rsp.data && rsp.data.reference_id){
-                        if(type==='kabul') this.tedarikKabulRef = rsp.data;
-                        else this.tedarikCinsRef = rsp.data;
+                    // plib returns {success, reference_id, ...} at top-level; older check expected rsp.data
+                    const ref = rsp?.data?.reference_id ? rsp.data : (rsp?.reference_id ? rsp : null);
+                    if(rsp && rsp.success && ref && ref.reference_id){
+                        if(type==='kabul') this.tedarikKabulRef = ref;
+                        else this.tedarikCinsRef = ref;
+                    } else if(rsp && !rsp.success){
+                        console.warn('tedarik temp upload failed', rsp);
+                        this.Swal.fire({ icon:'warning', title:'Dosya yüklenemedi', text: rsp?.msg || 'Geçici yükleme başarısız, normal yükleme denenecek.' });
                     }
                 }catch(e){ console.warn('tedarik temp upload failed',e); }
             },
@@ -373,14 +378,18 @@
                     if(!this.formData.dynamicF) this.formData.dynamicF = {};
                     if(!this.formData.dynamicF[key]) this.formData.dynamicF[key] = { tag:'op-doc-order-form', entities:{} };
                     if(!this.formData.dynamicF[key].entities) this.formData.dynamicF[key].entities = {};
-                    this.formData.dynamicF[key].entities['order_desc'] = this.tedarikDesc || '';
-                    this.formData.dynamicF[key].entities['imalatci_firma_adi'] = this.tedarikImalatci || '';
+                    // After first save desc/imalatci are permanently locked — only files may be re-uploaded when rejected
+                    if(!this.isLocked){
+                        this.formData.dynamicF[key].entities['order_desc'] = this.tedarikDesc || '';
+                        this.formData.dynamicF[key].entities['imalatci_firma_adi'] = this.tedarikImalatci || '';
+                    }
                     if(!this.formData.files) this.formData.files = {};
                     // map tedarik file inputs to EAV file keys
                     const fileRowId = rowId;
                     if(this.tedarikKabulFile){
                         const fid='new-'+Date.now()+'-kabul';
-                        const fkey='dynamicFile**transfer_kabul**'+fid+'*-*transfer_kabul_file**transfer_kabul**'+fileRowId;
+                        // Include rowId before *-* so backend explode('**',fkey)[2] parses fid cleanly even on fallback raw upload
+                        const fkey='dynamicFile**transfer_kabul**'+fid+'**'+fileRowId+'*-*transfer_kabul_file**transfer_kabul**'+fileRowId;
                         if(this.tedarikKabulRef && this.tedarikKabulRef.reference_id){
                             this.formData.files[fkey] = { reference: this.tedarikKabulRef };
                         } else {
@@ -389,7 +398,7 @@
                     }
                     if(this.tedarikCinsFile){
                         const fid='new-'+Date.now()+'-cins';
-                        const fkey='dynamicFile**transfer_cins**'+fid+'*-*transfer_cins_file**transfer_cins**'+fileRowId;
+                        const fkey='dynamicFile**transfer_cins**'+fid+'**'+fileRowId+'*-*transfer_cins_file**transfer_cins**'+fileRowId;
                         if(this.tedarikCinsRef && this.tedarikCinsRef.reference_id){
                             this.formData.files[fkey] = { reference: this.tedarikCinsRef };
                         } else {
@@ -1136,7 +1145,8 @@
             <div class="tedarik-step-card">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">2</span><span>İsterseniz açıklama girebilirsiniz.</span></div>
                 <div class="tedarik-step-body">
-                    <textarea v-model="tedarikDesc" rows="4" placeholder="Tercih ettiğiniz açıklamayı yazınız.." style="width:100%; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; font-size:13.5px; color:#1e293b; outline:none; resize:vertical;" :disabled="isLocked && isFilesLocked"></textarea>
+                    <textarea v-model="tedarikDesc" rows="4" placeholder="Tercih ettiğiniz açıklamayı yazınız.." style="width:100%; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; font-size:13.5px; color:#1e293b; outline:none; resize:vertical;" :disabled="isLocked" :style="isLocked ? 'background:#f8fafc;opacity:0.72;cursor:not-allowed;' : ''"></textarea>
+                    <div v-if="isLocked" style="margin-top:6px; font-size:11.5px; color:#94a3b8; display:flex; align-items:center; gap:4px;"><i class="ki-outline ki-lock-2" style="font-size:12px;"></i> Açıklama ilk kayıttan sonra değiştirilemez</div>
                 </div>
             </div>
 
@@ -1144,7 +1154,8 @@
             <div class="tedarik-step-card">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">3</span><span>İmalatçı firma adını giriniz.</span></div>
                 <div class="tedarik-step-body">
-                    <input v-model="tedarikImalatci" placeholder="İmalatçı Firma Adı Giriniz *" style="width:100%; max-width:520px; height:44px; border:1px solid #e2e8f0; border-radius:10px; padding:0 14px; font-size:13.5px; color:#1e293b; outline:none;" :disabled="isLocked && isFilesLocked" />
+                    <input v-model="tedarikImalatci" placeholder="İmalatçı Firma Adı Giriniz *" style="width:100%; max-width:520px; height:44px; border:1px solid #e2e8f0; border-radius:10px; padding:0 14px; font-size:13.5px; color:#1e293b; outline:none;" :disabled="isLocked" :style="isLocked ? 'background:#f8fafc;opacity:0.72;cursor:not-allowed;' : ''" />
+                    <div v-if="isLocked" style="margin-top:6px; font-size:11.5px; color:#94a3b8; display:flex; align-items:center; gap:4px;"><i class="ki-outline ki-lock-2" style="font-size:12px;"></i> İmalatçı firma ilk kayıttan sonra değiştirilemez</div>
                 </div>
             </div>
 

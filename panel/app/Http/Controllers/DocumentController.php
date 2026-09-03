@@ -422,6 +422,39 @@ class DocumentController extends Controller
         return response()->json($response, ($response['success'] ?? false) ? 200 : 422);
     }
 
+    /**
+     * Tedarik Aksiyonlar: Sipariş Numarasını Düzenle (only partitioned EBELN-X).
+     */
+    public function renameOrder(Request $request){
+        $validate = Validator::make($request->all(),[
+            'id' => 'required|uuid',
+            'order_no' => 'required|string|max:64',
+        ]);
+        if($validate->fails()){
+            return response()->json([
+                'success' => false,
+                'msg'     => 'Missing Parameters',
+                'error'   => $validate->errors(),
+            ],422);
+        }
+        if(!docPermCheck('op-doc-order','edit')){
+            return response()->json([
+                'success' => false,
+                'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
+            ],403);
+        }
+        $form = (new DocumentServiceProvider())->getFormData($request->id);
+        $document = $form['document'] ?? null;
+        if(!is_object($document) || ($document->op_key ?? null) !== 'op-doc-order'){
+            return response()->json([
+                'success' => false,
+                'msg'     => 'Sipariş bulunamadı veya bu belge tipi düzenlenemez.',
+            ],422);
+        }
+        $response = (new DocumentServiceProvider())->renameOrder($request->id, $request->order_no);
+        return response()->json($response, ($response['success'] ?? false) ? 200 : 422);
+    }
+
     public function setFileStatus(Request $request){
         $permissionService = new PermissionService();
         $authUser = auth('sanctum')->user() ?? auth()->user();

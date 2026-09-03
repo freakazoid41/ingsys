@@ -48,6 +48,12 @@ All logged in `memory/05 §4`. Highlights:
 - 2026-09-02 late: **At_Once Collapsed + Detaylar Master** — `isCollapsed` default true for atOnce tedarik, `tedarikDetailsCollapsed` + `Detaylar` toggles whole `tedarik-additional` (files+serial+split) + `Genişlet/Daralt` hidden `v-if="!hideHeader"` + empty file header `display:none`
 - 2026-09-02 late: **Checkbox Auto** — tedarik partial checkbox `toggleCard` auto opens/closes whole drawer via `tedarikDetailsCollapsed`
 
+- 2026-09-03: **Aksiyonlar** — Kalite Onayı Ver ve Kapat (tüm dosyalar kabul) + Sipariş No -X suffix-only (base lock, duplicate check) + status pill disabled tedarik + ended guard
+- 2026-09-03: **Desc/Imalatci lock** — files_rejectedte açıklama/imalatçı kalıcı kilit, sadece dosyalar açık; submitForm skip
+- 2026-09-03: **SQL 22P02** — handleTedarikTempUpload rsp vs rsp.data + fkey **rowId + backend leftPart !numeric→0 + existingFileId + like prefix
+- 2026-09-03: **File split** — admin mechanic mirror (like prefix, reuse old.tag) 3510004600-2 7→0 + 19.replaced_id=7 + tag repair
+- 2026-09-03: **Status label** — Transfer Gönderildi→Dosyalar Kontrol Ediliyor, Approved→Kalite Onayı Verildi, DB UPDATE + labelMap
+
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 
 - ✅ **Mechanics DONE (2026-09-01):** blade template, controller method, route, Vue method, 2 purple buttons, CSS — all cloned from Malzeme Kabul

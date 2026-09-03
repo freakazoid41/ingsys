@@ -676,7 +676,17 @@
                         columnFormatter: (elm,row)=>{
                             const parts = String(row.status||'').split('**');
                             const opKey = parts[0]||'';
-                            const label = parts[1]|| parts[0] || 'Beklemede';
+                            const rawLabel = parts[1]|| parts[0] || 'Beklemede';
+                            // Map DB titles to tedarik display labels (DB may still hold legacy "Transfer Gönderildi")
+                            const labelMap = {
+                                'doc_trans_order_transfer_sent': 'Dosyalar Kontrol Ediliyor',
+                                'doc_trans_order_approved': 'Kalite Onayı Verildi',
+                                'doc_trans_order_created': 'Beklemede',
+                                'doc_trans_order_ready_for_shipment': 'Sipariş Sevke Hazır',
+                                'doc_trans_order_rejected': 'Sipariş Reddedildi',
+                                'doc_trans_order_files_rejected': 'Reddedilen Dosyalar Mevcut',
+                            };
+                            const label = labelMap[opKey] || rawLabel;
                             const btn=document.createElement('span');
                             btn.textContent=label;
                             btn.style.display='inline-flex';
@@ -742,30 +752,37 @@
                             icon.className=statusIcons[opKey]||'';
                             icon.style.fontSize='14px';
                             if(statusIcons[opKey]) btn.prepend(icon);
-                            btn.title='Durum değiştir';
-                            btn.onclick=()=>{
-                                Swal.fire({
-                                    title:'Durum Değiştir',
-                                    showConfirmButton:false, showCloseButton:true,
-                                    html:`<div class="d-flex flex-column gap-2 p-2">
-                                        <button class="btn btn-success doc-status" data-key="doc_trans_order_approved" style="background:#22c55e;border:none;"><i class="ki-outline ki-check-circle me-2"></i>Kalite Onayı Verildi</button>
-                                        <button class="btn doc-status" data-key="doc_trans_order_ready_for_shipment" style="background:#facc15;color:#713f12;border:none;"><i class="ki-outline ki-truck me-2"></i>Sipariş Sevke Hazır</button>
-                                        <button class="btn doc-status" data-key="doc_trans_order_transfer_sent" style="background:#f97316;color:#fff;border:none;"><i class="ki-outline ki-magnifier me-2"></i>Dosyalar Kontrol Ediliyor</button>
-                                        <button class="btn btn-danger doc-status" data-key="doc_trans_order_rejected"><i class="ki-outline ki-cross-circle me-2"></i>Reddedildi</button>
-                                    </div>`,
-                                    willOpen:()=>{
-                                        document.querySelectorAll('.doc-status').forEach(b=>b.addEventListener('click', async e=>{
-                                            const fd=new FormData(); fd.append('id',row.id); fd.append('op_key',e.target.dataset.key); fd.append('note','Durum güncellendi');
-                                            const rsp=await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
-                                            if(rsp.success){
-                                                const newLabel = e.target.textContent.trim();
-                                                this.table.updateRow(row.id,{status:e.target.dataset.key+'**'+newLabel});
-                                                this.plib.toast(this.Swal,'success','Durum güncellendi');
-                                            } else Swal.showValidationMessage(rsp.msg||'Hata');
-                                        }))
-                                    }
-                                })
-                            };
+                            if(_isTedarik){
+                                // Tedarik panel: status is display-only, change via Aksiyonlar
+                                btn.style.cursor='default';
+                                btn.title='';
+                            } else {
+                                btn.title='Durum değiştir';
+                                btn.style.cursor='pointer';
+                                btn.onclick=()=>{
+                                    Swal.fire({
+                                        title:'Durum Değiştir',
+                                        showConfirmButton:false, showCloseButton:true,
+                                        html:`<div class="d-flex flex-column gap-2 p-2">
+                                            <button class="btn btn-success doc-status" data-key="doc_trans_order_approved" style="background:#22c55e;border:none;"><i class="ki-outline ki-check-circle me-2"></i>Kalite Onayı Verildi</button>
+                                            <button class="btn doc-status" data-key="doc_trans_order_ready_for_shipment" style="background:#facc15;color:#713f12;border:none;"><i class="ki-outline ki-truck me-2"></i>Sipariş Sevke Hazır</button>
+                                            <button class="btn doc-status" data-key="doc_trans_order_transfer_sent" style="background:#f97316;color:#fff;border:none;"><i class="ki-outline ki-magnifier me-2"></i>Dosyalar Kontrol Ediliyor</button>
+                                            <button class="btn btn-danger doc-status" data-key="doc_trans_order_rejected"><i class="ki-outline ki-cross-circle me-2"></i>Reddedildi</button>
+                                        </div>`,
+                                        willOpen:()=>{
+                                            document.querySelectorAll('.doc-status').forEach(b=>b.addEventListener('click', async e=>{
+                                                const fd=new FormData(); fd.append('id',row.id); fd.append('op_key',e.target.dataset.key); fd.append('note','Durum güncellendi');
+                                                const rsp=await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
+                                                if(rsp.success){
+                                                    const newLabel = e.target.textContent.trim();
+                                                    this.table.updateRow(row.id,{status:e.target.dataset.key+'**'+newLabel});
+                                                    this.plib.toast(this.Swal,'success','Durum güncellendi');
+                                                } else Swal.showValidationMessage(rsp.msg||'Hata');
+                                            }))
+                                        }
+                                    })
+                                };
+                            }
                             return btn;
                         }
                     },
@@ -796,13 +813,109 @@
                                 aks.onmouseleave=()=> aks.style.background='#8e8e93';
                                 aks.onclick=(e)=>{
                                     e.stopPropagation();
+                                    const curNo = row.transfer_no || row.order_no || '';
+                                    const isClone = /\-\d+$/.test(curNo);
+                                    const opKey = String(row.status||'').split('**')[0]||'';
+                                    const isEnded = ['doc_trans_order_approved','doc_trans_order_rejected'].includes(opKey);
+                                    const html = `<div class="d-flex flex-column gap-2 p-2">
+                                        <button id="aks-kalite" class="btn" ${isEnded?'disabled':''} style="background:${isEnded?'#9ca3af':'#22c55e'};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;${isEnded?'opacity:0.65;cursor:not-allowed;':''}"><i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat${isEnded?' — Zaten Kapalı':''}</button>
+                                        ${isClone ? `<button id="aks-rename" class="btn" style="background:#f59e0b;color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-pencil" style="font-size:16px;"></i> Sipariş Numarasını Düzenle</button>` : ''}
+                                        ${isEnded ? `<div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:2px;">Bu sipariş zaten kapatılmış.</div>` : ''}
+                                    </div>`;
                                     Swal.fire({
                                         title:'Aksiyonlar',
                                         showConfirmButton:false, showCloseButton:true,
-                                        html:`<div class="d-flex flex-column gap-2 p-2">
-                                            <button class="btn" style="background:#0e8ea4;color:#fff;border:none;" onclick="location.href='#detail'">Detayları Gör</button>
-                                            <button class="btn" style="background:#8e8e93;color:#fff;border:none;">Excel Çıktı</button>
-                                        </div>`,
+                                        html,
+                                        willOpen: () => {
+                                            const kaliteBtn = document.getElementById('aks-kalite');
+                                            if(kaliteBtn){
+                                                if(isEnded){
+                                                    kaliteBtn.addEventListener('click', (ev) => {
+                                                        ev.preventDefault();
+                                                        Swal.showValidationMessage('Bu sipariş zaten kapatılmış — tekrar onaylanamaz.');
+                                                    });
+                                                } else {
+                                                kaliteBtn.addEventListener('click', async () => {
+                                                    kaliteBtn.disabled = true;
+                                                    kaliteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> İşleniyor...';
+                                                    try{
+                                                        const fd=new FormData();
+                                                        fd.append('id', row.id);
+                                                        fd.append('op_key', 'doc_trans_order_approved');
+                                                        fd.append('note', 'Kalite onayı verildi ve kapatıldı');
+                                                        const rsp=await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
+                                                        if(rsp && rsp.success){
+                                                            this.table.updateRow(row.id, {status:'doc_trans_order_approved**Kalite Onayı Verildi'});
+                                                            Swal.close();
+                                                            this.plib.toast(Swal,'success','Kalite onayı verildi — tüm dosyalar kabul edildi');
+                                                        }else{
+                                                            Swal.showValidationMessage(rsp?.msg || rsp?.message || 'İşlem başarısız');
+                                                            kaliteBtn.disabled=false;
+                                                            kaliteBtn.innerHTML='<i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat';
+                                                        }
+                                                    }catch(err){
+                                                        Swal.showValidationMessage(err?.msg || 'Hata oluştu');
+                                                        kaliteBtn.disabled=false;
+                                                        kaliteBtn.innerHTML='<i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat';
+                                                    }
+                                                });
+                                                }
+                                            }
+                                            const renameBtn = document.getElementById('aks-rename');
+                                            if(renameBtn){
+                                                renameBtn.addEventListener('click', async () => {
+                                                    Swal.close();
+                                                    const base = curNo.substring(0, curNo.lastIndexOf('-'));
+                                                    const currentSuffix = curNo.substring(curNo.lastIndexOf('-')+1);
+                                                    const { value: newFull, isConfirmed } = await Swal.fire({
+                                                        title:'Sipariş Numarasını Düzenle',
+                                                        html: `<div style="text-align:left;padding:4px 2px;">
+                                                            <div style="font-size:13px;color:#64748b;margin-bottom:10px;">Mevcut: <b style="color:#0f172a;">${curNo}</b></div>
+                                                            <div style="display:flex;align-items:center;gap:0;border:1.5px solid #cbd5e1;border-radius:10px;overflow:hidden;background:#fff;">
+                                                                <span style="padding:12px 14px;background:#f8fafc;border-right:1px solid #e2e8f0;font-weight:700;color:#334155;font-size:15px;white-space:nowrap;">${base}-</span>
+                                                                <input id="swal-suffix" type="number" min="1" step="1" value="${currentSuffix}" placeholder="X" style="flex:1;border:none;padding:12px 14px;font-size:15px;font-weight:600;color:#0f172a;outline:none;width:100%;">
+                                                            </div>
+                                                            <div style="font-size:11px;color:#94a3b8;margin-top:8px;">Sadece <b>-X</b> parça numarası değiştirilebilir. Ana numara sabittir.</div>
+                                                        </div>`,
+                                                        showCancelButton:true,
+                                                        confirmButtonText:'Kaydet',
+                                                        cancelButtonText:'Vazgeç',
+                                                        confirmButtonColor:'#6366f1',
+                                                        focusConfirm:false,
+                                                        didOpen: () => {
+                                                            const inp=document.getElementById('swal-suffix');
+                                                            if(inp){ inp.focus(); inp.select(); inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); Swal.clickConfirm(); }}); }
+                                                        },
+                                                        preConfirm: () => {
+                                                            const v=document.getElementById('swal-suffix')?.value?.trim() ?? '';
+                                                            if(!v) { Swal.showValidationMessage('Parça numarası boş olamaz'); return false; }
+                                                            if(!/^\d+$/.test(v) || parseInt(v,10) < 1){ Swal.showValidationMessage('Parça numarası sadece pozitif sayı olabilir'); return false; }
+                                                            const full = base + '-' + String(parseInt(v,10));
+                                                            if(full === curNo){ Swal.showValidationMessage('Değişiklik yok'); return false; }
+                                                            return full;
+                                                        }
+                                                    });
+                                                    if(!isConfirmed || !newFull) return;
+                                                    const trimmed = String(newFull).trim();
+                                                    Swal.fire({title:'Kaydediliyor...', allowOutsideClick:false, didOpen:()=> Swal.showLoading()});
+                                                    try{
+                                                        const fd=new FormData();
+                                                        fd.append('id', row.id);
+                                                        fd.append('order_no', trimmed);
+                                                        const rsp=await this.plib.request({url:'/api/v1/orders/rename', method:'POST'}, null, fd);
+                                                        if(rsp && rsp.success){
+                                                            this.table.updateRow(row.id, {transfer_no: trimmed, order_no: trimmed});
+                                                            Swal.close();
+                                                            this.plib.toast(Swal,'success', rsp.msg || 'Sipariş numarası güncellendi');
+                                                        }else{
+                                                            Swal.fire({icon:'error', title:'Hata', text: rsp?.msg || rsp?.message || 'Güncelleme başarısız'});
+                                                        }
+                                                    }catch(err){
+                                                        Swal.fire({icon:'error', title:'Hata', text: err?.msg || err?.message || 'Hata oluştu'});
+                                                    }
+                                                });
+                                            }
+                                        }
                                     });
                                 };
                                 wrap.appendChild(aks);
