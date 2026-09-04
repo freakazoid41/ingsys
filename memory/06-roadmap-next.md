@@ -6,7 +6,7 @@
 ## 1. Immediate Next (Choose 1)
 
 ### Option A: Tedarik Panel Orders → Build Client Order Flow (DONE 2026-09-02 late — polish)
-Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/tedarikpanel` `TedarikPanel.vue:386` card 1360×12 sidebar 210 6 tabs 64×12 -52 protruding, logo 82 + label, menu flex1 centered, `OList isTedarik` card-rows `pickletable height auto`, `Dashboard.vue` placeholder, route `router/index.js:110` reuses `OList/OForm`). Next:
+Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/tedarikpanel` `TedarikPanel.vue:386` card 1360×12 sidebar 210 7 tabs 64×12 -52 protruding, logo 82 + label, menu flex1 centered, `OList isTedarik` card-rows `pickletable height auto`, **`Dashboard.vue` DONE**, route `router/index.js:110` reuses `OList/OForm`). Next:
 1. **Order List tedarik view:** filter by client LIFNR (`currentStatus.clientQnidList` if reseller), hide admin actions, show `transfer_sent/files_rejected` badges — **UI DONE**, filter wiring PENDING.
 2. **Order Detail tedarik:** order header readOnly + `OrderItemTable` with `readonly` + file upload (test+images) + transfer card at_once/partial + serials (KG/M required, ST optional), same `processOrderTransfer` payload — **reuses OForm**.
 3. **File + serial wiring:** reuse `Form.vue` + `pickle.js` temp-upload (already done in admin OForm — clone for tedarik).
@@ -23,6 +23,9 @@ Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/ted
 ## 2. Completed (recent)
 
 > **Full change log lives in `memory/05 §4` — only highlights kept here.**
+
+- **Tedarik Dashboard (2026-09-05):** `ReportServiceProvider` 3 new endpoints (`tedarik-stats/tedarik-orders/tedarik-status`) with LIFNR-scoped reseller queries. 5 Vue components: TedarikHeader (greeting+bell+Swal), TedarikStats (4 cards), TedarikStatusChart (chart.js doughnut lazy-loaded), TedarikRecentOrders (10-row table with pre-parsed attrs + sticky header scroll), TedarikQuickActions (Siparişler+Döküman links). 2-column responsive grid layout. Sidebar updated: 7 tabs with icons + arrows, active tab animation (grow 70px, gradient, scale 1.04, cubic-bezier spring transition).
+- **File-versioning-system.md merged (2026-09-05):** `file-versioning-system.md` + `file-upload-versioning-mechanics.md` → single 14-section merged doc. 18 discrepancies fixed against source code (40→42MB, finalizeTempFile 5 params, entity copy source, single-slot LIKE pattern, addFileToDb typo, Transactions target inconsistency, entity_tag reuse, permission gating location, getFormData exclusions, item_images_file exclusion, --type flag).
 
 - **Serial system:** KG/M required, ST<300 optional, Excel upload, collapse UI, auto date
 - **Split/partition:** quantity types, clone `EBELN-X`, partition lock, quantity restore
@@ -84,12 +87,20 @@ Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/ted
    - `decrementItemQuantity($itemQnid, $splitAmount)` — reduce original qty
    - `createSerialEntries($itemId, $serials)` — create serial docs
    - `setHasSerialsFlag($itemId)` — mark item has serials
+4. Key methods in `ReportServiceProvider.php`:
+   - `getResellerLifnrs()` — resolves LIFNR list from reseller's bound clients
+   - `resellerOrderWhere($lifnrs)` — builds LIFNR-based WHERE clause
+   - `tedarikStats()` — dashboard stat cards (LIFNR-scoped)
+   - `tedarikRecentOrders()` — 10 recent orders with parsed main_attr
+   - `tedarikStatusBreakdown()` — doughnut chart data
 4. After any `Form.vue`/`router`/`Sidebar`/`OForm`/`OList`/`OrderItemTable.vue` edit → `npm run build` in `panel/` → test.
 5. Always update `memory/05` after major change.
 
 ## 6. Decision Tree For Master
 
 - **"Front design ready" → build client front-panel skin**
+- **"Dashboard stats" → extend `tedarikStats` with more metrics**
+- **"Dashboard polish" → add animations, real-time updates, more chart types**
 - **"Dashboard" → rebuild ReportServiceProvider order stats**
 - **"Skin it" → rebrand coal → tedarik**
 - **"New doc type" → follow `memory/03-app-factory-guide.md` pattern (sys_options + Form.vue + pages + permissions)**

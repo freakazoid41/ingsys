@@ -2,10 +2,10 @@
 ** Yetki sistemi düzenlemeleri yapılacak
 
 
-** optiizasyon ve kontrol **
+** optimizasyon ve kontrol **
 ** admin panel dashboard ***
 ** tedarik panel dashboard ***
-
+** tedaril panel bilgilendirmeler
 
 
 

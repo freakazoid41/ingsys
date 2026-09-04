@@ -105,6 +105,7 @@ export default {
         userName() { return this.authStore.userName || this.authStore.currentStatus?.main_name || ''; },
         isOrdersActive() { return this.$route.path.includes('/orders'); },
         isDokumanActive() { return this.$route.path.includes('/document'); },
+        isDashboardActive() { return this.$route.path === '/tedarikpanel' || this.$route.path === '/tedarikpanel/'; },
         modules() {
             const perms = this.authStore.permissions || [];
             const hasAll = perms.includes('per-041') || perms.includes('per-00');
@@ -193,19 +194,29 @@ export default {
                 </div>
 
                 <nav class="tedarik-menu">
+                    <router-link to="/tedarikpanel" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isDashboardActive }]">
+                            <i class="ki-outline ki-home-2 tedarik-menu-icon"></i>
+                            <span>Ana Sayfa</span>
+                            <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                        </a>
+                    </router-link>
                     <router-link v-if="authStore.permissions?.includes('per-05-01') || authStore.permissions?.includes('per-05')" to="/tedarikpanel/orders" custom v-slot="{ navigate, href }">
                         <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isOrdersActive }]">
+                            <i class="ki-outline ki-document tedarik-menu-icon"></i>
                             <span>Siparişler</span>
                             <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                         </a>
                     </router-link>
                     <router-link v-if="authStore.permissions?.includes('per-07-01') || authStore.permissions?.includes('per-07')" to="/tedarikpanel/documents" custom v-slot="{ navigate, href }">
                         <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isDokumanActive }]">
+                            <i class="ki-outline ki-file tedarik-menu-icon"></i>
                             <span>Doküman</span>
                             <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                         </a>
                     </router-link>
                     <a v-if="authStore.permissions?.includes('per-061-01') || authStore.permissions?.includes('per-061')" class="tedarik-menu-item" @click="() => {}">
+                        <i class="ki-outline ki-chart-simple tedarik-menu-icon"></i>
                         <span>Raporlar</span>
                         <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                     </a>
@@ -350,40 +361,65 @@ export default {
     border-radius: 12px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 12px;
     padding: 0 18px 0 20px;
-    font-size: 17.5px;
+    font-size: 17px;
     font-weight: 700;
     text-decoration: none;
     cursor: pointer;
-    transition: all .15s ease;
+    transition: all .3s cubic-bezier(.4,0,.2,1);
     background: #8e8e93;
     color: #ffffff;
-    border: none;
+    border: 2px solid transparent;
     user-select: none;
     letter-spacing: 0.15px;
     position: relative;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     margin-left: -52px;
     width: calc(100% + 52px);
+    transform: scale(1);
+}
+.tedarik-menu-icon {
+    font-size: 20px;
+    opacity: 0.85;
+    flex-shrink: 0;
+    transition: all .3s cubic-bezier(.4,0,.2,1);
 }
 .tedarik-menu-item:hover {
-    background: #7e7e82;
+    background: #7a7a7e;
     color: #fff;
+    transform: scale(1.03);
 }
 .tedarik-menu-item.active {
-    background: #FF5A1F;
+    background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%);
     color: #fff;
-    box-shadow: 0 2px 8px rgba(255,90,31,0.28);
+    height: 70px;
+    font-size: 18px;
+    box-shadow: 0 6px 20px rgba(255,90,31,0.35);
+    transform: scale(1.04);
+    border-color: rgba(255,255,255,0.15);
+}
+.tedarik-menu-item.active .tedarik-menu-icon {
+    font-size: 22px;
+    opacity: 1;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
 }
 .tedarik-menu-arrow {
-    font-size: 25px;
-    opacity: 0.9;
+    font-size: 22px;
+    opacity: 0.7;
     width: 20px;
     height: 20px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    margin-left: auto;
+    flex-shrink: 0;
+    transition: all .3s cubic-bezier(.4,0,.2,1);
+}
+.tedarik-menu-item.active .tedarik-menu-arrow {
+    opacity: 1;
+    transform: translateX(2px);
 }
 .tedarik-bottom {
     margin-top: 0;

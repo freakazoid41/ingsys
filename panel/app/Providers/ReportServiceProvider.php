@@ -104,6 +104,15 @@ class ReportServiceProvider extends ServiceProvider
             case 'importantinfo':
                 return $this->dashboardImportantInfo();
             break;
+            case 'tedarik-stats':
+                return $this->tedarikStats();
+            break;
+            case 'tedarik-orders':
+                return $this->tedarikRecentOrders();
+            break;
+            case 'tedarik-status':
+                return $this->tedarikStatusBreakdown();
+            break;
             default:
                 abort(404, 'Unknown dashboard type: '.$type);
         }
@@ -467,13 +476,181 @@ class ReportServiceProvider extends ServiceProvider
         });
 
         return $events;
+    }
 
+    // ─────────────────────────────────────────────────────────
+    // TEDARIK DASHBOARD METHODS
+    // ─────────────────────────────────────────────────────────
 
+    private function getResellerLifnrs(){
+        if(session('type_key') !== 'op-pert-reseller') return [];
+        $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
+        if(empty($clientQnids)) return [];
+        $qnidIn = "'".implode("','", array_map('noInject', $clientQnids))."'";
+        $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+        return array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
+    }
 
+    private function resellerOrderWhere($lifnrs){
+        if(empty($lifnrs)) return " and 1=0 ";
+        $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
+        return " and (
+            exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn))
+            or exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id join documents d3 on d3.id=so3.main_id where d3.parent_id=i.id and se3.entity_tag='spec_code' and se3.entity_value in ($lifIn))
+        ) ";
+    }
 
+    public function tedarikStats(){
+        $lifnrs = $this->getResellerLifnrs();
+        $whereLif = $this->resellerOrderWhere($lifnrs);
 
+        $totalOrders = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0 $whereLif
+        ")->cnt ?? 0;
 
+        $rejectedFiles = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops'
+            and (select so2.op_key from transactions t inner join sys_options so2 on so2.id=t.type_id where t.target_id=i.id and so2.group_key='op-trans-op-doc-order' order by t.id desc limit 1) = 'doc_trans_order_files_rejected'
+            $whereLif
+        ")->cnt ?? 0;
 
+        $pendingFiles = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops'
+            and (select so2.op_key from transactions t inner join sys_options so2 on so2.id=t.type_id where t.target_id=i.id and so2.group_key='op-trans-op-doc-order' order by t.id desc limit 1) = 'doc_trans_order_transfer_sent'
+            $whereLif
+        ")->cnt ?? 0;
+
+        $approvedOrders = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops'
+            and (select so2.op_key from transactions t inner join sys_options so2 on so2.id=t.type_id where t.target_id=i.id and so2.group_key='op-trans-op-doc-order' order by t.id desc limit 1) = 'doc_trans_order_approved'
+            $whereLif
+        ")->cnt ?? 0;
+
+        $totalItems = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join documents d2 on d2.id=i.parent_id
+            inner join sys_con_ops so on so.main_id=d2.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order-item' and i.status=1
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops'
+            $whereLif
+        ")->cnt ?? 0;
+
+        $todayOrders = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and i.created_at >= '".date('Y-m-d 00:00:00')."'
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops'
+            $whereLif
+        ")->cnt ?? 0;
+
+        return [
+            'totalOrders'   => (int)$totalOrders,
+            'pendingFiles'  => (int)$pendingFiles,
+            'rejectedFiles' => (int)$rejectedFiles,
+            'approvedOrders'=> (int)$approvedOrders,
+            'totalItems'    => (int)$totalItems,
+            'todayOrders'   => (int)$todayOrders,
+        ];
+    }
+
+    public function tedarikRecentOrders(){
+        $lifnrs = $this->getResellerLifnrs();
+        $whereLif = $this->resellerOrderWhere($lifnrs);
+
+        $orders = DB::select("SELECT i.qnid as id, i.id as main_id, i.title, i.created_at,
+            i.status as document_status,
+            (select so2.op_key || '**' || so2.title || '**' || t.note
+                from transactions t inner join sys_options so2 on so2.id=t.type_id
+                where t.target_id=i.id and so2.group_key='op-trans-op-doc-order'
+                order by t.id desc limit 1) as status
+            FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops'
+            $whereLif
+            order by i.created_at desc limit 10
+        ");
+
+        foreach($orders as $row){
+            $mainAttr = DB::select("SELECT se.entity_tag, se.entity_value FROM sys_con_entities se
+                inner join sys_con_ops so on so.id=se.conn_id
+                where so.main_id=? and se.table_tag='sys_con_ops'", [$row->main_id]);
+            $attr = [];
+            foreach($mainAttr as $a){
+                $tagParts = explode('**', $a->entity_tag);
+                $attr[] = ['Key' => $tagParts[0] ?? $a->entity_tag, 'Value' => $a->entity_value];
+            }
+            $row->main_attr = json_encode($attr);
+        }
+
+        return $orders;
+    }
+
+    public function tedarikStatusBreakdown(){
+        $lifnrs = $this->getResellerLifnrs();
+        $whereLif = $this->resellerOrderWhere($lifnrs);
+
+        $rows = DB::select("SELECT
+            (select so2.op_key from transactions t inner join sys_options so2 on so2.id=t.type_id
+             where t.target_id=i.id and so2.group_key='op-trans-op-doc-order' order by t.id desc limit 1) as last_status,
+            count(*) as cnt
+            FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops'
+            $whereLif group by last_status
+        ");
+
+        $colorMap = [
+            'doc_trans_order_created'      => '#6b7280',
+            'doc_trans_order_transfer_sent' => '#f59e0b',
+            'doc_trans_order_ready_for_shipment' => '#3b82f6',
+            'doc_trans_order_approved'      => '#10b981',
+            'doc_trans_order_rejected'      => '#ef4444',
+            'doc_trans_order_files_rejected'=> '#f97316',
+        ];
+        $labelMap = [
+            'doc_trans_order_created'      => 'Yeni Oluşturuldu',
+            'doc_trans_order_transfer_sent' => 'Dosyalar Bekleniyor',
+            'doc_trans_order_ready_for_shipment' => 'Sevke Hazır',
+            'doc_trans_order_approved'      => 'Onaylandı',
+            'doc_trans_order_rejected'      => 'Reddedildi',
+            'doc_trans_order_files_rejected'=> 'Dosya Reddedildi',
+        ];
+
+        $result = [];
+        foreach($rows as $row){
+            $key = $row->last_status ?? 'doc_trans_order_created';
+            $result[] = [
+                'label' => $labelMap[$key] ?? $key,
+                'value' => (int)$row->cnt,
+                'color' => $colorMap[$key] ?? '#9ca3af',
+            ];
+        }
+        if(empty($result)){
+            $result[] = ['label' => 'Sipariş Yok', 'value' => 0, 'color' => '#d1d5db'];
+        }
+        return $result;
     }
 
 }
