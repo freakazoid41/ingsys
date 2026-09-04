@@ -4,7 +4,6 @@
 
 ** optimizasyon ve kontrol **
 ** admin panel dashboard ***
-** tedarik panel dashboard ***
 ** tedaril panel bilgilendirmeler
 
 
