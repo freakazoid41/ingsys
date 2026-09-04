@@ -12,7 +12,26 @@
     import 'flatpickr/dist/plugins/monthSelect/style.css';
     flatpickr.localize(Turkish);
 
-    const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const ESCAPE_RE = /[&<>"']/g;
+    const ESCAPE_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+    const escapeHtml = (s) => String(s ?? '').replace(ESCAPE_RE, c => ESCAPE_MAP[c]);
+    const STATUS_LABEL_MAP = {
+        'doc_trans_order_transfer_sent': 'Dosyalar Kontrol Ediliyor',
+        'doc_trans_order_approved': 'Kalite Onayı Verildi',
+        'doc_trans_order_created': 'Beklemede',
+        'doc_trans_order_ready_for_shipment': 'Sipariş Sevke Hazır',
+        'doc_trans_order_rejected': 'Sipariş Reddedildi',
+        'doc_trans_order_files_rejected': 'Reddedilen Dosyalar Mevcut',
+    };
+    const STATUS_ICONS = {
+        doc_trans_order_created:'ki-outline ki-file-added',
+        doc_trans_order_transfer_sent:'ki-outline ki-magnifier',
+        doc_trans_order_ready_for_shipment:'ki-outline ki-truck',
+        doc_trans_order_approved:'ki-outline ki-check-circle',
+        doc_trans_order_rejected:'ki-outline ki-cross-circle',
+        doc_trans_order_files_rejected:'ki-outline ki-file-danger',
+        doc_file_waiting:'ki-outline ki-hourglass',
+    };
 
     export default {
         breadcrumbs: {
@@ -91,6 +110,7 @@
                 },
                 clientOptions: [],
                 loadingClients: false,
+                _clientsFetchedAt: 0,
                 flatpickrRange: null,
                 flatpickrDetailedUretim: null,
                 flatpickrDetailedRange: null,
@@ -108,47 +128,55 @@
                             dateFormat: 'Y-m',
                             altInput: true,
                             altFormat: 'Y/m',
-                            allowInput: true,
+                            allowInput: false,
+                            clickOpens: true,
                             locale: Turkish,
                             onChange:(sel, str)=>{ this.detay.uretimTarihi = str; },
-                            onClose:(sel, str)=>{ this.detay.uretimTarihi = str || uretimEl.value || ''; }
+                            onClose:(sel, str)=>{ this.detay.uretimTarihi = str || ''; }
                         });
                         if(this.detay.uretimTarihi){
                             const normalized = this.detay.uretimTarihi.replace(/\//g, '-').substring(0,7);
                             this.flatpickrDetailedUretim.setDate(normalized, false);
                         }
+                    } else if(uretimEl && this.flatpickrDetailedUretim && this.detay.uretimTarihi){
+                        const normalized = this.detay.uretimTarihi.replace(/\//g, '-').substring(0,7);
+                        this.flatpickrDetailedUretim.setDate(normalized, false);
                     }
                     if(rangeEl && !this.flatpickrDetailedRange){
                         this.flatpickrDetailedRange = flatpickr(rangeEl, {
                             mode:'range',
                             dateFormat:'Y-m-d',
-                            allowInput:true,
+                            allowInput:false,
+                            clickOpens:true,
                             locale: Turkish,
                             onClose:(sel, str, fp)=>{
-                                const v = fp.input.value.trim();
-                                if(!v){ this.detay.tarihAraligi = ''; return; }
-                                let out = v;
-                                if(v.includes(' to ')){
-                                    const [s,e]=v.split(' to ').map(s=>s.trim());
-                                    out = (s||'') + '|' + (e||'');
-                                } else if(v.includes(' — ')){
-                                    const [s,e]=v.split(' — ').map(s=>s.trim());
-                                    out = (s||'') + '|' + (e||'');
-                                } else if(v.includes(' - ')){
-                                    const [s,e]=v.split(' - ').map(s=>s.trim());
-                                    out = (s||'') + '|' + (e||'');
-                                } else {
-                                    out = v + '|' + v;
+                                const v = (str || fp.input.value || '').trim();
+                                if(!v || sel.length===0){ this.detay.tarihAraligi = ''; return; }
+                                if(sel.length===1){
+                                    const single = fp.formatDate(sel[0], 'Y-m-d');
+                                    this.detay.tarihAraligi = single + '|' + single;
+                                    return;
                                 }
-                                this.detay.tarihAraligi = out;
-                                // keep display as typed range but store pipe
-                                fp.input.value = v;
+                                const s = fp.formatDate(sel[0], 'Y-m-d');
+                                const e = fp.formatDate(sel[1], 'Y-m-d');
+                                this.detay.tarihAraligi = s + '|' + e;
+                            },
+                            onChange:(sel)=>{
+                                if(sel.length===0) this.detay.tarihAraligi = '';
                             }
                         });
                         if(this.detay.tarihAraligi){
                             const parts = this.detay.tarihAraligi.split('|');
-                            if(parts.length===2) this.flatpickrDetailedRange.setDate([parts[0], parts[1]], false);
+                            if(parts.length===2 && parts[0] && parts[1]) this.flatpickrDetailedRange.setDate([parts[0], parts[1]], false);
                             else if(parts[0]) this.flatpickrDetailedRange.setDate(parts[0], false);
+                        }
+                    } else if(rangeEl && this.flatpickrDetailedRange){
+                        // keep display in sync if already initialized
+                        if(this.detay.tarihAraligi){
+                            const parts = this.detay.tarihAraligi.split('|');
+                            if(parts.length===2 && parts[0] && parts[1]) this.flatpickrDetailedRange.setDate([parts[0], parts[1]], false);
+                        } else {
+                            this.flatpickrDetailedRange.clear(false);
                         }
                     }
                 }catch(e){ console.warn('initDetailedPickers failed', e); }
@@ -193,7 +221,9 @@
                 this.detailedModalTarget = target;
                 this.openClientModal('single');
             },
-            async buildClientTable(){
+            async buildClientTable(force=false){
+                if(this.loadingClients) return;
+                if(!force && this.modalClients.length && Date.now() - this._clientsFetchedAt < 300000) return;
                 // Clear any pending timeouts from a previous call
                 this._buildTimeouts.forEach(id => clearTimeout(id));
                 this._buildTimeouts = [];
@@ -216,7 +246,7 @@
                         }catch(e){ return null; }
                     }).filter(Boolean);
                     this.modalClients = localData;
-                    this.clientOptions = localData.map(o=> ({value:o.lifnr, label:o.label}));
+                    this._clientsFetchedAt = Date.now();
                 }catch(e){
                     console.warn('client modal fetch failed',e);
                     this.modalClients = [];
@@ -364,12 +394,12 @@
             toggleAllModalClients(e){
                 const checked=e.target.checked;
                 if(checked){
-                    // add all currently filtered modal clients
-                    const vals=this.modalFilteredClients.map(o=> o.lifnr);
-                    vals.forEach(v=>{ if(!this.selectedSirkets.includes(v)) this.selectedSirkets.push(v); });
+                    const set = new Set(this.selectedSirkets);
+                    this.modalFilteredClients.forEach(o=> set.add(o.lifnr));
+                    this.selectedSirkets = [...set];
                 } else {
-                    const filteredVals=new Set(this.modalFilteredClients.map(o=> o.lifnr));
-                    this.selectedSirkets=this.selectedSirkets.filter(v=> !filteredVals.has(v));
+                    const removeSet=new Set(this.modalFilteredClients.map(o=> o.lifnr));
+                    this.selectedSirkets=this.selectedSirkets.filter(v=> !removeSet.has(v));
                 }
             },
             selectSingleClient(opt){
@@ -378,11 +408,13 @@
                 this.showClientModal=false;
             },
             searchTable(){
-                const inp = this.isTedarik ? this.$refs.tedarikSearch : this.$refs.adminSearch;
+                let inp = this.isTedarik ? this.$refs.tedarikSearch : this.$refs.adminSearch;
+                if(!inp) inp = document.querySelector(this.isTedarik ? '.tedarik-docs-search-input' : '.order-search-input');
                 this.table.setFilter([{ key:'all', type:'=', value: (inp?.value || '').trim() }]);
             },
             resetSearch(){
-                const inp = this.isTedarik ? this.$refs.tedarikSearch : this.$refs.adminSearch;
+                let inp = this.isTedarik ? this.$refs.tedarikSearch : this.$refs.adminSearch;
+                if(!inp) inp = document.querySelector(this.isTedarik ? '.tedarik-docs-search-input' : '.order-search-input');
                 if(inp) inp.value = '';
                 this.table.setFilter([]);
             },
@@ -552,16 +584,7 @@
                             const parts = String(row.status||'').split('**');
                             const opKey = parts[0]||'';
                             const rawLabel = parts[1]|| parts[0] || 'Beklemede';
-                            // Map DB titles to tedarik display labels (DB may still hold legacy "Transfer Gönderildi")
-                            const labelMap = {
-                                'doc_trans_order_transfer_sent': 'Dosyalar Kontrol Ediliyor',
-                                'doc_trans_order_approved': 'Kalite Onayı Verildi',
-                                'doc_trans_order_created': 'Beklemede',
-                                'doc_trans_order_ready_for_shipment': 'Sipariş Sevke Hazır',
-                                'doc_trans_order_rejected': 'Sipariş Reddedildi',
-                                'doc_trans_order_files_rejected': 'Reddedilen Dosyalar Mevcut',
-                            };
-                            const label = labelMap[opKey] || rawLabel;
+                            const label = STATUS_LABEL_MAP[opKey] || rawLabel;
                             const btn=document.createElement('span');
                             btn.textContent=label;
                             btn.style.display='inline-flex';
@@ -614,19 +637,10 @@
                                     btn.style.borderColor='#e2e8f0';
                                 }
                             }
-                            const statusIcons={
-                                doc_trans_order_created:'ki-outline ki-file-added',
-                                doc_trans_order_transfer_sent:'ki-outline ki-magnifier',
-                                doc_trans_order_ready_for_shipment:'ki-outline ki-truck',
-                                doc_trans_order_approved:'ki-outline ki-check-circle',
-                                doc_trans_order_rejected:'ki-outline ki-cross-circle',
-                                doc_trans_order_files_rejected:'ki-outline ki-file-danger',
-                                doc_file_waiting:'ki-outline ki-hourglass',
-                            };
                             const icon=document.createElement('i');
-                            icon.className=statusIcons[opKey]||'';
+                            icon.className=STATUS_ICONS[opKey]||'';
                             icon.style.fontSize='14px';
-                            if(statusIcons[opKey]) btn.prepend(icon);
+                            if(STATUS_ICONS[opKey]) btn.prepend(icon);
                             if(this.isTedarik){
                                 // Tedarik panel: status is display-only, change via Aksiyonlar
                                 btn.style.cursor='default';
@@ -645,12 +659,15 @@
                                             <button class="btn btn-danger doc-status" data-key="doc_trans_order_rejected"><i class="ki-outline ki-cross-circle me-2"></i>Reddedildi</button>
                                         </div>`,
                                         willOpen:()=>{
-                                            document.querySelectorAll('.doc-status').forEach(b=>b.addEventListener('click', async e=>{
-                                                const fd=new FormData(); fd.append('id',row.id); fd.append('op_key',e.target.dataset.key); fd.append('note','Durum güncellendi');
+                                            const container = (typeof Swal.getHtmlContainer==='function' ? Swal.getHtmlContainer() : document);
+                                            (container || document).querySelectorAll('.doc-status').forEach(b=>b.addEventListener('click', async e=>{
+                                                const key = e.currentTarget?.dataset?.key || e.target?.dataset?.key;
+                                                if(!key) return;
+                                                const fd=new FormData(); fd.append('id',row.id); fd.append('op_key',key); fd.append('note','Durum güncellendi');
                                                 const rsp=await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
                                                 if(rsp.success){
-                                                    const newLabel = e.target.textContent.trim();
-                                                    this.table.updateRow(row.id,{status:e.target.dataset.key+'**'+newLabel});
+                                                    const newLabel = e.currentTarget.textContent.trim();
+                                                    this.table.updateRow(row.id,{status:key+'**'+newLabel});
                                                     this.plib.toast(this.Swal,'success','Durum güncellendi');
                                                 } else Swal.showValidationMessage(rsp.msg||'Hata');
                                             }))
@@ -888,22 +905,27 @@
                     nextPageIcon:'<i class="ki-outline ki-arrow-right"></i>', prevPageIcon:'<i class="ki-outline ki-arrow-left"></i>',
                     rowFormatter:(elm,data)=>{
                         // Parse main_attr entities — re-parse if main_attr changed (live update)
+                        let attrsMap = data._attrsMap || {};
                         if(data._mainAttrCache !== data.main_attr){
+                            attrsMap = {};
                             try{
                                 const attrs = JSON.parse(data.main_attr||'[]');
-                                attrs.forEach(el=>{ data[el['Key']]=el['Value']; });
+                                attrs.forEach(el=>{ attrsMap[el['Key']] = el['Value']; data[el['Key']]=el['Value']; });
                             }catch(e){}
                             data._mainAttrCache = data.main_attr;
+                            data._attrsMap = attrsMap;
+                        } else {
+                            attrsMap = data._attrsMap || {};
                         }
                         // fallbacks for display — order_no is always the correct display number
                         // (main order = base EBELN, clone = EBELN-X). transfer_no on main order
                         // is metadata set by recordPartiallySent and should NOT be displayed.
-                        data.transfer_no = data['order_no'] || data['EBELN'] || data['transfer_no'] || '-';
-                        data.ctitle = data['ctitle'] || data['MCOD1'] || data['clititle'] || data['spec_code'] || '-';
-                        data.buying_no = data['buying_no'] || data['SUBMI'] || '-';
+                        data.transfer_no = attrsMap['order_no'] || attrsMap['EBELN'] || '-';
+                        data.ctitle = attrsMap['ctitle'] || attrsMap['MCOD1'] || attrsMap['clititle'] || attrsMap['spec_code'] || '-';
+                        data.buying_no = attrsMap['buying_no'] || attrsMap['SUBMI'] || '-';
                         // Sipariş Tarih: BEDAT or transfer creation entity
-                        data.siparis_tarih = data['BEDAT'] || data['created_at'] || data['siparis_tarih'] || '';
-                        data.ekleme_tarih = data['ekleme_tarih'] || data['inserted_at'] || '';
+                        data.siparis_tarih = attrsMap['BEDAT'] || attrsMap['created_at'] || '';
+                        data.ekleme_tarih = attrsMap['ekleme_tarih'] || attrsMap['inserted_at'] || '';
                         // if still empty, use document created_at (ISO) which is in data.created_at column (overwritten? keep original via _created_at)
                         if(!data.ekleme_tarih && data.created_at) data.ekleme_tarih = data.created_at;
                         return data;
@@ -914,27 +936,27 @@
                     const enforceTedarikHeight = ()=>{
                         if(!this.isTedarik) return;
                         const el = document.querySelector('.tedarik-card .pickletable');
-                        if(el){
-                            if(el.style.getPropertyValue('height') !== '75vh'){
-                                el.style.setProperty('height','75vh','important');
+                        if(!el) return;
+                        if(el.style.getPropertyValue('height') !== '75vh'){
+                            el.style.setProperty('height','75vh','important');
+                        }
+                        if(el.style.getPropertyValue('min-height') !== 'calc(75vh - 280px)'){
+                            el.style.setProperty('min-height','calc(75vh - 280px)','important');
+                        }
+                        const divTable = el.querySelector('.divTable');
+                        if(divTable){
+                            if(divTable.style.getPropertyValue('height') !== '90%'){
+                                divTable.style.setProperty('height','90%','important');
                             }
-                            if(el.style.getPropertyValue('min-height') !== 'calc(75vh - 280px)'){
-                                el.style.setProperty('min-height','calc(75vh - 280px)','important');
-                            }
-                            const divTable = el.querySelector('.divTable');
-                            if(divTable){
-                                if(divTable.style.getPropertyValue('height') !== '90%'){
-                                    divTable.style.setProperty('height','90%','important');
-                                }
-                                if(divTable.style.getPropertyValue('overflow') !== 'auto'){
-                                    divTable.style.setProperty('overflow','auto','important');
-                                }
+                            if(divTable.style.getPropertyValue('overflow') !== 'auto'){
+                                divTable.style.setProperty('overflow','auto','important');
                             }
                         }
                     };
-                    enforceTedarikHeight();
-                    this._buildTimeouts.push(setTimeout(enforceTedarikHeight, 300));
-                    this._buildTimeouts.push(setTimeout(enforceTedarikHeight, 1000));
+                    requestAnimationFrame(()=>{
+                        enforceTedarikHeight();
+                        this._buildTimeouts.push(setTimeout(enforceTedarikHeight, 400));
+                    });
                 });
             },
             async cancelOrder(orderQnid, isPartial=false){
