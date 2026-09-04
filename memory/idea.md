@@ -7,11 +7,12 @@
 ** excel çıktıları
 ** ön panel aramalar için detaylı filtreler
  - Tedarikçi ara olayı cari kullanıcıları üzerinden arama ama aynı kod
- - Dosya ararkende filtreler var
+
 ** sipariş detayı ve süreçleri
 ** eğitim videoları
 ** raporlar
-** log olayları detay istiyor olabilir süreç için detaylandırma yap
+
+** log olayları detay istiyor olabilir süreç için detaylandırma yap **
 
 ** süreci iki paneldende full test et 
 ** veri aktarımı

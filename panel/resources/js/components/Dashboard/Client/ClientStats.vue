@@ -7,7 +7,7 @@
       <div class="stat-content">
         <span class="stat-label">İncelenen Teklifler</span>
         <p class="stat-value primary-value">{{ stats.pendingOffers }}</p>
-        <router-link :to="{ name: 'OList' }" class="stat-link primary-link">Detayları gör →</router-link>
+        <router-link :to="{ name: 'OrderList' }" class="stat-link primary-link">Detayları gör →</router-link>
       </div>
     </div>
 
@@ -18,7 +18,7 @@
       <div class="stat-content">
         <span class="stat-label">Reddedilen Teklifler</span>
         <p class="stat-value danger-value">{{ stats.rejectedOffers ?? 0 }}</p>
-        <router-link :to="{ name: 'OList' }" class="stat-link danger-link">Detayları gör →</router-link>
+        <router-link :to="{ name: 'OrderList' }" class="stat-link danger-link">Detayları gör →</router-link>
       </div>
     </div>
 
@@ -29,7 +29,7 @@
       <div class="stat-content">
         <span class="stat-label">Onaylanan Teklifler</span>
         <p class="stat-value success-value">{{ stats.approvedOffers ?? 0 }}</p>
-        <router-link :to="{ name: 'OList' }" class="stat-link success-link">Detayları gör →</router-link>
+        <router-link :to="{ name: 'OrderList' }" class="stat-link success-link">Detayları gör →</router-link>
       </div>
     </div>
 
@@ -40,7 +40,7 @@
       <div class="stat-content">
         <span class="stat-label">Revize Bekleyen</span>
         <p class="stat-value warning-value">{{ stats.revisionsNeeded }}</p>
-        <router-link :to="{ name: 'OList' }" class="stat-link warning-link">Detayları gör →</router-link>
+        <router-link :to="{ name: 'OrderList' }" class="stat-link warning-link">Detayları gör →</router-link>
       </div>
     </div>
   </div>

@@ -207,6 +207,105 @@ class Document_files extends Model
                 if(isset($f['field'])) $f['key'] = $f['field'];
                 if(isset($f['value'])) $f['value'] = noInject(strip_tags($f['value']));
                 switch($f['key']){
+                    case 'seri_no':
+                        $v = noInject($f['value']);
+                        if($v !== ''){
+                            $where .= " and ( exists (select 1 from documents ds join sys_con_ops sco_s on sco_s.main_id=ds.id and sco_s.conn_id=0 join sys_con_entities sce_s on sce_s.conn_id=sco_s.id where ds.status=1 and sce_s.entity_tag='serial_no' and sce_s.entity_value ilike '%".$v."%' and ds.parent_id = d.id) or exists (select 1 from documents ds2 join sys_con_ops sco_s2 on sco_s2.main_id=ds2.id and sco_s2.conn_id=0 join sys_con_entities sce_s2 on sce_s2.conn_id=sco_s2.id where ds2.status=1 and sce_s2.entity_tag='serial_no' and sce_s2.entity_value ilike '%".$v."%' and ds2.parent_id in (select id from documents where parent_id=d.id and status=1)) or exists (select 1 from documents ds3 join sys_con_ops sco_s3 on sco_s3.main_id=ds3.id and sco_s3.conn_id=0 join sys_con_entities sce_s3 on sce_s3.conn_id=sco_s3.id where ds3.status=1 and sce_s3.entity_tag='serial_no' and sce_s3.entity_value ilike '%".$v."%' and ds3.parent_id = d.parent_id) ) ";
+                        }
+                        break;
+                    case 'siparis_kodu':
+                    case 'group_key':
+                        $v = noInject($f['value']);
+                        if($v !== ''){
+                            $where .= " and ( exists (select 1 from sys_con_entities scex join sys_con_ops scox on scox.id=scex.conn_id where scox.main_id=d.id and scex.entity_tag='order_no' and scex.entity_value ilike '%".$v."%' and scex.table_tag='sys_con_ops') or exists (select 1 from documents pd join sys_con_ops sco_p on sco_p.main_id=pd.id and sco_p.conn_id=0 join sys_con_entities sce_p on sce_p.conn_id=sco_p.id where pd.id=d.parent_id and sce_p.entity_tag='order_no' and sce_p.entity_value ilike '%".$v."%') or exists (select 1 from sys_con_entities se2 where se2.conn_id=se.conn_id and se2.entity_tag='order_no' and se2.entity_value ilike '%".$v."%') ) ";
+                        }
+                        break;
+                    case 'tarih_araligi':
+                        $v = noInject($f['value']);
+                        if(strpos($v, '|') !== false){
+                            [$s,$e] = explode('|', $v, 2);
+                            $s = trim($s); $e = trim($e);
+                            $sEsc = noInject($s); $eEsc = noInject($e);
+                            if($s !== '' && $e !== ''){
+                                $where .= " and i.created_at::date between '".$sEsc."'::date and '".$eEsc."'::date ";
+                            } elseif($s !== ''){
+                                $where .= " and i.created_at::date >= '".$sEsc."'::date ";
+                            } elseif($e !== ''){
+                                $where .= " and i.created_at::date <= '".$eEsc."'::date ";
+                            }
+                        } elseif(strpos($v, ' - ') !== false){
+                            [$s,$e] = explode(' - ', $v, 2);
+                            $s = trim($s); $e = trim($e);
+                            $sEsc = noInject($s); $eEsc = noInject($e);
+                            if($s !== '' && $e !== ''){
+                                $where .= " and i.created_at::date between '".$sEsc."'::date and '".$eEsc."'::date ";
+                            } elseif($s !== ''){
+                                $where .= " and i.created_at::date >= '".$sEsc."'::date ";
+                            } elseif($e !== ''){
+                                $where .= " and i.created_at::date <= '".$eEsc."'::date ";
+                            }
+                        } elseif(strpos($v, ' to ') !== false){
+                            [$s,$e] = explode(' to ', $v, 2);
+                            $s = trim($s); $e = trim($e);
+                            $sEsc = noInject($s); $eEsc = noInject($e);
+                            if($s !== '' && $e !== ''){
+                                $where .= " and i.created_at::date between '".$sEsc."'::date and '".$eEsc."'::date ";
+                            } elseif($s !== ''){
+                                $where .= " and i.created_at::date >= '".$sEsc."'::date ";
+                            } elseif($e !== ''){
+                                $where .= " and i.created_at::date <= '".$eEsc."'::date ";
+                            }
+                        } elseif(strpos($v, ' — ') !== false){
+                            [$s,$e] = explode(' — ', $v, 2);
+                            $s = trim($s); $e = trim($e);
+                            $sEsc = noInject($s); $eEsc = noInject($e);
+                            if($s !== '' && $e !== ''){
+                                $where .= " and i.created_at::date between '".$sEsc."'::date and '".$eEsc."'::date ";
+                            } elseif($s !== ''){
+                                $where .= " and i.created_at::date >= '".$sEsc."'::date ";
+                            } elseif($e !== ''){
+                                $where .= " and i.created_at::date <= '".$eEsc."'::date ";
+                            }
+                        } else if($v !== ''){
+                            $where .= " and i.created_at::text ilike '%".$v."%' ";
+                        }
+                        break;
+                    case 'sirket':
+                    case 'tedarikci':
+                    case 'sirket_kodu':
+                        $rawV = $f['value'];
+                        if(strpos($rawV, ',') !== false){
+                            $parts = array_filter(array_map('trim', explode(',', $rawV)));
+                            $ors = [];
+                            foreach($parts as $p){
+                                $p = noInject($p);
+                                if($p==='') continue;
+                                $ors[] = "se2.entity_value ilike '%".$p."%'";
+                            }
+                            if(count($ors)){
+                                $cond = implode(' OR ', $ors);
+                                $where .= " and ( exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=d.id and se2.entity_tag in ('spec_code','ctitle','lifnr') and (".$cond.")) or exists (select 1 from documents pd join sys_con_ops sco_p on sco_p.main_id=pd.id and sco_p.conn_id=0 join sys_con_entities se2 on se2.conn_id=sco_p.id where pd.id=d.parent_id and se2.entity_tag in ('spec_code','ctitle','lifnr') and (".$cond.")) ) ";
+                            }
+                        } else {
+                            $v = noInject($rawV);
+                            if($v !== ''){
+                                $where .= " and ( exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=d.id and se2.entity_tag in ('spec_code','ctitle','lifnr') and se2.entity_value ilike '%".$v."%' ) or exists (select 1 from documents pd join sys_con_ops sco_p on sco_p.main_id=pd.id and sco_p.conn_id=0 join sys_con_entities se2 on se2.conn_id=sco_p.id where pd.id=d.parent_id and se2.entity_tag in ('spec_code','ctitle','lifnr') and se2.entity_value ilike '%".$v."%') ) ";
+                            }
+                        }
+                        break;
+                    case 'file_status':
+                        $rawV = noInject($f['value']);
+                        if($rawV !== ''){
+                            // support comma-separated IN
+                            if(strpos($rawV, ',') !== false){
+                                $parts = array_filter(array_map('trim', explode(',', $rawV)));
+                                $inList = "'" . implode("','", array_map('noInject', $parts)) . "'";
+                                $where .= " and exists (select 1 from transactions t join sys_options so on so.id=t.type_id where t.target_id=i.id and t.op_id=1 and so.op_key in (".$inList.") and t.id = (select max(t2.id) from transactions t2 where t2.target_id=i.id and t2.op_id=1)) ";
+                            } else {
+                                $where .= " and exists (select 1 from transactions t join sys_options so on so.id=t.type_id where t.target_id=i.id and t.op_id=1 and so.op_key='".$rawV."' and t.id = (select max(t2.id) from transactions t2 where t2.target_id=i.id and t2.op_id=1)) ";
+                            }
+                        }
+                        break;
                     case 'free':
                     case 'all':
                         $value = $f['value'];

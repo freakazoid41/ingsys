@@ -17,7 +17,7 @@
         </div>
       </div>
     </div>
-    <router-link :to="{ name: 'OList' }" class="notifications-footer-btn">
+    <router-link :to="{ name: 'OrderList' }" class="notifications-footer-btn">
       Detaylara Git <i class="fa-solid fa-angle-right"></i>
     </router-link>
   </div>

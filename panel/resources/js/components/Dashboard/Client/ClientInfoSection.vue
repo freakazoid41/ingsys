@@ -37,7 +37,7 @@
       <div class="info-body">
         <div id="request-table"></div>
       </div>
-      <router-link :to="{ name: 'RequestList' }" class="notifications-footer-btn">
+      <router-link :to="{ name: 'OrderList' }" class="notifications-footer-btn">
         Tüm talepleri görüntüle <i class="fa-solid fa-angle-right"></i>
       </router-link>
     </div>
@@ -49,7 +49,7 @@
       <div class="info-body">
         <div id="request-rodevans-table"></div>
       </div>
-      <router-link :to="{ name: 'RequestList' }" class="notifications-footer-btn">
+      <router-link :to="{ name: 'OrderList' }" class="notifications-footer-btn">
         Tüm talepleri görüntüle <i class="fa-solid fa-angle-right"></i>
       </router-link>
     </div>

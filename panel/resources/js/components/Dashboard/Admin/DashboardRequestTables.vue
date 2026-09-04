@@ -5,7 +5,7 @@
       <div class="table-card">
         <div class="card-header">
           <h5 class="card-title">Son Talepler</h5>
-          <router-link :to="{ name: 'RequestList' }" class="card-link">Tümünü Gör →</router-link>
+          <router-link :to="{ name: 'OrderList' }" class="card-link">Tümünü Gör →</router-link>
         </div>
         <div id="request-table"></div>
       </div>
@@ -15,7 +15,7 @@
       <div class="table-card">
         <div class="card-header">
           <h5 class="card-title">Son Talepler (Rödevans)</h5>
-          <router-link :to="{ name: 'RequestList' }" class="card-link">Tümünü Gör →</router-link>
+          <router-link :to="{ name: 'OrderList' }" class="card-link">Tümünü Gör →</router-link>
         </div>
         <div id="request-rodevans-table"></div>
       </div>
@@ -25,7 +25,7 @@
       <div class="table-card">
         <div class="card-header">
           <h5 class="card-title">Son Teklifler</h5>
-          <router-link :to="{ name: 'OList' }" class="card-link">Tümünü Gör →</router-link>
+          <router-link :to="{ name: 'OrderList' }" class="card-link">Tümünü Gör →</router-link>
         </div>
         <div id="offer-table"></div>
       </div>

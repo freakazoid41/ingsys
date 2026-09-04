@@ -36,6 +36,7 @@ Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/ted
 - **`canProceed` removed (2026-09-04):** `PersonsServiceProvider` always true, `app.js` no redirect, `CForm.vue` warning removed
 - **Reseller LIFNR filter (2026-09-04):** `Documents::tableList` `op-doc-order/item/serial` case resolves lifnrs from `clientQnidList`
 - **OList tedarik pagination fix (2026-09-04):** `.divTable height:90%` inline + CSS, matches working DList layout
+- **DList tedarik Filtreler (normal, 2026-09-04 late):** `Filtreler` dropdown 8 radios + `Şirkete Göre Arama` modal (no Detailed), `seri_no/tarihe_gore/tarih_araligi/siparis_kodu/file_status/sirket` backend `Document_files.php`, double-table fix (removed hidden PickleTable), ` - `→`|` date-range fix + Swal text-color fix
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 

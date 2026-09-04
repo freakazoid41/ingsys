@@ -8,6 +8,10 @@
     import { reset, wTrans } from 'laravel-vue-i18n';
     import Swal from 'sweetalert2';
     import dayjs from 'dayjs';
+    import flatpickr from 'flatpickr';
+    import { Turkish } from 'flatpickr/dist/l10n/tr.js';
+    import 'flatpickr/dist/flatpickr.min.css';
+    flatpickr.localize(Turkish);
 
     export default {
         breadcrumbs: {
@@ -32,21 +36,40 @@
                 this.navigationStore.toggle(false);
                 this.handleResponsiveTable();
             }, 400);
+            if(this.isTedarik){
+                this.$nextTick(()=> document.addEventListener('click', this.handleOutsideClick));
+            }
         },
         beforeUnmount(){
             try{
                 if(this._heightObs) this._heightObs.disconnect();
                 if(this._enforceTedarikHeight) window.removeEventListener('resize', this._enforceTedarikHeight);
             }catch(e){}
+            document.removeEventListener('click', this.handleOutsideClick);
         },  
         computed: {
             isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); },
+            modalFilteredClients(){
+                const q=this.sirketSearch.trim().toLowerCase();
+                if(!q) return this.modalClients;
+                return this.modalClients.filter(o=> o.clititle.toLowerCase().includes(q) || o.lifnr.toLowerCase().includes(q) || (o.label&&o.label.toLowerCase().includes(q)));
+            }
         },
         data() {
             return {
                 plib : new Plib(),
                 navigationStore : useNavigationStore(),
                 useAuthStore    : useAuthStore(),
+                showFiltre: false,
+                filtreChoice: '',
+                sirketSearch: '',
+                selectedSirkets: [],
+                showClientModal: false,
+                clientModalMode: 'multi',
+                clientTable: null,
+                modalClients: [],
+                dropdownPos: { top: 0, left: 0, width: 280 },
+                clientOptions: [],
             }
         },
         methods: {
@@ -67,6 +90,196 @@
                 };
                 updateResponsive();
                 window.addEventListener('resize', updateResponsive);
+            },
+            toggleFiltre(e){
+                if(e) e.stopPropagation();
+                this.showFiltre = !this.showFiltre;
+                if(this.showFiltre) this.$nextTick(()=> this.updateDropdownPos());
+            },
+            updateDropdownPos(){
+                try{
+                    const wrap=this.$refs.filtreWrap;
+                    if(!wrap) return;
+                    const rect=wrap.getBoundingClientRect();
+                    let left=rect.left;
+                    const width=280;
+                    if(left + width > window.innerWidth - 12) left = window.innerWidth - width - 12;
+                    if(left < 12) left = 12;
+                    this.dropdownPos = { top: rect.bottom + 10, left, width };
+                }catch(e){}
+            },
+            handleOutsideClick(e){
+                const wrap=this.$refs.filtreWrap;
+                const dd=this.$refs.filtreDropdown;
+                if(!wrap) return;
+                const insideWrap = wrap.contains(e.target);
+                const insideDd = dd && dd.contains(e.target);
+                if(!insideWrap && !insideDd){
+                    this.showFiltre=false;
+                }
+            },
+            openClientModal(mode='multi'){
+                this.clientModalMode = mode;
+                if(!this.modalClients.length){
+                    const hf=[
+                        {id:'1', lifnr:'0000300185', clititle:'AKSA ENERJİ LTD.', label:'AKSA ENERJİ LTD. (0000300185)'},
+                        {id:'2', lifnr:'0000300184', clititle:'DEMİR ÇELİK A.Ş.', label:'DEMİR ÇELİK A.Ş. (0000300184)'},
+                        {id:'3', lifnr:'0000300187', clititle:'BORA MADENCİLİK', label:'BORA MADENCİLİK (0000300187)'},
+                        {id:'4', lifnr:'0000300182', clititle:'HASÇELİK KABLO', label:'HASÇELİK KABLO (0000300182)'},
+                        {id:'5', lifnr:'0000300188', clititle:'GÜNEŞ ELEKTRİK', label:'GÜNEŞ ELEKTRİK (0000300188)'},
+                        {id:'6', lifnr:'0000300183', clititle:'HES HACILAR ELEKTRİK', label:'HES HACILAR ELEKTRİK (0000300183)'},
+                        {id:'7', lifnr:'0000300186', clititle:'YILDIZ TEKSTİL', label:'YILDIZ TEKSTİL (0000300186)'},
+                        {id:'8', lifnr:'0000300181', clititle:'PANORAMA TEKSTİL', label:'PANORAMA TEKSTİL (0000300181)'},
+                    ];
+                    this.modalClients = hf.slice();
+                    this.clientOptions = hf.map(o=> ({value:o.lifnr, label:o.label}));
+                }
+                this.showClientModal = true;
+                this.sirketSearch = '';
+                this.$nextTick(()=> setTimeout(()=> this.buildClientTable(), 120));
+            },
+            onClientModalSearch(){
+                // filtering is via computed modalFilteredClients on sirketSearch — no PickleTable needed
+            },
+            async buildClientTable(){
+                const hardFallback=[
+                    {id:'1', lifnr:'0000300185', clititle:'AKSA ENERJİ LTD.', label:'AKSA ENERJİ LTD. (0000300185)'},
+                    {id:'2', lifnr:'0000300184', clititle:'DEMİR ÇELİK A.Ş.', label:'DEMİR ÇELİK A.Ş. (0000300184)'},
+                    {id:'3', lifnr:'0000300187', clititle:'BORA MADENCİLİK', label:'BORA MADENCİLİK (0000300187)'},
+                    {id:'4', lifnr:'0000300182', clititle:'HASÇELİK KABLO', label:'HASÇELİK KABLO (0000300182)'},
+                    {id:'5', lifnr:'0000300188', clititle:'GÜNEŞ ELEKTRİK', label:'GÜNEŞ ELEKTRİK (0000300188)'},
+                    {id:'6', lifnr:'0000300183', clititle:'HES HACILAR ELEKTRİK', label:'HES HACILAR ELEKTRİK (0000300183)'},
+                    {id:'7', lifnr:'0000300186', clititle:'YILDIZ TEKSTİL', label:'YILDIZ TEKSTİL (0000300186)'},
+                    {id:'8', lifnr:'0000300181', clititle:'PANORAMA TEKSTİL', label:'PANORAMA TEKSTİL (0000300181)'},
+                ];
+                this.modalClients = hardFallback.slice();
+                this.clientOptions = hardFallback.map(o=> ({value:o.lifnr, label:o.label}));
+                try{
+                    const fd=new FormData();
+                    fd.append('tableReq', JSON.stringify({filter:[{key:'form-type',type:'=',value:'op-doc-client-form'},{key:'type',type:'=',value:'op-doc-client'}], scale:{page:1, limit:200}, order:{key:'id', style:'asc'}}));
+                    const rsp=await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
+                    const rows=rsp?.data?.data || rsp?.data || [];
+                    const list=Array.isArray(rows)?rows:(rows?.data||[]);
+                    if(list.length){
+                        const localData=list.map(r=>{
+                            try{
+                                const attrs=JSON.parse(r.main_attr||'[]');
+                                const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
+                                const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr||'-';
+                                const label = title ? `${title} (${lifnr})` : lifnr;
+                                return { id:r.id, lifnr, clititle:title, label, main_attr:r.main_attr, qnid:r.id };
+                            }catch(e){ return null; }
+                        }).filter(Boolean);
+                        if(localData.length){ this.modalClients = localData; this.clientOptions = localData.map(o=> ({value:o.lifnr, label:o.label})); }
+                    }
+                }catch(e){ console.warn('client modal live fetch failed, keeping hardFallback',e); }
+            },
+            toggleSirket(val){
+                const idx=this.selectedSirkets.indexOf(val);
+                if(idx>-1) this.selectedSirkets.splice(idx,1);
+                else this.selectedSirkets.push(val);
+                if(!this.showClientModal) this.applySirketFilter();
+            },
+            applySirketFilter(){
+                if(this.selectedSirkets.length===0){
+                    this.table.setFilter([]);
+                    return;
+                }
+                const v=this.selectedSirkets.join(',');
+                this.table.setFilter([{key:'sirket', type:'like', value: v}]);
+            },
+            clearSirketFilter(){
+                this.selectedSirkets=[];
+                this.sirketSearch='';
+                this.table.setFilter([]);
+            },
+            applySirketFilterAndClose(){
+                this.applySirketFilter();
+                this.showClientModal=false;
+                if(this.selectedSirkets.length) this.plib.toast(Swal,'success', `${this.selectedSirkets.length} şirket için filtrelendi`);
+            },
+            toggleAllModalClients(e){
+                const checked=e.target.checked;
+                if(checked){
+                    const vals=this.modalFilteredClients.map(o=> o.lifnr);
+                    vals.forEach(v=>{ if(!this.selectedSirkets.includes(v)) this.selectedSirkets.push(v); });
+                } else {
+                    const filteredVals=new Set(this.modalFilteredClients.map(o=> o.lifnr));
+                    this.selectedSirkets=this.selectedSirkets.filter(v=> !filteredVals.has(v));
+                }
+            },
+            async handleFiltreChoice(val){
+                this.filtreChoice=val;
+                let shouldClose=true;
+                switch(val){
+                    case 'seri_no': {
+                        const {value: seri}=await Swal.fire({title:'Seri Numarası ile Arama', input:'text', inputPlaceholder:'Seri no giriniz', showCancelButton:true, confirmButtonText:'Ara', cancelButtonText:'Vazgeç', confirmButtonColor:'#FF5A1F'});
+                        if(seri && seri.trim()) this.table.setFilter([{key:'seri_no', type:'like', value: seri.trim()}]);
+                        break;
+                    }
+                    case 'tarihe_gore': {
+                        this.table.getData({key:'created_at', type:'date', style:'desc'});
+                        this.plib.toast(Swal,'success','Tarihe göre sıralandı (yeniden eskiye)');
+                        break;
+                    }
+                    case 'tarih_araligi': {
+                        const {value: rangeVal}=await Swal.fire({
+                            title:'Tarih Aralığı Seçin',
+                            html:'<input id="swal-flat-range" class="swal2-input" placeholder="Tarih aralığı seçin" style="width:85%;margin:8px auto;display:block;">',
+                            showCancelButton:true, confirmButtonText:'Filtrele', cancelButtonText:'Vazgeç', confirmButtonColor:'#FF5A1F',
+                            didOpen:()=>{
+                                const el=document.getElementById('swal-flat-range');
+                                if(!el) return;
+                                flatpickr(el, { mode:'range', dateFormat:'Y-m-d', allowInput:true, locale: Turkish, onReady:(_,__,fp)=>{ setTimeout(()=> fp.open(), 80); } });
+                            },
+                            preConfirm:()=>{
+                                const v=document.getElementById('swal-flat-range')?.value?.trim() || '';
+                                if(!v){ Swal.showValidationMessage('Lütfen tarih aralığı seçin'); return false; }
+                                return v;
+                            }
+                        });
+                        if(rangeVal){
+                            let v = rangeVal.trim();
+                            if(v.includes(' to ')){ const [s,e]=v.split(' to ').map(s=>s.trim()); v = (s||'') + '|' + (e||''); }
+                            else if(v.includes(' — ')){ const [s,e]=v.split(' — ').map(s=>s.trim()); v = (s||'') + '|' + (e||''); }
+                            else if(v.includes(' - ')){ const [s,e]=v.split(' - ').map(s=>s.trim()); v = (s||'') + '|' + (e||''); }
+                            else { v = v + '|' + v; }
+                            this.table.setFilter([{key:'tarih_araligi', type:'like', value: v }]);
+                            this.plib.toast(Swal,'success','Tarih aralığı uygulandı');
+                        }
+                        break;
+                    }
+                    case 'siparis_sirala': {
+                        this.table.getData({key:'group_key', type:'string', style:'asc'});
+                        this.plib.toast(Swal,'success','Sipariş numarasına göre sıralandı');
+                        break;
+                    }
+                    case 'beklemede': {
+                        this.table.setFilter([{key:'file_status', type:'=', value: 'doc_file_waiting'}]);
+                        break;
+                    }
+                    case 'onaylandi': {
+                        this.table.setFilter([{key:'file_status', type:'=', value: 'doc_file_accepted'}]);
+                        break;
+                    }
+                    case 'reddedildi': {
+                        this.table.setFilter([{key:'file_status', type:'=', value: 'doc_file_rejected'}]);
+                        break;
+                    }
+                    case 'hepsi': {
+                        this.selectedSirkets=[];
+                        this.sirketSearch='';
+                        this.table.setFilter([]);
+                        this.plib.toast(Swal,'success','Tüm belgeler gösteriliyor');
+                        break;
+                    }
+                    case 'sirkete_gore': {
+                        this.openClientModal('multi');
+                        shouldClose=true;
+                        break;
+                    }
+                }
+                if(shouldClose) setTimeout(()=>{ this.showFiltre=false; }, 200);
             },
             parseRowStatus(lastStatus){
                 try {
@@ -899,8 +1112,84 @@
                 <i class="ki-outline ki-document tedarik-title-icon"></i>
             </div>
             <div class="tedarik-filters">
-                <a href="javascript:;" class="tedarik-filter" @click="searchTable"><i class="ki-outline ki-magnifier"></i> Ara</a>
-                <a href="javascript:;" class="tedarik-filter" @click="resetSearch"><i class="ki-outline ki-cross"></i> Sıfırla</a>
+                <div class="tedarik-filter-dd-wrap" ref="filtreWrap">
+                    <a href="javascript:;" class="tedarik-filter" :class="{active: showFiltre}" @click="toggleFiltre"><i class="ki-outline ki-filter"></i> Filtreler</a>
+                </div>
+                <teleport to="body">
+                    <div v-if="showFiltre" ref="filtreDropdown" class="tedarik-dd tedarik-dd--teleported" :style="`position:fixed; top:${dropdownPos.top}px; left:${dropdownPos.left}px; width:${dropdownPos.width}px; z-index:9999;`" @click.stop>
+                        <label class="tedarik-dd-item" :class="{selected: filtreChoice==='seri_no'}" @click="handleFiltreChoice('seri_no')">
+                            <span class="tedarik-radio" :class="{on: filtreChoice==='seri_no'}"></span> Seri Numarası ile Arama
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: filtreChoice==='tarihe_gore'}" @click="handleFiltreChoice('tarihe_gore')">
+                            <span class="tedarik-radio" :class="{on: filtreChoice==='tarihe_gore'}"></span> Tarihe Göre Sırala
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: filtreChoice==='tarih_araligi'}" @click="handleFiltreChoice('tarih_araligi')">
+                            <span class="tedarik-radio" :class="{on: filtreChoice==='tarih_araligi'}"></span> Tarih Aralığı Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: filtreChoice==='siparis_sirala'}" @click="handleFiltreChoice('siparis_sirala')">
+                            <span class="tedarik-radio" :class="{on: filtreChoice==='siparis_sirala'}"></span> Sipariş Numarasına Göre Sırala
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: filtreChoice==='beklemede'}" @click="handleFiltreChoice('beklemede')">
+                            <span class="tedarik-radio" :class="{on: filtreChoice==='beklemede'}"></span> Beklemede Olanları Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: filtreChoice==='onaylandi'}" @click="handleFiltreChoice('onaylandi')">
+                            <span class="tedarik-radio" :class="{on: filtreChoice==='onaylandi'}"></span> Onaylananları Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: filtreChoice==='reddedildi'}" @click="handleFiltreChoice('reddedildi')">
+                            <span class="tedarik-radio" :class="{on: filtreChoice==='reddedildi'}"></span> Reddedilenleri Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: filtreChoice==='hepsi'}" @click="handleFiltreChoice('hepsi')">
+                            <span class="tedarik-radio" :class="{on: filtreChoice==='hepsi'}"></span> Hepsini Göster
+                        </label>
+                        <div class="tedarik-dd-divider"></div>
+                        <div class="tedarik-dd-item tedarik-dd-has-sub" :class="{selected: filtreChoice==='sirkete_gore'}" @click="handleFiltreChoice('sirkete_gore')">
+                            <span class="tedarik-dd-sirket-label">Şirkete Göre Arama</span>
+                            <i class="ki-outline ki-right tedarik-dd-arrow"></i>
+                        </div>
+                    </div>
+                </teleport>
+                <teleport to="body">
+                    <div v-if="showClientModal" class="client-modal-overlay" @click.self="showClientModal=false">
+                        <div class="client-modal-card" @click.stop>
+                            <div class="client-modal-head">
+                                <div>
+                                    <div class="client-modal-title">Şirkete Göre Arama</div>
+                                    <div class="client-modal-sub">{{ selectedSirkets.length ? selectedSirkets.length + ' şirket seçili' : 'Listelemek için şirket seçin' }}</div>
+                                </div>
+                                <button class="client-modal-close" @click="showClientModal=false" aria-label="Kapat"><i class="ki-outline ki-cross fs-2"></i></button>
+                            </div>
+                            <div class="client-modal-search-wrap">
+                                <input v-model="sirketSearch" class="client-modal-search" placeholder="Arama yapabilirsiniz." @input="onClientModalSearch" />
+                                <i class="ki-outline ki-magnifier client-modal-search-icon"></i>
+                            </div>
+                            <div class="client-modal-table-wrap">
+                                <div v-if="!modalClients.length" style="padding:28px;text-align:center;color:#9ca3af;font-size:13px;">Yükleniyor...</div>
+                                <div v-else style="display:flex;flex-direction:column;gap:0;">
+                                    <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #e2e8f0;background:#f8fafc;position:sticky;top:0;z-index:1;">
+                                        <input type="checkbox" :checked="modalFilteredClients.length>0 && modalFilteredClients.every(o=> selectedSirkets.includes(o.lifnr))" @change="toggleAllModalClients" style="width:16px;height:16px;accent-color:#FF5A1F;cursor:pointer;">
+                                        <span style="font-size:12px;font-weight:600;color:#64748b;">Tümünü Seç</span>
+                                        <span style="margin-left:auto;font-size:12px;color:#6b7280;">{{modalFilteredClients.length}} şirket</span>
+                                    </div>
+                                    <div style="max-height:340px;overflow-y:auto;">
+                                        <label v-for="opt in modalFilteredClients" :key="opt.lifnr" @click="toggleSirket(opt.lifnr)" :style="selectedSirkets.includes(opt.lifnr) ? 'background:#fff7ed;display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;' : 'display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;'">
+                                            <input type="checkbox" :checked="selectedSirkets.includes(opt.lifnr)" @change="toggleSirket(opt.lifnr)" @click.stop style="width:16px;height:16px;accent-color:#FF5A1F;flex-shrink:0;">
+                                            <span style="flex:1;font-weight:500;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{opt.clititle}}</span>
+                                            <span style="font-weight:600;color:#475569;font-size:13px;white-space:nowrap;">{{opt.lifnr}}</span>
+                                        </label>
+                                        <div v-if="!modalFilteredClients.length" style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">Sonuç bulunamadı</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="client-modal-foot">
+                                <button class="client-modal-btn-light" @click="clearSirketFilter">Temizle</button>
+                                <div style="display:flex; gap:10px; margin-left:auto;">
+                                    <button class="client-modal-btn-ghost" @click="showClientModal=false">Vazgeç</button>
+                                    <button class="client-modal-btn-orange" @click="applySirketFilterAndClose">Filtrele</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </teleport>
                 <a href="javascript:;" class="tedarik-filter" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel Çıktı</a>
             </div>
         </div>
@@ -1384,6 +1673,86 @@
 }
 .tedarik-docs-page :deep(.dlist-group__count::before){ background:#FF5A1F !important; }
 
+/* ===== Filtreler dropdown — cloned from OList normal filter ===== */
+.tedarik-docs-page .tedarik-list-top{ overflow: visible !important; position: relative; z-index: 55; }
+.tedarik-filter-dd-wrap{ position: relative; display: inline-flex; }
+.tedarik-filter.active{ color:#FF5A1F !important; }
+.tedarik-dd{
+    position: absolute; top: calc(100% + 12px); left: 0; z-index: 50;
+    width: 280px; background: #fff; border: 1px solid #ececec; border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(15,23,42,0.14), 0 4px 12px rgba(15,23,42,0.08);
+    padding: 10px 0 8px; animation: tedarikDdIn .16s ease;
+}
+@keyframes tedarikDdIn{ from{ opacity:0; transform: translateY(-6px)} to{ opacity:1; transform:none } }
+.tedarik-dd-item{
+    display: flex; align-items: center; gap: 10px;
+    padding: 8.5px 16px; font-size: 13px; font-weight: 400; color: #8a8a8e;
+    cursor: pointer; user-select: none; transition: background .12s, color .12s;
+    position: relative;
+}
+.tedarik-dd-item:hover{ background: #f9fafb; color:#374151; }
+.tedarik-dd-item.selected{ color:#1f2937; font-weight: 500; }
+.tedarik-radio{
+    width: 16px; height: 16px; border-radius: 50%; border:1.5px solid #d1d5db;
+    display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+    background:#fff; position:relative;
+}
+.tedarik-radio.on{ border-color:#FF5A1F; }
+.tedarik-radio.on::after{
+    content:''; width:7px; height:7px; border-radius:50%; background:#FF5A1F; display:block;
+}
+.tedarik-dd-divider{ height:1px; background:#f1f1f3; margin:6px 0; }
+.tedarik-dd-has-sub{ color:#FF4713 !important; font-weight:500 !important; justify-content:space-between; }
+.tedarik-dd-sirket-label{ color:#FF4713; }
+.tedarik-dd-arrow{ font-size:11px; color:#FF4713; margin-left:auto; }
+.client-modal-overlay{
+    position:fixed; inset:0; z-index:10000; background:rgba(15,23,42,0.48); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center; padding:18px; animation: tedarikDdIn .16s ease;
+}
+.client-modal-card{
+    width:720px; max-width:92vw; max-height:82vh; background:#fff; border-radius:16px;
+    box-shadow: 0 20px 48px rgba(15,23,42,0.18), 0 8px 20px rgba(15,23,42,0.12);
+    display:flex; flex-direction:column; overflow:hidden; border:1px solid #e8e8ea;
+}
+.client-modal-head{
+    display:flex; align-items:center; justify-content:space-between; padding:18px 22px 16px;
+    border-bottom:1px solid #f1f1f3; flex-shrink:0;
+}
+.client-modal-title{ font-size:17px; font-weight:700; color:#0f172a; letter-spacing:-0.01em; }
+.client-modal-sub{ font-size:13px; color:#6b7280; margin-top:2px; }
+.client-modal-close{
+    width:36px; height:36px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#64748b;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.client-modal-close:hover{ background:#f8fafc; color:#1e293b; }
+.client-modal-search-wrap{ position:relative; padding:14px 22px 12px; flex-shrink:0; }
+.client-modal-search{
+    width:100%; height:44px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;
+    padding:10px 40px 10px 14px; font-size:13.5px; color:#1e293b; outline:none;
+}
+.client-modal-search::placeholder{ color:#9ca3af; }
+.client-modal-search:focus{ border-color:#FF5A1F; box-shadow:0 0 0 3px rgba(255,90,31,0.10); }
+.client-modal-search-icon{ position:absolute; right:32px; top:50%; transform:translateY(-50%); color:#FF5A1F; font-size:16px; pointer-events:none; }
+.client-modal-table-wrap{ flex:1; overflow-y:auto; padding:0 8px 8px; min-height:200px; }
+.client-modal-foot{
+    display:flex; align-items:center; gap:10px; padding:14px 22px 18px; border-top:1px solid #f1f1f3; flex-shrink:0; background:#fcfcfd;
+}
+.client-modal-btn-light{
+    height:40px; padding:0 16px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#475569; font-size:13px; font-weight:600; cursor:pointer;
+}
+.client-modal-btn-light:hover{ background:#f8fafc; }
+.client-modal-btn-ghost{
+    height:40px; padding:0 18px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#475569; font-size:13px; font-weight:600; cursor:pointer;
+}
+.client-modal-btn-orange{
+    height:40px; padding:0 20px; border-radius:10px; border:none; background:#FF5A1F; color:#fff; font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 2px 8px rgba(255,90,31,0.22);
+}
+.client-modal-btn-orange:hover{ background:#e0541b; }
+.tedarik-dd--teleported{ animation: tedarikDdIn .16s ease; }
+@media (max-width: 700px){
+    .tedarik-dd{ left:0; width: 280px; }
+}
+
 /* TEDARIK FILE LIST — user height rule, NEVER override */
 .tedarik-docs-page :deep(.pickletable),
 .tedarik-docs-page :deep(#div_table.pickletable) {
@@ -1431,4 +1800,18 @@
 .tedarik-main .tedarik-docs-page .pickletable tbody td:nth-child(2) { border-radius:14px 0 0 14px !important; }
 .tedarik-main .tedarik-docs-page .pickletable tbody td:last-child { border-radius:0 14px 14px 0 !important; }
 .tedarik-main .tedarik-docs-page .pickletable tbody tr:hover td { background:transparent !important; box-shadow:none !important; }
+/* Swal search inputs — fix light/white text (was invisible on white) */
+.swal2-input, .swal2-textarea, #swal-flat-range, #retake-note, #exampleFormControlTextarea1 {
+    color: #0f172a !important;
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+}
+.swal2-input::placeholder, .swal2-textarea::placeholder, #swal-flat-range::placeholder, #retake-note::placeholder, #exampleFormControlTextarea1::placeholder {
+    color: #94a3b8 !important;
+}
+.swal2-input:focus, .swal2-textarea:focus, #swal-flat-range:focus, #retake-note:focus, #exampleFormControlTextarea1:focus {
+    border-color: #FF5A1F !important;
+    box-shadow: 0 0 0 3px rgba(255,90,31,0.12) !important;
+    color: #0f172a !important;
+}
 </style>

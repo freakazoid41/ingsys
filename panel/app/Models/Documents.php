@@ -447,9 +447,15 @@ class Documents extends Model
                     case 'tarih_araligi':
                     case 'tarih_baslangic':
                         // flatpickr sends Y-m-d range "2026-09-01|2026-09-10" — must match both document created_at AND Sipariş Tarihi (entity created_at DD/MM/YYYY)
+                        // also handle legacy " - " / " to " / " — " separators if frontend didn't pipe
                         $v = noInject($f['value']);
-                        if(strpos($v, '|') !== false){
-                            [$s,$e] = explode('|', $v, 2);
+                        $sep = null;
+                        if(strpos($v, '|') !== false) $sep='|';
+                        elseif(strpos($v, ' - ') !== false) $sep=' - ';
+                        elseif(strpos($v, ' to ') !== false) $sep=' to ';
+                        elseif(strpos($v, ' — ') !== false) $sep=' — ';
+                        if($sep !== null){
+                            [$s,$e] = explode($sep, $v, 2);
                             $s = trim($s); $e = trim($e);
                             $sEsc = noInject($s); $eEsc = noInject($e);
                             $entityDate = "to_date(se2.entity_value,'DD/MM/YYYY')";

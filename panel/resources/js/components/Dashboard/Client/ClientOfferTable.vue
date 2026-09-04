@@ -4,7 +4,7 @@
       <h5 class="section-title mb-0">Verdiğim Teklifler</h5>
     </div>
     <div id="offer-table" class="p-3"></div>
-    <router-link :to="{ name: 'OList' }" class="notifications-footer-btn">
+    <router-link :to="{ name: 'OrderList' }" class="notifications-footer-btn">
       Tüm tekliflerimi görüntüle <i class="fa-solid fa-angle-right"></i>
     </router-link>
   </div>

@@ -40,6 +40,9 @@ const router = createRouter({
         
         { path: "/coalpanel/orders", name: 'OrderList', component: OrderList},
         { path: "/coalpanel/orders/form/:id?", name: 'OrderForm', component: OrderForm},
+        // legacy aliases — dashboard still pushes 'OList' / 'RequestList' (coal era) → keep alive to avoid No match
+        { path: "/coalpanel/OList", name: 'OList', redirect: { name: 'OrderList' } },
+        { path: "/coalpanel/request", name: 'RequestList', redirect: { name: 'OrderList' } },
         
         { path: "/coalpanel/client", name: 'CList', component: CList},
         { path: "/coalpanel/client/form/:id?", name: 'CForm', component: CForm},

@@ -65,9 +65,9 @@ export default {
   methods: {
     handleQuickAction(action) {
       const routeMap = {
-        offers: 'OList',
+        offers: 'OrderList',
         companies: 'CList',
-        requests: 'RequestList'
+        requests: 'OrderList'
       };
       const routeName = routeMap[action];
       if (routeName) {

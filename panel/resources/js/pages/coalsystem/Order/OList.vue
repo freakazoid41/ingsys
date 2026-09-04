@@ -338,13 +338,16 @@
                             }
                         });
                         if(rangeVal){
-                            // flatpickr range gives "2026-09-01 to 2026-09-10" or single "2026-09-01"
+                            // flatpickr range gives "2026-09-01 to 2026-09-10" or "2026-09-01 - 2026-09-03" (Turkish) or single
                             let v = rangeVal.trim();
                             if(v.includes(' to ')){
                                 const [s,e]=v.split(' to ').map(s=>s.trim());
                                 v = (s||'') + '|' + (e||'');
                             } else if(v.includes(' — ')){
                                 const [s,e]=v.split(' — ').map(s=>s.trim());
+                                v = (s||'') + '|' + (e||'');
+                            } else if(v.includes(' - ')){
+                                const [s,e]=v.split(' - ').map(s=>s.trim());
                                 v = (s||'') + '|' + (e||'');
                             } else {
                                 // single date -> filter as single day ilike fallback or range same day
@@ -1915,5 +1918,19 @@
 .tedarik-main .tedarik-card .pickletable:not(.pt-auto-height) .divTable {
     height: 90% !important;
     overflow: auto !important;
+}
+/* Swal search inputs — fix light/white text (was invisible on white) */
+.swal2-input, .swal2-textarea, #swal-flat-range, #swal-suffix, #retake-note {
+    color: #0f172a !important;
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+}
+.swal2-input::placeholder, .swal2-textarea::placeholder, #swal-flat-range::placeholder, #swal-suffix::placeholder, #retake-note::placeholder {
+    color: #94a3b8 !important;
+}
+.swal2-input:focus, .swal2-textarea:focus, #swal-flat-range:focus, #swal-suffix:focus, #retake-note:focus {
+    border-color: #FF5A1F !important;
+    box-shadow: 0 0 0 3px rgba(255,90,31,0.12) !important;
+    color: #0f172a !important;
 }
 </style>

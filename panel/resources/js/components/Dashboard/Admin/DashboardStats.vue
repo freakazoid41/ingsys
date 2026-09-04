@@ -166,22 +166,22 @@ export default {
       const actionKey = this.topStats[statKey]?.actionKey;
       switch (actionKey) {
         case 'requests':
-          this.$router.push({ name: 'RequestList' });
+          this.$router.push({ name: 'OrderList' });
           break;
         case 'totalOffers':
-          this.$router.push({ name: 'OList' });
+          this.$router.push({ name: 'OrderList' });
           break;
         case 'approvedOffers':
-          this.$router.push({ name: 'OList' });
+          this.$router.push({ name: 'OrderList' });
           break;
         case 'companies':
           this.$router.push({ name: 'CList' });
           break;
         case 'awaitingOffers':
-          this.$router.push({ name: 'OList' });
+          this.$router.push({ name: 'OrderList' });
           break;
         case 'todaysOffers':
-          this.$router.push({ name: 'OList' });
+          this.$router.push({ name: 'OrderList' });
           break;
         default:
           console.log('Unknown action:', actionKey);
