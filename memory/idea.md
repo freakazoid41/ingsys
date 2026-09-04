@@ -5,7 +5,6 @@
 ** optiizasyon ve kontrol **
 ** admin panel dashboard ***
 ** tedarik panel dashboard ***
-** admin panel tabloların stilleri hep farklı bu sorun
 
 
 

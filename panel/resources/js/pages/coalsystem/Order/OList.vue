@@ -8,32 +8,53 @@
     import flatpickr from 'flatpickr';
     import { Turkish } from 'flatpickr/dist/l10n/tr.js';
     import 'flatpickr/dist/flatpickr.min.css';
+    import monthSelectPlugin from 'flatpickr/dist/plugins/monthSelect/index.js';
+    import 'flatpickr/dist/plugins/monthSelect/style.css';
     flatpickr.localize(Turkish);
+
+    const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     export default {
         breadcrumbs: {
             list: [ { title: 'Siparişler', path: '/coalpanel/orders' } ],
             title: 'Sipariş Listesi'
         },
-        setup() { return { useNavigationStore, useAuthStore, Swal } },
+        setup() { return { Swal } },
         mounted(){
             this.navigationStore.toggle(true);
             this.buildTable();
-            setTimeout(() => this.navigationStore.toggle(false), 300);
+            this._buildTimeouts.push(setTimeout(() => this.navigationStore.toggle(false), 300));
             if(this.isTedarik){
                 this.$nextTick(()=> document.addEventListener('click', this.handleOutsideClick));
             }
         },
         beforeUnmount(){
             document.removeEventListener('click', this.handleOutsideClick);
+            if(this.flatpickrRange){ this.flatpickrRange.destroy(); this.flatpickrRange = null; }
+            if(this.flatpickrDetailedUretim){ this.flatpickrDetailedUretim.destroy(); this.flatpickrDetailedUretim = null; }
+            if(this.flatpickrDetailedRange){ this.flatpickrDetailedRange.destroy(); this.flatpickrDetailedRange = null; }
+            this._buildTimeouts.forEach(id => clearTimeout(id));
+            this._buildTimeouts = [];
+        },
+        watch: {
+            isTedarik(newVal){
+                if(newVal){
+                    this.$nextTick(()=> document.addEventListener('click', this.handleOutsideClick));
+                } else {
+                    document.removeEventListener('click', this.handleOutsideClick);
+                    this.showDetayli = false;
+                }
+            },
+            showDetailed(val){
+                if(val) this.$nextTick(()=> this.initDetailedPickers());
+                else {
+                    if(this.flatpickrDetailedUretim){ this.flatpickrDetailedUretim.destroy(); this.flatpickrDetailedUretim = null; }
+                    if(this.flatpickrDetailedRange){ this.flatpickrDetailedRange.destroy(); this.flatpickrDetailedRange = null; }
+                }
+            }
         },
         computed: {
             isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); },
-            filteredClients(){
-                if(!this.sirketSearch.trim()) return this.clientOptions;
-                const q=this.sirketSearch.trim().toLowerCase();
-                return this.clientOptions.filter(o=> o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
-            },
             modalFilteredClients(){
                 const q=this.sirketSearch.trim().toLowerCase();
                 if(!q) return this.modalClients;
@@ -50,11 +71,9 @@
                 detayliChoice: '',
                 sirketSearch: '',
                 selectedSirkets: [],
-                showSirketSub: false,
                 showClientModal: false,
                 clientModalMode: 'multi',
                 detailedModalTarget: 'sirket',
-                clientTable: null,
                 modalClients: [],
                 dropdownPos: { top: 0, left: 0, width: 280 },
                 detay: {
@@ -71,16 +90,74 @@
                     tarihAraligi: '',
                 },
                 clientOptions: [],
-                tedarikciOptions: [],
+                loadingClients: false,
+                flatpickrRange: null,
+                flatpickrDetailedUretim: null,
+                flatpickrDetailedRange: null,
+                _buildTimeouts: [],
             }
         },
         methods: {
+            initDetailedPickers(){
+                try{
+                    const uretimEl = this.$refs.detailedUretimInput;
+                    const rangeEl = this.$refs.detailedRangeInput;
+                    if(uretimEl && !this.flatpickrDetailedUretim){
+                        this.flatpickrDetailedUretim = flatpickr(uretimEl, {
+                            plugins: [new monthSelectPlugin({ shorthand: true, dateFormat: 'Y-m', altFormat: 'Y/m' })],
+                            dateFormat: 'Y-m',
+                            altInput: true,
+                            altFormat: 'Y/m',
+                            allowInput: true,
+                            locale: Turkish,
+                            onChange:(sel, str)=>{ this.detay.uretimTarihi = str; },
+                            onClose:(sel, str)=>{ this.detay.uretimTarihi = str || uretimEl.value || ''; }
+                        });
+                        if(this.detay.uretimTarihi){
+                            const normalized = this.detay.uretimTarihi.replace(/\//g, '-').substring(0,7);
+                            this.flatpickrDetailedUretim.setDate(normalized, false);
+                        }
+                    }
+                    if(rangeEl && !this.flatpickrDetailedRange){
+                        this.flatpickrDetailedRange = flatpickr(rangeEl, {
+                            mode:'range',
+                            dateFormat:'Y-m-d',
+                            allowInput:true,
+                            locale: Turkish,
+                            onClose:(sel, str, fp)=>{
+                                const v = fp.input.value.trim();
+                                if(!v){ this.detay.tarihAraligi = ''; return; }
+                                let out = v;
+                                if(v.includes(' to ')){
+                                    const [s,e]=v.split(' to ').map(s=>s.trim());
+                                    out = (s||'') + '|' + (e||'');
+                                } else if(v.includes(' — ')){
+                                    const [s,e]=v.split(' — ').map(s=>s.trim());
+                                    out = (s||'') + '|' + (e||'');
+                                } else if(v.includes(' - ')){
+                                    const [s,e]=v.split(' - ').map(s=>s.trim());
+                                    out = (s||'') + '|' + (e||'');
+                                } else {
+                                    out = v + '|' + v;
+                                }
+                                this.detay.tarihAraligi = out;
+                                // keep display as typed range but store pipe
+                                fp.input.value = v;
+                            }
+                        });
+                        if(this.detay.tarihAraligi){
+                            const parts = this.detay.tarihAraligi.split('|');
+                            if(parts.length===2) this.flatpickrDetailedRange.setDate([parts[0], parts[1]], false);
+                            else if(parts[0]) this.flatpickrDetailedRange.setDate(parts[0], false);
+                        }
+                    }
+                }catch(e){ console.warn('initDetailedPickers failed', e); }
+            },
             toggleDetailed(){ this.showDetailed = !this.showDetailed; },
             toggleDetayli(e){
                 if(e) e.stopPropagation();
                 this.showDetayli = !this.showDetayli;
-                if(!this.showDetayli) this.showSirketSub=false;
-                else this.$nextTick(()=> this.updateDropdownPos());
+                if(this.showDetayli) this.$nextTick(()=> this.updateDropdownPos());
             },
             updateDropdownPos(){
                 try{
@@ -104,204 +181,51 @@
                 const insideDd = dd && dd.contains(e.target);
                 if(!insideWrap && !insideDd){
                     this.showDetayli=false;
-                    this.showSirketSub=false;
                 }
             },
             openClientModal(mode='multi'){
                 this.clientModalMode = mode;
-                // instant fallback so modal never shows "Yükleniyor..." — live fetch will refresh in buildClientTable
-                if(!this.modalClients.length){
-                    const hf=[
-                        {id:'1', lifnr:'0000300185', clititle:'AKSA ENERJİ LTD.', label:'AKSA ENERJİ LTD. (0000300185)'},
-                        {id:'2', lifnr:'0000300184', clititle:'DEMİR ÇELİK A.Ş.', label:'DEMİR ÇELİK A.Ş. (0000300184)'},
-                        {id:'3', lifnr:'0000300187', clititle:'BORA MADENCİLİK', label:'BORA MADENCİLİK (0000300187)'},
-                        {id:'4', lifnr:'0000300182', clititle:'HASÇELİK KABLO', label:'HASÇELİK KABLO (0000300182)'},
-                        {id:'5', lifnr:'0000300188', clititle:'GÜNEŞ ELEKTRİK', label:'GÜNEŞ ELEKTRİK (0000300188)'},
-                        {id:'6', lifnr:'0000300183', clititle:'HES HACILAR ELEKTRİK', label:'HES HACILAR ELEKTRİK (0000300183)'},
-                        {id:'7', lifnr:'0000300186', clititle:'YILDIZ TEKSTİL', label:'YILDIZ TEKSTİL (0000300186)'},
-                        {id:'8', lifnr:'0000300181', clititle:'PANORAMA TEKSTİL', label:'PANORAMA TEKSTİL (0000300181)'},
-                    ];
-                    this.modalClients = hf.slice();
-                    this.clientOptions = hf.map(o=> ({value:o.lifnr, label:o.label}));
-                }
                 this.showClientModal = true;
                 this.sirketSearch = '';
-                this.$nextTick(()=> setTimeout(()=> this.buildClientTable(), 120));
+                this.$nextTick(()=> this._buildTimeouts.push(setTimeout(()=> this.buildClientTable(), 120)));
             },
             openClientModalForDetailed(target='sirket'){
                 this.detailedModalTarget = target;
                 this.openClientModal('single');
             },
-            onClientModalSearch(){
-                if(!this.clientTable) return;
-                const q = this.sirketSearch.trim();
-                if(q){
-                    this.clientTable.setFilter([{key:'all', type:'=', value: q}]);
-                } else {
-                    this.clientTable.setFilter([]);
-                }
-            },
             async buildClientTable(){
-                // HARD FALLBACK so modal is NEVER empty — 8 seeded clients from tinker, then try live fetch to refresh
-                const hardFallback=[
-                    {id:'1', lifnr:'0000300185', clititle:'AKSA ENERJİ LTD.', label:'AKSA ENERJİ LTD. (0000300185)'},
-                    {id:'2', lifnr:'0000300184', clititle:'DEMİR ÇELİK A.Ş.', label:'DEMİR ÇELİK A.Ş. (0000300184)'},
-                    {id:'3', lifnr:'0000300187', clititle:'BORA MADENCİLİK', label:'BORA MADENCİLİK (0000300187)'},
-                    {id:'4', lifnr:'0000300182', clititle:'HASÇELİK KABLO', label:'HASÇELİK KABLO (0000300182)'},
-                    {id:'5', lifnr:'0000300188', clititle:'GÜNEŞ ELEKTRİK', label:'GÜNEŞ ELEKTRİK (0000300188)'},
-                    {id:'6', lifnr:'0000300183', clititle:'HES HACILAR ELEKTRİK', label:'HES HACILAR ELEKTRİK (0000300183)'},
-                    {id:'7', lifnr:'0000300186', clititle:'YILDIZ TEKSTİL', label:'YILDIZ TEKSTİL (0000300186)'},
-                    {id:'8', lifnr:'0000300181', clititle:'PANORAMA TEKSTİL', label:'PANORAMA TEKSTİL (0000300181)'},
-                ];
-                this.modalClients = hardFallback.slice();
-                this.clientOptions = hardFallback.map(o=> ({value:o.lifnr, label:o.label}));
-                // try live fetch in background to refresh (if fails, hardFallback stays)
+                // Clear any pending timeouts from a previous call
+                this._buildTimeouts.forEach(id => clearTimeout(id));
+                this._buildTimeouts = [];
+
+                this.loadingClients = true;
+                this.modalClients = [];
                 try{
                     const fd=new FormData();
                     fd.append('tableReq', JSON.stringify({filter:[{key:'form-type',type:'=',value:'op-doc-client-form'},{key:'type',type:'=',value:'op-doc-client'}], scale:{page:1, limit:200}, order:{key:'id', style:'asc'}}));
                     const rsp=await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
                     const rows=rsp?.data?.data || rsp?.data || [];
                     const list=Array.isArray(rows)?rows:(rows?.data||[]);
-                    if(list.length){
-                        const localData=list.map(r=>{
-                            try{
-                                const attrs=JSON.parse(r.main_attr||'[]');
-                                const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
-                                const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr||'-';
-                                const label = title ? `${title} (${lifnr})` : lifnr;
-                                return { id:r.id, lifnr, clititle:title, label, main_attr:r.main_attr, qnid:r.id };
-                            }catch(e){ return null; }
-                        }).filter(Boolean);
-                        if(localData.length){ this.modalClients = localData; this.clientOptions = localData.map(o=> ({value:o.lifnr, label:o.label})); }
-                    }
-                }catch(e){ console.warn('client modal live fetch failed, keeping hardFallback',e); }
-                // also build PickleTable for pagination if container exists — but primary display is modalFilteredClients list
-                let container = document.getElementById('client_modal_table');
-                if(!container) return;
-                container.innerHTML = '';
-                // reset table ref
-                this.clientTable = null;
-                const isSingle = this.clientModalMode === 'single';
-                const headers = [
-                    {
-                        title: isSingle ? '' : `<input type="checkbox" id="client-modal-check-all" style="width:16px;height:16px;accent-color:#FF5A1F;cursor:pointer;">`,
-                        key: 'chk',
-                        width: '44px',
-                        type: 'string',
-                        columnFormatter: (elm,row)=>{
-                            const cb=document.createElement('input');
-                            cb.type = isSingle ? 'radio' : 'checkbox';
-                            cb.name = isSingle ? 'client-modal-radio' : '';
-                            cb.style.width='16px'; cb.style.height='16px'; cb.style.accentColor='#FF5A1F'; cb.style.cursor='pointer';
-                            cb.checked = this.selectedSirkets.includes(row.lifnr) || (isSingle && this.detay[this.detailedModalTarget]===row.lifnr);
-                            cb.onclick=(e)=>{ e.stopPropagation(); if(isSingle){ this.detay[this.detailedModalTarget]=row.lifnr; this.detay[this.detailedModalTarget+'Label']=row.clititle + ' ('+row.lifnr+')'; this.showClientModal=false; } else { this.toggleSirket(row.lifnr); // update header checkbox
-                                const hdr=document.getElementById('client-modal-check-all');
-                                if(hdr){ const allChecked = this.clientTable && this.clientTable.config && Object.values(this.clientTable.config.currentData).every(r=> this.selectedSirkets.includes(r.lifnr)); hdr.checked = !!allChecked; }
-                            } };
-                            return cb;
-                        }
-                    },
-                    { title:'Şirket', key:'clititle', order:true, type:'string', columnFormatter:(elm,row)=>{ const s=document.createElement('span'); s.textContent=row.clititle||'-'; s.style.fontWeight='500'; s.style.color='#1e293b'; return s; } },
-                    { title:'Cari Kodu', key:'lifnr', order:true, width:'130px', type:'string', columnFormatter:(elm,row)=>{ const s=document.createElement('span'); s.textContent=row.lifnr||'-'; s.style.fontWeight='600'; s.style.color='#475569'; return s; } },
-                ];
-                const self=this;
-                this.clientTable = new PickleTable({
-                    container:'#client_modal_table',
-                    headers,
-                    pageLimit:8,
-                    height:'auto',
-                    type:'local',
-                    data: this.modalClients.slice(),
-                    columnSearch:false,
-                    paginationType:'number',
-                    nextPageIcon:'<i class="ki-outline ki-arrow-right"></i>', prevPageIcon:'<i class="ki-outline ki-arrow-left"></i>',
-                    rowFormatter:(elm,data)=>{
-                        const isSel = self.selectedSirkets.includes(data.lifnr) || (isSingle && self.detay[self.detailedModalTarget]===data.lifnr);
-                        if(isSel) elm.style.background='#fff7ed';
-                        return data;
-                    },
-                    rowClick:(rowElm,data)=>{
-                        if(isSingle){
-                            self.detay[self.detailedModalTarget]=data.lifnr;
-                            self.detay[self.detailedModalTarget+'Label']=data.clititle + ' ('+data.lifnr+')';
-                            self.showClientModal=false;
-                        } else {
-                            self.toggleSirket(data.lifnr);
-                            // sync checkboxes
-                            const cb=rowElm.querySelector('input[type="checkbox"]');
-                            if(cb) cb.checked=self.selectedSirkets.includes(data.lifnr);
-                            rowElm.style.background=self.selectedSirkets.includes(data.lifnr)?'#fff7ed':'';
-                        }
-                    }
-                });
-                // bind header check-all after render (multi only)
-                setTimeout(()=>{
-                    if(isSingle) return;
-                    const hdr=document.getElementById('client-modal-check-all');
-                    if(hdr){
-                        hdr.onclick=(e)=>{
-                            e.stopPropagation();
-                            const checked=e.target.checked;
-                            const rows=Object.values(self.clientTable.config.currentData);
-                            rows.forEach(r=>{
-                                if(checked){ if(!self.selectedSirkets.includes(r.lifnr)) self.selectedSirkets.push(r.lifnr); }
-                                else { self.selectedSirkets=self.selectedSirkets.filter(v=> v!==r.lifnr); }
-                                // update row visuals
-                                const rowElm=r.rowElm;
-                                if(rowElm){
-                                    const cb=rowElm.querySelector('input[type="checkbox"]');
-                                    if(cb) cb.checked=checked;
-                                    rowElm.style.background=checked?'#fff7ed':'';
-                                }
-                            });
-                        };
-                    }
-                },600);
-                // fallback if PickleTable stays empty (e.g. auth/session issue) — render via plib so modal never appears empty
-                setTimeout(async()=>{
-                    try{
-                        const cnt=Object.keys(self.clientTable?.config?.currentData||{}).length;
-                        if(cnt===0){
-                            const fd=new FormData();
-                            fd.append('tableReq', JSON.stringify({filter:[{key:'form-type',type:'=',value:'op-doc-client-form'},{key:'type',type:'=',value:'op-doc-client'}], scale:{page:1, limit:100}, order:{key:'id', style:'asc'}}));
-                            const rsp=await self.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
-                            const rows=rsp?.data?.data || rsp?.data || [];
-                            const list=Array.isArray(rows)?rows:(rows?.data||[]);
-                            if(list.length){
-                                container.innerHTML = '<div class="client-fallback-list">'+ list.map(r=>{
-                                    try{
-                                        const attrs=JSON.parse(r.main_attr||'[]');
-                                        const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
-                                        const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr;
-                                        const checked=self.selectedSirkets.includes(lifnr)?'checked':'';
-                                        const bg=self.selectedSirkets.includes(lifnr)?'background:#fff7ed;':'';
-                                        return `<label class="client-fallback-row" style="display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;${bg}"><input type="checkbox" ${checked} data-lifnr="${lifnr}" style="width:16px;height:16px;accent-color:#FF5A1F;"><span style="flex:1;font-weight:500;color:#1e293b;">${title}</span><span style="font-weight:600;color:#475569;">${lifnr}</span></label>`;
-                                    }catch(e){ return ''; }
-                                }).join('') + '</div>';
-                                container.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
-                                    cb.addEventListener('change', (e)=>{
-                                        const lifnr=e.target.dataset.lifnr;
-                                        const isChecked=e.target.checked;
-                                        if(isChecked){ if(!self.selectedSirkets.includes(lifnr)) self.selectedSirkets.push(lifnr); } else { self.selectedSirkets=self.selectedSirkets.filter(v=> v!==lifnr); }
-                                        e.target.closest('label').style.background = isChecked ? '#fff7ed' : '';
-                                    });
-                                });
-                                container.querySelectorAll('.client-fallback-row').forEach(row=>{
-                                    row.addEventListener('click', (e)=>{
-                                        if(e.target.tagName==='INPUT') return;
-                                        const cb=row.querySelector('input'); cb.checked=!cb.checked; cb.dispatchEvent(new Event('change'));
-                                    });
-                                });
-                            }
-                        }
-                    }catch(e){ console.error('client fallback failed',e); }
-                },1200);
+                    const localData=list.map(r=>{
+                        try{
+                            const attrs=JSON.parse(r.main_attr||'[]');
+                            const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
+                            const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr||'-';
+                            const label = title ? `${title} (${lifnr})` : lifnr;
+                            return { id:r.id, lifnr, clititle:title, label, main_attr:r.main_attr, qnid:r.id };
+                        }catch(e){ return null; }
+                    }).filter(Boolean);
+                    this.modalClients = localData;
+                    this.clientOptions = localData.map(o=> ({value:o.lifnr, label:o.label}));
+                }catch(e){
+                    console.warn('client modal fetch failed',e);
+                    this.modalClients = [];
+                } finally {
+                    this.loadingClients = false;
+                }
             },
             async handleDetayliChoice(val){
                 this.detayliChoice=val;
-                // close submenu when picking non-sirket
-                if(val!=='sirkete_gore') this.showSirketSub=false;
-                let shouldClose=true;
                 switch(val){
                     case 'seri_no': {
                         const {value: seri}=await Swal.fire({title:'Seri Numarası ile Arama', input:'text', inputPlaceholder:'Seri no giriniz', showCancelButton:true, confirmButtonText:'Ara', cancelButtonText:'Vazgeç', confirmButtonColor:'#FF5A1F'});
@@ -322,7 +246,8 @@
                             didOpen:()=>{
                                 const el=document.getElementById('swal-flat-range');
                                 if(!el) return;
-                                flatpickr(el, {
+                                if(this.flatpickrRange){ this.flatpickrRange.destroy(); this.flatpickrRange = null; }
+                                this.flatpickrRange = flatpickr(el, {
                                     mode:'range',
                                     dateFormat:'Y-m-d',
                                     allowInput:true,
@@ -335,7 +260,8 @@
                                 const v=document.getElementById('swal-flat-range')?.value?.trim() || '';
                                 if(!v){ Swal.showValidationMessage('Lütfen tarih aralığı seçin'); return false; }
                                 return v;
-                            }
+                            },
+                            didClose:()=>{ if(this.flatpickrRange){ this.flatpickrRange.destroy(); this.flatpickrRange = null; } }
                         });
                         if(rangeVal){
                             // flatpickr range gives "2026-09-01 to 2026-09-10" or "2026-09-01 - 2026-09-03" (Turkish) or single
@@ -393,12 +319,10 @@
                     }
                     case 'sirkete_gore': {
                         this.openClientModal('multi');
-                        this.showSirketSub=false;
-                        shouldClose=true;
                         break;
                     }
                 }
-                if(shouldClose) setTimeout(()=>{ this.showDetayli=false; }, 200);
+                this._buildTimeouts.push(setTimeout(()=>{ this.showDetayli=false; }, 200));
             },
             toggleSirket(val){
                 const idx=this.selectedSirkets.indexOf(val);
@@ -422,19 +346,11 @@
                     this.detay[this.detailedModalTarget]='';
                     this.detay[this.detailedModalTarget+'Label']='';
                     this.sirketSearch='';
-                    // also clear PickleTable selection visuals
-                    if(this.clientTable){
-                        Object.values(this.clientTable.config.currentData).forEach(r=>{ if(r.rowElm) r.rowElm.style.background=''; const cb=r.rowElm?.querySelector('input'); if(cb) cb.checked=false; });
-                    }
                     return;
                 }
                 this.selectedSirkets=[];
                 this.sirketSearch='';
                 this.table.setFilter([]);
-                if(this.clientTable){
-                    Object.values(this.clientTable.config.currentData).forEach(r=>{ if(r.rowElm) r.rowElm.style.background=''; const cb=r.rowElm?.querySelector('input[type="checkbox"]'); if(cb) cb.checked=false; });
-                    const hdr=document.getElementById('client-modal-check-all'); if(hdr) hdr.checked=false;
-                }
             },
             applySirketFilterAndClose(){
                 if(this.clientModalMode==='single'){
@@ -444,17 +360,6 @@
                 this.applySirketFilter();
                 this.showClientModal=false;
                 if(this.selectedSirkets.length) this.plib.toast(Swal,'success', `${this.selectedSirkets.length} şirket için filtrelendi`);
-            },
-            toggleAllClients(e){
-                const checked=e.target.checked;
-                if(checked){
-                    this.selectedSirkets = this.filteredClients.map(o=> o.value);
-                } else {
-                    // remove only filtered ones
-                    const filteredVals = new Set(this.filteredClients.map(o=> o.value));
-                    this.selectedSirkets = this.selectedSirkets.filter(v=> !filteredVals.has(v));
-                }
-                // don't auto-apply until Filtrele clicked — keep live or not? keep live for now
             },
             toggleAllModalClients(e){
                 const checked=e.target.checked;
@@ -472,48 +377,13 @@
                 this.detay[this.detailedModalTarget+'Label']=opt.label || `${opt.clititle} (${opt.lifnr})`;
                 this.showClientModal=false;
             },
-            async fetchClients(){
-                try{
-                    const fd=new FormData();
-                    fd.append('tableReq', JSON.stringify({filter:[{key:'form-type',type:'=',value:'op-doc-client-form'},{key:'type',type:'=',value:'op-doc-client'}], scale:{page:1, limit:100}, order:{key:'id', style:'asc'}}));
-                    const rsp=await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
-                    const rows=rsp?.data?.data || rsp?.data || [];
-                    const list=Array.isArray(rows)?rows:(rows?.data||[]);
-                    const opts=[];
-                    list.forEach(r=>{
-                        try{
-                            const attrs=JSON.parse(r.main_attr||'[]');
-                            const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
-                            const title=(attrs.find(a=>a.Key==='title')||{}).Value||'';
-                            const label = title ? `${title} (${lifnr})` : lifnr;
-                            if(lifnr) opts.push({value: lifnr, label});
-                        }catch(e){}
-                    });
-                    this.clientOptions=opts;
-                    // Tedarikçi Ara same source but may be filtered by users containing client code — fallback to same list
-                    if(!this.tedarikciOptions.length) this.tedarikciOptions=opts.slice();
-                }catch(e){ console.error('fetchClients',e); }
-            },
-            async fetchTedarikciler(){
-                try{
-                    // Tedarikçi Ara: users that contain a client code (userclientgroup)
-                    // Try to fetch via persons, fallback to clients if empty
-                    const fd=new FormData();
-                    fd.append('tableReq', JSON.stringify({filter:[], scale:{page:1, limit:100}, order:{key:'id', style:'asc'}}));
-                    const rsp=await this.plib.request({url:'/api/v1/table/persons', method:'POST'}, null, fd);
-                    const rows=rsp?.data?.data || rsp?.data || [];
-                    const list=Array.isArray(rows)?rows:(rows?.data||[]);
-                    // Persons tableList doesn't expose client code, so we will not have lifnr here.
-                    // Keep fallback: if we got persons, map to username, but filter will still use lifnr from client list.
-                    // For now, if persons empty, keep clientOptions as tedarikci source.
-                    if(list.length){ /* could enhance later to fetch per-person client */ }
-                }catch(e){ /* silent fallback to clientOptions */ }
-            },
             searchTable(){
-                this.table.setFilter([{ key:'all', type:'=', value: document.getElementById('mainSearch').value.trim() }]);
+                const inp = this.isTedarik ? this.$refs.tedarikSearch : this.$refs.adminSearch;
+                this.table.setFilter([{ key:'all', type:'=', value: (inp?.value || '').trim() }]);
             },
             resetSearch(){
-                document.getElementById('mainSearch').value = '';
+                const inp = this.isTedarik ? this.$refs.tedarikSearch : this.$refs.adminSearch;
+                if(inp) inp.value = '';
                 this.table.setFilter([]);
             },
             exportTable(){
@@ -536,6 +406,8 @@
             },
             resetDetailedFilter(){
                 this.detay={ stokKodu:'', siparisKodu:'', alimKodu:'', seriNo:'', uretimTarihi:'', tedarikci:'', tedarikciLabel:'', sirket:'', sirketLabel:'', onayDurumu:'', tarihAraligi:'' };
+                if(this.flatpickrDetailedUretim){ this.flatpickrDetailedUretim.clear(); }
+                if(this.flatpickrDetailedRange){ this.flatpickrDetailedRange.clear(); }
                 this.table.setFilter([]);
                 this.showDetailed=false;
             },
@@ -578,11 +450,11 @@
                             span.textContent = v;
                             span.style.fontWeight = '700';
                             span.style.color = '#0f172a';
-                            span.style.fontSize = _isTedarik ? '13px' : '14px';
+                            span.style.fontSize = this.isTedarik ? '13px' : '14px';
                             span.title = v;
                             span.style.cursor = 'pointer';
                             span.onclick = () => {
-                                const rName = _isTedarik ? 'TedarikOrderForm' : 'OrderForm';
+                                const rName = this.isTedarik ? 'TedarikOrderForm' : 'OrderForm';
                                 this.$router.push({name:rName, params:{id:row.id}});
                             };
 
@@ -695,15 +567,15 @@
                             btn.style.display='inline-flex';
                             btn.style.alignItems='center';
                             btn.style.justifyContent='center';
-                            btn.style.padding=_isTedarik ? '5px 10px' : '6px 12px';
-                            btn.style.borderRadius=_isTedarik ? '6px' : '8px';
-                            btn.style.fontSize=_isTedarik ? '11.5px' : '0.82rem';
+                            btn.style.padding=this.isTedarik ? '5px 10px' : '6px 12px';
+                            btn.style.borderRadius=this.isTedarik ? '6px' : '8px';
+                            btn.style.fontSize=this.isTedarik ? '11.5px' : '0.82rem';
                             btn.style.fontWeight='600';
                             btn.style.whiteSpace='nowrap';
                             btn.style.cursor='pointer';
                             btn.style.border='1px solid transparent';
                             btn.style.gap='6px';
-                            if(_isTedarik){
+                            if(this.isTedarik){
                                 // vivid solid pills as in screenshot
                                 if(label.includes('Kalite Onayı') || opKey==='doc_trans_order_approved'){
                                     btn.style.background='#22c55e';
@@ -755,7 +627,7 @@
                             icon.className=statusIcons[opKey]||'';
                             icon.style.fontSize='14px';
                             if(statusIcons[opKey]) btn.prepend(icon);
-                            if(_isTedarik){
+                            if(this.isTedarik){
                                 // Tedarik panel: status is display-only, change via Aksiyonlar
                                 btn.style.cursor='default';
                                 btn.title='';
@@ -800,7 +672,7 @@
                             wrap.style.display='flex';
                             wrap.style.justifyContent='flex-end';
                             wrap.style.gap='6px';
-                            if(_isTedarik){
+                            if(this.isTedarik){
                                 const _perms = this.authStore.permissions || [];
                                 const canKalite = _perms.includes('per-05-03');
                                 const canRename = _perms.includes('per-05-05');
@@ -888,10 +760,10 @@
                                                     const { value: newFull, isConfirmed } = await Swal.fire({
                                                         title:'Sipariş Numarasını Düzenle',
                                                         html: `<div style="text-align:left;padding:4px 2px;">
-                                                            <div style="font-size:13px;color:#64748b;margin-bottom:10px;">Mevcut: <b style="color:#0f172a;">${curNo}</b></div>
+                                                            <div style="font-size:13px;color:#64748b;margin-bottom:10px;">Mevcut: <b style="color:#0f172a;">${escapeHtml(curNo)}</b></div>
                                                             <div style="display:flex;align-items:center;gap:0;border:1.5px solid #cbd5e1;border-radius:10px;overflow:hidden;background:#fff;">
-                                                                <span style="padding:12px 14px;background:#f8fafc;border-right:1px solid #e2e8f0;font-weight:700;color:#334155;font-size:15px;white-space:nowrap;">${base}-</span>
-                                                                <input id="swal-suffix" type="number" min="1" step="1" value="${currentSuffix}" placeholder="X" style="flex:1;border:none;padding:12px 14px;font-size:15px;font-weight:600;color:#0f172a;outline:none;width:100%;">
+                                                                <span style="padding:12px 14px;background:#f8fafc;border-right:1px solid #e2e8f0;font-weight:700;color:#334155;font-size:15px;white-space:nowrap;">${escapeHtml(base)}-</span>
+                                                                <input id="swal-suffix" type="number" min="1" step="1" value="${escapeHtml(currentSuffix)}" placeholder="X" style="flex:1;border:none;padding:12px 14px;font-size:15px;font-weight:600;color:#0f172a;outline:none;width:100%;">
                                                             </div>
                                                             <div style="font-size:11px;color:#94a3b8;margin-top:8px;">Sadece <b>-X</b> parça numarası değiştirilebilir. Ana numara sabittir.</div>
                                                         </div>`,
@@ -1015,13 +887,13 @@
                     ],
                     nextPageIcon:'<i class="ki-outline ki-arrow-right"></i>', prevPageIcon:'<i class="ki-outline ki-arrow-left"></i>',
                     rowFormatter:(elm,data)=>{
-                        // Parse main_attr entities once per row (guard against re-parse)
-                        if(!data._attrsParsed){
+                        // Parse main_attr entities — re-parse if main_attr changed (live update)
+                        if(data._mainAttrCache !== data.main_attr){
                             try{
                                 const attrs = JSON.parse(data.main_attr||'[]');
                                 attrs.forEach(el=>{ data[el['Key']]=el['Value']; });
                             }catch(e){}
-                            data._attrsParsed = true;
+                            data._mainAttrCache = data.main_attr;
                         }
                         // fallbacks for display — order_no is always the correct display number
                         // (main order = base EBELN, clone = EBELN-X). transfer_no on main order
@@ -1061,8 +933,8 @@
                         }
                     };
                     enforceTedarikHeight();
-                    setTimeout(enforceTedarikHeight, 300);
-                    setTimeout(enforceTedarikHeight, 1000);
+                    this._buildTimeouts.push(setTimeout(enforceTedarikHeight, 300));
+                    this._buildTimeouts.push(setTimeout(enforceTedarikHeight, 1000));
                 });
             },
             async cancelOrder(orderQnid, isPartial=false){
@@ -1129,7 +1001,7 @@
             <div class="order-list-actions">
                 <div class="order-search-wrap">
                     <i class="ki-outline ki-magnifier order-search-icon"></i>
-                    <input id="mainSearch" class="order-search-input" placeholder="Sipariş ara..." @keyup.enter="searchTable">
+                    <input ref="adminSearch" class="order-search-input" placeholder="Sipariş ara..." @keyup.enter="searchTable">
                 </div>
                 <button class="order-btn order-btn-primary" @click="searchTable">Ara</button>
                 <button class="order-btn order-btn-ghost" @click="resetSearch">Sıfırla</button>
@@ -1196,11 +1068,11 @@
                                 <button class="client-modal-close" @click="showClientModal=false" aria-label="Kapat"><i class="ki-outline ki-cross fs-2"></i></button>
                             </div>
                             <div class="client-modal-search-wrap">
-                                <input v-model="sirketSearch" class="client-modal-search" placeholder="Arama yapabilirsiniz." @input="onClientModalSearch" />
+                                <input v-model="sirketSearch" class="client-modal-search" placeholder="Arama yapabilirsiniz." />
                                 <i class="ki-outline ki-magnifier client-modal-search-icon"></i>
                             </div>
                             <div class="client-modal-table-wrap">
-                                <div v-if="!modalClients.length" style="padding:28px;text-align:center;color:#9ca3af;font-size:13px;">Yükleniyor...</div>
+                                <div v-if="loadingClients" style="padding:28px;text-align:center;color:#9ca3af;font-size:13px;">Yükleniyor...</div>
                                 <div v-else style="display:flex;flex-direction:column;gap:0;">
                                     <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #e2e8f0;background:#f8fafc;position:sticky;top:0;z-index:1;">
                                         <template v-if="clientModalMode==='multi'">
@@ -1220,7 +1092,6 @@
                                         <div v-if="!modalFilteredClients.length" style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">Sonuç bulunamadı</div>
                                     </div>
                                 </div>
-                                <div id="client_modal_table" style="display:none;"></div>
                             </div>
                             <div class="client-modal-foot">
                                 <button class="client-modal-btn-light" @click="clearSirketFilter">Temizle</button>
@@ -1239,7 +1110,7 @@
         <div v-if="isTedarik" class="tedarik-docs-searchrow" style="margin: 0 0 14px;">
             <div class="tedarik-docs-searchbox">
                 <i class="ki-outline ki-magnifier tedarik-docs-search-icon"></i>
-                <input type="text" id="mainSearch" class="tedarik-docs-search-input" placeholder="Sipariş ara — sipariş no, tedarikçi, alım..." @keydown.enter="searchTable">
+                <input type="text" ref="tedarikSearch" class="tedarik-docs-search-input" placeholder="Sipariş ara — sipariş no, tedarikçi, alım..." @keydown.enter="searchTable">
             </div>
             <button type="button" class="tedarik-btn-light tedarik-docs-btn" @click="searchTable">Ara</button>
             <button type="button" class="tedarik-btn-light tedarik-docs-btn tedarik-docs-btn--ghost" @click="resetSearch">Sıfırla</button>
@@ -1251,7 +1122,7 @@
                 <input v-model="detay.siparisKodu" class="tedarik-detailed-input" placeholder="Sipariş Kodu Giriniz" />
                 <input v-model="detay.alimKodu" class="tedarik-detailed-input" placeholder="Alım Kodu Giriniz" />
                 <input v-model="detay.seriNo" class="tedarik-detailed-input" placeholder="Seri No Giriniz" />
-                <input v-model="detay.uretimTarihi" class="tedarik-detailed-input" placeholder="Malzeme Üretim Tarihi" />
+                <input ref="detailedUretimInput" v-model="detay.uretimTarihi" class="tedarik-detailed-input" placeholder="Malzeme Üretim Tarihi" readonly />
                 <div class="tedarik-detailed-select-wrap" @click="openClientModalForDetailed('tedarikci')" style="cursor:pointer;">
                     <input readonly :value="detay.tedarikciLabel" class="tedarik-detailed-select" placeholder="Tedarikçi Ara" style="cursor:pointer; background:#fff;" />
                     <i class="ki-outline ki-down tedarik-detailed-arrow" style="pointer-events:none;"></i>
@@ -1272,7 +1143,7 @@
                     </select>
                     <i class="ki-outline ki-down tedarik-detailed-arrow"></i>
                 </div>
-                <input v-model="detay.tarihAraligi" class="tedarik-detailed-input" placeholder="Tarih Aralığı Seçiniz" />
+                <input ref="detailedRangeInput" class="tedarik-detailed-input" placeholder="Tarih Aralığı Seçiniz" readonly />
             </div>
             <div class="tedarik-detailed-actions">
                 <button class="tedarik-btn-light" @click="applyDetailedFilter">Filtrele</button>
@@ -1862,14 +1733,6 @@
 }
 .tedarik-card .pickletable .divPagination {
     border-top: none !important;
-}
-/* Card-row table base */
-.tedarik-card .pickletable table {
-    border-collapse: separate !important;
-    border-spacing: 0 7px !important;
-    width: 100% !important;
-    table-layout: auto !important;
-    border: none !important;
 }
 /* Search bar — same as Doküman Listesi */
 .tedarik-docs-searchrow{

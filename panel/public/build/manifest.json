@@ -4,7 +4,7 @@
     "name": "sweetalert2.esm.all"
   },
   "public/coaltheme/css/custom.css": {
-    "file": "assets/custom-BIs7EeDT.css",
+    "file": "assets/custom-DPh-G_fi.css",
     "src": "public/coaltheme/css/custom.css",
     "isEntry": true
   },
@@ -172,7 +172,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-BnW0Ykx7.js",
+    "file": "assets/app-CGxScuGs.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -180,7 +180,7 @@
       "_sweetalert2.esm.all-0Z_61IYw.js"
     ],
     "css": [
-      "assets/app-BMJxLB4r.css"
+      "assets/app-BF5rNWKb.css"
     ]
   },
   "resources/js/coal-swal.js": {

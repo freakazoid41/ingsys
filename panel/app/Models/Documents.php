@@ -489,7 +489,7 @@ class Documents extends Model
 
                             if($k == 'main_attr') $column = 'main_attr.main_attr';
 
-                            $where .= " $column::text ilike '%$value%' ";
+                            $where .= " $column::text ilike '%$value%' ".' COLLATE "tr-TR-x-icu" ';
                             $i++;
                         }
                         $where .= ' ) ';
