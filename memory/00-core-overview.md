@@ -1,6 +1,6 @@
 # INGSYS Core Overview — For Future Sessions
 
-> **⚠️ CURRENT STATE 2026-09-04 late+1: Permission system rebuilt + single login + module selection + OList pagination fixed + DList tedarik Filtreler (normal) + double-table fix + Swal text-color fix + date-range ` - `→`|` fix + LOGGING ENRICHED (actor+document+file+note+frozen snapshots) + `log-user-logout` seeded + LList side-panel.** DB `tedarikNewApp` :5431, 7 files live (3×4400-1 +2×4600-2 +2×3500-1) 8/21/8/37 trans `grp_code=GDZ`. `EBELN-X` clones, `op-doc-transfer` PURGED. `LIFNR` link, `GDZ/ADM`. `/tedarik` → `/tedarikpanel` 1360px 12px 210px 6 tabs. **Shared `OList/OForm/DList/DForm` via `isTedarik`**, Module Switcher, Detailed search, `group_key`. **2026-09-03: `/tedarikpanel/documents` LIVE** flat `group_key` with `Sipariş / İlişki 27%` merge (slash removed), LIFNR-scoped, `height:auto number` + Simplebar/typewriter fixes. **`GET /api/v1/file-detail/:qnid` OLD-APP replica:** order header + `1fr 110 90` items + files `1fr 130 300 90` `TİP/TARİH/DURUM` with `isOldVersion status0` locked & `isDecidable waiting/refreshed` lock after `accepted/rejected` (`İşlem tamamlandı`), `İncele` in `90px` solo, `Onayla/Reddet 50/50 → Kaydet 100% → Red box 100%` same width, header centered. **`Yeniden Talep Et` pill text + `Kaydet/Red` modals nice. `LList` now side-panel for actor/order/file/transition.**
+> **⚠️ CURRENT STATE 2026-09-04 late+3: Permission system rebuilt + single login + module selection + OList pagination fixed + DList tedarik Filtreler (normal) + double-table fix + Swal text-color fix + date-range ` - `→`|` fix + LOGGING ENRICHED (actor+document+file+note+frozen snapshots) + `log-user-logout` seeded + LList side-panel.** DB `tedarikNewApp` :5431, 7 files live (3×4400-1 +2×4600-2 +2×3500-1) 8/21/8/37 trans `grp_code=GDZ`. `EBELN-X` clones, `op-doc-transfer` PURGED. `LIFNR` link, `GDZ/ADM`. `/tedarik` → `/tedarikpanel` 1360px 12px 210px 6 tabs. **Shared `OList/OForm/DList/DForm` via `isTedarik`**, Module Switcher, Detailed search, `group_key`. **2026-09-03: `/tedarikpanel/documents` LIVE** flat `group_key` with `Sipariş / İlişki 27%` merge (slash removed), LIFNR-scoped, `height:auto number` + Simplebar/typewriter fixes. **`GET /api/v1/file-detail/:qnid` OLD-APP replica:** order header + `1fr 110 90` items + files `1fr 130 300 90` `TİP/TARİH/DURUM` with `isOldVersion status0` locked & `isDecidable waiting/refreshed` lock after `accepted/rejected` (`İşlem tamamlandı`), `İncele` in `90px` solo, `Onayla/Reddet 50/50 → Kaydet 100% → Red box 100%` same width, header centered. **`Yeniden Talep Et` pill text + `Kaydet/Red` modals nice. `LList` now side-panel for actor/order/file/transition.** **2026-09-04 late+2: Form builder dynamic multi ( `**` count `2→single`/`3→multi` ) + `DForm noteOf` JSON unwrap fix + `applyOrderStatus from.title` + `syncOrderStatus rejectedNote` + `LList orderLabelMap` fallback. 2026-09-04 late+3: `AuditService` cached snapshots + `sync N+1→1` + indexes in base table migrations + fresh `logging-mechanics.md:8` performance chapter.**
 
 > **👉 READ FIRST: `memory/05-order-system-state.md` (LIVE), then `06-roadmap-next.md`. This file = architecture reference.**
 
@@ -39,7 +39,7 @@ Queue/Cache/Session: `database` driver; permission cache: `file` store
 | `EmailServiceProvider` | mail dispatch wrapper → Jobs | `app/Providers/EmailServiceProvider.php:112` |
 | `EncryptionProvider` | AES-128-CBC + PBKDF2 (`pickle` key) | `app/Providers/EncryptionProvider.php:119` |
 
-Proper Services: `MailService`, `SmsService`, `PermissionService`, `ExportService`, `RoleTemplateService` in `app/Services/`.
+Proper Services: `MailService`, `SmsService`, `PermissionService`, `ExportService`, `RoleTemplateService`, `AuditService` (cached `actor/order/file` + `optionTitle`, 2026-09-04) in `app/Services/`.
 
 ## 5. Data Architecture — EAV + Universal Dictionary
 **Core 4 tables:**
@@ -107,5 +107,8 @@ Central client `lib/pickle.js:824` — fetch wrapper (CSRF meta + Bearer localSt
 - `panel/docs/mapping/*.md` (11 files) — file-by-file maps
 - `panel/docs/mapping/10-models.md` — start here for DB
 - `panel/docs/mapping/15-frontend-core.md` + `17-frontend-components.md` — start here for Form.vue
+- `panel/documentation/logging-mechanics.md` — **enriched audit system** (actor+order+file frozen, 7 triggers, LList side-panel, AuditService perf)
+- `panel/documentation/file-upload-versioning-mechanics.md` — file versioning (`replaced_id` chain, `isMultiFile` `**` count)
+- `panel/documentation/form-system-mechanics.md` — EAV engine
 - `memory/05-order-system-state.md` — LIVE order system state (read after `00`)
 - `memory/06-roadmap-next.md` — next steps + decision tree

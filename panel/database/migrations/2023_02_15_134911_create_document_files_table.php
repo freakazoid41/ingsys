@@ -30,7 +30,12 @@ return new class extends Migration
 
             $table->timestamp('selected_at')->useCurrent();
             $table->timestamps();
+
+            // Hot file lookups — see 2026_09_04_000005_add_audit_indexes
+            $table->index(['relation_id', 'status'], 'idx_df_relation_status');
+            $table->unique('qnid', 'document_files_qnid_unique');
         });
+        \Illuminate\Support\Facades\DB::statement("CREATE INDEX IF NOT EXISTS idx_df_relation_status_partial ON document_files (relation_id, status) WHERE relation = 'documents'");
     }
 
     /**

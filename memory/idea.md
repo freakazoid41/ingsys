@@ -2,8 +2,15 @@
 ** Yetki sistemi düzenlemeleri yapılacak
 
 
+** optiizasyon ve kontrol **
+** admin panel dashboard ***
+** tedarik panel dashboard ***
+** tedarik panel dosyalarda dosya detayında dosyalara tıklayınca ekran hareketleniyor büyüyor küçülüyor bu hata !
 
-** admin panel dashboard
+
+
+
+
 ** excel çıktıları
 ** ön panel aramalar için detaylı filtreler
  - Tedarikçi ara olayı cari kullanıcıları üzerinden arama ama aynı kod
@@ -21,8 +28,7 @@
 
 
 ** tedairk raporlar
-** excel çıktıları
-** dashboard
+
 
 
 ** sipariş durum değişiminde  Oluşturuldu aşamasına dönüş yok ?

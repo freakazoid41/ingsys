@@ -275,10 +275,18 @@
                                         ${file.entity_tag ? `<div class="side-row"><span class="side-label">Tag</span><span class="side-value" style="font-family:monospace; font-size:11px">${escapeHtml(file.entity_tag)}</span></div>` : ''}
                                     </div>`;
                                 }
-                                // transition
+                                // transition — fallback map for old logs where from.title was not stored (pre-fix) and for doc_trans_order_* labels
+                                const orderLabelMap = {
+                                    'doc_trans_order_created': 'Sipariş Oluşturuldu',
+                                    'doc_trans_order_transfer_sent': 'Dosyalar Kontrol Ediliyor',
+                                    'doc_trans_order_ready_for_shipment': 'Sipariş Sevke Hazır',
+                                    'doc_trans_order_approved': 'Kalite Onayı Verildi',
+                                    'doc_trans_order_rejected': 'Sipariş Reddedildi',
+                                    'doc_trans_order_files_rejected': 'Reddedilen Dosyalar Mevcut',
+                                };
                                 if(from || to){
-                                    const fromLabel = from ? (from.title || from.op_key || '') : '';
-                                    const toLabel = to ? (to.title || to.op_key || '') : '';
+                                    const fromLabel = from ? (from.title || orderLabelMap[from.op_key] || from.op_key || '') : '';
+                                    const toLabel = to ? (to.title || orderLabelMap[to.op_key] || to.op_key || '') : '';
                                     sideHtml += `<div class="side-card">
                                         <div class="side-card-title"><i class="ki-duotone ki-arrow-right-left fs-6"><span class="path1"></span><span class="path2"></span></i> Durum Geçişi</div>
                                         <div class="from-to">

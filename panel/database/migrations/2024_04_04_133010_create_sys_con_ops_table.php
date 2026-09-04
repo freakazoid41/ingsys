@@ -22,7 +22,10 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['conn_id','main_id'],'sys_con_ops_1');
+            // Hot audit/order snapshot — see 2026_09_04_000005_add_audit_indexes
+            $table->index(['main_id','type_id'], 'idx_sco_main_conn');
         });
+        \Illuminate\Support\Facades\DB::statement('CREATE INDEX IF NOT EXISTS idx_sco_main_conn_partial ON sys_con_ops (main_id, type_id) WHERE conn_id = 0');
     }
 
     /**

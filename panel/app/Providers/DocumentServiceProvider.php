@@ -10,6 +10,7 @@ use App\Models\Sys_options;
 use App\Models\Transactions;
 use App\Models\User;
 use App\Models\UserLog;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 
@@ -37,56 +38,12 @@ class DocumentServiceProvider extends ServiceProvider
      */
     private function actorSnapshot(): array
     {
-        try {
-            $auth = auth('sanctum')->user() ?? auth()->user();
-            $personId = $auth->person_id ?? null;
-            $person = null;
-            $personQnid = null;
-            $typeKey = session('type_key') ?? null;
-            if ($personId) {
-                $person = \App\Models\Persons::where('id', $personId)->first();
-                $personQnid = $person->qnid ?? session('person_id');
-                if (!$typeKey && $person) {
-                    $typeKey = \App\Models\Sys_options::where('id', $person->type_id)->value('op_key');
-                }
-            }
-            return [
-                'user_id' => $auth->id ?? 0,
-                'person_id' => $personId ?? 0,
-                'person_qnid' => $personQnid ?? session('person_id') ?? null,
-                'name' => trim(($person->name ?? '') . ' ' . (($person->surname ?? '-') !== '-' ? $person->surname : '')) ?: ($auth->email ?? 'system'),
-                'email' => $auth->email ?? null,
-                'role' => $auth->role ?? null,
-                'type_key' => $typeKey,
-                'ip' => request()->ip(),
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
-            ];
-        } catch (\Throwable $e) {
-            return [
-                'user_id' => auth('sanctum')->user()->id ?? 0,
-                'person_id' => session('person_id') ?? 0,
-                'person_qnid' => session('person_id') ?? null,
-                'name' => session('ptitle') ?? 'system',
-                'email' => session('email') ?? null,
-                'role' => null,
-                'type_key' => session('type_key') ?? null,
-                'ip' => request()->ip(),
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
-            ];
-        }
+        return AuditService::actor();
     }
 
     private function orderSnapshot(Documents $doc, array $entities = []): array
     {
-        try {
-            if (empty($entities)) {
-                $conn = Sys_con_ops::where('main_id', $doc->id)->where('conn_id', 0)
-                    ->whereHas('type', fn($q) => $q->where('op_key', 'op-doc-order-form'))->first();
-                if ($conn) {
-                    $rows = Sys_con_entities::where('conn_id', $conn->id)->where('table_tag', 'sys_con_ops')->get();
-                    foreach ($rows as $r) $entities[$r->entity_tag] = $r->entity_value;
-                }
-            }
+        if (!empty($entities)) {
             return [
                 'id' => $doc->id,
                 'qnid' => $doc->qnid,
@@ -96,33 +53,13 @@ class DocumentServiceProvider extends ServiceProvider
                 'spec_code' => $entities['spec_code'] ?? null,
                 'ctitle' => $entities['ctitle'] ?? null,
             ];
-        } catch (\Throwable $e) { return ['id'=>$doc->id,'qnid'=>$doc->qnid]; }
+        }
+        return AuditService::order((int)$doc->id);
     }
 
     private function fileSnapshot(int $fileId, $entityTag = null, $connId = null): array
     {
-        try {
-            $file = Document_files::where('id', $fileId)->first();
-            $entity = $entityTag ? (object)['entity_tag'=>$entityTag,'conn_id'=>$connId] : Sys_con_entities::where(['entity_value'=>(string)$fileId,'table_tag'=>'document_files'])->first();
-            $groupKey = null; $field = null;
-            if ($entity && !empty($entity->entity_tag)) { $parts = explode('**', $entity->entity_tag); $field=$parts[0]??null; $groupKey=$parts[1]??null; }
-            $doc = null; $orderNo = null;
-            if ($entity && !empty($entity->conn_id)) {
-                $conn = Sys_con_ops::where('id', $entity->conn_id)->first();
-                if ($conn) { $doc = Documents::where('id', $conn->main_id)->first(); if ($doc) { $op = Sys_options::where('id',$doc->type_id)->value('op_key'); if ($op==='op-doc-order-item' && $doc->parent_id) { $parent=Documents::where('id',$doc->parent_id)->first(); if($parent) $doc=$parent; } $orderNo = DB::table('sys_con_entities as sce')->join('sys_con_ops as sco','sco.id','=','sce.conn_id')->where('sco.main_id',$doc->id)->where('sce.entity_tag','order_no')->value('sce.entity_value'); } }
-            }
-            return [
-                'id' => $fileId,
-                'qnid' => $file->qnid ?? null,
-                'status' => $file->status ?? null,
-                'field' => $field,
-                'group_key' => $groupKey,
-                'entity_tag' => $entity->entity_tag ?? null,
-                'relation_id' => $file->relation_id ?? null,
-                'order_qnid' => $doc->qnid ?? null,
-                'order_no' => $orderNo,
-            ];
-        } catch (\Throwable $e) { return ['id'=>$fileId]; }
+        return AuditService::file($fileId, $entityTag, $connId);
     }
 
     public function registerContent($id, $requestData, $files = [])
@@ -1343,24 +1280,63 @@ class DocumentServiceProvider extends ServiceProvider
             }
             $orderFileRows = array_merge($filteredFileRows, array_values($latestOrderSlotFiles));
 
+            // Batch fetch last file statuses — single query instead of N+1 per file
+            $ids = array_map(fn($r) => (int)$r->id, $orderFileRows);
+            $placeholders = implode(',', $ids);
+            $lastRows = [];
+            if (!empty($ids)) {
+                $lastRows = DB::select("
+                    SELECT DISTINCT ON (t.target_id)
+                      t.target_id, so.op_key, t.note, t.description
+                    FROM transactions t
+                    JOIN sys_options so ON so.id = t.type_id
+                    WHERE t.target_id IN ($placeholders) AND t.op_id = 1
+                    ORDER BY t.target_id, t.id DESC
+                ");
+            }
+            $lastMap = [];
+            foreach ($lastRows as $lr) $lastMap[$lr->target_id] = $lr;
+
             $hasRejected = false;
+            $rejectedNote = null;
             $allAccepted = true;
             foreach ($orderFileRows as $fr) {
-                $lastOp = DB::table('transactions as t')
-                    ->join('sys_options as so', 'so.id', '=', 't.type_id')
-                    ->where('t.target_id', $fr->id)
-                    ->where('t.op_id', 1)
-                    ->orderBy('t.id', 'desc')
-                    ->value('so.op_key');
+                $lr = $lastMap[$fr->id] ?? null;
+                $lastOp = $lr->op_key ?? null;
                 if ($lastOp === 'doc_file_rejected') {
                     $hasRejected = true;
+                    if ($rejectedNote === null) {
+                        $raw = trim((string)($lr->note ?? ''));
+                        if ($raw === '' || $raw === '-') {
+                            $desc = trim((string)($lr->description ?? ''));
+                            if ($desc !== '' && str_starts_with($desc, '{')) {
+                                try {
+                                    $j = json_decode($desc, true);
+                                    if (isset($j['note']) && is_string($j['note']) && trim($j['note']) !== '' && trim($j['note']) !== '-') {
+                                        $raw = trim($j['note']);
+                                    } elseif (isset($j['note']) && $j['note'] !== null) {
+                                        $raw = trim((string)$j['note']);
+                                    }
+                                } catch (\Throwable $e) {}
+                            }
+                        }
+                        if ($raw !== '' && str_starts_with($raw, '{')) {
+                            try {
+                                $pj = json_decode($raw, true);
+                                if (isset($pj['note']) && is_string($pj['note']) && trim($pj['note']) !== '') {
+                                    $raw = trim($pj['note']);
+                                }
+                            } catch (\Throwable $e) {}
+                        }
+                        $rejectedNote = ($raw !== '' && $raw !== '-' && $raw !== 'null') ? 'Dosya reddedildi: ' . $raw : 'Dosya reddedildi';
+                    }
                 } elseif ($lastOp !== 'doc_file_accepted') {
                     $allAccepted = false;
                 }
             }
 
             if ($hasRejected) {
-                $this->applyOrderStatus($doc, 'doc_trans_order_files_rejected', 'Dosya reddedildi');
+                $this->applyOrderStatus($doc, 'doc_trans_order_files_rejected', $rejectedNote ?? 'Dosya reddedildi');
             } elseif ($allAccepted && ! empty($orderFileRows)) {
                 $this->applyOrderStatus($doc, 'doc_trans_order_ready_for_shipment', 'Tüm aktif dosyalar kabul edildi');
             } elseif (! empty($orderFileRows)) {
@@ -1397,6 +1373,8 @@ class DocumentServiceProvider extends ServiceProvider
 
         $actorA = $this->actorSnapshot();
         $docSnapA = $this->orderSnapshot($doc);
+        // Resolve from title via cached lookup (was missing → raw op_key shown)
+        $fromTitle = $last ? (AuditService::optionTitle($last) ?? $last) : null;
         $log = UserLog::create([
             'user_id' => $actorA['user_id'] ?? auth('sanctum')->user()->id ?? 0,
             'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorA['sys_code'] ?? 'GDZ',
@@ -1408,7 +1386,7 @@ class DocumentServiceProvider extends ServiceProvider
                 'after' => ['document' => ['op_key' => 'op-doc-order', 'qnid' => $doc->qnid]],
                 'actor' => $actorA,
                 'document' => $docSnapA,
-                'from' => $last ? ['op_key'=>$last] : null,
+                'from' => $last ? ['op_key'=>$last,'title'=>$fromTitle] : null,
                 'to' => ['op_key'=>$statusKey,'title'=>$type->title ?? $statusKey],
                 'desc' => 'Sipariş Durumu Güncellendi',
                 'note' => $note ?? '-',

@@ -35,6 +35,8 @@ return new class extends Migration
 
             $table->index(['grp_code','period','target_id'],'transindex_1');
             $table->index(['target_id'],'transindex_2');
+            // Hot audit — file vs order status — see 2026_09_04_000005_add_audit_indexes
+            $table->index(['target_id', 'op_id'], 'idx_trans_target_op');
         });
     }
 

@@ -29,6 +29,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['group_key'],'sys_options_1');
+            // Hot audit title lookup — see 2026_09_04_000005_add_audit_indexes
+            $table->unique('op_key', 'idx_sys_op_key');
         });
 
     }

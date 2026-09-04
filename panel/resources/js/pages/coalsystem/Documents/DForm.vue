@@ -78,7 +78,13 @@ export default {
         noteOf(f){
             const s=this.parseStatus(f);
             let n=s.note||'';
-            try{ n=JSON.parse(n)?.note ?? n; }catch(e){}
+            // s.note is t.description JSON `{"actor":".. <email>","note": "real reason"|null}` — unwrap inner note, never show raw JSON when note is null
+            try{
+                const parsed = JSON.parse(n);
+                if(parsed && typeof parsed.note === 'string') n = parsed.note;
+                else if(parsed && parsed.note == null) n = '';
+                else if(parsed && parsed.note != null) n = String(parsed.note);
+            }catch(e){}
             return (n||'').trim();
         },
         isOldVersion(f){
