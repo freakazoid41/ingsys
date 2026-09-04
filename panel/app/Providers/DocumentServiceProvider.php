@@ -21,6 +21,15 @@ class DocumentServiceProvider extends ServiceProvider
      */
     private const GENERIC_WRITABLE_MAIN_FIELDS = ['title', 'starting_at', 'ending_at'];
 
+    /**
+     * Form builder decides: single-slot = `field**group**rowId` (2x `**`), multi-slot = `field**group**rowId**unique` (3x `**`, e.g. `**img-...`).
+     * No hardcoded list — frontend tag shape is the contract. Any future multi just sends `**unique` suffix and backend auto-appends.
+     */
+    private function isMultiFile(string $fileName): bool
+    {
+        return substr_count($fileName, '**') >= 3;
+    }
+
     public function __construct() {}
 
     /**
@@ -337,16 +346,31 @@ class DocumentServiceProvider extends ServiceProvider
                         // (document_files.status=1); older version rows are ignored.
                         // Tedarik panel historically used timestamp rowIds (new-...) while admin uses stable conn_id —
                         // so exact entity_tag match fails and creates duplicate rows (see 3510004600-2). Search by prefix instead.
-                        $oldFileEntity = Sys_con_entities::where('conn_id', $conn->id)
-                            ->where('entity_tag', 'like', $typeTag . '**%')
-                            ->where('table_tag', 'document_files')
-                            ->whereIn('entity_value', function ($q) {
-                                $q->selectRaw('id::text')->from('document_files')->where('status', 1);
-                            })
-                            ->orderByDesc('id')->first();
-                        $existingFileId = 0;
-                        if($oldFileEntity && is_numeric($oldFileEntity->entity_value)){
-                            $existingFileId = (int) $oldFileEntity->entity_value;
+                        // Form builder decides: 2x ** = single (prefix version), 3x ** = multi (exact append) — no hardcoded list
+                        $isMultiFile = $this->isMultiFile($fileName);
+                        if ($isMultiFile) {
+                            // Multi: exact match on full tag (unique **img-... never matches → new row, all coexist) — original stable pre-4ac9262
+                            $oldFileEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $fileName, 'table_tag' => 'document_files'])
+                                ->whereIn('entity_value', function ($q) {
+                                    $q->selectRaw('id::text')->from('document_files')->where('status', 1);
+                                })
+                                ->orderByDesc('id')->first();
+                            $existingFileId = 0;
+                            if($oldFileEntity && is_numeric($oldFileEntity->entity_value)){
+                                $existingFileId = (int) $oldFileEntity->entity_value;
+                            }
+                        } else {
+                            $oldFileEntity = Sys_con_entities::where('conn_id', $conn->id)
+                                ->where('entity_tag', 'like', $typeTag . '**%')
+                                ->where('table_tag', 'document_files')
+                                ->whereIn('entity_value', function ($q) {
+                                    $q->selectRaw('id::text')->from('document_files')->where('status', 1);
+                                })
+                                ->orderByDesc('id')->first();
+                            $existingFileId = 0;
+                            if($oldFileEntity && is_numeric($oldFileEntity->entity_value)){
+                                $existingFileId = (int) $oldFileEntity->entity_value;
+                            }
                         }
 
                         // Check if file is a reference (temp upload) or a File object
@@ -382,8 +406,9 @@ class DocumentServiceProvider extends ServiceProvider
                         // now add file connection — every upload creates a NEW entity row so the
                         // version history lives in the entity rows (old_versions/DList).
                         // Activeness is derived from the linked document_files.status.
-                        // Reuse old tag when replacing — otherwise tedarik timestamp vs stable conn_id creates split rows (3510004600-2)
-                        $entityTagToUse = $oldFileEntity ? $oldFileEntity->entity_tag : $fileName;
+                        // Reuse old tag when replacing single-slot (Test/Kabul/Cins) — otherwise tedarik timestamp vs stable conn_id creates split rows (3510004600-2)
+                        // Multi-slot (images) always uses fresh unique $fileName (`**img-...`)
+                        $entityTagToUse = (!$isMultiFile && $oldFileEntity) ? $oldFileEntity->entity_tag : $fileName;
                         $entity = new Sys_con_entities;
                         $entity->table_tag = 'document_files';
                         $entity->conn_id = $conn->id;
