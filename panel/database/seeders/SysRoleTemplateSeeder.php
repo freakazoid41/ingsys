@@ -19,7 +19,11 @@ class SysRoleTemplateSeeder extends Seeder
         $this->seedPermissionCatalog();
         $this->seedNotificationTypes();
         
-        $this->command->info('Entity data successfully seeded from JSON files!');
+        // Invalidate RoleTemplateService caches so /v1/roles/* immediately reflects new DB (file cache otherwise stale 1h)
+        try { (new \App\Services\RoleTemplateService())->invalidateCaches(); } catch (\Throwable $e) {}
+        // Also clear permission file cache for all users
+        try { \Illuminate\Support\Facades\Cache::store('file')->flush(); } catch (\Throwable $e) {}
+        $this->command->info('Entity data successfully seeded from JSON files! (caches cleared)');
     }
 
     /**
@@ -43,18 +47,31 @@ class SysRoleTemplateSeeder extends Seeder
         }
 
         foreach ($roles as $roleData) {
+            $opKey = $roleData['id'] ?? $roleData['op_key'] ?? null;
+            if (!$opKey) continue;
+            // use op_key as unique identifier to allow renames (e.g. Satınalma KeyUser -> İş Birimi)
             $roleTemplate = SysRoleTemplate::updateOrCreate(
-                ['name' => $roleData['name']],
+                ['op_key' => $opKey],
                 [
                     'name' => $roleData['name'],
-                    'op_key' => $roleData['id'],
+                    'op_key' => $opKey,
                     'permissions' => $roleData['permissions'] ?? [],
                     'description' => $roleData['description'] ?? null,
-                    'immutable' => strpos($roleData['id'] ?? '', 'immutable') === 0,
+                    'immutable' => strpos($opKey, 'immutable') === 0,
                 ]
             );
 
-            $this->command->line("✓ Role template seeded: {$roleTemplate->name}");
+            $this->command->line("✓ Role template seeded: {$roleTemplate->name} ({$opKey})");
+        }
+
+        // Cleanup obsolete role templates not in JSON
+        $jsonOpKeys = array_map(fn($r) => $r['id'] ?? $r['op_key'] ?? null, $roles);
+        $jsonOpKeys = array_filter($jsonOpKeys);
+        $dbOpKeys = SysRoleTemplate::pluck('op_key')->toArray();
+        $obsoleteRoles = array_diff($dbOpKeys, $jsonOpKeys);
+        foreach ($obsoleteRoles as $obs) {
+            SysRoleTemplate::where('op_key', $obs)->delete();
+            $this->command->warn("✗ Removed obsolete role: {$obs}");
         }
     }
 
@@ -79,6 +96,15 @@ class SysRoleTemplateSeeder extends Seeder
         }
 
         $this->processPermissionHierarchy($permissions);
+
+        // Cleanup obsolete permissions not in new JSON (e.g. per-08 removed)
+        $allJsonCodes = $this->collectPermissionCodes($permissions);
+        $dbCodes = SysPermissionCatalog::pluck('code')->toArray();
+        $obsolete = array_diff($dbCodes, $allJsonCodes);
+        foreach ($obsolete as $obs) {
+            SysPermissionCatalog::where('code', $obs)->delete();
+            $this->command->warn("✗ Removed obsolete permission: {$obs}");
+        }
     }
 
     /**
@@ -120,6 +146,16 @@ class SysRoleTemplateSeeder extends Seeder
                 $this->processPermissionHierarchy($permission['childs'], $code);
             }
         }
+    }
+
+    private function collectPermissionCodes(array $permissions): array
+    {
+        $codes = [];
+        foreach ($permissions as $p) {
+            if (!empty($p['op_key'])) $codes[] = $p['op_key'];
+            if (!empty($p['childs'])) $codes = array_merge($codes, $this->collectPermissionCodes($p['childs']));
+        }
+        return $codes;
     }
 
     /**

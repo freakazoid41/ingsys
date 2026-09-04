@@ -70,5 +70,6 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
     Route::get('/v1/getpermissions',                   [AuthController::class, 'getPermissions']);
+    Route::get('/v1/modules',                          [AuthController::class, 'getModules']);
 
 });   

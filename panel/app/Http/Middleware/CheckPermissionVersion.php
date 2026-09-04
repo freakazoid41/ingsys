@@ -69,6 +69,16 @@ class CheckPermissionVersion
         if($active && $active->permission_version && $currentVersion && $active->permission_version !== (string)$currentVersion){
             try{
                 $permissionService->loadPermissionsToSession($user);
+                // Also refresh currentStatus from DB (client bindings may have changed via panel)
+                try {
+                    $personQnid = \Illuminate\Support\Facades\DB::table('persons')->where('id', $user->person_id)->value('qnid');
+                    $typeKey = session('type_key') ?? \Illuminate\Support\Facades\DB::table('persons')->join('sys_options','sys_options.id','=','persons.type_id')->where('persons.id',$user->person_id)->value('op_key');
+                    if($personQnid && $typeKey){
+                        $freshStatus = (new \App\Providers\PersonsServiceProvider())->clientPermInfo($personQnid, $typeKey);
+                        session(['currentStatus' => $freshStatus]);
+                        $active->current_status = $freshStatus;
+                    }
+                } catch(\Throwable $_){}
                 $newVersion = $permissionService->getCachedUserPermissionVersion($user->person_id);
                 $active->permission_version = (string)$newVersion;
                 try{ $active->current_status = session('currentStatus') ?? $active->current_status; } catch(\Throwable $_){}

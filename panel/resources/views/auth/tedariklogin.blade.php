@@ -270,6 +270,9 @@
                         <span class="spinner-border spinner-border-sm ms-2"></span>
                     </button>
                     <input name="apiKey" hidden readonly value="{{\Session::get('sms-success')}}">
+                    @if(!empty($targetModule))
+                        <input name="targetModule" hidden readonly value="{{$targetModule}}">
+                    @endif
                 @else
                     <button type="button" id="submit-button" class="btn-main">
                         <span class="indicator-label">Giriş Yap</span>

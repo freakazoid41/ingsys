@@ -11,7 +11,7 @@ export default {
             authStore: useAuthStore(),
             sysCode: 'ADM',
             showModuleModal: false,
-            modules: [
+            allModules: [
                 {
                     key: 'admin',
                     title: 'Yönetim Paneli',
@@ -19,6 +19,7 @@ export default {
                     icon: 'ki-outline ki-shield-tick',
                     path: '/coalpanel',
                     color: '#154b91',
+                    perm: 'per-041-01',
                 },
                 {
                     key: 'tedarik',
@@ -27,6 +28,27 @@ export default {
                     icon: 'ki-outline ki-delivery',
                     path: '/tedarikpanel',
                     color: '#FF5A1F',
+                    perm: 'per-041-02',
+                },
+                {
+                    key: 'ihale',
+                    title: 'İhale',
+                    desc: 'İhale süreçleri — Yakında',
+                    icon: 'ki-outline ki-chart-simple',
+                    path: '/coalpanel',
+                    color: '#059669',
+                    perm: 'per-041-03',
+                    disabled: true,
+                },
+                {
+                    key: 'fabrika',
+                    title: 'Fabrika Kabul',
+                    desc: 'Fabrika kabul — Yakında',
+                    icon: 'ki-outline ki-home-2',
+                    path: '/coalpanel',
+                    color: '#7c3aed',
+                    perm: 'per-041-04',
+                    disabled: true,
                 },
             ],
         }
@@ -82,6 +104,11 @@ export default {
         userName() { return this.authStore.userName || this.authStore.currentStatus?.main_name || ''; },
         isOrdersActive() { return this.$route.path.includes('/orders'); },
         isDokumanActive() { return this.$route.path.includes('/document'); },
+        modules() {
+            const perms = this.authStore.permissions || [];
+            const hasAll = perms.includes('per-041') || perms.includes('per-00');
+            return this.allModules.filter(m => hasAll || perms.includes(m.perm));
+        },
     },
     methods: {
         isActive(path) { return this.$route.path === path || this.$route.path.startsWith(path); },
@@ -120,6 +147,10 @@ export default {
                     const need = Math.max(contentH + frameChrome + 24, viewportH + 1);
                     const curBodyH = document.body.style.height;
                     const needStr = need + 'px';
+                    frame.style.height = '';
+                    frame.style.minHeight = '';
+                    const main2 = document.querySelector('.tedarik-main');
+                    if(main2) { main2.style.height = ''; main2.style.minHeight = ''; }
                     if(contentH + 48 > viewportH){
                         if(curBodyH !== needStr){
                             document.body.style.height = needStr;
@@ -161,19 +192,19 @@ export default {
                 </div>
 
                 <nav class="tedarik-menu">
-                    <router-link to="/tedarikpanel/orders" custom v-slot="{ navigate, href }">
+                    <router-link v-if="authStore.permissions?.includes('per-05-01') || authStore.permissions?.includes('per-05')" to="/tedarikpanel/orders" custom v-slot="{ navigate, href }">
                         <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isOrdersActive }]">
                             <span>Siparişler</span>
                             <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                         </a>
                     </router-link>
-                    <router-link to="/tedarikpanel/documents" custom v-slot="{ navigate, href }">
+                    <router-link v-if="authStore.permissions?.includes('per-07-01') || authStore.permissions?.includes('per-07')" to="/tedarikpanel/documents" custom v-slot="{ navigate, href }">
                         <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isDokumanActive }]">
                             <span>Doküman</span>
                             <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                         </a>
                     </router-link>
-                    <a class="tedarik-menu-item" @click="() => {}">
+                    <a v-if="authStore.permissions?.includes('per-061-01') || authStore.permissions?.includes('per-061')" class="tedarik-menu-item" @click="() => {}">
                         <span>Raporlar</span>
                         <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                     </a>
@@ -210,16 +241,17 @@ export default {
                                 <button class="module-modal-close" @click="showModuleModal=false" aria-label="Kapat"><i class="ki-outline ki-cross fs-2"></i></button>
                             </div>
                             <div class="module-modal-body">
-                                <a v-for="mod in modules" :key="mod.key" href="javascript:;" class="module-card" :class="{ active: isModuleActive(mod) }" @click="goModule(mod)">
+                                <a v-for="mod in modules" :key="mod.key" href="javascript:;" class="module-card" :class="{ active: isModuleActive(mod), disabled: mod.disabled }" @click="!mod.disabled && goModule(mod)">
                                     <span class="module-card-icon" :style="{ background: mod.color }"><i :class="mod.icon"></i></span>
                                     <span class="module-card-text">
-                                        <span class="module-card-title">{{ mod.title }}</span>
+                                        <span class="module-card-title">{{ mod.title }} <span v-if="mod.disabled" style="font-size:11px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:2px 6px; border-radius:999px; margin-left:6px;">Yakında</span></span>
                                         <span class="module-card-desc">{{ mod.desc }}</span>
                                         <span class="module-card-path">{{ mod.path }}</span>
                                     </span>
                                     <span class="module-card-arrow"><i class="ki-outline ki-right fs-3"></i></span>
-                                    <span v-if="isModuleActive(mod)" class="module-card-badge">Aktif</span>
+                                    <span v-if="isModuleActive(mod) && !mod.disabled" class="module-card-badge">Aktif</span>
                                 </a>
+                                <div v-if="!modules.length" style="padding:16px; text-align:center; color:#94a3b8; font-size:13px;">Yetkili modül bulunamadı.</div>
                             </div>
                             <div class="module-modal-foot">Admin olarak paneller arası serbest geçiş yapabilirsiniz.</div>
                         </div>

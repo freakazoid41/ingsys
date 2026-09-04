@@ -45,25 +45,69 @@ class AuthController extends Controller
     }
 
     public function coallogin(){
-        
-        //list all cards on here
-        return view('auth.'. __FUNCTION__, [
-            'scripts' => [
-                //'/system/global/swal.js'
-            ],
-            'styles'  => [
-                //'/system/front/pages/' .$page . '/page.css'
-            ],
-            'pageScript' => '/front/pages/' . __FUNCTION__ . '/page.js',
-        ]);
+        // Single login page: redirect to tedarik (orange) as canonical
+        return redirect()->route('tedarik-login');
     }
 
     public function tedariklogin(){
+        // expose target_module if single-module auto-redirect was prepared
         return view('auth.tedariklogin', [
             'scripts' => [],
             'styles'  => [],
             'pageScript' => '/front/pages/tedariklogin/page.js',
+            'targetModule' => session('target_module'),
         ]);
+    }
+
+    public function moduleSelect(){
+        if(session('type_key') === null || session('2f_success') === null){
+            abort(403, 'Oturum bulunamadı');
+        }
+        $user = auth()->user();
+        if(!$user) abort(403);
+        $modules = $this->getAvailableModules($user);
+        if(count($modules) === 1){
+            // single module — redirect straight to its panel (token already flashed via session)
+            return redirect($modules[0]['route']);
+        }
+        return view('auth.moduleSelect', [
+            'modules' => $modules,
+            'token' => session('sms-success') ?? session('sms-firstlogin') ?? null,
+            'pageScript' => null,
+        ]);
+    }
+
+    private function getAvailableModules($user): array
+    {
+        $defs = [
+            'per-041-01' => ['code'=>'per-041-01','title'=>'Yönetim Paneli','route'=>'/coalpanel','color'=>'#154b91','desc'=>'Kontrol Paneli & Raporlar','icon'=>'shield'],
+            'per-041-02' => ['code'=>'per-041-02','title'=>'Tedarik','route'=>'/tedarikpanel','color'=>'#FF4713','desc'=>'Sipariş & Döküman','icon'=>'truck'],
+            'per-041-03' => ['code'=>'per-041-03','title'=>'İhale','route'=>'/coalpanel','color'=>'#059669','desc'=>'Yakında','icon'=>'gavel','disabled'=>true],
+            'per-041-04' => ['code'=>'per-041-04','title'=>'Fabrika Kabul','route'=>'/coalpanel','color'=>'#7c3aed','desc'=>'Yakında','icon'=>'factory','disabled'=>true],
+        ];
+        $service = new \App\Services\PermissionService();
+        $out = [];
+        foreach($defs as $code=>$meta){
+            if($service->has($user, $code)){
+                $out[] = $meta;
+            }
+        }
+        // DEV_ADMIN fallback already handled in has(), but ensure at least one if has('all')
+        if(empty($out) && $service->has($user, 'all')){
+            // superuser sees all (without disabled flag)
+            foreach($defs as $code=>$meta){
+                $m = $meta; unset($m['disabled']);
+                $out[] = $m;
+            }
+        }
+        return $out;
+    }
+
+    public function getModules(\Illuminate\Http\Request $request){
+        $user = auth()->user();
+        if(!$user) return response()->json(['success'=>false,'message'=>'Unauthorized'],401);
+        $modules = $this->getAvailableModules($user);
+        return response()->json(['success'=>true,'modules'=>$modules],200);
     }
    
 
@@ -475,11 +519,24 @@ class AuthController extends Controller
                     // do not block login on tracking failure
                 }
 
+                // Single login page: always use tedarik-login as canonical (per spec)
+                $loginRoute = 'tedarik-login';
+
                 //check is is first login (user needs to change its password then)
                 if($firstLogin) return redirect()->route($loginRoute)->with('sms-firstlogin', $token);
 
-
-                return redirect()->route($loginRoute)->with('sms-success', $token);
+                // Module routing: single -> auto, multi -> selection screen
+                $modules = $this->getAvailableModules($user);
+                if(empty($modules)){
+                    // no module permission — show login with error (still set token for debugging)
+                    return redirect()->route($loginRoute)->with('sms-fail','Hesabınıza atanmış bir modül bulunamadı. Yöneticinizle iletişime geçin.')->with('sms-success', $token);
+                }
+                if(count($modules) === 1){
+                    session(['target_module' => $modules[0]['route']]);
+                    return redirect()->route($loginRoute)->with('sms-success', $token);
+                }
+                // multiple modules -> selection screen (keep token flashed)
+                return redirect()->route('module-select')->with('sms-success', $token);
 
                 
             }else{
@@ -511,7 +568,9 @@ class AuthController extends Controller
             ]);
         }
 
-        $code = $user->email == env('DEV_ADMIN') ? '111111' : (string) rand(100000, 999999);
+        // IS_TEST=true → 111111 for all test users so Master can hop between kadir / kbbozat without mail
+        $isTest = env('IS_TEST') === true || env('IS_TEST') === 'true' || env('IS_TEST') === 1 || env('IS_TEST') === '1';
+        $code = ($isTest || $user->email == env('DEV_ADMIN')) ? '111111' : (string) rand(100000, 999999);
         $fileKey = $token.'-'.$user->person_id.'-login';
 
         \Illuminate\Support\Facades\Storage::disk('local')->delete($fileKey.'.txt');
@@ -823,10 +882,9 @@ class AuthController extends Controller
                 'desc' => (session('ptitle') ?? '-').' Kullanıcısı sistemden çıkış yaptı',
             ),JSON_UNESCAPED_UNICODE)
         ]);
-        $wasTedarik = session('auth_panel') === 'tedarik';
         $request->session()->flush();
-        if ($wasTedarik) return redirect()->route('tedarik-login');
-        return redirect()->route('login','admin');
+        // Single login: always back to tedarik-login (orange)
+        return redirect()->route('tedarik-login');
     }
 
     public function getPermissions(Request $request){
@@ -853,27 +911,14 @@ class AuthController extends Controller
             'typeKey'       => session('type_key') ?? null,
             'userName'      => $authUserName ?? session('currentStatus')['main_name'] ?? null,
             'permissions'   => $permissionService->has(auth()->user(), 'all') ? [
-                //this area is bassically backdoor for hidden kontent admins.
-                'per-00',
-                'per-00-01',
-                'per-04',
-                'per-04-01',
-                'per-04-02',
-                'per-04-03',
-                'per-04-04',
-                'per-04-05',
-                'per-05',
-                'per-05-01',
-                'per-05-02',
-                'per-06',
-                'per-06-01',
-                'per-06-02',
-                'per-07',
-                'per-07-01',
-                'per-07-02',
-                'per-08',
-                'per-08-01',
-                'per-08-02',
+                // DEV_ADMIN backdoor — keep in sync with sys_role_templates Admin (immutable-admin)
+                'per-00','per-00-01',
+                'per-041','per-041-01','per-041-02','per-041-03','per-041-04',
+                'per-04','per-04-01','per-04-02','per-04-03','per-04-04',
+                'per-05','per-05-01','per-05-02','per-05-03','per-05-04','per-05-05',
+                'per-06','per-06-01','per-06-02',
+                'per-07','per-07-01','per-07-02',
+                'per-061','per-061-01','per-061-02',
             ] : session('perms') 
         ],200);
     }

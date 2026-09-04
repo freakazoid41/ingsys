@@ -915,7 +915,7 @@
                             {
                                 class : ['btn','btn-danger','custom-button'],
                                 type  : 'button',
-                                hidden : !useAuthStore().currentStatus.canProceed || !(useAuthStore().typeKey == 'op-pert-reseller'),
+                                hidden : !(useAuthStore().typeKey == 'op-pert-reseller'),
                                 name  : 'userrequest',
                                 col : 4,
                                 value : 'Kullanıcı Talebinde Bulun',

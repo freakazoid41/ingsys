@@ -41,20 +41,25 @@ if(!function_exists('checkPerm')){
                 'status' => 'per-06-02',
             ],
             'op-doc-offer' => [
-                'edit'   => 'per-08-02',
-                'read'   => 'per-08-01',
-                'status' => 'per-05-02',
+                // per-08 removed (old Teklif) — map to order perms per-05
+                'edit'   => 'per-05-02',
+                'read'   => 'per-05-01',
+                'status' => 'per-05-03',
             ],
-            // Order Management System — reuse same perms (do not split per idea)
+            // Order Management System — granular per-05
             'op-doc-order' => [
                 'edit' => 'per-05-02',
                 'read' => 'per-05-01',
-                'status' => 'per-05-02',
+                'status' => 'per-05-03',   // Sevkiyata Gönderme / Onaylama
+                'cancel' => 'per-05-04',   // İptal / Parça Sil
+                'rename' => 'per-05-05',   // Numara Düzenle
             ],
             'op-doc-order-item' => [
                 'edit' => 'per-05-02',
                 'read' => 'per-05-01',
-                'status' => 'per-05-02',
+                'status' => 'per-05-03',
+                'cancel' => 'per-05-04',
+                'rename' => 'per-05-05',
             ]
         ];
         

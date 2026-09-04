@@ -596,10 +596,9 @@ class PersonsServiceProvider extends ServiceProvider
                     $clientInfo = $documentProd->getFormData($row->client_qnid);
                     $clientInfo = array_values($clientInfo['formFormat']['op-doc-client-form'])[0]['entities'];
                     
+                    // canProceed mechanic removed for INGSYS — Tedarik order flow does not require firma form completion
                     $result = array_filter($clientInfo, fn($key) => str_starts_with($key, 'cont_imza_file**'), ARRAY_FILTER_USE_KEY);
-                    if (empty($result)) {
-                        if($typeKey == 'op-pert-reseller') $response['canProceed'] = false;
-                    } else {
+                    if (!empty($result)) {
                         foreach ($result as $key => $value) {
                             $data = json_decode($value, true);
                             if ($data['status'] == 1) {
@@ -616,7 +615,6 @@ class PersonsServiceProvider extends ServiceProvider
                         'client_qnid' => $row->client_qnid
                     ]);
                     if($typeKey == 'op-pert-reseller') {
-                        $response['canProceed'] = false;
                         $response['canResponse'] = false;
                     }
                 }
@@ -634,7 +632,6 @@ class PersonsServiceProvider extends ServiceProvider
                 'exception' => $e,
                 'personQnId' => $personQnId
             ]);
-            $response['canProceed'] = false;
             $response['canResponse'] = false;
         }
 

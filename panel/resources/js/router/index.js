@@ -106,7 +106,24 @@ function closeAsideDrawer(){
     document.body.removeAttribute('data-kt-drawer-aside');
     document.querySelectorAll('.drawer-overlay').forEach(el => el.remove());
 }
-router.beforeEach((to, from, next) => { closeAsideDrawer(); next(); });
+router.beforeEach((to, from, next) => {
+    closeAsideDrawer();
+    try {
+        const authStore = useAuthStore();
+        const perms = authStore.permissions || [];
+        // Tedarik Doküman guard: per-07 required
+        if (to.path.startsWith('/tedarikpanel/documents') && perms.length) {
+            const hasDoc = perms.includes('per-07') || perms.includes('per-07-01');
+            if (!hasDoc) return next('/tedarikpanel/orders');
+        }
+        // Tedarik Sipariş guard: per-05 required
+        if (to.path.startsWith('/tedarikpanel/orders') && perms.length) {
+            const hasOrder = perms.includes('per-05') || perms.includes('per-05-01');
+            if (!hasOrder) return next('/tedarikpanel');
+        }
+    } catch(e) {}
+    next();
+});
 router.afterEach(() => {
     closeAsideDrawer();
     setTimeout(closeAsideDrawer, 50);

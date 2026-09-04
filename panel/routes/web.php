@@ -4,8 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
 
-Route::get('/',                           [AuthController::class, 'coallogin'])->name('login');
+Route::get('/',                           [AuthController::class, 'tedariklogin'])->name('login');
 Route::get('/tedarik',                    [AuthController::class, 'tedariklogin'])->name('tedarik-login');
+Route::get('/module-select',              [AuthController::class, 'moduleSelect'])->name('module-select');
 Route::get('/register',                   [AuthController::class, 'register'])->name('register');
 //Route::get('/',                   [AuthController::class, 'login'])->name('login');
 Route::get('/logout',                     [AuthController::class, 'logout'])->name('logout');
@@ -30,19 +31,15 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
 
         $coalAuth = function (){
             if(session('type_key') !== null && session('2f_success') !== null){
+                // Module guard: need per-041-01
+                $user = auth()->user();
+                if($user && !(new \App\Services\PermissionService())->has($user, 'per-041-01')){
+                    // allow DEV_ADMIN via 'all' fallback inside has()
+                    if(!app(\App\Services\PermissionService::class)->has($user, 'all')){
+                        abort(403, 'Bu modüle yetkiniz yok (Yönetim Paneli)');
+                    }
+                }
                 return view('coalapp',['type' => session('type_key') == 'op-pert-admin' ? 'admin' : 'client']);
-                /*switch(session('type_key')){
-                    case 'op-pert-admin':
-                        return view('app');
-                        break;
-                    case 'op-pert-buyer':
-                        //return redirect('/client'); // an alternative to "redirect()->to()"
-                        return view('client');
-                        break;
-                    default:
-                        abort('403');
-                    break;
-                }*/
             }else{
                 abort('403');
             }
@@ -55,6 +52,12 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
 
         $tedarikAuth = function (){
             if(session('type_key') !== null && session('2f_success') !== null){
+                $user = auth()->user();
+                if($user && !(new \App\Services\PermissionService())->has($user, 'per-041-02')){
+                    if(!app(\App\Services\PermissionService::class)->has($user, 'all')){
+                        abort(403, 'Bu modüle yetkiniz yok (Tedarik)');
+                    }
+                }
                 return view('tedarikapp',['type' => session('type_key') == 'op-pert-admin' ? 'admin' : 'client']);
             }else{
                 abort('403');

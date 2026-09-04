@@ -32,7 +32,7 @@ export default {
             isMini      : false,
             searchQuery : '',
             showModuleModal : false,
-            modules: [
+            allModules: [
                 {
                     key: 'admin',
                     title: 'Yönetim Paneli',
@@ -40,6 +40,7 @@ export default {
                     icon: 'ki-outline ki-shield-tick',
                     path: '/coalpanel',
                     color: '#154b91',
+                    perm: 'per-041-01',
                 },
                 {
                     key: 'tedarik',
@@ -48,6 +49,27 @@ export default {
                     icon: 'ki-outline ki-delivery',
                     path: '/tedarikpanel',
                     color: '#FF5A1F',
+                    perm: 'per-041-02',
+                },
+                {
+                    key: 'ihale',
+                    title: 'İhale',
+                    desc: 'İhale süreçleri — Yakında',
+                    icon: 'ki-outline ki-chart-simple',
+                    path: '/coalpanel',
+                    color: '#059669',
+                    perm: 'per-041-03',
+                    disabled: true,
+                },
+                {
+                    key: 'fabrika',
+                    title: 'Fabrika Kabul',
+                    desc: 'Fabrika kabul — Yakında',
+                    icon: 'ki-outline ki-home-2',
+                    path: '/coalpanel',
+                    color: '#7c3aed',
+                    perm: 'per-041-04',
+                    disabled: true,
                 },
             ],
         };
@@ -67,6 +89,12 @@ export default {
                 || '?';
             const parts = src.trim().split(/\s+/).filter(Boolean);
             return ((parts[0]?.[0] || '?') + (parts[1]?.[0] || '')).toLocaleUpperCase('tr');
+        },
+        modules() {
+            const perms = this.authStore.permissions || [];
+            // DEV_ADMIN (has all via getPermissions) will have per-041 etc; fallback show all if has per-041 parent
+            const hasAll = perms.includes('per-041') || perms.includes('per-00');
+            return this.allModules.filter(m => hasAll || perms.includes(m.perm));
         },
     },
     watch: {
@@ -202,7 +230,7 @@ export default {
 
             <!-- Search (3a) -->
             <div v-if="!isMini" class="aside-search mt-2 px-4 pb-2 flex-shrink-0" >
-                <div class="position-relative" v-if="useAuthStore()?.currentStatus?.canProceed ||!(useAuthStore().typeKey == 'op-pert-reseller')">
+                <div class="position-relative">
                     <i class="ki-outline ki-magnifier fs-4 position-absolute top-50 start-0 ms-3 translate-middle-y text-muted"></i>
                     <input type="text"
                            class="form-control form-control-sm"
@@ -214,7 +242,7 @@ export default {
             <hr v-if="!isMini" class="aside-divider mx-4 my-2">
 
             <!-- Menü -->
-            <div class="aside-menu flex-grow-0 px-2 pb-3" id="kt_aside_menu_wrap" v-if="useAuthStore().currentStatus?.canProceed ||!(useAuthStore().typeKey == 'op-pert-reseller')">
+            <div class="aside-menu flex-grow-0 px-2 pb-3" id="kt_aside_menu_wrap">
                 <div id="kt_aside_menu"
                      class="menu menu-column menu-title-gray-600 menu-state-primary menu-state-icon-primary menu-state-bullet-primary menu-icon-primary menu-arrow-primary fw-semibold fs-6"
                      data-kt-menu="true">
@@ -336,7 +364,7 @@ export default {
                                     <span class="menu-title">Log Kayıtları</span>
                                 </router-link>
                             </div>
-                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-04-05')">
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-04-04')">
                                 <router-link :to="{ name: 'NList' }" class="menu-link sub-link">
                                     <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
                                     <span class="menu-title">Bildirim Kayıtları</span>
@@ -348,13 +376,26 @@ export default {
                                     <span class="menu-title">Rol ve Yetki Yönetimi</span>
                                 </router-link>
                             </div>
-                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-04')">
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-04-01')">
                                 <router-link :to="{ name: 'UList' }" class="menu-link sub-link">
                                     <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
                                     <span class="menu-title">Kullanıcı Yönetimi</span>
                                 </router-link>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Raporlar -->
+                    <div v-if="this.useAuthStore().permissions?.includes('per-061-01') || this.useAuthStore().permissions?.includes('per-061')"
+                         class="menu-item py-1 menu-row-main">
+                        <a class="menu-link main-menu px-3" style="opacity:0.92; cursor:default;">
+                            <span class="menu-icon me-0">
+                                <i class="ki-outline ki-chart-simple fs-1"></i>
+                            </span>
+                            <div class="menu-content d-flex justify-content-between align-items-center w-100">
+                                <span class="menu-section ps-2 py-1 text-dark">Raporlar <span style="font-size:10px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:1px 6px; border-radius:999px; margin-left:6px;">Yakında</span></span>
+                            </div>
+                        </a>
                     </div>
 
                     <!-- Bildirimler -->
@@ -421,16 +462,17 @@ export default {
                     <button class="module-modal-close" @click="closeModules" aria-label="Kapat"><i class="ki-outline ki-cross fs-2"></i></button>
                 </div>
                 <div class="module-modal-body">
-                    <a v-for="mod in modules" :key="mod.key" href="javascript:;" class="module-card" :class="{ active: isModuleActive(mod) }" @click="goModule(mod)">
+                    <a v-for="mod in modules" :key="mod.key" href="javascript:;" class="module-card" :class="{ active: isModuleActive(mod), disabled: mod.disabled }" @click="!mod.disabled && goModule(mod)">
                         <span class="module-card-icon" :style="{ background: mod.color }"><i :class="mod.icon"></i></span>
                         <span class="module-card-text">
-                            <span class="module-card-title">{{ mod.title }}</span>
+                            <span class="module-card-title">{{ mod.title }} <span v-if="mod.disabled" style="font-size:11px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:2px 6px; border-radius:999px; margin-left:6px;">Yakında</span></span>
                             <span class="module-card-desc">{{ mod.desc }}</span>
                             <span class="module-card-path">{{ mod.path }}</span>
                         </span>
                         <span class="module-card-arrow"><i class="ki-outline ki-right fs-3"></i></span>
-                        <span v-if="isModuleActive(mod)" class="module-card-badge">Aktif</span>
+                        <span v-if="isModuleActive(mod) && !mod.disabled" class="module-card-badge">Aktif</span>
                     </a>
+                    <div v-if="!modules.length" style="padding:16px; text-align:center; color:#94a3b8; font-size:13px;">Yetkili modül bulunamadı.</div>
                 </div>
                 <div class="module-modal-foot">Admin olarak paneller arası serbest geçiş yapabilirsiniz.</div>
             </div>

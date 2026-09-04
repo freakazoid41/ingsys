@@ -39,7 +39,7 @@ export default {
       detailRole: null,
       treeInstance: null,
       editingRoleId: null,
-      immutableRoles: ['Tedarikçi','Satınalma Personeli','Satınalma KeyUser','Admin','Super Admin'],
+      immutableRoles: ['Tedarikçi','İB. Görüntüleme rolü','İş Birimi','Admin'],
       editWarning: '',
     };
   },

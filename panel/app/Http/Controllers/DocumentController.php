@@ -225,6 +225,13 @@ class DocumentController extends Controller
                         'msg'     => 'Teklifler silinemez, yalnızca iptal edilebilir.',
                     ],403);
                 }
+                // Order System: generic DELETE must respect per-05-04 (İptal / Parça Sil) — strict, no fallback to per-05-02
+                if($key == 'op-doc-order' && !docPermCheck('op-doc-order','cancel')){
+                    return response()->json([
+                        'success' => false,
+                        'msg'     => 'İşlem için yetkiniz bulunmamaktadır (per-05-04 İptal / Parça Sil)...',
+                    ],403);
+                }
 
                 $res =  (new DocumentServiceProvider())->removeContent($request->id);
                 $response = [
@@ -357,8 +364,8 @@ class DocumentController extends Controller
 
     /**
      * Yanlislikla iptal edilmis teklifi geri acar (#16). Durum degistirmez; teklif
-     * iptalden onceki durumuna doner. Yetki cancelOffer ile ayni: per-08-02 + sahiplik,
-     * yani tedarikci kendi firmasinin teklifini geri acabilir.
+     * iptalden onceki durumuna doner. Yetki cancelOffer ile ayni: per-05-02 + sahiplik,
+     * yani tedarikci kendi firmasinin teklifini geri acabilir (eski per-08-02).
      */
     public function reopenOffer(Request $request){
         $validateUser = Validator::make($request->all(),[
@@ -401,10 +408,11 @@ class DocumentController extends Controller
             ],422);
         }
 
-        if(!docPermCheck('op-doc-order','edit')){
+        // strict per-05-04 — no fallback to per-05-02 (reseller has 05-02 but must NOT cancel)
+        if(!docPermCheck('op-doc-order','cancel')){
             return response()->json([
                 'success' => false,
-                'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
+                'msg'     => 'İşlem için yetkiniz bulunmamaktadır (per-05-04 İptal / Parça Sil)...',
             ],403);
         }
 
@@ -437,10 +445,10 @@ class DocumentController extends Controller
                 'error'   => $validate->errors(),
             ],422);
         }
-        if(!docPermCheck('op-doc-order','edit')){
+        if(!docPermCheck('op-doc-order','rename')){
             return response()->json([
                 'success' => false,
-                'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
+                'msg'     => 'İşlem için yetkiniz bulunmamaktadır (per-05-05 Numara Düzenle)...',
             ],403);
         }
         $form = (new DocumentServiceProvider())->getFormData($request->id);

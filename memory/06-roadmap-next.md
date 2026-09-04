@@ -30,6 +30,12 @@ Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/ted
 - **Tedarik public panel** `/tedarik` → `/tedarikpanel` + `GDZ/ADM` rename, typewriter paper-feed, Module Switcher, detailed search, OList/OForm shared via `isTedarik`
 - **Tedarik Doküman** `/tedarikpanel/documents` live — `DList isTedarik` flat list, LIFNR-scoped, row = OList CardRow (tr white/radius14/shadow, td borderless), `75vh`, `Kullanıcılar` tab removed
 - **File-Detail OLD-APP replica** `GET /api/v1/file-detail` + `DForm` with old-version/decidable locks
+- **Permission system rebuild (2026-09-04):** 27 perms, 4 role templates (`immutable-admin/reseller/rapor-personeli/satınalma-keyuser`), `per-08`+`per-04-05` removed, `SysRoleTemplateSeeder` op_key unique + auto-cleanup
+- **Single login + module selection (2026-09-04):** `GET /` or `GET /tedarik` → `tedariklogin` orange, post-2FA module picker (`/module-select` blade), `coalAuth`/`tedarikAuth` module guards, `GET /v1/modules` API
+- **Strict permission enforcement (2026-09-04):** `cancelOrder→per-05-04`, `renameOrder→per-05-05`, `Kalite→per-05-03` only, `SystemController per-07-01 && per-07` fix
+- **`canProceed` removed (2026-09-04):** `PersonsServiceProvider` always true, `app.js` no redirect, `CForm.vue` warning removed
+- **Reseller LIFNR filter (2026-09-04):** `Documents::tableList` `op-doc-order/item/serial` case resolves lifnrs from `clientQnidList`
+- **OList tedarik pagination fix (2026-09-04):** `.divTable height:90%` inline + CSS, matches working DList layout
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 

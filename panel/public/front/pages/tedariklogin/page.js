@@ -6,9 +6,20 @@ export default class Page {
         if(login != null){
             localStorage.setItem('token',login.value.trim());
             const isFirst = document.querySelector('input[name="firstLogin"]');
-            setTimeout(() => {
-                    window.location.href = isFirst ? 'auth/passwordreset/firstlogin' : '/tedarikpanel';
-            }, 400);
+            if(isFirst){
+                setTimeout(() => {
+                    window.location.href = 'auth/passwordreset/firstlogin';
+                }, 400);
+                return;
+            }
+            // Single login: honor target_module if server set it (single-module auto-redirect)
+            const targetInput = document.querySelector('input[name="targetModule"]');
+            if(targetInput && targetInput.value.trim()){
+                setTimeout(() => { window.location.href = targetInput.value.trim(); }, 400);
+                return;
+            }
+            // Fallback: ask backend which modules are allowed (covers edge where we landed on login but have multi)
+            this.routeByModules();
         }else{
             this.pageEvents();
             if(document.cookie.includes('email')){
@@ -20,6 +31,27 @@ export default class Page {
                 if (rem && em) rem.checked = true;
             }
         }
+    }
+
+    async routeByModules(){
+        try{
+            const plib = this.plib;
+            const rsp = await plib.request({ url:'/api/v1/modules', method:'GET' }, null);
+            const mods = rsp?.modules ?? rsp ?? [];
+            if(Array.isArray(mods) && mods.length === 1){
+                setTimeout(()=> window.location.href = mods[0].route, 300);
+                return;
+            }
+            if(Array.isArray(mods) && mods.length > 1){
+                // if multiple but we are on login page (not module-select), go to selection screen
+                setTimeout(()=> window.location.href = '/module-select', 300);
+                return;
+            }
+        }catch(e){
+            console.warn('module route fallback failed', e);
+        }
+        // default fallback
+        setTimeout(() => { window.location.href = '/tedarikpanel'; }, 400);
     }
 
     getCookie(name){

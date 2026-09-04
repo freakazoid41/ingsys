@@ -916,8 +916,8 @@
         <div class="order-list-body">
             <div id="div_table"></div>
         </div>
-        <div class="tedarik-bottom-note">
-            <i class="ki-outline ki-information-5"></i>
+        <div class="tedarik-bottom-note mt-5">
+            <i class="ki-outline ki-information-5 me-5"></i>
             <span>Belgeler tekil listelenir — <b>Sipariş Kodu</b> kolonundan bağlı siparişi görün. Önizlemek için <b>"Önizle"</b>, detay için <b>"Detay"</b>.</span>
         </div>
     </div>
@@ -944,6 +944,21 @@
 </template>
 
 <style scoped>
+.tedarik-bottom-note {
+    margin-top: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 11.5px;
+    color: #8a8a8e;
+    line-height: 1.6;
+}
+.tedarik-bottom-note i {
+    color: #0e9cb8;
+    font-size: 13px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
 .dlist-page { padding-top: 12px; }
 .dlist-card {
     border: 1px solid #e2e8f0;
@@ -1021,7 +1036,11 @@
     min-width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;
 }
 :deep(.pickletable .divPagination .active button),
-:deep(.pickletable .divPagination .active .page-link){
+:deep(.pickletable .divPagination .active .page-link),
+:deep(.pickletable .divPagination button.active),
+:deep(.pickletable .divPagination .page-link.active),
+:deep(.pickletable .divPagination button.current),
+:deep(.pickletable .divPagination .page-link.current){
     background:#0f172a !important; color:#fff !important; border-color:#0f172a !important;
 }
 
@@ -1342,7 +1361,11 @@
     min-width:32px; height:30px;
 }
 .tedarik-docs-page :deep(.pickletable .divPagination .active button),
-.tedarik-docs-page :deep(.pickletable .divPagination .active .page-link){
+.tedarik-docs-page :deep(.pickletable .divPagination .active .page-link),
+.tedarik-docs-page :deep(.pickletable .divPagination button.active),
+.tedarik-docs-page :deep(.pickletable .divPagination .page-link.active),
+.tedarik-docs-page :deep(.pickletable .divPagination button.current),
+.tedarik-docs-page :deep(.pickletable .divPagination .page-link.current){
     background:#fff !important; color:#FF5A1F !important; border-color:#FF5A1F !important; font-weight:700 !important;
 }
 .tedarik-docs-page :deep(.table-group-header td){

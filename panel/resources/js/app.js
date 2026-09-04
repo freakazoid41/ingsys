@@ -42,10 +42,7 @@ const initApp = async () => {
       permissionDataStore.fetchRoleTemplates(),
       permissionDataStore.fetchRoleItems(),
     ]);
-    //console.log(authStore.currentStatus)
-    if (authStore.typeKey == 'op-pert-reseller' && !authStore.currentStatus.canProceed) {
-      router.push('/coalpanel/client/form/'+authStore.currentStatus.clientQnid); // Redirect to a "no access" route
-    }
+    // canProceed redirect removed for INGSYS — reseller firma form no longer blocks navigation
   } catch (e) {
     console.error('app init failed:', e);
   }

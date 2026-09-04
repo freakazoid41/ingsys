@@ -798,6 +798,9 @@
                             wrap.style.justifyContent='flex-end';
                             wrap.style.gap='6px';
                             if(_isTedarik){
+                                const _perms = this.authStore.permissions || [];
+                                const canKalite = _perms.includes('per-05-03');
+                                const canRename = _perms.includes('per-05-05');
                                 const aks=document.createElement('button');
                                 aks.textContent='Aksiyonlar';
                                 aks.className='btn';
@@ -818,9 +821,10 @@
                                     const opKey = String(row.status||'').split('**')[0]||'';
                                     const isEnded = ['doc_trans_order_approved','doc_trans_order_rejected'].includes(opKey);
                                     const html = `<div class="d-flex flex-column gap-2 p-2">
-                                        <button id="aks-kalite" class="btn" ${isEnded?'disabled':''} style="background:${isEnded?'#9ca3af':'#22c55e'};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;${isEnded?'opacity:0.65;cursor:not-allowed;':''}"><i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat${isEnded?' — Zaten Kapalı':''}</button>
-                                        ${isClone ? `<button id="aks-rename" class="btn" style="background:#f59e0b;color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-pencil" style="font-size:16px;"></i> Sipariş Numarasını Düzenle</button>` : ''}
+                                        <button id="aks-kalite" class="btn" ${isEnded || !canKalite ?'disabled':''} style="background:${isEnded?'#9ca3af': (!canKalite?'#9ca3af':'#22c55e')};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;${(isEnded||!canKalite)?'opacity:0.65;cursor:not-allowed;':''}"><i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat${isEnded?' — Zaten Kapalı': (!canKalite?' — Yetkiniz Yok (per-05-03)':'')}</button>
+                                        ${isClone ? `<button id="aks-rename" class="btn" ${!canRename?'disabled':''} style="background:${!canRename?'#9ca3af':'#f59e0b'};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;${!canRename?'opacity:0.65;cursor:not-allowed;':''}"><i class="ki-outline ki-pencil" style="font-size:16px;"></i> Sipariş Numarasını Düzenle${!canRename?' — Yetkiniz Yok (per-05-05)':''}</button>` : ''}
                                         ${isEnded ? `<div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:2px;">Bu sipariş zaten kapatılmış.</div>` : ''}
+                                        ${!canKalite && !isEnded ? `<div style="font-size:11px;color:#ef4444;text-align:center;">Kalite onayı için per-05-03 yetkiniz yok</div>` : ''}
                                     </div>`;
                                     Swal.fire({
                                         title:'Aksiyonlar',
@@ -833,6 +837,11 @@
                                                     kaliteBtn.addEventListener('click', (ev) => {
                                                         ev.preventDefault();
                                                         Swal.showValidationMessage('Bu sipariş zaten kapatılmış — tekrar onaylanamaz.');
+                                                    });
+                                                } else if(!canKalite){
+                                                    kaliteBtn.addEventListener('click', (ev) => {
+                                                        ev.preventDefault();
+                                                        Swal.showValidationMessage('Yetkiniz yok (per-05-03 Sipariş Sevkiyata Gönderme)');
                                                     });
                                                 } else {
                                                 kaliteBtn.addEventListener('click', async () => {
@@ -863,6 +872,12 @@
                                             }
                                             const renameBtn = document.getElementById('aks-rename');
                                             if(renameBtn){
+                                                if(!canRename){
+                                                    renameBtn.addEventListener('click', (ev)=>{
+                                                        ev.preventDefault();
+                                                        Swal.showValidationMessage('Yetkiniz yok (per-05-05 Sipariş Numarası Düzenleme)');
+                                                    });
+                                                } else {
                                                 renameBtn.addEventListener('click', async () => {
                                                     Swal.close();
                                                     const base = curNo.substring(0, curNo.lastIndexOf('-'));
@@ -914,6 +929,7 @@
                                                         Swal.fire({icon:'error', title:'Hata', text: err?.msg || err?.message || 'Hata oluştu'});
                                                     }
                                                 });
+                                                }
                                             }
                                         }
                                     });
@@ -959,26 +975,34 @@
                             const cancelBtn=document.createElement('button');
                             const vClone = row.transfer_no || row.order_no || '';
                             const isCloneRow = /\-\d+$/.test(vClone);
+                            const _perms2 = this.authStore.permissions || [];
+                            const canCancel = _perms2.includes('per-05-04');
                             cancelBtn.textContent= isCloneRow ? 'Parçayı Sil' : 'İptal Et';
                             cancelBtn.className='btn';
-                            cancelBtn.style.background='#fef2f2';
-                            cancelBtn.style.color='#dc2626';
-                            cancelBtn.style.border='1px solid #fecaca';
+                            cancelBtn.style.background= canCancel ? '#fef2f2' : '#f1f5f9';
+                            cancelBtn.style.color= canCancel ? '#dc2626' : '#94a3b8';
+                            cancelBtn.style.border= canCancel ? '1px solid #fecaca' : '1px solid #e2e8f0';
                             cancelBtn.style.borderRadius='8px';
                             cancelBtn.style.padding='6px 14px';
                             cancelBtn.style.fontSize='0.82rem';
                             cancelBtn.style.fontWeight='600';
-                            cancelBtn.style.cursor='pointer';
-                            cancelBtn.onmouseenter=()=> cancelBtn.style.background='#fee2e2';
-                            cancelBtn.onmouseleave=()=> cancelBtn.style.background='#fef2f2';
-                            cancelBtn.onclick=()=> this.cancelOrder(row.id, isCloneRow);
+                            cancelBtn.style.cursor= canCancel ? 'pointer' : 'not-allowed';
+                            cancelBtn.disabled = !canCancel;
+                            if(canCancel){
+                                cancelBtn.onmouseenter=()=> cancelBtn.style.background='#fee2e2';
+                                cancelBtn.onmouseleave=()=> cancelBtn.style.background='#fef2f2';
+                                cancelBtn.onclick=()=> this.cancelOrder(row.id, isCloneRow);
+                            } else {
+                                cancelBtn.title='Yetkiniz yok (per-05-04)';
+                                cancelBtn.onclick=()=> this.plib.toast(this.Swal,'error','Yetkiniz yok (per-05-04 İptal / Parça Sil)');
+                            }
                             wrap.appendChild(cancelBtn);
                             return wrap;
                         }
                     }
                 ];
                 this.table = new PickleTable({
-                    container:'#div_table', headers, pageLimit:10, height: _isTedarik ? 'auto' : '70vh', type:'ajax', columnSearch:false, paginationType:'number',
+                    container:'#div_table', headers, pageLimit:10, height: _isTedarik ? '75vh' : '70vh', type:'ajax', columnSearch:false, paginationType:'number',
                     ajax:{ url:'/api/v1/table/documents', data:{} },
                     // Orders ARE transfers when partially sent: EBELN and EBELN-X are both op-doc-order.
                     // Screenshot shows EBELN-X rows which are cloned orders (partial shipment).
@@ -1009,6 +1033,33 @@
                         if(!data.ekleme_tarih && data.created_at) data.ekleme_tarih = data.created_at;
                         return data;
                     },
+                });
+                // enforce tedarik 75vh inline — beats any stylesheet (same as DList)
+                this.$nextTick(()=>{
+                    const enforceTedarikHeight = ()=>{
+                        if(!this.isTedarik) return;
+                        const el = document.querySelector('.tedarik-card .pickletable');
+                        if(el){
+                            if(el.style.getPropertyValue('height') !== '75vh'){
+                                el.style.setProperty('height','75vh','important');
+                            }
+                            if(el.style.getPropertyValue('min-height') !== 'calc(75vh - 280px)'){
+                                el.style.setProperty('min-height','calc(75vh - 280px)','important');
+                            }
+                            const divTable = el.querySelector('.divTable');
+                            if(divTable){
+                                if(divTable.style.getPropertyValue('height') !== '90%'){
+                                    divTable.style.setProperty('height','90%','important');
+                                }
+                                if(divTable.style.getPropertyValue('overflow') !== 'auto'){
+                                    divTable.style.setProperty('overflow','auto','important');
+                                }
+                            }
+                        }
+                    };
+                    enforceTedarikHeight();
+                    setTimeout(enforceTedarikHeight, 300);
+                    setTimeout(enforceTedarikHeight, 1000);
                 });
             },
             async cancelOrder(orderQnid, isPartial=false){
@@ -1181,6 +1232,15 @@
                 <a href="javascript:;" class="tedarik-filter" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel Çıktı</a>
             </div>
         </div>
+        <!-- Search bar — same as Doküman Listesi -->
+        <div v-if="isTedarik" class="tedarik-docs-searchrow" style="margin: 0 0 14px;">
+            <div class="tedarik-docs-searchbox">
+                <i class="ki-outline ki-magnifier tedarik-docs-search-icon"></i>
+                <input type="text" id="mainSearch" class="tedarik-docs-search-input" placeholder="Sipariş ara — sipariş no, tedarikçi, alım..." @keydown.enter="searchTable">
+            </div>
+            <button type="button" class="tedarik-btn-light tedarik-docs-btn" @click="searchTable">Ara</button>
+            <button type="button" class="tedarik-btn-light tedarik-docs-btn tedarik-docs-btn--ghost" @click="resetSearch">Sıfırla</button>
+        </div>
         <!-- Detaylı Filtre modal — 3×3 grid absolute (restored) -->
         <div v-if="isTedarik && showDetailed" class="tedarik-detailed-panel">
             <div class="tedarik-detailed-grid">
@@ -1225,8 +1285,6 @@
             <i class="ki-outline ki-information-5"></i>
             <span>Beklemede olan siparişlerinizi <b>"Detaylar"</b> butonuna tıklayarak kontrollerinizi gerçekleştirmeyi unutmayınız.</span>
         </div>
-        <!-- hidden search for tedarik filtering (keeps searchTable working) -->
-        <input v-if="isTedarik" id="mainSearch" type="hidden" value="" />
     </div>
 </template>
 <style scoped>
@@ -1431,16 +1489,31 @@
 }
 .tedarik-filter i { font-size: 13px; color: #a1a1a6; }
 .tedarik-filter:hover { color: #4b5563; }
+.tedarik-card {
+    /* Same as Doküman 75vh — table fills page, pagination at bottom */
+    height: auto !important;
+    min-height: 0 !important;
+    flex: 0 0 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
 .tedarik-card .order-list-body {
     background: transparent !important;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+    flex: 0 0 auto !important;
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+.tedarik-card :deep(.pickletable),
+.tedarik-card :deep(#div_table.pickletable) {
+    height: 75vh !important;
+    min-height: calc(75vh - 280px) !important;
 }
 .tedarik-card :deep(.pickletable .divTable){
-    flex: 1;
-    height: auto !important;
-    overflow: visible !important;
+    overflow: auto !important;
+}
+.tedarik-card :deep(.pickletable .divPagination){
+    margin-top: 0 !important;
 }
 .tedarik-card :deep(.pickletable table){
     border-collapse: separate !important;
@@ -1469,37 +1542,37 @@
     text-align: right !important;
 }
 .tedarik-card :deep(.pickletable tbody tr){
-    background: transparent !important;
-    box-shadow: none !important;
+    background: #fff !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+    border: none !important;
+}
+.tedarik-card :deep(.pickletable tbody tr:hover){
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
 }
 .tedarik-card :deep(.pickletable tbody tr:hover td){
-    background: #fcfcfc !important;
+    background: transparent !important;
 }
 .tedarik-card :deep(.pickletable tbody td){
-    background: #fff !important;
-    padding: 13px 14px !important;
-    font-size: 13.5px !important;
-    color: #2b2b33 !important;
-    border: 1px solid #e8e8ea !important;
-    border-left: 1px solid #e8e8ea !important;
-    border-right: 1px solid #e8e8ea !important;
+    background: transparent !important;
+    padding: 14px 12px !important;
+    font-size: 13px !important;
+    color: #333 !important;
+    border: none !important;
     vertical-align: middle !important;
-    white-space: nowrap;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     font-weight: 400;
-    text-overflow: clip !important;
-    overflow: visible !important;
 }
 .tedarik-card :deep(.pickletable tbody td:first-child){
-    border-left: 1px solid #e8e8ea !important;
-    border-top-left-radius: 8px !important;
-    border-bottom-left-radius: 8px !important;
+    border-radius: 14px 0 0 14px !important;
     font-weight: 600 !important;
     color: #111827 !important;
 }
 .tedarik-card :deep(.pickletable tbody td:last-child){
-    border-right: 1px solid #e8e8ea !important;
-    border-top-right-radius: 8px !important;
-    border-bottom-right-radius: 8px !important;
+    border-radius: 0 14px 14px 0 !important;
 }
 .tedarik-card :deep(.pickletable .divPagination){
     background: transparent !important;
@@ -1529,7 +1602,11 @@
     height: 30px;
 }
 .tedarik-card :deep(.pickletable .divPagination .active button),
-.tedarik-card :deep(.pickletable .divPagination .active .page-link){
+.tedarik-card :deep(.pickletable .divPagination .active .page-link),
+.tedarik-card :deep(.pickletable .divPagination button.active),
+.tedarik-card :deep(.pickletable .divPagination .page-link.active),
+.tedarik-card :deep(.pickletable .divPagination button.current),
+.tedarik-card :deep(.pickletable .divPagination .page-link.current){
     background: #fff !important;
     color: #FF5A1F !important;
     border-color: #FF5A1F !important;
@@ -1543,10 +1620,6 @@
     font-size: 11.5px;
     color: #8a8a8e;
     line-height: 1.6;
-    justify-content: flex-end;
-    text-align: right;
-    margin-left: auto;
-    max-width: 520px;
 }
 .tedarik-bottom-note i {
     color: #0e9cb8;
@@ -1554,7 +1627,6 @@
     margin-top: 2px;
     flex-shrink: 0;
 }
-.tedarik-bottom-note b { color: #4b5563; font-weight: 700; }
 /* ===== Detailed search panel ===== */
 .tedarik-card{ position: relative; }
 .tedarik-detailed-panel{
@@ -1731,11 +1803,8 @@
 <style>
 .tedarik-card .pickletable {
     border: none !important;
-    height: auto !important;
 }
 .tedarik-card .pickletable .divTable {
-    height: auto !important;
-    overflow: visible !important;
     border-bottom: none !important;
 }
 .tedarik-card .pickletable table {
@@ -1757,85 +1826,94 @@
     padding: 0 14px 10px !important;
 }
 .tedarik-card .pickletable td {
-    background: #fff !important;
-    border: 1px solid #e8e8ea !important;
-    font-size: 13.5px !important;
-    padding: 13px 14px !important;
-    text-overflow: clip !important;
-    overflow: visible !important;
+    background: transparent !important;
+    border: none !important;
+    font-size: 13px !important;
+    padding: 14px 12px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    vertical-align: middle !important;
+    color: #333 !important;
 }
 .tedarik-card .pickletable td:first-child {
-    border-left: 1px solid #e8e8ea !important;
-    border-top-left-radius: 8px !important;
-    border-bottom-left-radius: 8px !important;
+    border-radius: 14px 0 0 14px !important;
     font-weight: 600 !important;
 }
 .tedarik-card .pickletable td:last-child {
-    border-right: 1px solid #e8e8ea !important;
-    border-top-right-radius: 8px !important;
-    border-bottom-right-radius: 8px !important;
+    border-radius: 0 14px 14px 0 !important;
 }
 .tedarik-card .pickletable tr {
-    background: transparent !important;
+    background: white !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    border: none !important;
+}
+.tedarik-card .pickletable tr:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
 }
 .tedarik-card .pickletable tr:hover td {
-    background: #fcfcfc !important;
+    background: transparent !important;
 }
 .tedarik-card .pickletable .divPagination {
     border-top: none !important;
 }
-/* Card-row style for tedarik */
-.tedarik-card .pickletable .pt-auto-height {
+/* Card-row table base */
+.tedarik-card .pickletable table {
     border-collapse: separate !important;
     border-spacing: 0 7px !important;
     width: 100% !important;
     table-layout: auto !important;
     border: none !important;
 }
-.tedarik-card .pickletable .pt-auto-height tbody tr {
-    background: white !important;
-    border-radius: 14px !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-    border: none !important;
+/* Search bar — same as Doküman Listesi */
+.tedarik-docs-searchrow{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:#fff; border:1px solid #e8e8ea; border-radius:14px; padding:12px 14px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+    margin:0 0 14px;
 }
-.tedarik-card .pickletable .pt-auto-height tbody tr:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+.tedarik-docs-searchbox{
+    position:relative; display:flex; align-items:center; flex:1; min-width:240px;
+    background:#f8fafc; border:1px solid #e2e8f0; border-radius:999px;
+    padding:0 14px 0 38px; height:42px; transition:all .18s;
 }
-.tedarik-card .pickletable .pt-auto-height tbody td {
-    background: transparent !important;
-    border: none !important;
-    padding: 14px 12px !important;
-    font-size: 13px !important;
-    color: #333 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    vertical-align: middle !important;
+.tedarik-docs-searchbox:focus-within{ background:#fff; border-color:#cbd5e1; box-shadow:0 0 0 4px rgba(255,90,31,.10); }
+.tedarik-docs-search-icon{ position:absolute; left:12px; font-size:18px; color:#94a3b8; }
+.tedarik-docs-search-input{
+    border:none; outline:none; background:transparent; width:100%;
+    font-size:13.5px; color:#0f172a;
 }
-.tedarik-card .pickletable .pt-auto-height tbody td:first-child {
-    border-radius: 14px 0 0 14px !important;
+.tedarik-docs-search-input::placeholder{ color:#94a3b8; }
+.tedarik-docs-btn{
+    height:42px; padding:0 18px; border-radius:10px; border:1px solid #e5e7eb; background:#fff;
+    font-size:13px; font-weight:700; color:#475569; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    transition: all .15s; white-space:nowrap;
 }
-.tedarik-card .pickletable .pt-auto-height tbody td:last-child {
-    border-radius: 0 14px 14px 0 !important;
-}
-/* Make table fill full page height */
+.tedarik-docs-btn:hover{ background:#f8fafc; border-color:#cbd5e1; color:#1e293b; }
+.tedarik-docs-btn--ghost{ background:#f1f5f9; }
+/* 75vh like Doküman — table fills page, pagination at bottom.
+   Use 3-class specificity (.tedarik-main .tedarik-card .pickletable) to beat
+   TedarikPanel global `.tedarik-main .pickletable { height:auto !important }`. */
 .tedarik-card .order-list-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+    flex: 0 0 auto;
+    display: block;
     min-height: 0;
+    height: auto;
 }
-.tedarik-card .pickletable {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+.tedarik-main .tedarik-card .pickletable,
+.tedarik-main .tedarik-card #div_table.pickletable,
+.tedarik-main .tedarik-card .pickletable.pt-auto-height {
+    height: 75vh !important;
+    min-height: calc(75vh - 280px) !important;
 }
 .tedarik-card .pickletable .divTable {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
+    overflow: auto !important;
+}
+.tedarik-main .tedarik-card .pickletable:not(.pt-auto-height) .divTable {
+    height: 90% !important;
+    overflow: auto !important;
 }
 </style>

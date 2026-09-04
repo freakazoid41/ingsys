@@ -38,7 +38,7 @@ class SystemController extends Controller
                 if(!$permissionService->has($authUser, 'per-04-01') || !$permissionService->has($authUser, 'per-04') ) return json_encode(['message' => 'Unauthorized'], 403);
             break;
             case 'document_files':
-                if(!$permissionService->has($authUser, 'per-07-01') || !$permissionService->has($authUser, 'per-07') ) return json_encode(['message' => 'Unauthorized'], 403);
+                if(!$permissionService->has($authUser, 'per-07-01') && !$permissionService->has($authUser, 'per-07') ) return json_encode(['message' => 'Unauthorized'], 403);
             break;
                 
         }

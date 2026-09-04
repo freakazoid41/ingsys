@@ -190,9 +190,7 @@
 </script>
 
 <template>
-    <div v-if="!authStore.currentStatus.canProceed && authStore.typeKey == 'op-pert-reseller'" class="alert alert-warning" role="alert">
-        Firma bilgileriniz henüz doldurulmamıştır. İşlem yapabilmek için lütfen aşağıdaki formu doldurunuz.
-    </div>
+    <!-- canProceed warning removed for INGSYS — Firma form no longer blocks işlem -->
    
     <!-- 'options' yöneticiye "Bütün Belgeleri Onayla/Reddet" düğmelerini açar (submitStatus →
          /v1/trans/set-file-status-all). Kaydet düğmesi her iki modda da görünür. -->

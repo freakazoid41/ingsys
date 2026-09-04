@@ -96,7 +96,7 @@ if(!function_exists('decryptFile')){
             //$person = \App\Models\Persons::where('id',$personId)->first();
             
             //check permission for document view
-            //if(!checkPerm('per-19') && !checkPerm('per-07')) abort(404);
+            // legacy per-19 removed — use per-07 / per-07-02 for Dökümanlar
 
             /*if(intval($person->type_id) != 2){
                 
