@@ -62,8 +62,7 @@ export default {
         // typewriter: ONLY tedarik-main travels, frame+tabs stay — hidden at browser limit
         document.body.style.background = '#f2f2f3';
         try { document.documentElement.style.scrollBehavior = 'smooth'; } catch(e) {}
-        document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
+        // html overflow:scroll set globally in custom.css (needed for ::-webkit-scrollbar to apply)
         document.body.style.height = '';
         document.body.style.transition = 'height 0.35s cubic-bezier(0.4,0,0.2,1)';
         this.$nextTick(()=> this.setupTypewriterScroll());
@@ -90,8 +89,10 @@ export default {
     },
     beforeUnmount() {
         try { document.documentElement.style.scrollBehavior = ''; } catch(e) {}
+        document.documentElement.style.overflowY = '';
+        document.documentElement.style.overflow = '';
         window.removeEventListener('resize', this.setupTypewriterScroll);
-        window.removeEventListener('scroll', this.syncTypewriter);
+    window.removeEventListener('scroll', this.syncTypewriter);
         try { if(this._ro) this._ro.disconnect(); } catch(e) {}
         clearTimeout(this._roTimer);
         document.body.style.height = '';
@@ -514,6 +515,9 @@ export default {
 </style>
 <!-- UNSCOPED GLOBAL: override pickletable defaults for entire tedarik panel -->
 <style>
+/* Hide native scrollbar — html has overflow:scroll so ::-webkit-scrollbar applies, width:0 makes it invisible */
+html { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+html::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
 
 /* PickleTable overrides — tedarik panel */
 .tedarik-main .pickletable {

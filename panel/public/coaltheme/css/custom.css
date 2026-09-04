@@ -1,3 +1,19 @@
+/* =========================================================================
+   Scrollbar — hide viewport scrollbar globally (zero width, no gutter shift)
+   Only html needs overflow:scroll for ::-webkit-scrollbar to apply in Chrome.
+   ========================================================================= */
+html {
+    overflow-y: scroll !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+html::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+    background: transparent !important;
+}
+
 .clickable-icon:hover{cursor: pointer;}
 .clickable-icon > * {pointer-events: none;}
 
@@ -587,124 +603,363 @@ body,
 }
 
 /* =========================================================================
-   rlist (OList) shared table look — used by OList, LList, NList
+   ADMIN TABLE UNIFIED LOOK — all PickleTable lists match DList file list
+   Target: light grey header, clean white rows, dark active pagination
+   Applies to: CList, UList, LList, NList, OList (admin only, not tedarik)
    ========================================================================= */
-.rlist-card {
-    border: 1px solid #dde3ee !important;
-    box-shadow: 0 2px 8px rgba(15,40,90,.07) !important;
-    border-radius: 12px !important;
+
+/* --- Card container (all admin lists) --- */
+.rlist-card,
+.order-list-card:not(.tedarik-card) {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
     overflow: hidden;
+    background: #fff !important;
+    box-shadow: 0 8px 32px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04) !important;
 }
-.rlist-header {
+
+/* --- Toolbar / search bar --- */
+.rlist-header,
+.order-list-card:not(.tedarik-card) .order-list-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    padding: 16px 20px !important;
-    border-bottom: 1px solid #eef0f4;
-    background: #fff;
+    padding: 14px 18px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    background: #fff !important;
     min-height: unset !important;
 }
 .rlist-search-group { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .rlist-search-wrap { position: relative; display: flex; align-items: center; }
-.rlist-search-icon { position: absolute; left: 12px; color: #99a1b7; pointer-events: none; }
+.rlist-search-icon { position: absolute; left: 12px; color: #94a3b8; pointer-events: none; }
 .rlist-search-input {
     height: 40px;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    border-radius: 999px;
     padding: 0 14px 0 38px;
-    font-size: .9rem;
-    color: #1e2a3b;
+    font-size: 13px;
+    color: #0f172a;
     background: #f8fafc;
     outline: none;
-    width: 240px;
+    width: 280px;
     transition: border-color .15s, background .15s, box-shadow .15s;
 }
-.rlist-search-input:focus { border-color: #154b91; background: #fff; box-shadow: 0 0 0 3px rgba(21,75,145,.08); }
-.rlist-search-input::placeholder { color: #b0bac9; }
+.rlist-search-input:focus { border-color: #93c5fd; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
+.rlist-search-input::placeholder { color: #94a3b8; }
+/* Order list search — match DList pill style */
+.order-list-card:not(.tedarik-card) .order-search-input {
+    height: 40px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 999px !important;
+    padding: 0 14px 0 38px !important;
+    font-size: 13px !important;
+    color: #0f172a !important;
+    background: #f8fafc !important;
+    outline: none !important;
+    width: 280px !important;
+    transition: border-color .15s, background .15s, box-shadow .15s !important;
+}
+.order-list-card:not(.tedarik-card) .order-search-input:focus {
+    border-color: #93c5fd !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.08) !important;
+}
+.order-list-card:not(.tedarik-card) .order-search-input::placeholder { color: #94a3b8 !important; }
+.order-list-card:not(.tedarik-card) .order-search-wrap { position: relative; display: flex; align-items: center; }
+.order-list-card:not(.tedarik-card) .order-search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: #94a3b8; font-size: 15px; pointer-events: none;
+}
 .rlist-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Order list buttons — match DList */
+.order-list-card:not(.tedarik-card) .order-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    height: 40px !important;
+    padding: 0 18px !important;
+    border-radius: 999px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border: 1px solid transparent !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    transition: all .15s !important;
+}
+.order-list-card:not(.tedarik-card) .order-btn-primary {
+    color: #fff !important; 
+}
+.order-list-card:not(.tedarik-card) .order-btn-primary:hover {
+    background: #1e293b !important; transform: translateY(-1px) !important; box-shadow: 0 8px 18px rgba(15,23,42,.18) !important;
+}
+.order-list-card:not(.tedarik-card) .order-btn-ghost {
+    background: #f1f5f9 !important; color: #334155 !important; border-color: #e2e8f0 !important;
+}
+.order-list-card:not(.tedarik-card) .order-btn-ghost:hover {
+    background: #e2e8f0 !important; color: #0f172a !important;
+}
 .rlist-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     height: 40px;
-    padding: 0 16px;
-    border-radius: 8px;
-    font-size: .875rem;
-    font-weight: 600;
-    border: none;
+    padding: 0 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid transparent;
     cursor: pointer;
     white-space: nowrap;
     transition: background .15s, color .15s, box-shadow .15s;
     text-decoration: none;
 }
-.rlist-btn-primary { background: #154b91; color: #fff; }
-.rlist-btn-primary:hover { background: #0f3a72; color: #fff; }
-.rlist-btn-ghost { background: #f4f6fa; color: #4b5675; border: 1px solid #e2e8f0; }
-.rlist-btn-ghost:hover { background: #e8edf5; color: #1e2a3b; }
-.rlist-btn-create { background: #154b91; color: #fff !important; }
-.rlist-btn-create:hover { background: #0f3a72; color: #fff !important; box-shadow: 0 4px 12px rgba(21,75,145,.25); }
+.rlist-btn-primary { background: #3b82f6 !important;
+    color: white !important;
+    border-color: #3b82f6; }
+.rlist-btn-primary:hover { background: #1e293b; color: #fff; transform: translateY(-1px); box-shadow: 0 8px 18px rgba(15,23,42,.18); }
+.rlist-btn-ghost { background: #f1f5f9; color: #334155; border-color: #e2e8f0; }
+.rlist-btn-ghost:hover { background: #e2e8f0; color: #0f172a; }
+.rlist-btn-create { background: #3b82f6 !important;
+    color: white !important;
+    border-color: #3b82f6; }
+.rlist-btn-create:hover { background: #1e293b; color: #fff !important; box-shadow: 0 8px 18px rgba(15,23,42,.18); }
 
-.rlist-card #div_table { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* --- Table wrapper --- */
+.rlist-card #div_table,
+.order-list-card:not(.tedarik-card) #div_table {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
 
-.rlist-card .pickletable table { width: 100%; min-width: 100%; border-collapse: collapse; table-layout: auto; }
+/* --- PickleTable core (admin only, not tedarik) --- */
+.rlist-card .pickletable,
+.order-list-card:not(.tedarik-card) .pickletable {
+    min-width: 0;
+}
+.rlist-card .pickletable table,
+.order-list-card:not(.tedarik-card) .pickletable table {
+    width: 100% !important;
+    min-width: 680px !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    border: none !important;
+    margin: 0 !important;
+    background: #fff !important;
+}
 .rlist-card .pickletable th,
-.rlist-card .pickletable td {
+.rlist-card .pickletable td,
+.order-list-card:not(.tedarik-card) .pickletable th,
+.order-list-card:not(.tedarik-card) .pickletable td {
     white-space: nowrap;
     max-width: 320px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.rlist-card .pickletable thead { --bs-emphasis-color: rgba(255,255,255,.6); }
-.rlist-card .pickletable thead tr { background: #154b91 !important; }
-.rlist-card .pickletable thead th {
-    background: #154b91 !important;
-    color: rgba(255,255,255,.85) !important;
-    font-size: .82rem !important;
-    font-weight: 600 !important;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    padding: 13px 16px !important;
-    border: none !important;
-    border-right: 1px solid rgba(255,255,255,.1) !important;
+
+/* --- Header: light grey, dark text (DList style) --- */
+.rlist-card .pickletable thead tr,
+.order-list-card:not(.tedarik-card) .pickletable thead tr {
+    background: transparent !important;
+}
+.rlist-card .pickletable thead th,
+.order-list-card:not(.tedarik-card) .pickletable thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: .06em !important;
+    text-transform: uppercase !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-top: none !important;
+    border-right: none !important;
+    padding: 10px 14px !important;
     white-space: nowrap;
 }
-.rlist-card .pickletable thead th:last-child { border-right: none !important; }
+.rlist-card .pickletable thead th:last-child,
+.order-list-card:not(.tedarik-card) .pickletable thead th:last-child {
+    border-right: none !important;
+}
 .rlist-card .pickletable thead th svg,
 .rlist-card .pickletable thead th i,
-.rlist-card .pickletable thead .text-body-emphasis { color: rgba(255,255,255,.6) !important; }
-.rlist-card .pickletable thead th input {
-    background: rgba(255,255,255,.1) !important;
-    border: 1px solid rgba(255,255,255,.2) !important;
-    border-radius: 5px !important;
-    color: #fff !important;
-    font-size: .78rem !important;
-    padding: 4px 8px !important;
-    margin-top: 6px !important;
+.order-list-card:not(.tedarik-card) .pickletable thead th svg,
+.order-list-card:not(.tedarik-card) .pickletable thead th i {
+    opacity: .45;
+    color: #475569 !important;
+}
+.rlist-card .pickletable thead th input,
+.order-list-card:not(.tedarik-card) .pickletable thead th input {
+    background: #fff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    color: #0f172a !important;
+    font-size: 12.5px !important;
+    padding: 6px 10px !important;
+    margin-top: 4px !important;
     width: 100% !important;
     outline: none !important;
+    transition: .15s !important;
 }
-.rlist-card .pickletable thead th input::placeholder { color: rgba(255,255,255,.4) !important; }
-.rlist-card .pickletable thead th input:focus { background: rgba(255,255,255,.18) !important; border-color: rgba(255,255,255,.4) !important; }
-.rlist-card .pickletable tbody tr { border-bottom: 1px solid #eef0f4 !important; background: #fff !important; transition: background .12s; }
-.rlist-card .pickletable tbody tr:hover { background: #f7f9fd !important; }
-.rlist-card .pickletable tbody td {
-    padding: 12px 16px !important;
-    font-size: .9rem !important;
-    color: #2d3748 !important;
+.rlist-card .pickletable thead th input:focus,
+.order-list-card:not(.tedarik-card) .pickletable thead th input:focus {
+    background: #fff !important;
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.12) !important;
+}
+.rlist-card .pickletable thead th input::placeholder,
+.order-list-card:not(.tedarik-card) .pickletable thead th input::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* --- Body rows: white, subtle border, clean font --- */
+.rlist-card .pickletable tbody tr,
+.order-list-card:not(.tedarik-card) .pickletable tbody tr {
+    border-bottom: 1px solid #f1f5f9 !important;
+    background: #fff !important;
+    transition: background .12s;
+}
+.rlist-card .pickletable tbody tr:hover,
+.order-list-card:not(.tedarik-card) .pickletable tbody tr:hover {
+    background: #f8fafc !important;
+}
+.rlist-card .pickletable tbody td,
+.order-list-card:not(.tedarik-card) .pickletable tbody td {
+    padding: 12px 14px !important;
+    font-size: 13px !important;
+    color: #0f172a !important;
     background: transparent !important;
     border: none !important;
-    border-right: 1px solid #f0f2f7 !important;
+    border-right: none !important;
     vertical-align: middle !important;
+    overflow: hidden;
+    white-space: nowrap;
 }
-.rlist-card .pickletable tbody td:last-child { border-right: none !important; }
-.rlist-card .pickletable .divPagination { padding: 12px 16px !important; border-top: 1px solid #eef0f4; justify-content: flex-end !important; }
-.rlist-card .pickletable .divPagination button { height: 32px !important; min-width: 32px !important; border-radius: 6px !important; font-size: .82rem !important; font-weight: 600 !important; border: 1px solid #e2e8f0 !important; background: #fff !important; color: #4b5675 !important; }
-.rlist-card .pickletable .divPagination button.current { background: #154b91 !important; color: #fff !important; border-color: #154b91 !important; }
-.rlist-card .pickletable .divPagination button:hover:not(.current) { background: #f4f6fa !important; color: #154b91 !important; }
+.rlist-card .pickletable tbody td:last-child,
+.order-list-card:not(.tedarik-card) .pickletable tbody td:last-child {
+    overflow: visible !important;
+    white-space: nowrap !important;
+}
+.rlist-card .pickletable tbody tr:last-child,
+.order-list-card:not(.tedarik-card) .pickletable tbody tr:last-child {
+    border-bottom: none !important;
+}
 
+/* --- Pagination: dark active, light inactive --- */
+.rlist-card .pickletable .divPagination,
+.order-list-card:not(.tedarik-card) .pickletable .divPagination {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    padding: 14px 18px !important;
+    border-top: 1px solid #f1f5f9 !important;
+    background: #fff !important;
+    border-radius: 0 0 16px 16px !important;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.rlist-card .pickletable .divPagination button,
+.rlist-card .pickletable .divPagination .page-link,
+.order-list-card:not(.tedarik-card) .pickletable .divPagination button,
+.order-list-card:not(.tedarik-card) .pickletable .divPagination .page-link {
+    border: 1px solid #e2e8f0 !important;
+    background: #fff !important;
+    color: #475569 !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    min-width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+}
+.rlist-card .pickletable .divPagination .active button,
+.rlist-card .pickletable .divPagination .active .page-link,
+.rlist-card .pickletable .divPagination button.current,
+.rlist-card .pickletable .divPagination .page-link.current,
+.order-list-card:not(.tedarik-card) .pickletable .divPagination .active button,
+.order-list-card:not(.tedarik-card) .pickletable .divPagination .active .page-link,
+.order-list-card:not(.tedarik-card) .pickletable .divPagination button.current,
+.order-list-card:not(.tedarik-card) .pickletable .divPagination .page-link.current {
+    background: #3b82f6 !important;
+    color: white !important;
+    border-color: #3b82f6;
+}
+.rlist-card .pickletable .divPagination button:hover:not(.current),
+.order-list-card:not(.tedarik-card) .pickletable .divPagination button:hover:not(.current) {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+/* --- Card position — match DList file list (12px below hero) --- */
+#kt_content .card.rlist-card {
+    margin-top: 12px !important;
+}
+#kt_content .rlist-card.mt-10 {
+    margin-top: 12px !important;
+}
+.order-list-card:not(.tedarik-card) {
+    margin-top: 12px !important;
+}
+.dlist-page {
+    padding-top: 12px !important;
+}
+
+/* --- Mobile --- */
 @media (max-width: 767px) {
     .rlist-header { padding: 12px 14px !important; }
     .rlist-search-input { width: 160px; }
+}
+
+/* =========================================================================
+   FINAL OVERRIDE — force all admin tables to DList file list style
+   Beats Vue :deep() scoped styles (which become global). Loaded last = wins.
+   ========================================================================= */
+html body #kt_content .rlist-card,
+html body #kt_content .order-list-card:not(.tedarik-card),
+html body #kt_content .dlist-card {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    background: #fff !important;
+    box-shadow: 0 8px 32px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04) !important;
+}
+html body #kt_content .rlist-card .pickletable thead th,
+html body #kt_content .order-list-card:not(.tedarik-card) .pickletable thead th,
+html body #kt_content .dlist-card .pickletable thead th,
+html body #kt_content .card .pickletable thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: .06em !important;
+    text-transform: uppercase !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-top: none !important;
+    border-right: none !important;
+    padding: 10px 14px !important;
+}
+html body #kt_content .rlist-card .pickletable tbody td,
+html body #kt_content .order-list-card:not(.tedarik-card) .pickletable tbody td,
+html body #kt_content .dlist-card .pickletable tbody td,
+html body #kt_content .card .pickletable tbody td {
+    padding: 12px 14px !important;
+    font-size: 13px !important;
+    color: #0f172a !important;
+    background: transparent !important;
+    border: none !important;
+    vertical-align: middle !important;
+}
+html body #kt_content .rlist-card .pickletable tbody tr,
+html body #kt_content .order-list-card:not(.tedarik-card) .pickletable tbody tr {
+    border-bottom: 1px solid #f1f5f9 !important;
+    background: #fff !important;
+}
+html body #kt_content .rlist-card .pickletable tbody tr:hover,
+html body #kt_content .order-list-card:not(.tedarik-card) .pickletable tbody tr:hover {
+    background: #f8fafc !important;
 }

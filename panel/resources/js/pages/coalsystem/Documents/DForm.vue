@@ -145,6 +145,8 @@ export default {
             }
         },
         selectFile(f){
+            // preserve scroll — typewriter panel jumps on $route.path change (router-view :key)
+            const keepY = window.scrollY || document.documentElement.scrollTop || 0;
             this.selectedId=f.file_qnid;
             this.files=this.files.map(x=> ({...x, _sel: x.file_qnid===this.selectedId}));
             const cur=f;
@@ -153,9 +155,25 @@ export default {
             else if(k==='doc_file_rejected') this.choice='reject';
             else this.choice='';
             this.note=this.noteOf(cur)||'';
-            // update url without reload
-            const name=this.isTedarik?'TedarikDForm':'DForm';
-            this.$router.replace({ name, params:{ id:f.file_qnid }});
+            // update url without triggering router-view remount / typewriter bounce
+            try{
+                const newPath = (this.isTedarik?'/tedarikpanel/documents/':'/coalpanel/documents/') + f.file_qnid;
+                window.history.replaceState(null,'', newPath);
+            }catch(e){
+                const name=this.isTedarik?'TedarikDForm':'DForm';
+                this.$router.replace({ name, params:{ id:f.file_qnid }});
+            }
+            // restore scroll after history + Vue tick (no jump)
+            this.$nextTick(()=>{
+                requestAnimationFrame(()=>{
+                    window.scrollTo({ top: keepY, behavior: 'instant' in window ? 'instant' : 'auto' });
+                    // also keep typewriter inner in sync
+                    try{
+                        const inner=document.querySelector('.tedarik-main-inner');
+                        if(inner) inner.style.transform = `translateY(${-keepY}px)`;
+                    }catch(e){}
+                });
+            });
         },
         goBack(){
             this.$router.push({ name: this.isTedarik?'TedarikDList':'DList'});

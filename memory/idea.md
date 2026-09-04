@@ -5,7 +5,7 @@
 ** optiizasyon ve kontrol **
 ** admin panel dashboard ***
 ** tedarik panel dashboard ***
-** tedarik panel dosyalarda dosya detayında dosyalara tıklayınca ekran hareketleniyor büyüyor küçülüyor bu hata !
+** admin panel tabloların stilleri hep farklı bu sorun
 
 
 

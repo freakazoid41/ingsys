@@ -1290,7 +1290,7 @@
     display:inline-flex; align-items:center; gap:7px; cursor:pointer;
     transition: all .16s; white-space:nowrap;
 }
-.dlist-btn--primary { background:#0f172a; color:#fff; border-color:#0f172a; }
+.dlist-btn--primary { background: #3b82f6 !important; color:#fff; border-color:#3b82f6 !important; }
 .dlist-btn--primary:hover { background:#1e293b; transform:translateY(-1px); box-shadow:0 8px 18px rgba(15,23,42,.18); }
 .dlist-btn--ghost { background:#f1f5f9; color:#334155; border-color:#e2e8f0; }
 .dlist-btn--ghost:hover { background:#e2e8f0; }
@@ -1330,7 +1330,9 @@
 :deep(.pickletable .divPagination .page-link.active),
 :deep(.pickletable .divPagination button.current),
 :deep(.pickletable .divPagination .page-link.current){
-    background:#0f172a !important; color:#fff !important; border-color:#0f172a !important;
+    background: #3b82f6 !important;
+    color: white !important;
+    border-color: #3b82f6;
 }
 
 /* hide first hidden pickletable column */

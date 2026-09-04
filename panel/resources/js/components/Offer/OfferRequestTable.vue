@@ -337,6 +337,8 @@
 /* Pagination */
 :deep(.pickletable .divPagination) { padding: 12px 16px !important; border-top: 1px solid #eef0f4; justify-content: flex-end !important; }
 :deep(.pickletable .divPagination button) { height: 32px !important; min-width: 32px !important; border-radius: 6px !important; font-size: .82rem !important; font-weight: 600 !important; border: 1px solid #e2e8f0 !important; background: #fff !important; color: #4b5675 !important; }
-:deep(.pickletable .divPagination button.current) { background: #154b91 !important; color: #fff !important; border-color: #154b91 !important; }
+:deep(.pickletable .divPagination button.current) { background: #3b82f6 !important;
+    color: white !important;
+    border-color: #3b82f6;}
 :deep(.pickletable .divPagination button:hover:not(.current)) { background: #f4f6fa !important; color: #154b91 !important; }
 </style>

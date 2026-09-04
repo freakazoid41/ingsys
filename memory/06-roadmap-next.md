@@ -40,6 +40,7 @@ Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/ted
 - **Logging enriched + `log-user-logout` + LList side-panel (2026-09-04 late+1):** 25th `log-*` seeded (id 102), `DocumentServiceProvider actorSnapshot/orderSnapshot/fileSnapshot` + `DocumentHelpers actorSnapshotHelper` frozen, 7 triggers enriched (register/status/auto/cancel/rename/passivate/file-status/bulk/file-upload/temp), `file_note` wiring, `transactions 300` truncate, `LList.vue side 340px` İşlemi Yapan/Sipariş/Dosya/Geçiş/Not cards
 - **Form builder dynamic multi + DForm/LList fixes (2026-09-04 late+2):** `isMultiFile(fileName)` `**` count `2→single`/`3→multi` (original `073b8de` exact for multi, `4ac9262` prefix for single `new-→83`), `DForm noteOf` JSON unwrap `null→''`, `applyOrderStatus from.title` + `sync rejectedNote` `Dosya reddedildi: real reason` + `LList orderLabelMap` for old logs
 - **AuditService + perf (2026-09-04 late+3):** `AuditService` cached actor/order/file, `sync N+1→1` batch, 8 indexes in base migrations + `2026_09_04_000005` patch, `logging-mechanics.md:8` perf chapter, 420ms→90ms
+- **File-detail smooth + scrollbar hide + admin table unified (2026-09-04 late+4):** `DForm selectFile history.replaceState` no bounce, `custom.css html overflow:scroll + ::-webkit-scrollbar width:0` zero-shift + cache purge `custom-B-2NHpEV→Bfm33Fr6`, `ADMIN TABLE UNIFIED` + `CList` scoped fix → all admin lists match DList light header
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 
