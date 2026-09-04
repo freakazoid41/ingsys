@@ -5,7 +5,6 @@
     import PickleTable from 'pickletable';
     import 'pickletable/assets/style.css';
     import Plib from '@/lib/pickle';
-    import { reset, wTrans } from 'laravel-vue-i18n';
     import Swal from 'sweetalert2';
     import dayjs from 'dayjs';
     import flatpickr from 'flatpickr';
@@ -13,29 +12,32 @@
     import 'flatpickr/dist/flatpickr.min.css';
     flatpickr.localize(Turkish);
 
+    const ESCAPE_RE = /[&<>"']/g;
+    const ESCAPE_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+    const escapeHtml = (s) => String(s ?? '').replace(ESCAPE_RE, c => ESCAPE_MAP[c]);
+    const toPipe = (v) => {
+        const s = String(v||'').trim();
+        if(!s) return '';
+        if(s.includes(' to ')){ const [a,b]=s.split(' to ').map(x=>x.trim()); return (a||'')+'|'+(b||''); }
+        if(s.includes(' — ')){ const [a,b]=s.split(' — ').map(x=>x.trim()); return (a||'')+'|'+(b||''); }
+        if(s.includes(' - ')){ const [a,b]=s.split(' - ').map(x=>x.trim()); return (a||'')+'|'+(b||''); }
+        return s+'|'+s;
+    };
+    const _statusParseCache = new Map();
+
     export default {
         breadcrumbs: {
             list: [ { title: 'Belgeler', path: '/coalpanel/documents' } ],
             title: 'Belgeler'
         },
-        setup() {
-            return {
-                useNavigationStore,
-                useAuthStore,
-                PickleTable,
-                Plib,
-                wTrans,
-                Swal,
-                
-            }
-        },
+        setup() { return { Swal } },
         mounted(){
             this.navigationStore.toggle(true);
             this.buildTestTable();
-            setTimeout(() => {
+            this._buildTimeouts.push(setTimeout(() => {
                 this.navigationStore.toggle(false);
                 this.handleResponsiveTable();
-            }, 400);
+            }, 400));
             if(this.isTedarik){
                 this.$nextTick(()=> document.addEventListener('click', this.handleOutsideClick));
             }
@@ -44,8 +46,18 @@
             try{
                 if(this._heightObs) this._heightObs.disconnect();
                 if(this._enforceTedarikHeight) window.removeEventListener('resize', this._enforceTedarikHeight);
+                if(this._responsiveHandler) window.removeEventListener('resize', this._responsiveHandler);
             }catch(e){}
             document.removeEventListener('click', this.handleOutsideClick);
+            if(this.flatpickrRange){ this.flatpickrRange.destroy(); this.flatpickrRange = null; }
+            this._buildTimeouts.forEach(id => clearTimeout(id));
+            this._buildTimeouts = [];
+        },
+        watch: {
+            isTedarik(newVal){
+                if(newVal) this.$nextTick(()=> document.addEventListener('click', this.handleOutsideClick));
+                else { document.removeEventListener('click', this.handleOutsideClick); this.showFiltre=false; }
+            }
         },  
         computed: {
             isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); },
@@ -66,10 +78,13 @@
                 selectedSirkets: [],
                 showClientModal: false,
                 clientModalMode: 'multi',
-                clientTable: null,
                 modalClients: [],
                 dropdownPos: { top: 0, left: 0, width: 280 },
                 clientOptions: [],
+                loadingClients: false,
+                _clientsFetchedAt: 0,
+                flatpickrRange: null,
+                _buildTimeouts: [],
             }
         },
         methods: {
@@ -89,6 +104,8 @@
                     }
                 };
                 updateResponsive();
+                if(this._responsiveHandler) window.removeEventListener('resize', this._responsiveHandler);
+                this._responsiveHandler = updateResponsive;
                 window.addEventListener('resize', updateResponsive);
             },
             toggleFiltre(e){
@@ -120,59 +137,41 @@
             },
             openClientModal(mode='multi'){
                 this.clientModalMode = mode;
-                if(!this.modalClients.length){
-                    const hf=[
-                        {id:'1', lifnr:'0000300185', clititle:'AKSA ENERJİ LTD.', label:'AKSA ENERJİ LTD. (0000300185)'},
-                        {id:'2', lifnr:'0000300184', clititle:'DEMİR ÇELİK A.Ş.', label:'DEMİR ÇELİK A.Ş. (0000300184)'},
-                        {id:'3', lifnr:'0000300187', clititle:'BORA MADENCİLİK', label:'BORA MADENCİLİK (0000300187)'},
-                        {id:'4', lifnr:'0000300182', clititle:'HASÇELİK KABLO', label:'HASÇELİK KABLO (0000300182)'},
-                        {id:'5', lifnr:'0000300188', clititle:'GÜNEŞ ELEKTRİK', label:'GÜNEŞ ELEKTRİK (0000300188)'},
-                        {id:'6', lifnr:'0000300183', clititle:'HES HACILAR ELEKTRİK', label:'HES HACILAR ELEKTRİK (0000300183)'},
-                        {id:'7', lifnr:'0000300186', clititle:'YILDIZ TEKSTİL', label:'YILDIZ TEKSTİL (0000300186)'},
-                        {id:'8', lifnr:'0000300181', clititle:'PANORAMA TEKSTİL', label:'PANORAMA TEKSTİL (0000300181)'},
-                    ];
-                    this.modalClients = hf.slice();
-                    this.clientOptions = hf.map(o=> ({value:o.lifnr, label:o.label}));
-                }
                 this.showClientModal = true;
                 this.sirketSearch = '';
-                this.$nextTick(()=> setTimeout(()=> this.buildClientTable(), 120));
+                this.$nextTick(()=> this._buildTimeouts.push(setTimeout(()=> this.buildClientTable(), 120)));
             },
-            onClientModalSearch(){
-                // filtering is via computed modalFilteredClients on sirketSearch — no PickleTable needed
-            },
-            async buildClientTable(){
-                const hardFallback=[
-                    {id:'1', lifnr:'0000300185', clititle:'AKSA ENERJİ LTD.', label:'AKSA ENERJİ LTD. (0000300185)'},
-                    {id:'2', lifnr:'0000300184', clititle:'DEMİR ÇELİK A.Ş.', label:'DEMİR ÇELİK A.Ş. (0000300184)'},
-                    {id:'3', lifnr:'0000300187', clititle:'BORA MADENCİLİK', label:'BORA MADENCİLİK (0000300187)'},
-                    {id:'4', lifnr:'0000300182', clititle:'HASÇELİK KABLO', label:'HASÇELİK KABLO (0000300182)'},
-                    {id:'5', lifnr:'0000300188', clititle:'GÜNEŞ ELEKTRİK', label:'GÜNEŞ ELEKTRİK (0000300188)'},
-                    {id:'6', lifnr:'0000300183', clititle:'HES HACILAR ELEKTRİK', label:'HES HACILAR ELEKTRİK (0000300183)'},
-                    {id:'7', lifnr:'0000300186', clititle:'YILDIZ TEKSTİL', label:'YILDIZ TEKSTİL (0000300186)'},
-                    {id:'8', lifnr:'0000300181', clititle:'PANORAMA TEKSTİL', label:'PANORAMA TEKSTİL (0000300181)'},
-                ];
-                this.modalClients = hardFallback.slice();
-                this.clientOptions = hardFallback.map(o=> ({value:o.lifnr, label:o.label}));
+            onClientModalSearch(){},
+            async buildClientTable(force=false){
+                if(this.loadingClients) return;
+                if(!force && this.modalClients.length && Date.now() - this._clientsFetchedAt < 300000) return;
+                this._buildTimeouts.forEach(id => clearTimeout(id));
+                this._buildTimeouts = [];
+                this.loadingClients = true;
+                this.modalClients = [];
                 try{
                     const fd=new FormData();
                     fd.append('tableReq', JSON.stringify({filter:[{key:'form-type',type:'=',value:'op-doc-client-form'},{key:'type',type:'=',value:'op-doc-client'}], scale:{page:1, limit:200}, order:{key:'id', style:'asc'}}));
                     const rsp=await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
                     const rows=rsp?.data?.data || rsp?.data || [];
                     const list=Array.isArray(rows)?rows:(rows?.data||[]);
-                    if(list.length){
-                        const localData=list.map(r=>{
-                            try{
-                                const attrs=JSON.parse(r.main_attr||'[]');
-                                const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
-                                const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr||'-';
-                                const label = title ? `${title} (${lifnr})` : lifnr;
-                                return { id:r.id, lifnr, clititle:title, label, main_attr:r.main_attr, qnid:r.id };
-                            }catch(e){ return null; }
-                        }).filter(Boolean);
-                        if(localData.length){ this.modalClients = localData; this.clientOptions = localData.map(o=> ({value:o.lifnr, label:o.label})); }
-                    }
-                }catch(e){ console.warn('client modal live fetch failed, keeping hardFallback',e); }
+                    const localData=list.map(r=>{
+                        try{
+                            const attrs=JSON.parse(r.main_attr||'[]');
+                            const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
+                            const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr||'-';
+                            const label = title ? `${title} (${lifnr})` : lifnr;
+                            return { id:r.id, lifnr, clititle:title, label, main_attr:r.main_attr, qnid:r.id };
+                        }catch(e){ return null; }
+                    }).filter(Boolean);
+                    this.modalClients = localData;
+                    this._clientsFetchedAt = Date.now();
+                }catch(e){
+                    console.warn('client modal fetch failed',e);
+                    this.modalClients = [];
+                } finally {
+                    this.loadingClients = false;
+                }
             },
             toggleSirket(val){
                 const idx=this.selectedSirkets.indexOf(val);
@@ -201,16 +200,16 @@
             toggleAllModalClients(e){
                 const checked=e.target.checked;
                 if(checked){
-                    const vals=this.modalFilteredClients.map(o=> o.lifnr);
-                    vals.forEach(v=>{ if(!this.selectedSirkets.includes(v)) this.selectedSirkets.push(v); });
+                    const set=new Set(this.selectedSirkets);
+                    this.modalFilteredClients.forEach(o=> set.add(o.lifnr));
+                    this.selectedSirkets=[...set];
                 } else {
-                    const filteredVals=new Set(this.modalFilteredClients.map(o=> o.lifnr));
-                    this.selectedSirkets=this.selectedSirkets.filter(v=> !filteredVals.has(v));
+                    const removeSet=new Set(this.modalFilteredClients.map(o=> o.lifnr));
+                    this.selectedSirkets=this.selectedSirkets.filter(v=> !removeSet.has(v));
                 }
             },
             async handleFiltreChoice(val){
                 this.filtreChoice=val;
-                let shouldClose=true;
                 switch(val){
                     case 'seri_no': {
                         const {value: seri}=await Swal.fire({title:'Seri Numarası ile Arama', input:'text', inputPlaceholder:'Seri no giriniz', showCancelButton:true, confirmButtonText:'Ara', cancelButtonText:'Vazgeç', confirmButtonColor:'#FF5A1F'});
@@ -230,20 +229,18 @@
                             didOpen:()=>{
                                 const el=document.getElementById('swal-flat-range');
                                 if(!el) return;
-                                flatpickr(el, { mode:'range', dateFormat:'Y-m-d', allowInput:true, locale: Turkish, onReady:(_,__,fp)=>{ setTimeout(()=> fp.open(), 80); } });
+                                if(this.flatpickrRange){ this.flatpickrRange.destroy(); this.flatpickrRange=null; }
+                                this.flatpickrRange=flatpickr(el, { mode:'range', dateFormat:'Y-m-d', allowInput:true, locale: Turkish, onReady:(_,__,fp)=>{ setTimeout(()=> fp.open(), 80); } });
                             },
                             preConfirm:()=>{
                                 const v=document.getElementById('swal-flat-range')?.value?.trim() || '';
                                 if(!v){ Swal.showValidationMessage('Lütfen tarih aralığı seçin'); return false; }
                                 return v;
-                            }
+                            },
+                            didClose:()=>{ if(this.flatpickrRange){ this.flatpickrRange.destroy(); this.flatpickrRange=null; } }
                         });
                         if(rangeVal){
-                            let v = rangeVal.trim();
-                            if(v.includes(' to ')){ const [s,e]=v.split(' to ').map(s=>s.trim()); v = (s||'') + '|' + (e||''); }
-                            else if(v.includes(' — ')){ const [s,e]=v.split(' — ').map(s=>s.trim()); v = (s||'') + '|' + (e||''); }
-                            else if(v.includes(' - ')){ const [s,e]=v.split(' - ').map(s=>s.trim()); v = (s||'') + '|' + (e||''); }
-                            else { v = v + '|' + v; }
+                            const v = toPipe(rangeVal);
                             this.table.setFilter([{key:'tarih_araligi', type:'like', value: v }]);
                             this.plib.toast(Swal,'success','Tarih aralığı uygulandı');
                         }
@@ -275,15 +272,20 @@
                     }
                     case 'sirkete_gore': {
                         this.openClientModal('multi');
-                        shouldClose=true;
                         break;
                     }
                 }
-                if(shouldClose) setTimeout(()=>{ this.showFiltre=false; }, 200);
+                this._buildTimeouts.push(setTimeout(()=>{ this.showFiltre=false; }, 200));
             },
             parseRowStatus(lastStatus){
+                const key = lastStatus || '{}';
+                if(_statusParseCache.has(key)) return _statusParseCache.get(key);
                 try {
-                    return JSON.parse(lastStatus || '{}');
+                    const parsed = JSON.parse(key);
+                    _statusParseCache.set(key, parsed);
+                    // keep cache small (most statuses repeat)
+                    if(_statusParseCache.size>50) _statusParseCache.delete(_statusParseCache.keys().next().value);
+                    return parsed;
                 } catch (e) {
                     return {};
                 }
@@ -421,16 +423,14 @@
                 }
             },
             searchTable(){
-                this.table.setFilter(
-                    [{
-                        key   : 'all',
-                        type  : '=',
-                        value : document.getElementById('mainSearch').value.trim()
-                    }]
-                );
+                let inp = this.isTedarik ? this.$refs.tedarikSearch : this.$refs.adminSearch;
+                if(!inp) inp = document.querySelector(this.isTedarik ? '.tedarik-docs-search-input' : '.dlist-search__input');
+                this.table.setFilter([{ key:'all', type:'=', value:(inp?.value||'').trim() }]);
             },
             resetSearch(){
-                document.getElementById('mainSearch').value = '';
+                let inp = this.isTedarik ? this.$refs.tedarikSearch : this.$refs.adminSearch;
+                if(!inp) inp = document.querySelector(this.isTedarik ? '.tedarik-docs-search-input' : '.dlist-search__input');
+                if(inp) inp.value='';
                 this.table.setFilter([]);
             },
             formatDocumentCard(rowData){
@@ -459,7 +459,7 @@
                 const statusBadge = document.createElement('span');
                 statusBadge.classList.add('document-card__status');
                 statusBadge.textContent = statusLabel;
-                if (!this.isTedarik && this.useAuthStore().permissions?.includes('per-07-02')) {
+                if (!this.isTedarik && this.useAuthStore.permissions?.includes('per-07-02')) {
                     statusBadge.classList.add('document-card__status--clickable');
                     statusBadge.title = 'Detayları Gör';
                     statusBadge.onclick = () => this.showDetailModal(rowData);
@@ -509,7 +509,7 @@
                 openBtn.onclick = () => window.open('/order-file/'+(rowData?.id ?? rowData?.file), '_blank');
                 footer.appendChild(openBtn);
                 // Yeniden Talep Et — reject file (admin)
-                if(this.useAuthStore().permissions?.includes('per-07-02')){
+                if(this.useAuthStore.permissions?.includes('per-07-02')){
                     const retakeBtn=document.createElement('button');
                     retakeBtn.classList.add('document-card__action-btn');
                     retakeBtn.type='button';
@@ -519,7 +519,7 @@
                     footer.appendChild(retakeBtn);
                 }
                 // İlişki button — panel-aware + order support
-                const showIliski = this.isTedarik || this.useAuthStore().permissions?.includes('per-07');
+                const showIliski = this.isTedarik || this.useAuthStore.permissions?.includes('per-07');
                 if (showIliski) {
                     const viewFormBtn = document.createElement('button');
                     viewFormBtn.classList.add('document-card__action-btn');
@@ -550,7 +550,7 @@
                     footer.appendChild(viewFormBtn);
                 }
                 // Devre Dışı — admin only, never in tedarik
-                if (!this.isTedarik && this.useAuthStore().permissions?.includes('per-07')) {
+                if (!this.isTedarik && this.useAuthStore.permissions?.includes('per-07')) {
                     const disableBtn = document.createElement('button');
                     disableBtn.classList.add('document-card__action-btn');
                     disableBtn.type = 'button';
@@ -833,7 +833,7 @@
                             pill.innerHTML = icon+'<span>'+label+'</span>';
                             pill.type = 'button';
                             // tedarik list is read-only — status changes only on detail page (per Master 2026-09-03)
-                            if(!this.isTedarik && this.useAuthStore().permissions?.includes('per-07-02')){
+                            if(!this.isTedarik && this.useAuthStore.permissions?.includes('per-07-02')){
                                 pill.onclick = (e) => {
                                     Swal.fire({
                                         showConfirmButton : false,
@@ -852,8 +852,11 @@
                                                 }
                                             })();
                                             Swal.showValidationMessage(noteText);
-                                            document.querySelectorAll('.doc-status').forEach(btn => {
+                                            const container = (typeof Swal.getHtmlContainer==='function' ? Swal.getHtmlContainer() : document) || document;
+                                            container.querySelectorAll('.doc-status').forEach(btn => {
                                                 btn.addEventListener('click', e => {
+                                                    const key = e.currentTarget?.dataset?.key || e.target?.dataset?.key;
+                                                    if(!key) return;
                                                     Swal.fire({
                                                         confirmButtonText : 'Kaydet',
                                                         showCloseButton : true,
@@ -871,7 +874,7 @@
                                                                 const note     = document.getElementById('exampleFormControlTextarea1').value.trim();
                                                                 const envelope = new FormData();
                                                                 envelope.append('id',rowData.id);
-                                                                envelope.append('op_key',e.target.dataset.key);
+                                                                envelope.append('op_key',key);
                                                                 envelope.append('note',note);
                                                                 const rsp = await this.plib.request({
                                                                     url      : '/api/v1/trans/set-file-status',
@@ -879,7 +882,7 @@
                                                                 },null,envelope);
                                                                 if(rsp.success){
                                                                     const lastStatus = {
-                                                                        "op_key" : e.target.dataset.key,
+                                                                        "op_key" : key,
                                                                         "title"  : rsp.data,
                                                                         "note"   : note
                                                                     };
@@ -933,7 +936,7 @@
                                 aks.onmouseleave=()=> aks.style.background='#8e8e93';
                                 aks.onclick=(e)=>{
                                     e.stopPropagation();
-                                    const canRetake = this.useAuthStore().permissions?.includes('per-07-02');
+                                    const canRetake = this.useAuthStore.permissions?.includes('per-07-02');
                                     const html = `<div class="d-flex flex-column gap-2 p-2">
                                         <button id="aks-preview" class="btn" style="background:#f8fafc;color:#334155;border:1px solid #e2e8f0;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-eye" style="font-size:16px;"></i> Önizle</button>
                                         ${canRetake ? `<button id="aks-retake" class="btn" style="background:#FF5A1F;color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-arrows-loop" style="font-size:16px;"></i> Yeniden Talep Et</button>` : ''}
@@ -994,7 +997,7 @@
                                 }
                             }));
                             wrap.appendChild(mkBtn('ki-eye','Önizle','is-view', () => window.open('/order-file/'+(rowData?.id ?? rowData?.file),'_blank')));
-                            if(this.useAuthStore().permissions?.includes('per-07-02')){
+                            if(this.useAuthStore.permissions?.includes('per-07-02')){
                                 const rb=document.createElement('button');
                                 rb.type='button';
                                 rb.className='dlist-actions__btn is-retake';
@@ -1004,7 +1007,7 @@
                                 rb.onclick=()=> this.handleRetake(rowData);
                                 wrap.appendChild(rb);
                             }
-                            const canSeeLink = this.isTedarik || this.useAuthStore().permissions?.includes('per-07');
+                            const canSeeLink = this.isTedarik || this.useAuthStore.permissions?.includes('per-07');
                             if(canSeeLink){
                                 wrap.appendChild(mkBtn('ki-magnifier','İlişkiye Git','is-link', () => {
                                     const isTed = this.isTedarik;
@@ -1052,30 +1055,33 @@
                     nextPageIcon : '<i class="ki-outline ki-arrow-right "></i>',
                     prevPageIcon : '<i class="ki-outline ki-arrow-left"></i>',
                     rowFormatter:(elm,data)=>{
-                        // Preserve file's real created_at before EAV overwrite (EAV has DD/MM/YYYY which breaks dayjs)
-                        const fileCreatedAt = data.created_at || '';
-                        data._file_created_at = fileCreatedAt;
-                        if(fileCreatedAt){
-                            const d = dayjs(fileCreatedAt);
-                            data._created_at_fmt = d.isValid() ? d.format('DD/MM/YYYY HH:mm') : '—';
-                        } else {
-                            data._created_at_fmt = '—';
-                        }
-                        if(data.relation_detail && data.relation_detail !== 'null'){
-                            try {
-                                JSON.parse(data.relation_detail).forEach(element => {
-                                    if(element && element.Key){
-                                        const rawKey = element.Key.split('**')[0] || element.Key;
-                                        // Don't overwrite core file columns (file CreatedAt, id, file, qnid)
-                                        if(['created_at','id','file','qnid','_created_at_fmt','_file_created_at'].includes(rawKey)){
-                                            data['eav_'+rawKey] = element.Value;
-                                        } else {
-                                            data[rawKey] = element.Value;
+                        if(data._relationDetailCache !== data.relation_detail || data._fileCreatedAtCache !== data.created_at){
+                            // Preserve file's real created_at before EAV overwrite (EAV has DD/MM/YYYY which breaks dayjs)
+                            const fileCreatedAt = data.created_at || '';
+                            data._file_created_at = fileCreatedAt;
+                            data._fileCreatedAtCache = fileCreatedAt;
+                            if(fileCreatedAt){
+                                const d = dayjs(fileCreatedAt);
+                                data._created_at_fmt = d.isValid() ? d.format('DD/MM/YYYY HH:mm') : '—';
+                            } else {
+                                data._created_at_fmt = '—';
+                            }
+                            if(data.relation_detail && data.relation_detail !== 'null'){
+                                try {
+                                    JSON.parse(data.relation_detail).forEach(element => {
+                                        if(element && element.Key){
+                                            const rawKey = element.Key.split('**')[0] || element.Key;
+                                            if(['created_at','id','file','qnid','_created_at_fmt','_file_created_at'].includes(rawKey)){
+                                                data['eav_'+rawKey] = element.Value;
+                                            } else {
+                                                data[rawKey] = element.Value;
+                                            }
+                                            data[element['Key']] = element.Value;
                                         }
-                                        data[element['Key']] = element.Value;
-                                    }
-                                });
-                            } catch(e){}
+                                    });
+                                } catch(e){}
+                            }
+                            data._relationDetailCache = data.relation_detail;
                         }
                         return data;
                     },
@@ -1085,18 +1091,18 @@
                     const enforceTedarikHeight = ()=>{
                         if(!this.isTedarik) return;
                         const el = document.querySelector('.tedarik-docs-page .pickletable');
-                        if(el){
-                            if(el.style.getPropertyValue('height') !== '75vh'){
-                                el.style.setProperty('height','75vh','important');
-                            }
-                            if(el.style.getPropertyValue('min-height') !== 'calc(75vh - 280px)'){
-                                el.style.setProperty('min-height','calc(75vh - 280px)','important');
-                            }
+                        if(!el) return;
+                        if(el.style.getPropertyValue('height') !== '75vh'){
+                            el.style.setProperty('height','75vh','important');
+                        }
+                        if(el.style.getPropertyValue('min-height') !== 'calc(75vh - 280px)'){
+                            el.style.setProperty('min-height','calc(75vh - 280px)','important');
                         }
                     };
-                    enforceTedarikHeight();
-                    setTimeout(enforceTedarikHeight, 300);
-                    setTimeout(enforceTedarikHeight, 1000);
+                    requestAnimationFrame(()=>{
+                        enforceTedarikHeight();
+                        this._buildTimeouts.push(setTimeout(enforceTedarikHeight, 400));
+                    });
                 });
             },
         }
@@ -1159,11 +1165,11 @@
                                 <button class="client-modal-close" @click="showClientModal=false" aria-label="Kapat"><i class="ki-outline ki-cross fs-2"></i></button>
                             </div>
                             <div class="client-modal-search-wrap">
-                                <input v-model="sirketSearch" class="client-modal-search" placeholder="Arama yapabilirsiniz." @input="onClientModalSearch" />
+                                <input v-model="sirketSearch" class="client-modal-search" placeholder="Arama yapabilirsiniz." />
                                 <i class="ki-outline ki-magnifier client-modal-search-icon"></i>
                             </div>
                             <div class="client-modal-table-wrap">
-                                <div v-if="!modalClients.length" style="padding:28px;text-align:center;color:#9ca3af;font-size:13px;">Yükleniyor...</div>
+                                <div v-if="loadingClients" style="padding:28px;text-align:center;color:#9ca3af;font-size:13px;">Yükleniyor...</div>
                                 <div v-else style="display:flex;flex-direction:column;gap:0;">
                                     <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #e2e8f0;background:#f8fafc;position:sticky;top:0;z-index:1;">
                                         <input type="checkbox" :checked="modalFilteredClients.length>0 && modalFilteredClients.every(o=> selectedSirkets.includes(o.lifnr))" @change="toggleAllModalClients" style="width:16px;height:16px;accent-color:#FF5A1F;cursor:pointer;">
@@ -1197,7 +1203,7 @@
         <div class="tedarik-docs-searchrow">
             <div class="tedarik-docs-searchbox">
                 <i class="ki-outline ki-magnifier tedarik-docs-search-icon"></i>
-                <input type="text" id="mainSearch" class="tedarik-docs-search-input" placeholder="Dosya ara — belge, sipariş no, ürün, seri..." @keydown.enter="searchTable">
+                <input type="text" ref="tedarikSearch" class="tedarik-docs-search-input" placeholder="Dosya ara — belge, sipariş no, ürün, seri..." @keydown.enter="searchTable">
             </div>
             <button type="button" class="tedarik-btn-light tedarik-docs-btn" @click="searchTable">Ara</button>
             <button type="button" class="tedarik-btn-light tedarik-docs-btn tedarik-docs-btn--ghost" @click="resetSearch">Sıfırla</button>
@@ -1216,7 +1222,7 @@
                 <div class="dlist-toolbar__left">
                     <div class="dlist-search">
                         <i class="ki-outline ki-magnifier dlist-search__icon"></i>
-                        <input type="text" class="dlist-search__input" id="mainSearch" placeholder="Dosya Ara — belge başlığı, sipariş no, ürün..." @keydown.enter="searchTable">
+                        <input type="text" ref="adminSearch" class="dlist-search__input" placeholder="Dosya Ara — belge başlığı, sipariş no, ürün..." @keydown.enter="searchTable">
                     </div>
                     <button type="button" class="dlist-btn dlist-btn--primary" @click="searchTable"><i class="ki-outline ki-magnifier fs-5"></i> Ara</button>
                     <button type="button" class="dlist-btn dlist-btn--ghost" @click="resetSearch">Sıfırla</button>

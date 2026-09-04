@@ -667,6 +667,12 @@ class AuthController extends Controller
             }
         }
 
+        // IS_TEST bypass — code is 111111, don't block login if mail/SMS down in dev
+        if ($isTest) {
+            $sentAny = true;
+            $errors = [];
+        }
+
         if ($sentAny) {
             $sessionData = ['resend_last_at' => Carbon::now()->timestamp];
             if ($isResend) {
