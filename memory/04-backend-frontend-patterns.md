@@ -39,6 +39,15 @@ Global middleware (`bootstrap/app.php:19-27`): `ParsePutMultipart` (broken, fall
 - `upsertConnectionEntity` handles `userfacilitygroup|userclientgroup|userpermissiongroup`
 - Post-commit: `PermissionService::refreshUserPermissionCache + bumpUserPermissionVersion + UserLog`
 
+### 2.2b Logging — Enriched (2026-09-04 late+1)
+`DocumentServiceProvider.php:24 actorSnapshot()/orderSnapshot()/fileSnapshot()` + `DocumentHelpers.php:13 actorSnapshotHelper()` — frozen at log time.
+
+- **Document CRUD** `registerContent` (`POST|PUT /v1/document`) → `UserLog log-tender-update` `{before,after,actor,document,note}` + `file_note` forwarded to `finalizeTempFile/addFileToDb` (accepts 5th/7th `note` param) → `log-file-added` per file `{file,actor,note}` + `Transactions doc_file_waiting/refreshed op1`.
+- **Order status** `POST /v1/trans/set-status` → `setStatus:972` → `UserLog log-document-status-update` `{actor,document,from→to,note}` + `Transactions op0 note` (+ auto `applyOrderStatus:1381 log-order-update` via `syncOrderStatusFromFiles` when file rejected/accepted flips `files_rejected ↔ transfer_sent/ready`).
+- **File status** `POST /v1/trans/set-file-status|set-file-status-all` → `documentFileStatus:1178` `per-07-02` → `UserLog doc_file_*` `{file,actor,from→to,note}` + `Transactions op1` + `syncOrderStatusFromFiles` + `refreshAllUserPermissions` + `sendClientFileStatus` mail. Bulk `acceptAllOrderFiles:1069` (Kalite Onayı) loops `doc_file_accepted` per file with same enriched shape.
+- **Cancel/rename/passivate** `POST /v1/orders/cancel` → `cancelOrder:2046 log-order-update {actor,document,note}` + `doc_trans_order_rejected`; `POST /v1/orders/rename` → `renameOrder:2110 {actor,document,old→new}`; `DELETE /v1/document` → `removeContent:751 {actor,document,before}`.
+- **Frontend** `LList.vue:163 Sistem logları` `PickleTable POST /v1/table/userlog` → `UserLog::tableList:41` `description TEXT` + `side-panel` `340px` `log-modal-grid`: left `jsonToDetails` tree (expand/collapse/copy) + right `side-card` stack (avatar/name/email/role/type_key/ip/sys_code, order_no big + transfer/buying/spec/ctitle/qnid, file field/group/qnid/order_no/tag, from→to pills, note box). Old logs (no actor) → side hidden.
+
 ### 2.3 Status Machine — Controlled Writes
 `POST /v1/trans/set-status` → `DocumentController::setStatus:260-295` → `DocumentServiceProvider::setStatus(id, opKey, note)` (`DocumentServiceProvider.php:712-781`)
 - Resolves `op_key→sys_options.id`, creates `UserLog log-document-status-update` + `Transactions` (op_id 0)

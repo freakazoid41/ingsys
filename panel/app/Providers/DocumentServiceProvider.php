@@ -23,6 +23,99 @@ class DocumentServiceProvider extends ServiceProvider
 
     public function __construct() {}
 
+    /**
+     * Snapshot of the actor at log time — frozen so history never mutates when user later changes name/role.
+     */
+    private function actorSnapshot(): array
+    {
+        try {
+            $auth = auth('sanctum')->user() ?? auth()->user();
+            $personId = $auth->person_id ?? null;
+            $person = null;
+            $personQnid = null;
+            $typeKey = session('type_key') ?? null;
+            if ($personId) {
+                $person = \App\Models\Persons::where('id', $personId)->first();
+                $personQnid = $person->qnid ?? session('person_id');
+                if (!$typeKey && $person) {
+                    $typeKey = \App\Models\Sys_options::where('id', $person->type_id)->value('op_key');
+                }
+            }
+            return [
+                'user_id' => $auth->id ?? 0,
+                'person_id' => $personId ?? 0,
+                'person_qnid' => $personQnid ?? session('person_id') ?? null,
+                'name' => trim(($person->name ?? '') . ' ' . (($person->surname ?? '-') !== '-' ? $person->surname : '')) ?: ($auth->email ?? 'system'),
+                'email' => $auth->email ?? null,
+                'role' => $auth->role ?? null,
+                'type_key' => $typeKey,
+                'ip' => request()->ip(),
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'user_id' => auth('sanctum')->user()->id ?? 0,
+                'person_id' => session('person_id') ?? 0,
+                'person_qnid' => session('person_id') ?? null,
+                'name' => session('ptitle') ?? 'system',
+                'email' => session('email') ?? null,
+                'role' => null,
+                'type_key' => session('type_key') ?? null,
+                'ip' => request()->ip(),
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+            ];
+        }
+    }
+
+    private function orderSnapshot(Documents $doc, array $entities = []): array
+    {
+        try {
+            if (empty($entities)) {
+                $conn = Sys_con_ops::where('main_id', $doc->id)->where('conn_id', 0)
+                    ->whereHas('type', fn($q) => $q->where('op_key', 'op-doc-order-form'))->first();
+                if ($conn) {
+                    $rows = Sys_con_entities::where('conn_id', $conn->id)->where('table_tag', 'sys_con_ops')->get();
+                    foreach ($rows as $r) $entities[$r->entity_tag] = $r->entity_value;
+                }
+            }
+            return [
+                'id' => $doc->id,
+                'qnid' => $doc->qnid,
+                'order_no' => $entities['order_no'] ?? null,
+                'transfer_no' => $entities['transfer_no'] ?? ($entities['order_no'] ?? null),
+                'buying_no' => $entities['buying_no'] ?? null,
+                'spec_code' => $entities['spec_code'] ?? null,
+                'ctitle' => $entities['ctitle'] ?? null,
+            ];
+        } catch (\Throwable $e) { return ['id'=>$doc->id,'qnid'=>$doc->qnid]; }
+    }
+
+    private function fileSnapshot(int $fileId, $entityTag = null, $connId = null): array
+    {
+        try {
+            $file = Document_files::where('id', $fileId)->first();
+            $entity = $entityTag ? (object)['entity_tag'=>$entityTag,'conn_id'=>$connId] : Sys_con_entities::where(['entity_value'=>(string)$fileId,'table_tag'=>'document_files'])->first();
+            $groupKey = null; $field = null;
+            if ($entity && !empty($entity->entity_tag)) { $parts = explode('**', $entity->entity_tag); $field=$parts[0]??null; $groupKey=$parts[1]??null; }
+            $doc = null; $orderNo = null;
+            if ($entity && !empty($entity->conn_id)) {
+                $conn = Sys_con_ops::where('id', $entity->conn_id)->first();
+                if ($conn) { $doc = Documents::where('id', $conn->main_id)->first(); if ($doc) { $op = Sys_options::where('id',$doc->type_id)->value('op_key'); if ($op==='op-doc-order-item' && $doc->parent_id) { $parent=Documents::where('id',$doc->parent_id)->first(); if($parent) $doc=$parent; } $orderNo = DB::table('sys_con_entities as sce')->join('sys_con_ops as sco','sco.id','=','sce.conn_id')->where('sco.main_id',$doc->id)->where('sce.entity_tag','order_no')->value('sce.entity_value'); } }
+            }
+            return [
+                'id' => $fileId,
+                'qnid' => $file->qnid ?? null,
+                'status' => $file->status ?? null,
+                'field' => $field,
+                'group_key' => $groupKey,
+                'entity_tag' => $entity->entity_tag ?? null,
+                'relation_id' => $file->relation_id ?? null,
+                'order_qnid' => $doc->qnid ?? null,
+                'order_no' => $orderNo,
+            ];
+        } catch (\Throwable $e) { return ['id'=>$fileId]; }
+    }
+
     public function registerContent($id, $requestData, $files = [])
     {
         $typeKey = $requestData['typeKey'] ?? 'op-doc-period';
@@ -266,7 +359,8 @@ class DocumentServiceProvider extends ServiceProvider
                                 // Finalize temp file: move to permanent storage and link to document.
                                 // Pass existingFileId so finalizeTempFile can handle replacement
                                 // (deactivate old, create new record, chain via replaced_id, copy entities).
-                                $fileResponse = finalizeTempFile($referenceId, $document->id, 'form-file', $existingFileId);
+                                $fileNote = $requestData['file_note'] ?? $requestData['note'] ?? null;
+                                $fileResponse = finalizeTempFile($referenceId, $document->id, 'form-file', $existingFileId, $fileNote);
                                 if($fileResponse['success']){
                                     $fileId = $fileResponse['file_id'];
                                 }else{
@@ -277,7 +371,8 @@ class DocumentServiceProvider extends ServiceProvider
                             }
                         }else{
                             // Traditional upload: file is a File object — use existingFileId for replacement (fid is "new-..." garbage)
-                            $fileResponse = addFileToDb($file, 'form-file', $existingFileId, 'documents', $document->id, ($fileTypeInfo.' Dosyası Sisteme Eklendi'));
+                            $fileNote = $requestData['file_note'] ?? $requestData['note'] ?? null;
+                            $fileResponse = addFileToDb($file, 'form-file', $existingFileId, 'documents', $document->id, ($fileTypeInfo.' Dosyası Sisteme Eklendi'), $fileNote);
                             if ($fileResponse['success'] == false) {
                                 throw new \Exception('Dosya Sisteme Eklenemedi...');
                             }
@@ -314,9 +409,30 @@ class DocumentServiceProvider extends ServiceProvider
             // here get updated data
             $updatedResult = $this->getFormData($document->qnid);
             $oldData = $logData['description']['before'] ?? [];
+            $actor = $this->actorSnapshot();
+            $docSnap = null;
+            try {
+                $docSnap = $this->orderSnapshot($document);
+                // fallback generic title for non-order docs
+                if (empty($docSnap['order_no']) && isset($updatedResult['formFormat'])) {
+                    foreach ($updatedResult['formFormat'] as $fk=>$rows) {
+                        foreach ($rows as $r) {
+                            foreach (($r['entities']??[]) as $k=>$v) {
+                                $plain = explode('**',$k)[0];
+                                if (in_array($plain, ['title','clicode','lifnr']) && !empty($v) && empty($docSnap[$plain])) $docSnap[$plain]=$v;
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) { $docSnap = ['qnid'=>$document->qnid,'id'=>$document->id,'op_key'=>$typeKey]; }
+            $fileNote = $requestData['note'] ?? $requestData['file_note'] ?? null;
             $logData['description'] = json_encode([
                 'before' => $oldData,
                 'after' => $updatedResult,
+                'actor' => $actor,
+                'document' => $docSnap,
+                'note' => $fileNote ?? '-',
+                'desc' => $isUpdate ? 'Belge Güncellendi' : 'Belge Oluşturuldu',
             ], JSON_UNESCAPED_UNICODE);
 
             $logData['relation_id'] = $document->id;
@@ -634,16 +750,21 @@ class DocumentServiceProvider extends ServiceProvider
             }
         }
 
+        $actorRm = $this->actorSnapshot();
+        $docSnapRm = $detail['document']->qnid ? $this->orderSnapshot($document) : ['qnid'=>$id,'id'=>$document->id,'op_key'=>$docTypeKey];
         UserLog::create([
-            'user_id' => auth('sanctum')->user()->id ?? DB::table('users')->where('status',1)->value('id') ?? 0,
-            'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+            'user_id' => $actorRm['user_id'] ?? auth('sanctum')->user()->id ?? DB::table('users')->where('status',1)->value('id') ?? 0,
+            'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorRm['sys_code'] ?? 'GDZ',
             'relation' => 'documents',
             'relation_id' => $document->id,
             'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
             'description' => json_encode([
-                'before' => $this->getFormData($document->qnid),
+                'before' => $detail,
                 'after' => [],
+                'actor' => $actorRm,
+                'document' => $docSnapRm,
                 'desc' => 'İçerik pasife alındı artık listelerde görünmeyecek..',
+                'note' => '-',
             ], JSON_UNESCAPED_UNICODE),
         ]);
 
@@ -848,17 +969,31 @@ class DocumentServiceProvider extends ServiceProvider
                 }
             }
 
+            $actor = $this->actorSnapshot();
+            $docSnap = $this->orderSnapshot($document);
+            // capture from status for audit trail
+            $lastOpKey = null; $lastTitle = null;
+            try {
+                $lastRow = DB::table('transactions as t')->join('sys_options as so','so.id','=','t.type_id')
+                    ->where('t.target_id',$document->id)->where('so.group_key','op-trans-'.$documentType->op_key)
+                    ->orderBy('t.id','desc')->first();
+                if ($lastRow) { $lastOpKey = $lastRow->op_key ?? null; $lastTitle = $lastRow->title ?? null; }
+            } catch (\Throwable $e) {}
             $log = UserLog::create([
-                'user_id' => auth('sanctum')->user()->id ?? 0,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 0,
+                'user_id' => $actor['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? $actor['sys_code'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
                 'type_id' => Sys_options::where('op_key', 'log-document-status-update')->first()->id ?? 0,
                 'description' => json_encode(
                     [
                         'after' => ['document' => ['op_key' => $documentType->op_key, 'qnid' => $document->qnid]],
+                        'actor' => $actor,
+                        'document' => $docSnap,
+                        'from' => $lastOpKey ? ['op_key'=>$lastOpKey,'title'=>$lastTitle] : null,
+                        'to' => ['op_key'=>$statusKey,'title'=>$type->title ?? $statusKey],
                         'desc' => $documentType->title.' Durumu Değiştirildi',
-                        'note' => $note,
+                        'note' => $note ?? '-',
                     ], JSON_UNESCAPED_UNICODE),
             ]);
 
@@ -938,14 +1073,18 @@ class DocumentServiceProvider extends ServiceProvider
                 if ($entity) {
                     $fileTitle = Sys_options::where('op_key', 'op-'.explode('**', $entity->entity_tag)[0])->first()->title ?? 'Dosya';
                 }
+                $actorB = $this->actorSnapshot();
+                $fileSnapB = $this->fileSnapshot((int)$r->id, $entity->entity_tag ?? null, $entity->conn_id ?? null);
                 $log = UserLog::create([
-                    'user_id' => auth('sanctum')->user()->id ?? 0,
-                    'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+                    'user_id' => $actorB['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+                    'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorB['sys_code'] ?? 'GDZ',
                     'relation' => 'documents',
                     'relation_id' => $r->id,
                     'type_id' => $acceptedType->id,
                     'description' => json_encode([
                         'file_id' => $r->id,
+                        'file' => $fileSnapB,
+                        'actor' => $actorB,
                         'desc' => $fileTitle.' Dosya Kalite Onayı ile kabul edildi',
                         'note' => 'Kalite Onayı Ver ve Kapat',
                     ], JSON_UNESCAPED_UNICODE),
@@ -1036,17 +1175,26 @@ class DocumentServiceProvider extends ServiceProvider
                 $entity = Sys_con_entities::where(['entity_value' => $file->id, 'table_tag' => 'document_files'])->first();
                 $fileTitle = Sys_options::where('op_key', 'op-'.explode('**', $entity->entity_tag)[0])->first()->title ?? 'Dosya';
                 $EntityConnections = Sys_con_entities::where(['conn_id' => $entity->conn_id])->get();
-                // add transaction to file
+                // enrich with actor + file/order snapshot for audit heat
+                $actorF = $this->actorSnapshot();
+                $fileSnap = $this->fileSnapshot((int)$file->id, $entity->entity_tag ?? null, $entity->conn_id ?? null);
+                // previous file op for from/to trail
+                $prevOp = DB::table('transactions as t')->join('sys_options as so','so.id','=','t.type_id')->where('t.target_id',$file->id)->where('t.op_id',1)->orderBy('t.id','desc')->value('so.op_key');
+                $prevTitle = $prevOp ? (Sys_options::where('op_key',$prevOp)->value('title') ?? $prevOp) : null;
                 $log = UserLog::create([
-                    'user_id' => auth('sanctum')->user()->id,
-                    'sys_code' => $GLOBALS['SYS_CODE'],
+                    'user_id' => $actorF['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+                    'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorF['sys_code'] ?? 'GDZ',
                     'relation' => 'documents',
                     'relation_id' => $file->id,
                     'type_id' => $type->id,
                     'description' => json_encode([
                         'file_id' => $file->id,
+                        'file' => $fileSnap,
+                        'actor' => $actorF,
+                        'from' => $prevOp ? ['op_key'=>$prevOp,'title'=>$prevTitle] : null,
+                        'to' => ['op_key'=>$type->op_key ?? $statusKey,'title'=>$type->title ?? $statusKey],
                         'desc' => $fileTitle.' Dosya Durumu Değiştirildi => '.$type->title,
-                        'note' => $note,
+                        'note' => $note ?? '-',
                     ], JSON_UNESCAPED_UNICODE),
                 ]);
 
@@ -1055,11 +1203,8 @@ class DocumentServiceProvider extends ServiceProvider
                     'type_id' => $type->id,
                     'log_id' => $log->id,
                     'target_id' => $file->id,
-                    'description' => json_encode([
-                        'file_id' => $file->id,
-                        'desc' => 'Dosya Durumu Değiştirildi => '.$type->title,
-                        'note' => $note,
-                    ], JSON_UNESCAPED_UNICODE),
+                    'note' => mb_substr($note ?? '-',0,300),
+                    'description' => mb_substr(json_encode(['actor'=>($actorF['name']??'').' <'.($actorF['email']??'').'>','from'=>$prevOp,'to'=>$type->op_key ?? $statusKey,'note'=>$note], JSON_UNESCAPED_UNICODE),0,300),
                 ]);
 
                 DB::commit();
@@ -1225,17 +1370,23 @@ class DocumentServiceProvider extends ServiceProvider
             return;
         }
 
+        $actorA = $this->actorSnapshot();
+        $docSnapA = $this->orderSnapshot($doc);
         $log = UserLog::create([
-            'user_id' => auth('sanctum')->user()->id ?? 0,
-            'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+            'user_id' => $actorA['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+            'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorA['sys_code'] ?? 'GDZ',
             'relation' => 'documents',
             'relation_id' => $doc->id,
             'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
                 ?? Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
             'description' => json_encode([
                 'after' => ['document' => ['op_key' => 'op-doc-order', 'qnid' => $doc->qnid]],
+                'actor' => $actorA,
+                'document' => $docSnapA,
+                'from' => $last ? ['op_key'=>$last] : null,
+                'to' => ['op_key'=>$statusKey,'title'=>$type->title ?? $statusKey],
                 'desc' => 'Sipariş Durumu Güncellendi',
-                'note' => $note,
+                'note' => $note ?? '-',
             ], JSON_UNESCAPED_UNICODE),
         ]);
 
@@ -1244,13 +1395,13 @@ class DocumentServiceProvider extends ServiceProvider
             'type_id' => $type->id,
             'log_id' => $log->id,
             'target_id' => $doc->id,
-            'note' => $note ?? '-',
-            'description' => json_encode(['note' => $note], JSON_UNESCAPED_UNICODE),
+            'note' => mb_substr($note ?? '-',0,300),
+            'description' => mb_substr(json_encode(['actor'=>($actorA['name']??'').' <'.($actorA['email']??'').'>','note'=>$note], JSON_UNESCAPED_UNICODE),0,300),
         ]);
     }
 
     /**
-     * Order System: send an order to transfer. Runs from the SAME order-detail save endpoint.
+      * Order System: send an order to transfer. Runs from the SAME order-detail save endpoint.
      *
      * @param  string  $orderQnid  order qnid
      * @param  string  $mode  at_once | partial
@@ -1890,16 +2041,20 @@ class DocumentServiceProvider extends ServiceProvider
             }
 
             $type = Sys_options::where('op_key', 'doc_trans_order_rejected')->first();
+            $actorC = $this->actorSnapshot();
+            $docSnapC = $this->orderSnapshot($document);
 
             $log = UserLog::create([
-                'user_id' => auth('sanctum')->user()->id ?? 0,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+                'user_id' => $actorC['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorC['sys_code'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
                 'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
                     ?? Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
                 'description' => json_encode([
                     'after' => ['document' => ['op_key' => $docType->op_key, 'qnid' => $document->qnid]],
+                    'actor' => $actorC,
+                    'document' => $docSnapC,
                     'desc' => 'Sipariş İptal Edildi / Reddedildi',
                     'note' => $note ?? '-',
                 ], JSON_UNESCAPED_UNICODE),
@@ -1909,8 +2064,8 @@ class DocumentServiceProvider extends ServiceProvider
                 'type_id' => $type->id,
                 'log_id' => $log->id,
                 'target_id' => $document->id,
-                'note' => $note ?? '-',
-                'description' => json_encode(['note' => $note], JSON_UNESCAPED_UNICODE),
+                'note' => mb_substr($note ?? '-',0,300),
+                'description' => mb_substr(json_encode(['actor'=>($actorC['name']??'').' <'.($actorC['email']??'').'>','note'=>$note], JSON_UNESCAPED_UNICODE),0,300),
             ]);
 
             // If this is a clone order (EBELN-X) being cancelled, restore its quantities to main
@@ -2005,17 +2160,23 @@ class DocumentServiceProvider extends ServiceProvider
                 $transferEntity->save();
             }
 
+            $actorR = $this->actorSnapshot();
+            $docSnapR = $this->orderSnapshot($document);
             UserLog::create([
-                'user_id' => auth('sanctum')->user()->id ?? 0,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+                'user_id' => $actorR['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorR['sys_code'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
                 'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
                     ?? Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
                 'description' => json_encode([
                     'after' => ['document' => ['op_key' => $docType, 'qnid' => $document->qnid]],
+                    'actor' => $actorR,
+                    'document' => $docSnapR,
                     'desc' => 'Sipariş Numarası Düzenlendi',
                     'note' => $currentOrderNo.' → '.$newOrderNo,
+                    'old_order_no' => $currentOrderNo,
+                    'new_order_no' => $newOrderNo,
                 ], JSON_UNESCAPED_UNICODE),
             ]);
 

@@ -33,7 +33,7 @@ Every enumerated value in the system is a row here. No enums in code.
 | `op-trans-op-doc-request` / `op-trans-op-doc-offer` | status machines per doc type | `transactions.type_id` (dynamic group `op-trans-{docOpKey}`) |
 | `op-trans-op-doc-order` | **NEW** Sipariş status: `doc_trans_order_created/transfer_sent/ready_for_shipment/approved/rejected/files_rejected` (`files_rejected` = "Reddedilen Dosyalar Mevcut", auto-set by `syncOrderStatusFromFiles` when any order/item file is rejected) — `op-trans-op-doc-transfer` + `doc_trans_transfer_*` **PURGED 2026-09-02** (was 4 keys, 0 transactions ever) | `transactions.type_id` |
 | `op-file-types` extended | **+ `op-transfer_kabul_file` (Malzeme Kabul), `op-transfer_cins_file` (Cins-Miktar), `op-item_test_file`, `op-item_images_file`** | `sys_options title for file UI` |
-| `op-logs` | log kinds: 24 `log-*` | `user_logs.type_id` |
+| `op-logs` | log kinds: 25 `log-*` (`log-user-logout` added 2026-09-04 late+1 `SysSeeder.php:86` `Kullanıcı Zorla Çıkış` id 102) | `user_logs.type_id` |
 | `op-cur-types` | currencies TRY/USD/EUR/GBP | `currencies` |
 | `op-con-ops` | sub_type_id values: `form-main|form-file|personnel-main` | `sys_con_ops.sub_type_id` |
 
@@ -147,9 +147,33 @@ Per-person EAV connections (one `sys_con_ops` per form type per person, via `ups
 ## 6. Transactions & UserLogs — State Machine & Audit
 
 ```
-transactions — id, qnid, op_id(0=document,1=file), type_id→sys_options(doc_trans_*|doc_file_*), target_id(documents.id or document_files.id), log_id→user_logs.id, amount/cur_id/rel_id/sign/period/note, description JSON, created_at
-user_logs    — id, user_id→users.id, sys_code, relation(documents|persons), relation_id, type_id→sys_options(log-*), description JSON {before, after, desc, note}, created_at
+transactions — id, qnid, op_id(0=document,1=file), type_id→sys_options(doc_trans_*|doc_file_*), target_id(documents.id or document_files.id), log_id→user_logs.id, amount/cur_id/rel_id/sign/period/note, description varchar(300 JSON short, actor name), created_at
+user_logs    — id, user_id→users.id, sys_code, relation(documents|persons), relation_id, type_id→sys_options(log-*), description TEXT JSON, created_at — TEXT unlimited, rich snapshot
+user_logs.description JSON enriched 2026-09-04 late+1 (see §6b)
 ```
+
+**§6b — Enriched Logging (2026-09-04 late+1)**
+
+Helpers: `DocumentServiceProvider.php:24 actorSnapshot()+orderSnapshot()+fileSnapshot()` + `DocumentHelpers.php:13 actorSnapshotHelper()` — frozen at write time so history never mutates when user later changes name/role/email.
+
+| Trigger | Provider/Helper | `user_logs.type_id` | `user_logs.description` JSON (enriched) | `transactions` |
+|---|---|---|---|---|
+| **Document CRUD** `registerContent` create/update | `DSP:134 registerContent` | `log-tender-update` | `{before:getFormData, after:getFormData, actor:{user_id,person_id,person_qnid,name,email,role,type_key,ip,sys_code}, document:{id,qnid,order_no,transfer_no,buying_no,spec_code,ctitle}, note:file_note/note, desc:'Belge Oluşturuldu/Güncellendi'}` | birth `doc_trans_order_created/doc_trans_created` op0, log_id 0 |
+| **Order status** `setStatus` | `DSP:972` | `log-document-status-update` | `{after:{document}, actor, document, from:{op_key,title}, to:{op_key,title}, desc, note}` | `op_id 0 type_id=statusKey log_id target_id doc.id note/description short actor name` |
+| **Auto order status** `applyOrderStatus` ← `syncOrderStatusFromFiles` | `DSP:1381` | `log-order-update` (fallback tender) | `{after, actor, document, from, to, desc:'Sipariş Durumu Güncellendi', note}` | same op0 |
+| **Cancel order** `cancelOrder` | `DSP:2046` | `log-order-update` | `{after, actor, document, desc:'Sipariş İptal Edildi / Reddedildi', note}` | `doc_trans_order_rejected` op0 |
+| **Rename EBELN-X** `renameOrder` | `DSP:2110` | `log-order-update` | `{after, actor, document, desc:'Sipariş Numarası Düzenlendi', note:'old → new', old_order_no, new_order_no}` | — |
+| **Passivate** `removeContent` | `DSP:751` | `log-tender-update` | `{before:detail, after:[], actor, document, desc:'İçerik pasife alındı', note}` | soft `status=0` |
+| **File status** `documentFileStatus` (approve/reject `per-07-02`) | `DSP:1178` | `doc_file_*` itself (`type_id = statusKey`, NOT `log-file-status-trans`) | `{file_id, file:{id,qnid,status,field,group_key,entity_tag,relation_id,order_qnid,order_no}, actor, from, to, desc:'...Durumu Değiştirildi => title', note}` | `op_id 1 note truncated 300 description actor short` |
+| **Bulk Kalite** `acceptAllOrderFiles` (Kalite Onayı Ver ve Kapat) | `DSP:1069` | `doc_file_accepted` per file | `{file_id, file, actor, desc:'...Kalite Onayı ile', note:'Kalite Onayı Ver ve Kapat'}` | op1 |
+| **File upload** `addFileToDb` (traditional) | `DH:805` | `log-file-added` | `{file_id, file:{id,qnid,order_no,order_qnid}, actor, desc:'...Eklendi', note}` | `doc_file_waiting (+ doc_file_refreshed on old id)` op1 |
+| **Temp upload** `finalizeTempFile` (`POST /v1/temp-upload` → `reference_id`) | `DH:554` | `log-file-added` | `{file_id, old_file_id?, file:{order_no}, actor, desc:'Geçici ... taşındı/değiştirildi', note:file_note}` | `doc_file_waiting / doc_file_refreshed` op1 |
+
+- `registerContent` now forwards `requestData.file_note|note` to `finalizeTempFile(...,note)` / `addFileToDb(...,note)` `DSP:362,373`.
+- `transactions.description` truncated `mb_substr(...,0,300)` + `note` 300 to respect `migrations/2022_12_05_083533_create_transactions_table.php:29` `varchar(300)`. Rich lives in `user_logs` TEXT.
+- File `note` free-text: approver enters in DList `Yeniden Talep Et` / `Durumu Güncelle` modals (`DList.vue:211 note textarea`); uploader can send `file_note` via `FormData` (`PUT /v1/document` `data.file_note`). Today OForm tedarik file upload has no textarea yet — passing `note` is optional.
+- LList side-panel: `LList.vue:163` `columnClick` parses `actor/document/file/from/to/note` — if any present shows right `340px` side `side-card` stack (İşlemi Yapan avatar+pills, Sipariş order_no big, Dosya field/group, Durum Geçişi from→to pills, Not box) + left `jsonToDetails` tree with `expand/collapse/copy`. `swal2-popup 1500px`.
+- Legacy logs (pre 2026-09-04) have no `actor/document/file` — side hidden, only JSON shown.
 
 - Every `registerContent` creates `UserLog log-tender-update` with `before/after = getFormData()` JSON
 - Every `setStatus` / `documentFileStatus` creates `UserLog` + `Transactions` (transactions.type_id resolved from `op_key`)

@@ -12,7 +12,6 @@
 ** eğitim videoları
 ** raporlar
 
-** log olayları detay istiyor olabilir süreç için detaylandırma yap **
 
 ** süreci iki paneldende full test et 
 ** veri aktarımı
@@ -24,7 +23,6 @@
 ** tedairk raporlar
 ** excel çıktıları
 ** dashboard
-** bilgilendirmeler
 
 
 ** sipariş durum değişiminde  Oluşturuldu aşamasına dönüş yok ?

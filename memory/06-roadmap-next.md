@@ -37,6 +37,7 @@ Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/ted
 - **Reseller LIFNR filter (2026-09-04):** `Documents::tableList` `op-doc-order/item/serial` case resolves lifnrs from `clientQnidList`
 - **OList tedarik pagination fix (2026-09-04):** `.divTable height:90%` inline + CSS, matches working DList layout
 - **DList tedarik Filtreler (normal, 2026-09-04 late):** `Filtreler` dropdown 8 radios + `Şirkete Göre Arama` modal (no Detailed), `seri_no/tarihe_gore/tarih_araligi/siparis_kodu/file_status/sirket` backend `Document_files.php`, double-table fix (removed hidden PickleTable), ` - `→`|` date-range fix + Swal text-color fix
+- **Logging enriched + `log-user-logout` + LList side-panel (2026-09-04 late+1):** 25th `log-*` seeded (id 102), `DocumentServiceProvider actorSnapshot/orderSnapshot/fileSnapshot` + `DocumentHelpers actorSnapshotHelper` frozen, 7 triggers enriched (register/status/auto/cancel/rename/passivate/file-status/bulk/file-upload/temp), `file_note` wiring, `transactions 300` truncate, `LList.vue side 340px` İşlemi Yapan/Sipariş/Dosya/Geçiş/Not cards
 
 ## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
 

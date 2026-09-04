@@ -85,6 +85,13 @@ class SysSeeder extends Seeder
                 'op_key'    => 'log-logout',
             ],[
                 'parent_id' => 0,
+                'title'     => 'Kullanıcı Zorla Çıkış',
+                'ttitle'    => 'User_logs',
+                'ctitle'    => 'log_id',
+                'group_key' => 'op-logs',
+                'op_key'    => 'log-user-logout',
+            ],[
+                'parent_id' => 0,
                 'title'     => 'Rol Düzenleme',
                 'ttitle'    => 'User_logs',
                 'ctitle'    => 'log_id',

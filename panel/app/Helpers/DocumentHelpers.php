@@ -8,6 +8,31 @@ if(!function_exists('is_json')){
     }
 }
 
+if(!function_exists('actorSnapshotHelper')){
+    function actorSnapshotHelper(){
+        try{
+            $auth = auth('sanctum')->user() ?? auth()->user();
+            $personId = $auth->person_id ?? null;
+            $person = null;
+            if($personId) $person = \App\Models\Persons::where('id',$personId)->first();
+            $typeKey = session('type_key') ?? ($person ? \App\Models\Sys_options::where('id',$person->type_id)->value('op_key') : null);
+            return [
+                'user_id' => $auth->id ?? 0,
+                'person_id' => $personId ?? 0,
+                'person_qnid' => $person->qnid ?? session('person_id') ?? null,
+                'name' => trim(($person->name ?? '') . ' ' . (($person->surname ?? '-') !== '-' ? $person->surname : '')) ?: ($auth->email ?? 'system'),
+                'email' => $auth->email ?? null,
+                'role' => $auth->role ?? null,
+                'type_key' => $typeKey,
+                'ip' => request()->ip(),
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+            ];
+        }catch(\Throwable $e){
+            return ['user_id'=>auth('sanctum')->user()->id ?? 0,'person_id'=>session('person_id')??0,'name'=>session('ptitle')??'system','email'=>session('email')??null,'role'=>null,'type_key'=>session('type_key')??null,'ip'=>request()->ip(),'sys_code'=>$GLOBALS['SYS_CODE']??'GDZ'];
+        }
+    }
+}
+
 if(!function_exists('signDocument')){
     function signDocument($path,$data,$ftrans = 'download',$fname = '-'){
         try{
@@ -526,7 +551,7 @@ if(!function_exists('finalizeTempFile')){
      * @param int $existingFileId - document_files.id of the file being replaced (0 = first upload)
      * @return array { success, file_id }
      */
-    function finalizeTempFile($referenceId, $documentId, $tag = 'form-file', $existingFileId = 0){
+    function finalizeTempFile($referenceId, $documentId, $tag = 'form-file', $existingFileId = 0, $note = null){
         try{
             $docFile = \App\Models\Document_files::where('id', $referenceId)->where('relation', 'temp')->first();
             if(!$docFile){
@@ -566,17 +591,26 @@ if(!function_exists('finalizeTempFile')){
                     $docFile->replaced_id = $fileOld->id;
                     $docFile->save();
 
-                    // Log replacement (doc_file_refreshed, NOT doc_file_waiting)
+                    // Log replacement (doc_file_refreshed, NOT doc_file_waiting) — enriched actor + note
+                    $actorT = function_exists('actorSnapshotHelper') ? actorSnapshotHelper() : ['user_id'=>auth('sanctum')->user()->id ?? 0,'ip'=>request()->ip(),'sys_code'=>$GLOBALS['SYS_CODE']??'GDZ'];
+                    // resolve order context via documentId
+                    $docForFile = \App\Models\Documents::where('id',$documentId)->first();
+                    $orderNoT = null; $parentQ = $docForFile;
+                    try{ if($parentQ && ($docForFile->parent_id ?? 0)) $parentQ = \App\Models\Documents::where('id',$parentQ->parent_id)->first() ?? $parentQ;
+                         if($parentQ) $orderNoT = \Illuminate\Support\Facades\DB::table('sys_con_entities as sce')->join('sys_con_ops as sco','sco.id','=','sce.conn_id')->where('sco.main_id',$parentQ->id ?? $documentId)->where('sce.entity_tag','order_no')->value('sce.entity_value'); }catch(\Throwable $e){}
                     $log = \App\Models\UserLog::create([
-                        'user_id' => auth('sanctum')->user()->id,
-                        'sys_code' => $GLOBALS['SYS_CODE'],
+                        'user_id' => $actorT['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+                        'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorT['sys_code'] ?? 'GDZ',
                         'relation' => 'documents',
                         'relation_id' => $documentId,
                         'type_id' => \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id ?? 0,
                         'description' => json_encode([
                             'file_id' => $docFile->id,
                             'old_file_id' => $fileOld->id,
+                            'file' => ['id'=>$docFile->id,'qnid'=>$docFile->qnid ?? null,'order_no'=>$orderNoT,'order_qnid'=>$parentQ->qnid ?? $docForFile->qnid ?? null],
+                            'actor' => $actorT,
                             'desc' => 'Geçici dosya ile değiştirildi',
+                            'note' => $note ?? '-',
                         ], JSON_UNESCAPED_UNICODE)
                     ]);
 
@@ -585,7 +619,8 @@ if(!function_exists('finalizeTempFile')){
                         'type_id' => (\App\Models\Sys_options::where('op_key', 'doc_file_refreshed')->first())->id ?? 0,
                         'log_id' => $log->id,
                         'target_id' => $docFile->id,
-                        'description' => 'Kullanıcı Dosyayı Değiştirdi (geçici yükleme)'
+                        'note' => mb_substr($note ?? '-',0,300),
+                        'description' => mb_substr(json_encode(['actor'=>($actorT['name']??'').' <'.($actorT['email']??'').'>','note'=>$note], JSON_UNESCAPED_UNICODE),0,300)
                     ]);
 
                     // Copy entities from old file to new file
@@ -611,15 +646,23 @@ if(!function_exists('finalizeTempFile')){
             $docFile->relation = 'documents';
             $docFile->save();
 
+            $actorN = function_exists('actorSnapshotHelper') ? actorSnapshotHelper() : ['user_id'=>auth('sanctum')->user()->id ?? 0,'ip'=>request()->ip(),'sys_code'=>$GLOBALS['SYS_CODE']??'GDZ'];
+            $docForFileN = \App\Models\Documents::where('id',$documentId)->first();
+            $orderNoN = null; $parentQN = $docForFileN;
+            try{ if($parentQN && ($docForFileN->parent_id ?? 0)) $parentQN = \App\Models\Documents::where('id',$parentQN->parent_id)->first() ?? $parentQN;
+                 if($parentQN) $orderNoN = \Illuminate\Support\Facades\DB::table('sys_con_entities as sce')->join('sys_con_ops as sco','sco.id','=','sce.conn_id')->where('sco.main_id',$parentQN->id ?? $documentId)->where('sce.entity_tag','order_no')->value('sce.entity_value'); }catch(\Throwable $e){}
             $log = \App\Models\UserLog::create([
-                'user_id' => auth('sanctum')->user()->id,
-                'sys_code' => $GLOBALS['SYS_CODE'],
+                'user_id' => $actorN['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+                'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorN['sys_code'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $documentId,
                 'type_id' => \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id ?? 0,
                 'description' => json_encode([
                     'file_id' => $docFile->id,
+                    'file' => ['id'=>$docFile->id,'qnid'=>$docFile->qnid ?? null,'order_no'=>$orderNoN,'order_qnid'=>$parentQN->qnid ?? $docForFileN->qnid ?? null],
+                    'actor' => $actorN,
                     'desc' => 'Geçici dosya kalıcı alana taşındı',
+                    'note' => $note ?? '-',
                 ], JSON_UNESCAPED_UNICODE)
             ]);
 
@@ -628,7 +671,8 @@ if(!function_exists('finalizeTempFile')){
                 'type_id' => (\App\Models\Sys_options::where('op_key', 'doc_file_waiting')->first())->id ?? 0,
                 'log_id' => $log->id,
                 'target_id' => $docFile->id,
-                'description' => 'Kullanıcı Yeni Dosya Ekledi'
+                'note' => mb_substr($note ?? '-',0,300),
+                'description' => mb_substr(json_encode(['actor'=>($actorN['name']??'').' <'.($actorN['email']??'').'>','note'=>$note], JSON_UNESCAPED_UNICODE),0,300)
             ]);
 
             return [
@@ -754,7 +798,7 @@ if(!function_exists('uploadFile')){
         
     }
 
-    function addFileToDb($f,$tag,$rowId = 0,$reletion = '-',$reletion_id = '0',$logMessage = ''){
+    function addFileToDb($f,$tag,$rowId = 0,$reletion = '-',$reletion_id = '0',$logMessage = '', $note = null){
          
         $fileRsp = uploadFile($f);
         if($fileRsp['success']){
@@ -773,26 +817,35 @@ if(!function_exists('uploadFile')){
             $file->save();
 
            
-            //add transaction to file
+            //add transaction to file — enriched actor + note
+            $actorA = function_exists('actorSnapshotHelper') ? actorSnapshotHelper() : ['user_id'=>auth('sanctum')->user()->id ?? 0,'ip'=>request()->ip(),'sys_code'=>$GLOBALS['SYS_CODE']??'GDZ'];
+            $docForA = is_numeric($reletion_id) ? \App\Models\Documents::where('id',$reletion_id)->first() : null;
+            $orderNoA = null; $parentQA = $docForA;
+            try{ if($parentQA && ($docForA->parent_id ?? 0)) $parentQA = \App\Models\Documents::where('id',$parentQA->parent_id)->first() ?? $parentQA;
+                 if($parentQA) $orderNoA = \Illuminate\Support\Facades\DB::table('sys_con_entities as sce')->join('sys_con_ops as sco','sco.id','=','sce.conn_id')->where('sco.main_id',$parentQA->id ?? $reletion_id)->where('sce.entity_tag','order_no')->value('sce.entity_value'); }catch(\Throwable $e){}
             $log              = \App\Models\UserLog::create([
-                'user_id'     => auth('sanctum')->user()->id,
-                'sys_code'    => $GLOBALS['SYS_CODE'],
+                'user_id'     => $actorA['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+                'sys_code'    => $GLOBALS['SYS_CODE'] ?? $actorA['sys_code'] ?? 'GDZ',
                 'relation'    => $reletion,
                 'relation_id' => $reletion_id,
-                'type_id'     => \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id,
+                'type_id'     => \App\Models\Sys_options::select('id')->where('op_key', 'log-file-added')->first()->id ?? 0,
                 'description' => json_encode(array(
                     'file_id' => $file->id,
-                'desc'    => $logMessage == '' ? $fileType->title.' Dosyası Sisteme Eklendi' : $logMessage,
+                    'file' => ['id'=>$file->id,'qnid'=>$file->qnid ?? null,'order_no'=>$orderNoA,'order_qnid'=>$parentQA->qnid ?? $docForA->qnid ?? null],
+                    'actor' => $actorA,
+                    'desc'    => $logMessage == '' ? $fileType->title.' Dosyası Sisteme Eklendi' : $logMessage,
+                    'note' => $note ?? '-',
                 ),JSON_UNESCAPED_UNICODE)
             ]);
-            
+             
 
             \App\Models\Transactions::create([
                 'op_id'     => 1,
                 'type_id'   => (\App\Models\Sys_options::where('op_key' , 'doc_file_waiting')->first())->id,
                 'log_id'    => $log->id,
                 'target_id' => $file->id,
-                'description' => 'Kullanıcı Yeni Dosya Ekledi'
+                'note'      => mb_substr($note ?? '-',0,300),
+                'description' => mb_substr(json_encode(['actor'=>($actorA['name']??'').' <'.($actorA['email']??'').'>','note'=>$note], JSON_UNESCAPED_UNICODE),0,300)
             ]);
 
             if($rowId != 0){
@@ -809,7 +862,8 @@ if(!function_exists('uploadFile')){
                     'type_id'   => (\App\Models\Sys_options::where('op_key' , 'doc_file_refreshed')->first())->id,
                     'log_id'    => $log->id,
                     'target_id' => $fileOld->id,
-                    'description' => 'Kullanıcı Dosyayı Değiştirdi'
+                    'note'      => mb_substr($note ?? '-',0,300),
+                    'description' => mb_substr(json_encode(['actor'=>($actorA['name']??'').' <'.($actorA['email']??'').'>','note'=>$note], JSON_UNESCAPED_UNICODE),0,300)
                 ]);
 
                 //copy all entities to new file
