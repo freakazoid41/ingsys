@@ -1,6 +1,6 @@
 # Optimize Suggestions — Breadcrumbs for Next Sessions
 
-> **Purpose:** What we optimized in `OList`/`DList` without breaking design/mechanic, and what **outside partner** libs/composables you can reuse for any new listing page.
+> **Purpose:** What we optimized in `OList`/`DList`/`OForm`/`DForm` without breaking design/mechanic, and what **outside partner** libs/composables you can reuse for any new listing page.
 > **Read after:** `tedarik-system-process.md:5-6`, `form-system-mechanics.md:7`, `memory/05-order-system-state.md:4`.
 > **Shared code lives in `resources/js/composables/` + `resources/js/lib/` — import, don't copy-paste.**
 
@@ -19,6 +19,19 @@
 - `Malzeme Üretim Tarihi` `OList:1055` `Y/m` month picker `monthSelectPlugin` `OList:11` `dateFormat Y-m altInput Y/m` → `YILDIZ` filter `Documents.php:421` `ilike '%Y-m%'`, `Tarih Aralığı` `OList:1076` `ref detailedRangeInput` `mode range` `Y-m-d → |` via `toPipe`.
 - `DList` `parseRowStatus` `DList:283` `Map` cache `_statusParseCache` `size>50` evict — `Güncel Durum` 10 rows `JSON.parse` → 1.
 - `STATUS_LABEL_MAP/STATUS_ICONS` hoisted `OList:15/DList` could be `lib/statusMaps.js` — `DList` still inline `OList` hoisted, `OList` saves 10 allocs/page.
+
+### DForm template merge + status/date utils (refactor session)
+- `statusUtils.js` extracted `parseStatus/statusLabel/statusCls/personName/noteOf` from DForm inline methods — DForm imports 5 methods from 1 file, OForm can reuse `noteOf` for tedarik notes
+- `dateUtils.js` created with `fmtDate(fmt)/fmtDateTime(fmt)/formatDate(val)` — DForm uses `fmtDate('DD.MM.YYYY')` for `created_at` formatting, OForm imports `formatDate` for print PDFs
+- DForm **merged 2 templates into 1** — admin vs tedarik is `:class="{ 'admin-theme': !isTedarik }"` + conditional classes `admin-back/admin-shortcut/admin-supplier/admin-clickable`; eliminated ~80 lines of duplicated template markup
+- OForm: `getFieldValue(name)` extracted as method (was duplicated at `printMalzemeKabul` and `printMalzemeCinsMiktar` — both had identical 30-line inline closures)
+- OForm: `calcCloneSuffix(orderNo)` extracted as async method (was duplicated at both print methods — both did identical DB query for next clone suffix)
+- **Net: ~200 fewer lines, zero mechanic break** — file versioning, status machine, order lifecycle untouched
+
+### DList tedarik Aksiyonlar → icon buttons
+- DList `Detaylar` column `DList:919` tedarik view: replaced single "Aksiyonlar" text button + Swal modal with icon buttons (`ki-eye` Önizle, `ki-notepad-edit` Detay, `ki-arrow-right` İlişkiye Git) + text button "Yeniden Talep Et" with `ki-arrows-loop` icon (like admin `mkBtn` `DList:970`)
+- "Detaylar" text button removed (redundant with `ki-notepad-edit` icon button)
+- Column width reduced `210px → 160px` for tedarik (icon buttons are compact), OList column width also reduced for consistency
 
 ### Build kept
 - `npm run build` `OList ✓ 5.07s` `DList ✓ 4.99s` + final `✓ 4.84s` — no `PickleTable` API change, `initialFilter` `op-doc-order` / `document_files`, `per-05-*/per-07-*` gates untouched.

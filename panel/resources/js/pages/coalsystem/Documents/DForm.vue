@@ -3,14 +3,15 @@ import { useNavigationStore } from '@/stores/navigation';
 import { useAuthStore } from '@/stores/auth';
 import Plib from '@/lib/pickle';
 import Swal from 'sweetalert2';
-import dayjs from 'dayjs';
+import { parseStatus, statusLabel, statusCls, personName, noteOf } from '@/lib/statusUtils';
+import { fmtDate, fmtDateTime } from '@/lib/dateUtils';
 
 export default {
     breadcrumbs: {
         list: [{ title: 'Belgeler', path: '/coalpanel/documents' }, { title: 'Belge Detayı', path: '#' }],
         title: 'Belge Detayı'
     },
-    setup() { return { useNavigationStore, useAuthStore, Plib, Swal, dayjs } },
+    setup() { return { useNavigationStore, useAuthStore, Plib, Swal } },
     computed: {
         isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); },
         fileId() { return this.$route.params.id || ''; },
@@ -39,54 +40,13 @@ export default {
         this.fetchDetail();
     },
     methods: {
-        fmtDate(v){
-            if(!v) return '—';
-            const d=dayjs(v);
-            return d.isValid()? d.format('DD.MM.YYYY') : String(v).slice(0,10);
-        },
-        fmtDateTime(v){
-            if(!v) return '—';
-            const d=dayjs(v);
-            return d.isValid()? d.format('DD.MM.YYYY HH:mm') : String(v);
-        },
-        parseStatus(f){
-            const s=f?.last_status;
-            if(!s) return {};
-            if(typeof s === 'string'){ try{ return JSON.parse(s);}catch(e){ return {}; } }
-            return s;
-        },
-        statusLabel(f){
-            const s=this.parseStatus(f);
-            if(s.title) return s.title;
-            const k=s.op_key;
-            if(k==='doc_file_accepted') return 'Başarılı';
-            if(k==='doc_file_rejected') return 'Başarısız';
-            if(k==='doc_file_waiting') return 'Kontrol Bekliyor';
-            return 'Bekleniyor';
-        },
-        statusCls(f){
-            const k=this.parseStatus(f)?.op_key;
-            if(k==='doc_file_accepted') return 'is-success';
-            if(k==='doc_file_rejected') return 'is-fail';
-            if(k==='doc_file_refreshed') return 'is-refresh';
-            return 'is-waiting';
-        },
-        personName(f){
-            const s=this.parseStatus(f);
-            return s.name || '—';
-        },
-        noteOf(f){
-            const s=this.parseStatus(f);
-            let n=s.note||'';
-            // s.note is t.description JSON `{"actor":".. <email>","note": "real reason"|null}` — unwrap inner note, never show raw JSON when note is null
-            try{
-                const parsed = JSON.parse(n);
-                if(parsed && typeof parsed.note === 'string') n = parsed.note;
-                else if(parsed && parsed.note == null) n = '';
-                else if(parsed && parsed.note != null) n = String(parsed.note);
-            }catch(e){}
-            return (n||'').trim();
-        },
+        fmtDate,
+        fmtDateTime,
+        parseStatus,
+        statusLabel,
+        statusCls,
+        personName,
+        noteOf,
         isOldVersion(f){
             // document_files.status 0 = replaced/disabled old version — never editable (your rule)
             return String(f?.file_status ?? f?.status ?? '1') === '0';
@@ -207,21 +167,20 @@ export default {
 }
 </script>
 <template>
-    <!-- TEDARIK — polished, order shortcut, no jump -->
-    <div v-if="isTedarik" class="tedarik-file-detail">
+    <div class="tedarik-file-detail" :class="{ 'admin-theme': !isTedarik }">
         <div class="back-row">
-            <a href="javascript:;" class="back-orange" @click="goBack"><i class="ki-outline ki-left" style="font-size:14px; color:#FF5A1F;"></i> Belgeler</a>
-            <a href="javascript:;" class="order-shortcut" @click="goOrder"><i class="ki-outline ki-document"></i> Sipariş Detayına Git →</a>
+            <a href="javascript:;" :class="['back-orange', { 'admin-back': !isTedarik }]" @click="goBack"><i class="ki-outline ki-left" :style="{ fontSize:'14px', color: isTedarik ? '#FF5A1F' : '#154b91' }"></i> Belgeler</a>
+            <a href="javascript:;" :class="['order-shortcut', { 'admin-shortcut': !isTedarik }]" @click="goOrder"><i class="ki-outline ki-document"></i> Sipariş Detayına Git →</a>
         </div>
-        <div class="supplier-row" @click="goOrder" style="cursor:pointer;" title="Sipariş detayına git">
+        <div :class="['supplier-row', { 'admin-supplier': !isTedarik }]" @click="goOrder" style="cursor:pointer;" title="Sipariş detayına git">
             <div>
                 <div class="muted-label">Tedarikçi Bilgileri</div>
                 <div class="supplier-name">{{ order?.ctitle || order?.spec_code || '—' }} <i class="ki-outline ki-arrow-right" style="font-size:12px; color:#9ca3af; margin-left:4px;"></i></div>
-                <div style="font-size:11.5px; color:#9ca3af; margin-top:3px;">siparişin tüm belgeleri bu ekranda listelenir</div>
+                <div style="font-size:11.5px; margin-top:3px;" :style="{ color: isTedarik ? '#9ca3af' : '#64748b' }">siparişin tüm belgeleri bu ekranda listelenir{{ isTedarik ? '' : ' — admin görünümü' }}</div>
             </div>
             <div class="order-meta">
                 <div class="meta-row"><span>Alım No :</span><b>{{ order?.buying_no || '—' }}</b></div>
-                <div class="meta-row meta-click" @click.stop="goOrder"><span>Sipariş No :</span><b class="clickable">{{ order?.order_no || '—' }}</b></div>
+                <div class="meta-row meta-click" @click.stop="goOrder"><span>Sipariş No :</span><b :class="['clickable', { 'admin-clickable': !isTedarik }]">{{ order?.order_no || '—' }}</b></div>
                 <div class="meta-row"><span>Tarih :</span><b>{{ fmtDate(order?.created_at) }}</b></div>
             </div>
         </div>
@@ -295,80 +254,6 @@ export default {
                 Bu malzeme için <b>"Test Dokümanı"</b> beklenmektedir. Test Dokümanını <b>"İncele"</b> ile açtıktan sonra <b>Onayla</b> veya <b>Reddet</b> seçip <b>Kaydet</b> ile işlemi tamamlayın. Değerlendirilen belgeler kilitlenir.
             </div>
         </template>
-    </div>
-
-    <!-- ADMIN — same polished layout as tedarik but blue admin theme -->
-    <div v-else class="tedarik-file-detail admin-theme">
-        <div class="back-row">
-            <a href="javascript:;" class="back-orange admin-back" @click="goBack"><i class="ki-outline ki-left" style="font-size:14px; color:#154b91;"></i> Belgeler</a>
-            <a href="javascript:;" class="order-shortcut admin-shortcut" @click="goOrder"><i class="ki-outline ki-document"></i> Sipariş Detayına Git →</a>
-        </div>
-        <div class="supplier-row admin-supplier" @click="goOrder" style="cursor:pointer;" title="Sipariş detayına git">
-            <div>
-                <div class="muted-label">Tedarikçi Bilgileri</div>
-                <div class="supplier-name">{{ order?.ctitle || order?.spec_code || '—' }} <i class="ki-outline ki-arrow-right" style="font-size:12px; color:#94a3b8; margin-left:4px;"></i></div>
-                <div style="font-size:11.5px; color:#64748b; margin-top:3px;">siparişin tüm belgeleri bu ekranda listelenir — admin görünümü</div>
-            </div>
-            <div class="order-meta">
-                <div class="meta-row"><span>Alım No :</span><b>{{ order?.buying_no || '—' }}</b></div>
-                <div class="meta-row meta-click" @click.stop="goOrder"><span>Sipariş No :</span><b class="clickable admin-clickable">{{ order?.order_no || '—' }}</b></div>
-                <div class="meta-row"><span>Tarih :</span><b>{{ fmtDate(order?.created_at) }}</b></div>
-            </div>
-        </div>
-        <div class="card-body" style="padding:0; background:transparent; border:none; box-shadow:none;">
-                <div v-if="loading" style="padding:20px; text-align:center;">Yükleniyor...</div>
-                <div v-else-if="error" style="color:#dc2626;">{{ error }}</div>
-                <template v-else>
-                    <div class="detail-table-wrap admin">
-                        <div class="detail-thead"><span>Malzeme Adı</span><span>Birimi</span><span>Miktarı</span></div>
-                        <div v-for="it in items" :key="it.qnid" class="detail-row">
-                            <span class="detail-cell-title">{{ it.title || it.prod_code }}</span>
-                            <span>{{ it.unit }}</span><span>{{ it.quantity }}</span>
-                        </div>
-                    </div>
-                    <div class="files-head"><span>Tip</span><span>Tarih</span><span>Durum</span><span></span></div>
-                    <div v-for="f in files" :key="f.file_qnid" :class="['file-card', { active: f._sel, 'is-old': isOldVersion(f) }]" @click="selectFile(f)">
-                        <div v-if="f._sel" class="active-tri"></div>
-                        <div class="file-main">
-                            <div class="file-tip"><i :class="String(f.file_type||'').toLowerCase().includes('test') ? 'ki-outline ki-shield-tick' : String(f.file_type||'').toLowerCase().includes('cins') ? 'ki-outline ki-chart-simple' : 'ki-outline ki-document'" style="margin-right:6px; color:#94a3b8;"></i>{{ f.file_type }}</div>
-                            <div class="file-sub"><span style="color:#ef4444; font-weight:700;">{{ personName(f) }}</span> tarafından</div>
-                        </div>
-                        <div class="file-date">{{ fmtDate(f.last_status?.created_at || f.file_created_at) }}</div>
-                        <div class="file-status-col">
-                            <template v-if="!f._sel">
-                                <span :class="['status-pill', statusCls(f)]"><i :class="statusCls(f)==='is-success' ? 'ki-outline ki-check-circle' : statusCls(f)==='is-fail' ? 'ki-outline ki-cross-circle' : 'ki-outline ki-time'" style="margin-right:6px; font-size:14px;"></i>{{ statusLabel(f) }}</span>
-                                <div v-if="statusCls(f)==='is-fail' && noteOf(f)" class="fail-note"><small>Açıklama :</small> {{ noteOf(f) }}</div>
-                            </template>
-                            <template v-else>
-                                <div v-if="isOldVersion(f)" class="old-locked">
-                                    <span :class="['status-pill', statusCls(f)]" style="opacity:.92;"><i :class="statusCls(f)==='is-success' ? 'ki-outline ki-check-circle' : 'ki-outline ki-cross-circle'" style="margin-right:6px;"></i>{{ statusLabel(f) }}</span>
-                                    <div class="old-badge"><i class="ki-outline ki-lock-2"></i> Eski versiyon — değiştirilemez</div>
-                                    <div v-if="noteOf(f)" class="old-note"><small>Açıklama :</small> {{ noteOf(f) }}</div>
-                                </div>
-                                <template v-else-if="isDecidable(f)">
-                                    <div class="decide-row">
-                                        <label :class="['decide-pill', { on: choice==='accept' }]"><input type="radio" value="accept" v-model="choice"> Onayla</label>
-                                        <label :class="['decide-pill', { on: choice==='reject' }]"><input type="radio" value="reject" v-model="choice"> Reddet</label>
-                                    </div>
-                                    <button class="save-red" :disabled="!choice" @click.stop="saveStatus">Kaydet</button>
-                                    <div v-if="choice==='reject'" class="reject-box"><label>Red Açıklaması</label><textarea v-model="note" placeholder="Red nedeni yazın..." rows="3" @click.stop></textarea></div>
-                                </template>
-                                <div v-else-if="isOldVersion(f)" class="old-locked">
-                                    <span :class="['status-pill', statusCls(f)]"><i :class="statusCls(f)==='is-success' ? 'ki-outline ki-check-circle' : 'ki-outline ki-cross-circle'" style="margin-right:6px;"></i>{{ statusLabel(f) }}</span>
-                                    <div class="old-badge"><i class="ki-outline ki-lock-2"></i> Eski versiyon — değiştirilemez</div>
-                                </div>
-                                <template v-else>
-                                    <span :class="['status-pill', statusCls(f)]"><i :class="statusCls(f)==='is-success' ? 'ki-outline ki-check-circle' : 'ki-outline ki-cross-circle'" style="margin-right:6px;"></i>{{ statusLabel(f) }}</span>
-                                    <div v-if="noteOf(f)" class="old-note"><small>Açıklama :</small> {{ noteOf(f) }}</div>
-                                    <div class="old-badge" style="background:#f0fdf4; border-color:#bbf7d0; color:#065f46;"><i class="ki-outline ki-lock-2"></i> İşlem tamamlandı — değiştirilemez</div>
-                                </template>
-                            </template>
-                        </div>
-                        <div class="file-actions"><button class="incele-btn" @click.stop="openFile(f)">İncele</button></div>
-                        <div v-if="!f._sel" class="inspected-line">{{ fmtDate(f.last_status?.created_at || f.file_created_at) }} tarihinde incelendi..</div>
-                    </div>
-                </template>
-            </div>
     </div>
 </template>
 <style scoped>

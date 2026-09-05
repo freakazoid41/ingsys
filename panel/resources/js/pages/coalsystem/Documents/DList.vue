@@ -913,69 +913,48 @@
                         order : false,
                         colAlign : 'center',
                         headAlign : 'center',
-                        width : this.isTedarik ? '210px' : '24%',
+                        width : this.isTedarik ? '160px' : '24%',
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
                             if(this.isTedarik){
                                 const wrap=document.createElement('div');
                                 wrap.style.display='flex';
                                 wrap.style.justifyContent='flex-end';
-                                wrap.style.gap='6px';
-                                const aks=document.createElement('button');
-                                aks.textContent='Aksiyonlar';
-                                aks.className='btn';
-                                aks.style.background='#8e8e93';
-                                aks.style.color='#ffffff';
-                                aks.style.border='1px solid #8e8e93';
-                                aks.style.borderRadius='8px';
-                                aks.style.padding='6px 14px';
-                                aks.style.fontSize='0.78rem';
-                                aks.style.fontWeight='600';
-                                aks.style.cursor='pointer';
-                                aks.onmouseenter=()=> aks.style.background='#7f7f84';
-                                aks.onmouseleave=()=> aks.style.background='#8e8e93';
-                                aks.onclick=(e)=>{
-                                    e.stopPropagation();
-                                    const canRetake = this.useAuthStore.permissions?.includes('per-07-02');
-                                    const html = `<div class="d-flex flex-column gap-2 p-2">
-                                        <button id="aks-preview" class="btn" style="background:#f8fafc;color:#334155;border:1px solid #e2e8f0;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-eye" style="font-size:16px;"></i> Önizle</button>
-                                        ${canRetake ? `<button id="aks-retake" class="btn" style="background:#FF5A1F;color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-arrows-loop" style="font-size:16px;"></i> Yeniden Talep Et</button>` : ''}
-                                        <button id="aks-detail" class="btn" style="background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-notepad-edit" style="font-size:16px;"></i> Detay</button>
-                                        <button id="aks-link" class="btn" style="background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-magnifier" style="font-size:16px;"></i> İlişkiye Git</button>
-                                    </div>`;
-                                    Swal.fire({title:'Aksiyonlar', showConfirmButton:false, showCloseButton:true, html, willOpen:()=>{
-                                        document.getElementById('aks-preview')?.addEventListener('click', ()=>{ Swal.close(); window.open('/order-file/'+(rowData?.id ?? rowData?.file),'_blank'); });
-                                        document.getElementById('aks-retake')?.addEventListener('click', ()=>{ Swal.close(); this.handleRetake(rowData); });
-                                        document.getElementById('aks-detail')?.addEventListener('click', ()=>{ Swal.close(); this.$router.push({ name:'TedarikDForm', params:{ id: rowData.id }}); });
-                                        document.getElementById('aks-link')?.addEventListener('click', ()=>{
-                                            Swal.close();
-                                            const isTed=this.isTedarik;
-                                            switch(rowData.relation_type){
-                                                case 'op-doc-client': this.$router.push({ name: 'CForm' , params: { id: rowData.relation_qnid }}); break;
-                                                case 'op-doc-offer': this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OForm' , params: { id: rowData.relation_qnid }}); break;
-                                                case 'op-doc-order':
-                                                case 'op-doc-order-item': this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OrderForm', params: { id: rowData.relation_qnid }}); break;
-                                                default: if(rowData.relation_qnid){ this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OrderForm', params: { id: rowData.relation_qnid }}); } break;
-                                            }
-                                        });
-                                    }});
+                                wrap.style.gap='4px';
+                                const _perms = this.useAuthStore.permissions || [];
+                                const canRetake = _perms.includes('per-07-02');
+                                const mkIcon=(icon,tip,bg,color,bgHover,onClick)=>{
+                                    const b=document.createElement('button');
+                                    b.title=tip;
+                                    b.style.cssText=`width:32px;height:32px;border-radius:8px;border:none;background:${bg};color:${color};cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;`;
+                                    b.innerHTML=`<i class="ki-outline ${icon}" style="font-size:16px;"></i>`;
+                                    b.onmouseenter=()=> b.style.background=bgHover;
+                                    b.onmouseleave=()=> b.style.background=bg;
+                                    b.onclick=(e)=>{ e.stopPropagation(); onClick(); };
+                                    return b;
                                 };
-                                wrap.appendChild(aks);
-                                const det=document.createElement('button');
-                                det.textContent='Detaylar';
-                                det.className='btn';
-                                det.style.background='#0e8ea4';
-                                det.style.color='#ffffff';
-                                det.style.border='1px solid #0e8ea4';
-                                det.style.borderRadius='8px';
-                                det.style.padding='6px 14px';
-                                det.style.fontSize='0.78rem';
-                                det.style.fontWeight='600';
-                                det.style.cursor='pointer';
-                                det.onmouseenter=()=> det.style.background='#0c7e90';
-                                det.onmouseleave=()=> det.style.background='#0e8ea4';
-                                det.onclick=()=>{ this.$router.push({ name:'TedarikDForm', params:{ id: rowData.id }}); };
-                                wrap.appendChild(det);
+                                wrap.appendChild(mkIcon('ki-eye','Önizle','#f1f5f9','#334155','#e2e8f0',()=>{ window.open('/order-file/'+(rowData?.id ?? rowData?.file),'_blank'); }));
+                                if(canRetake){
+                                    const rb=document.createElement('button');
+                                    rb.title='Yeniden Talep Et';
+                                    rb.style.cssText='height:32px;border-radius:8px;border:none;background:#fff7ed;color:#c2410c;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;width:auto;padding:0 12px;gap:6px;';
+                                    rb.innerHTML=`<i class="ki-outline ki-arrows-loop" style="font-size:16px;"></i><span style="font-size:12px;font-weight:700;white-space:nowrap;">Yeniden Talep Et</span>`;
+                                    rb.onmouseenter=()=> rb.style.background='#ffedd5';
+                                    rb.onmouseleave=()=> rb.style.background='#fff7ed';
+                                    rb.onclick=(e)=>{ e.stopPropagation(); this.handleRetake(rowData); };
+                                    wrap.appendChild(rb);
+                                }
+                                wrap.appendChild(mkIcon('ki-notepad-edit','Detay','#eef2ff','#4338ca','#c7d2fe',()=>{ this.$router.push({ name:'TedarikDForm', params:{ id: rowData.id }}); }));
+                                wrap.appendChild(mkIcon('ki-arrow-right','İlişkiye Git','#f0fdf4','#166534','#dcfce7',()=>{
+                                    const isTed=this.isTedarik;
+                                    switch(rowData.relation_type){
+                                        case 'op-doc-client': this.$router.push({ name: 'CForm' , params: { id: rowData.relation_qnid }}); break;
+                                        case 'op-doc-offer': this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OForm' , params: { id: rowData.relation_qnid }}); break;
+                                        case 'op-doc-order':
+                                        case 'op-doc-order-item': this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OrderForm', params: { id: rowData.relation_qnid }}); break;
+                                        default: if(rowData.relation_qnid){ this.$router.push({ name: isTed ? 'TedarikOrderForm' : 'OrderForm', params: { id: rowData.relation_qnid }}); } break;
+                                    }
+                                }));
                                 return wrap;
                             }
                             const wrap = document.createElement('div');

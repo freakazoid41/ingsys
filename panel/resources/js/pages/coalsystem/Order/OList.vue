@@ -746,7 +746,7 @@
                         title: '',
                         key: 'id',
                         order:false,
-                        width: _isTedarik ? '210px' : '190px',
+                        width: _isTedarik ? '160px' : '190px',
                         type:'string',
                         columnFormatter:(elm,row)=>{
                             const wrap=document.createElement('div');

@@ -168,7 +168,7 @@
     "isEntry": true
   },
   "public/coaltheme/css/theme.css": {
-    "file": "assets/theme-AwXIjxOG.css",
+    "file": "assets/theme-B1Akfqi6.css",
     "src": "public/coaltheme/css/theme.css",
     "isEntry": true
   },
@@ -178,7 +178,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-B3SBfIOA.js",
+    "file": "assets/app-B20VI8LY.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -192,7 +192,7 @@
       "node_modules/chart.js/auto/auto.js"
     ],
     "css": [
-      "assets/app-BTi11csH.css"
+      "assets/app-F7e-mFRa.css"
     ]
   },
   "resources/js/coal-swal.js": {

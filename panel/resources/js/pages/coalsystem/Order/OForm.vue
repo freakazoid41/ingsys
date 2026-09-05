@@ -7,6 +7,7 @@
     import Swal from 'sweetalert2';
     import Form from '@/components/coalparts/Form.vue';
     import OrderItemTable from '@/components/Order/OrderItemTable.vue';
+    import { formatDate } from '@/lib/dateUtils';
 
     export default {
         breadcrumbs: {
@@ -772,46 +773,8 @@
                     showWarn('Tek Seferde Kilitli', 'Bu sipariş daha önce parçalı gönderildiği için artık sadece parçalı gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.');
                     return;
                 }
-                // Get field value: from form DOM if canSend, else from DB entities
-                const getFieldValue = (name) => {
-                    if(!this.canSend){
-                        // DB-only mode: use orderEntities directly
-                        const val = this.orderEntities[name];
-                        return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : '';
-                    }
-                    const formComp = this.$refs.formRef;
-                    if(formComp && formComp.getCurrentFormData){
-                        try {
-                            const fd = formComp.getCurrentFormData();
-                            const dynF = fd?.dynamicF || {};
-                            for(const key in dynF){
-                                const e = dynF[key]?.entities;
-                                if(!e) continue;
-                                for(const ek in e){
-                                    const base = ek.split('**')[0].split('*-*').pop();
-                                    if(base === name && e[ek] !== undefined && String(e[ek]).trim() !== ''){
-                                        return String(e[ek]).trim();
-                                    }
-                                }
-                                if(e[name] !== undefined && String(e[name]).trim() !== '') return String(e[name]).trim();
-                            }
-                        } catch(e) {}
-                    }
-                    const allInputs = document.querySelectorAll('input[name^="'+name+'"], textarea[name^="'+name+'"]');
-                    for(const inp of allInputs){
-                        if(inp.value && String(inp.value).trim()) return String(inp.value).trim();
-                    }
-                    const anyInputs = document.querySelectorAll('.form-item');
-                    for(const inp of anyInputs){
-                        const n = inp.getAttribute('name') || '';
-                        if(n === name || n.startsWith(name + '**')){
-                            if(inp.value && String(inp.value).trim()) return String(inp.value).trim();
-                        }
-                    }
-                    return '';
-                };
-                const desc = getFieldValue('order_desc') || this.orderEntities.order_desc || '';
-                const imalatci = getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
+                const desc = this.getFieldValue('order_desc') || this.orderEntities.order_desc || '';
+                const imalatci = this.getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
                 if(!imalatci){
                     showWarn('İmalatçı Firma Boş', 'İmalatçı Firma adı boş. Formu yazdırmadan önce imalatçı firma bilgisi girmelisiniz.');
                     return;
@@ -862,41 +825,7 @@
                 const buyingNo = this.orderEntities.buying_no || '';
                 const createdAt = this.orderEntities.created_at || '';
                 if(effectiveTransferMode === 'partial'){
-                    // If current order already has a suffix (e.g. 3510002100-1), it's a reprint — use as-is
-                    if(!/\-\d+$/.test(orderNo)){
-                        // Base order — calculate next clone suffix
-                        const baseNo = orderNo;
-                        try {
-                            const cloneFd = new FormData();
-                            cloneFd.append('tableReq', JSON.stringify({
-                                filter: [
-                                    { key:'form-type', type:'=', value:'op-doc-order-form' },
-                                    { key:'type', type:'=', value:'op-doc-order' },
-                                    { key:'all', type:'=', value: baseNo + '-' }
-                                ],
-                                scale: { page: 1, limit: 100 },
-                                order: { key: 'id', style: 'asc' }
-                            }));
-                            const cloneRsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, cloneFd);
-                            const cloneRows = cloneRsp?.data?.data || cloneRsp?.data || [];
-                            const cloneList = Array.isArray(cloneRows) ? cloneRows : (cloneRows?.data || []);
-                            let maxX = 0;
-                            for(const r of cloneList){
-                                try {
-                                    const attrs = JSON.parse(r.main_attr || '[]');
-                                    const noAttr = attrs.find(a => a.Key === 'order_no');
-                                    if(noAttr && noAttr.Value){
-                                        const m = noAttr.Value.match(/-(\d+)$/);
-                                        if(m) maxX = Math.max(maxX, parseInt(m[1]));
-                                    }
-                                } catch(e){}
-                            }
-                            orderNo = baseNo + '-' + (maxX + 1);
-                        } catch(e){
-                            orderNo = baseNo + '-1';
-                        }
-                    }
-                    // else: clone order already has suffix, use as-is for reprint
+                    orderNo = await this.calcCloneSuffix(orderNo);
                 }
                 const fd = new FormData();
                 fd.append('qnid', this.id);
@@ -961,44 +890,8 @@
                     showWarn('Tek Seferde Kilitli', 'Bu sipariş daha önce parçalı gönderildiği için artık sadece parçalı gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.');
                     return;
                 }
-                const getFieldValue = (name) => {
-                    if(!this.canSend){
-                        const val = this.orderEntities[name];
-                        return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : '';
-                    }
-                    const formComp = this.$refs.formRef;
-                    if(formComp && formComp.getCurrentFormData){
-                        try {
-                            const fd = formComp.getCurrentFormData();
-                            const dynF = fd?.dynamicF || {};
-                            for(const key in dynF){
-                                const e = dynF[key]?.entities;
-                                if(!e) continue;
-                                for(const ek in e){
-                                    const base = ek.split('**')[0].split('*-*').pop();
-                                    if(base === name && e[ek] !== undefined && String(e[ek]).trim() !== ''){
-                                        return String(e[ek]).trim();
-                                    }
-                                }
-                                if(e[name] !== undefined && String(e[name]).trim() !== '') return String(e[name]).trim();
-                            }
-                        } catch(e) {}
-                    }
-                    const allInputs = document.querySelectorAll('input[name^="'+name+'"], textarea[name^="'+name+'"]');
-                    for(const inp of allInputs){
-                        if(inp.value && String(inp.value).trim()) return String(inp.value).trim();
-                    }
-                    const anyInputs = document.querySelectorAll('.form-item');
-                    for(const inp of anyInputs){
-                        const n = inp.getAttribute('name') || '';
-                        if(n === name || n.startsWith(name + '**')){
-                            if(inp.value && String(inp.value).trim()) return String(inp.value).trim();
-                        }
-                    }
-                    return '';
-                };
-                const desc = getFieldValue('order_desc') || this.orderEntities.order_desc || '';
-                const imalatci = getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
+                const desc = this.getFieldValue('order_desc') || this.orderEntities.order_desc || '';
+                const imalatci = this.getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
                 if(!imalatci){
                     showWarn('İmalatçı Firma Boş', 'İmalatçı Firma adı boş. Formu yazdırmadan önce imalatçı firma bilgisi girmelisiniz.');
                     return;
@@ -1076,38 +969,7 @@
                 const buyingNo = this.orderEntities.buying_no || '';
                 const createdAt = this.orderEntities.created_at || '';
                 if(effectiveTransferMode === 'partial'){
-                    if(!/\-\d+$/.test(orderNo)){
-                        const baseNo = orderNo;
-                        try {
-                            const cloneFd = new FormData();
-                            cloneFd.append('tableReq', JSON.stringify({
-                                filter: [
-                                    { key:'form-type', type:'=', value:'op-doc-order-form' },
-                                    { key:'type', type:'=', value:'op-doc-order' },
-                                    { key:'all', type:'=', value: baseNo + '-' }
-                                ],
-                                scale: { page: 1, limit: 100 },
-                                order: { key: 'id', style: 'asc' }
-                            }));
-                            const cloneRsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, cloneFd);
-                            const cloneRows = cloneRsp?.data?.data || cloneRsp?.data || [];
-                            const cloneList = Array.isArray(cloneRows) ? cloneRows : (cloneRows?.data || []);
-                            let maxX = 0;
-                            for(const r of cloneList){
-                                try {
-                                    const attrs = JSON.parse(r.main_attr || '[]');
-                                    const noAttr = attrs.find(a => a.Key === 'order_no');
-                                    if(noAttr && noAttr.Value){
-                                        const m = noAttr.Value.match(/-(\d+)$/);
-                                        if(m) maxX = Math.max(maxX, parseInt(m[1]));
-                                    }
-                                } catch(e){}
-                            }
-                            orderNo = baseNo + '-' + (maxX + 1);
-                        } catch(e){
-                            orderNo = baseNo + '-1';
-                        }
-                    }
+                    orderNo = await this.calcCloneSuffix(orderNo);
                 }
                 const fd = new FormData();
                 fd.append('qnid', this.id);
@@ -1154,15 +1016,75 @@
                     this.Swal.fire({ icon:'error', title:'PDF Oluşturulamadı', text:'PDF indirilemedi: ' + e.message, confirmButtonText:'Tamam' });
                 }
             },
-            formatDate(val){
-                if(!val) return '-';
-                if(val.includes('.')) return val;
-                if(val.includes('-')){
-                    const parts = val.split(' ')[0].split('-');
-                    if(parts.length===3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+            formatDate,
+            getFieldValue(name){
+                if(!this.canSend){
+                    const val = this.orderEntities[name];
+                    return (val !== undefined && val !== null && String(val).trim() !== '') ? String(val).trim() : '';
                 }
-                try { const d=new Date(val); if(!isNaN(d)) return d.toLocaleDateString('tr-TR'); } catch(e){}
-                return val;
+                const formComp = this.$refs.formRef;
+                if(formComp && formComp.getCurrentFormData){
+                    try {
+                        const fd = formComp.getCurrentFormData();
+                        const dynF = fd?.dynamicF || {};
+                        for(const key in dynF){
+                            const e = dynF[key]?.entities;
+                            if(!e) continue;
+                            for(const ek in e){
+                                const base = ek.split('**')[0].split('*-*').pop();
+                                if(base === name && e[ek] !== undefined && String(e[ek]).trim() !== ''){
+                                    return String(e[ek]).trim();
+                                }
+                            }
+                            if(e[name] !== undefined && String(e[name]).trim() !== '') return String(e[name]).trim();
+                        }
+                    } catch(e) {}
+                }
+                const allInputs = document.querySelectorAll('input[name^="'+name+'"], textarea[name^="'+name+'"]');
+                for(const inp of allInputs){
+                    if(inp.value && String(inp.value).trim()) return String(inp.value).trim();
+                }
+                const anyInputs = document.querySelectorAll('.form-item');
+                for(const inp of anyInputs){
+                    const n = inp.getAttribute('name') || '';
+                    if(n === name || n.startsWith(name + '**')){
+                        if(inp.value && String(inp.value).trim()) return String(inp.value).trim();
+                    }
+                }
+                return '';
+            },
+            async calcCloneSuffix(orderNo){
+                if(/\-\d+$/.test(orderNo)) return orderNo;
+                const baseNo = orderNo;
+                try {
+                    const cloneFd = new FormData();
+                    cloneFd.append('tableReq', JSON.stringify({
+                        filter: [
+                            { key:'form-type', type:'=', value:'op-doc-order-form' },
+                            { key:'type', type:'=', value:'op-doc-order' },
+                            { key:'all', type:'=', value: baseNo + '-' }
+                        ],
+                        scale: { page: 1, limit: 100 },
+                        order: { key: 'id', style: 'asc' }
+                    }));
+                    const cloneRsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, cloneFd);
+                    const cloneRows = cloneRsp?.data?.data || cloneRsp?.data || [];
+                    const cloneList = Array.isArray(cloneRows) ? cloneRows : (cloneRows?.data || []);
+                    let maxX = 0;
+                    for(const r of cloneList){
+                        try {
+                            const attrs = JSON.parse(r.main_attr || '[]');
+                            const noAttr = attrs.find(a => a.Key === 'order_no');
+                            if(noAttr && noAttr.Value){
+                                const m = noAttr.Value.match(/-(\d+)$/);
+                                if(m) maxX = Math.max(maxX, parseInt(m[1]));
+                            }
+                        } catch(e){}
+                    }
+                    return baseNo + '-' + (maxX + 1);
+                } catch(e){
+                    return baseNo + '-1';
+                }
             }
         }
     }
