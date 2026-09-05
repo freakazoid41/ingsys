@@ -11,7 +11,6 @@ export default {
         list: [{ title: 'Belgeler', path: '/coalpanel/documents' }, { title: 'Belge Detayı', path: '#' }],
         title: 'Belge Detayı'
     },
-    setup() { return { useNavigationStore, useAuthStore, Plib, Swal } },
     computed: {
         isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); },
         fileId() { return this.$route.params.id || ''; },
@@ -47,6 +46,14 @@ export default {
         statusCls,
         personName,
         noteOf,
+        statusIcon(f){
+            const s=statusCls(f);
+            return s==='is-success' ? 'ki-outline ki-check-circle' : s==='is-fail' ? 'ki-outline ki-cross-circle' : 'ki-outline ki-time';
+        },
+        fileIcon(f){
+            const ft=(String(f.file_type||'').toLowerCase());
+            return ft.includes('test') ? 'ki-outline ki-shield-tick' : ft.includes('cins') ? 'ki-outline ki-chart-simple' : 'ki-outline ki-document';
+        },
         isOldVersion(f){
             // document_files.status 0 = replaced/disabled old version — never editable (your rule)
             return String(f?.file_status ?? f?.status ?? '1') === '0';
@@ -58,7 +65,7 @@ export default {
             return k==='doc_file_waiting' || k==='doc_file_refreshed' || !k;
         },
         openFile(f){
-            const qnid=f.file_qnid || f.file_qnid || this.fileId;
+            const qnid=f.file_qnid || this.fileId;
             window.open('/order-file/'+qnid, '_blank');
         },
         goOrder(){
@@ -92,29 +99,30 @@ export default {
             } finally {
                 this.loading=false;
                 setTimeout(()=> this.navigationStore.toggle(false), 300);
-                // docs page is not typewriter — kill frame stretch
-                setTimeout(()=>{ try{
-                    const frame=document.querySelector('.tedarik-frame');
-                    const main=document.querySelector('.tedarik-main');
-                    if(frame){ frame.style.height='auto'; frame.style.minHeight='0';}
-                    if(main){ main.style.height='auto';}
-                    const inner=document.querySelector('.tedarik-main-inner');
-                    if(inner) inner.style.transform='none';
-                    document.body.style.height=''; document.documentElement.style.height='';
-                }catch(e){}}, 400);
+                setTimeout(()=> this.resetFrame(), 400);
             }
+        },
+        resetFrame(){
+            try{
+                const frame=document.querySelector('.tedarik-frame');
+                const main=document.querySelector('.tedarik-main');
+                if(frame){ frame.style.height='auto'; frame.style.minHeight='0';}
+                if(main){ main.style.height='auto';}
+                const inner=document.querySelector('.tedarik-main-inner');
+                if(inner) inner.style.transform='none';
+                document.body.style.height=''; document.documentElement.style.height='';
+            }catch(e){}
         },
         selectFile(f){
             // preserve scroll — typewriter panel jumps on $route.path change (router-view :key)
             const keepY = window.scrollY || document.documentElement.scrollTop || 0;
             this.selectedId=f.file_qnid;
             this.files=this.files.map(x=> ({...x, _sel: x.file_qnid===this.selectedId}));
-            const cur=f;
-            const k=this.parseStatus(cur).op_key;
+            const k=this.parseStatus(f).op_key;
             if(k==='doc_file_accepted') this.choice='accept';
             else if(k==='doc_file_rejected') this.choice='reject';
             else this.choice='';
-            this.note=this.noteOf(cur)||'';
+            this.note=this.noteOf(f)||'';
             // update url without triggering router-view remount / typewriter bounce
             try{
                 const newPath = (this.isTedarik?'/tedarikpanel/documents/':'/coalpanel/documents/') + f.file_qnid;
@@ -126,7 +134,7 @@ export default {
             // restore scroll after history + Vue tick (no jump)
             this.$nextTick(()=>{
                 requestAnimationFrame(()=>{
-                    window.scrollTo({ top: keepY, behavior: 'instant' in window ? 'instant' : 'auto' });
+                    window.scrollTo({ top: keepY, behavior: 'auto' });
                     // also keep typewriter inner in sync
                     try{
                         const inner=document.querySelector('.tedarik-main-inner');
@@ -169,8 +177,8 @@ export default {
 <template>
     <div class="tedarik-file-detail" :class="{ 'admin-theme': !isTedarik }">
         <div class="back-row">
-            <a href="javascript:;" :class="['back-orange', { 'admin-back': !isTedarik }]" @click="goBack"><i class="ki-outline ki-left" :style="{ fontSize:'14px', color: isTedarik ? '#FF5A1F' : '#154b91' }"></i> Belgeler</a>
-            <a href="javascript:;" :class="['order-shortcut', { 'admin-shortcut': !isTedarik }]" @click="goOrder"><i class="ki-outline ki-document"></i> Sipariş Detayına Git →</a>
+            <a :class="['back-orange', { 'admin-back': !isTedarik }]" @click.prevent="goBack"><i class="ki-outline ki-left" :style="{ fontSize:'14px', color: isTedarik ? '#FF5A1F' : '#154b91' }"></i> Belgeler</a>
+            <a :class="['order-shortcut', { 'admin-shortcut': !isTedarik }]" @click.prevent="goOrder"><i class="ki-outline ki-document"></i> Sipariş Detayına Git →</a>
         </div>
         <div :class="['supplier-row', { 'admin-supplier': !isTedarik }]" @click="goOrder" style="cursor:pointer;" title="Sipariş detayına git">
             <div>
@@ -204,7 +212,7 @@ export default {
             <div v-for="(f, idx) in files" :key="f.file_qnid" :class="['file-card', { active: f._sel, 'is-fail': statusCls(f)==='is-fail', 'is-old': isOldVersion(f) }]" @click="selectFile(f)">
                 <div v-if="f._sel" class="active-tri"></div>
                 <div class="file-main">
-                    <div class="file-tip"><i :class="String(f.file_type||'').toLowerCase().includes('test') ? 'ki-outline ki-shield-tick' : String(f.file_type||'').toLowerCase().includes('cins') ? 'ki-outline ki-chart-simple' : 'ki-outline ki-document'" style="margin-right:6px; color:#94a3b8;"></i>{{ f.file_type || 'Belge' }}</div>
+                    <div class="file-tip"><i :class="fileIcon(f)" style="margin-right:6px; color:#94a3b8;"></i>{{ f.file_type || 'Belge' }}</div>
                     <div class="file-sub">
                         <span style="color:#ef4444; font-weight:700;">{{ personName(f) }}</span>
                         <span style="color:#6b7280;"> tarafından</span>
@@ -214,18 +222,18 @@ export default {
                 <div class="file-date">{{ fmtDate(f.last_status?.created_at || f.file_created_at) }}</div>
                 <div class="file-status-col">
                     <template v-if="!f._sel">
-                        <span :class="['status-pill', statusCls(f)]"><i :class="statusCls(f)==='is-success' ? 'ki-outline ki-check-circle' : statusCls(f)==='is-fail' ? 'ki-outline ki-cross-circle' : 'ki-outline ki-time'" style="margin-right:6px; font-size:14px;"></i>{{ statusLabel(f) }}</span>
+                        <span :class="['status-pill', statusCls(f)]"><i :class="statusIcon(f)" style="margin-right:6px; font-size:14px;"></i>{{ statusLabel(f) }}</span>
                         <div v-if="statusCls(f)==='is-fail' && noteOf(f)" class="fail-note"><small>Açıklama :</small> {{ noteOf(f) }}</div>
                     </template>
                     <template v-else>
                         <div v-if="isOldVersion(f)" class="old-locked">
-                            <span :class="['status-pill', statusCls(f)]" style="opacity:.92;"><i :class="statusCls(f)==='is-success' ? 'ki-outline ki-check-circle' : 'ki-outline ki-cross-circle'" style="margin-right:6px;"></i>{{ statusLabel(f) }}</span>
+                            <span :class="['status-pill', statusCls(f)]" style="opacity:.92;"><i :class="statusIcon(f)" style="margin-right:6px;"></i>{{ statusLabel(f) }}</span>
                             <div class="old-badge"><i class="ki-outline ki-lock-2" style="font-size:14px;"></i> Eski versiyon — değiştirilemez</div>
                             <div v-if="noteOf(f)" class="old-note"><small>Açıklama :</small> {{ noteOf(f) }}</div>
                             <div class="old-hint">Bu belge güncellendi — güncel sürümü listeden seçin.</div>
                         </div>
                         <div v-else-if="!isDecidable(f)" class="old-locked">
-                            <span :class="['status-pill', statusCls(f)]"><i :class="statusCls(f)==='is-success' ? 'ki-outline ki-check-circle' : statusCls(f)==='is-fail' ? 'ki-outline ki-cross-circle' : 'ki-outline ki-time'" style="margin-right:6px;"></i>{{ statusLabel(f) }}</span>
+                            <span :class="['status-pill', statusCls(f)]"><i :class="statusIcon(f)" style="margin-right:6px;"></i>{{ statusLabel(f) }}</span>
                             <div v-if="noteOf(f)" class="old-note"><small>Açıklama :</small> {{ noteOf(f) }}</div>
                             <div class="old-badge" style="background:#f0fdf4; border-color:#bbf7d0; color:#065f46;"><i class="ki-outline ki-lock-2"></i> İşlem tamamlandı — değiştirilemez</div>
                         </div>
@@ -321,11 +329,7 @@ export default {
 .save-red:disabled{ opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
 .save-red:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 6px 14px rgba(220,38,38,.28); }
 .inspected-line{ grid-column:1 / -1; font-size:11.5px; color:#6b7280; margin-top:2px; border-top:1px dashed #f1f5f9; padding-top:8px; }
-.hint-bottom{ margin-top:14px; font-size:12.5px; color:#6b7280; line-height:1.7; border-top:1px solid #f1f5f9; padding-top:12px; background:#f8fafc; border-radius:10px; padding:12px 14px; }
-.decide-top{ display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box; }
-.decide-top .decide-row{ flex:1; justify-content:stretch; min-width:0; }
-.incele-inline{ flex-shrink:0; height:38px; padding:0 14px; font-size:12.5px; min-width:72px; justify-content:center; box-sizing:border-box; }
-.file-actions.hidden{ visibility:hidden; pointer-events:none; }
+.hint-bottom{ margin-top:14px; font-size:12.5px; color:#6b7280; line-height:1.7; border-top:1px solid #f1f5f9; background:#f8fafc; border-radius:10px; padding:12px 14px; }
 .file-status-col{ min-width:0; }
 
 /* old version locked — same widths as active */
@@ -357,7 +361,6 @@ export default {
 .admin-theme .decide-pill input{ accent-color:#154b91 !important; }
 .admin-theme .reject-box{ border-color:#bfdbfe !important; background:#f8fafc !important; }
 .admin-theme .reject-box label{ color:#1e40af !important; }
-.admin-file-detail .file-card{ background:#fff; }
 @media (max-width: 768px){
     .files-head{ display:none; }
     .file-card{ grid-template-columns:1fr; }

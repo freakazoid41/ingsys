@@ -53,6 +53,7 @@ doc_file_waiting (default)
 - Merged 2 templates into 1 (admin + tedarik) via `:class="{ 'admin-theme': !isTedarik }"`
 - Imports from `statusUtils.js` and `dateUtils.js`
 - Removed ~80 lines of duplicated template markup
+- **Cleanup (2026-09-06):** removed dead `setup()` return, fixed duplicate `file_qnid` in `openFile`, extracted `statusIcon(f)` method (was 3x duplicated ternary), extracted `resetFrame()` method, fixed `'instant' in window` check, replaced `href="javascript:;"` with `@click.prevent`
 
 ### OForm.vue
 - `getFieldValue(name)` extracted as method (was duplicated at `printMalzemeKabul` and `printMalzemeCinsMiktar`)
