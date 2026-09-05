@@ -8,6 +8,12 @@
     import Form from '@/components/coalparts/Form.vue';
     import OrderItemTable from '@/components/Order/OrderItemTable.vue';
     import { formatDate } from '@/lib/dateUtils';
+    import { validatePrintForm, downloadPdf } from '@/lib/pdf.js';
+    import { escapeHtml } from '@/lib/escape.js';
+    import { noteOf } from '@/lib/statusUtils.js';
+
+    const LOCKED_STATUSES = ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected'];
+    const FILES_LOCKED_STATUSES = ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected'];
 
     export default {
         breadcrumbs: {
@@ -27,7 +33,6 @@
                 return;
             }
             const response = await this.plib.request({ url:'/api/v1/document/'+this.id, method:'GET' },null);
-            this.navigationStore.toggle(true);
             this.formDataStore.setData(response?.data?.formFormat);
             this.formDataStore.rawData = response?.data || {};
             this.rawData = response?.data || {};
@@ -96,8 +101,7 @@
                 if(Array.isArray(this.parsedStatus) && this.parsedStatus.length) return this.parsedStatus[this.parsedStatus.length-1].op_key || '';
                 return '';
             },
-            lockedStatuses(){ return ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected']; },
-            isLocked(){ return this.id && this.lockedStatuses.includes(this.orderStatus); },
+            isLocked(){ return this.id && LOCKED_STATUSES.includes(this.orderStatus); },
             canSend(){ return this.id && this.orderStatus === 'doc_trans_order_created'; },
             canPrintKabul(){ return this.canSend || this.orderStatus === 'doc_trans_order_files_rejected'; },
             storedTransferMode(){
@@ -107,7 +111,7 @@
                 if(this.isCloneOrder) return 'partial';
                 return '';
             },
-            isFilesLocked(){ return this.id && ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected'].includes(this.orderStatus); },
+            isFilesLocked(){ return this.id && FILES_LOCKED_STATUSES.includes(this.orderStatus); },
             readonlyFields(){
                 if(!this.isLocked) return [];
                 const fields = ['order_desc','imalatci_firma_adi'];
@@ -133,15 +137,12 @@
                 }
                 return {};
             },
-            isAtOnceDisabled(){
-                return this.hasPartitions;
-            },
-            isTransferLocked(){ return this.isLocked; },
             tedarikDisplayMode(){
                 if(this.canSend) return this.transferMode;
                 return this.storedTransferMode || 'at_once';
             },
             isTedarik(){ return this.$route.path.startsWith('/tedarikpanel'); },
+            targetList(){ return this.isTedarik ? 'TedarikOrderList' : 'OrderList'; },
             tedarikHeaderTitle(){
                 return this.orderEntities?.ctitle || this.orderEntities?.spec_code || 'Sipariş Detayı';
             },
@@ -182,12 +183,6 @@
                 if(invalid){
                     this.plib.toast(this.Swal,'info','Her kalem için geçerli bir bölme miktarı girmelisiniz.',()=>{});
                     return false;
-                }
-                for(const item of this.selectedItems){
-                    if(!item.serials || !item.serials.length) continue;
-                    for(const s of item.serials){
-                        // KG/M: production_date not required (auto-filled from order date)
-                    }
                 }
                 return true;
             },
@@ -294,20 +289,11 @@
                 }
                 return 'new-' + Date.now();
             },
-            onTedarikKabulSelect(e){
+            onTedarikFileSelect(e, type){
                 const file = e.target.files && e.target.files[0];
-                this.tedarikKabulFile = file || null;
-                if(file){
-                    // try temp upload for faster save, but keep file as fallback
-                    this.handleTedarikTempUpload(file,'kabul');
-                }
-            },
-            onTedarikCinsSelect(e){
-                const file = e.target.files && e.target.files[0];
-                this.tedarikCinsFile = file || null;
-                if(file){
-                    this.handleTedarikTempUpload(file,'cins');
-                }
+                if(type === 'kabul') this.tedarikKabulFile = file || null;
+                else this.tedarikCinsFile = file || null;
+                if(file) this.handleTedarikTempUpload(file, type);
             },
             async handleTedarikTempUpload(file, type){
                 try{
@@ -361,22 +347,14 @@
             previewTedarikFile(file){
                 if(!file?.qnid) return;
                 const url = '/order-file/' + file.qnid;
-                const name = file.name || file.description || 'Dosya';
-                // use iframe for pdf, imageUrl for images — file name encrypted so check qnid route handles both
+                const name = this.escapeHtml(file.name || file.description || 'Dosya');
                 Swal.fire({
                     html: `<div style="font-weight:700;margin-bottom:10px;color:#0f172a;">${name}</div><iframe src="${url}" style="width:100%;height:70vh;border:1px solid #e2e8f0;border-radius:8px;background:#fff"></iframe><div style="margin-top:10px;font-size:0.85rem;color:#64748b;"><a href="${url}" target="_blank" style="color:#3b82f6;text-decoration:underline;">Yeni pencerede aç / İndir</a></div>`,
                     showCloseButton: true, showConfirmButton: false, width: 900
                 });
             },
             getTedarikNote(file){
-                const st = file?.last_status || {};
-                let raw = st.note ?? st.description ?? '';
-                // last_status.note is actually JSON string {"file_id":7,"desc":"...","note":"dfadfa"} — unwrap inner note
-                if(typeof raw === 'string' && raw.trim().startsWith('{')){
-                    try{ const inner = JSON.parse(raw); if(inner && typeof inner.note === 'string' && inner.note.trim() !== '') raw = inner.note; else if(inner && inner.desc) raw = inner.note || raw; }catch(e){}
-                }
-                if(typeof raw === 'string') raw = raw.trim();
-                return raw && raw !== '-' ? raw : '';
+                return this.noteOf(file);
             },
             hasTedarikNote(file){
                 return !!this.getTedarikNote(file);
@@ -385,15 +363,16 @@
                 const st = file?.last_status || {};
                 const isAccepted = st.op_key === 'doc_file_accepted';
                 const title = isAccepted ? 'Dosya Onaylandı' : st.op_key === 'doc_file_rejected' ? 'Dosya Reddedildi' : 'Dosya Notu';
-                const who = st.name || '-';
-                const note = this.getTedarikNote(file) || '-';
+                const who = this.escapeHtml(st.name || '-');
+                const note = this.escapeHtml(this.getTedarikNote(file) || '-');
                 const when = st.created_at ? new Date(st.created_at).toLocaleString('tr-TR') : '';
+                const fileName = this.escapeHtml(this.getTedarikDisplayName(file,'Dosya'));
                 Swal.fire({
                     title,
                     html: `<div style="text-align:left; padding:8px 4px;">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                             <span style="font-size:12px; font-weight:700; padding:4px 8px; border-radius:6px; ${isAccepted ? 'background:#dcfce7;color:#166534' : 'background:#fee2e2;color:#991b1b'}">${isAccepted ? 'Onaylandı' : 'Reddedildi'}</span>
-                            <span style="font-size:13px; color:#0f172a; font-weight:600;">${this.getTedarikDisplayName(file,'Dosya')}</span>
+                            <span style="font-size:13px; color:#0f172a; font-weight:600;">${fileName}</span>
                         </div>
                         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; margin-bottom:8px;">
                             <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;">İşlemi Yapan</div>
@@ -573,12 +552,12 @@
                         } catch(e) {}
                         if (still.length) {
                             const html = `<div style="text-align:left"><div style="font-weight:700;color:#0f172a;margin-bottom:6px;">Kaydedildi — hala reddedilen dosyalar var</div><div style="font-size:0.88rem;color:#475569;margin-bottom:8px;">${still.join(', ')}</div><div style="font-size:0.82rem;color:#64748b;">Bu dosyaları yenileyip tekrar Kaydet yapın, aksi halde durum <b>Reddedilen Dosyalar Mevcut</b> olarak kalır.</div></div>`;
-                            const targetList = this.isTedarik ? 'TedarikOrderList' : 'OrderList';
+                            const targetList = this.targetList;
                             this.Swal.fire({ icon: 'info', html, confirmButtonText: 'Anladım', allowOutsideClick: false }).then(() => {
                                 if (response.success) this.$router.push({ name: targetList });
                             });
                         } else {
-                            const targetList2 = this.isTedarik ? 'TedarikOrderList' : 'OrderList';
+                            const targetList2 = this.targetList;
                             this.plib.toast(this.Swal, response.success ? 'success' : 'error', msg,() => {
                                 if(response.success) this.$router.push({ name: targetList2 });
                             });
@@ -618,7 +597,7 @@
                 if(!conf.isConfirmed) return;
                 const fd=new FormData(); fd.append('id',this.id); fd.append('note', isPartial ? 'Parça silindi, miktarlar ana siparişe iade edildi' : 'Sipariş reddedildi ve iptal edildi');
                 const rsp=await this.plib.request({url:'/api/v1/orders/cancel', method:'POST'}, null, fd);
-                const targetListCancel = this.isTedarik ? 'TedarikOrderList' : 'OrderList';
+                const targetListCancel = this.targetList;
                 this.plib.toast(this.Swal, rsp.success?'success':'error', rsp.msg||'İşlem Tamamlandı',()=>{
                     if(rsp.success) this.$router.push({name: targetListCancel});
                 });
@@ -751,7 +730,7 @@
                 }
             },
             goBackToList(){
-                const target = this.isTedarik ? 'TedarikOrderList' : 'OrderList';
+                const target = this.targetList;
                 try{ this.$router.push({name: target}); }catch(e){ window.history.back(); }
             },
             async printMalzemeKabul(){
@@ -759,42 +738,11 @@
                     this.Swal.fire({ icon:'warning', title, text, confirmButtonText:'Tamam', allowOutsideClick:true });
                 };
                 const itemTable = this.$refs.itemTable;
-                if(!itemTable || !itemTable.items || !itemTable.items.length){
-                    showWarn('Kalemler Yüklenmedi', 'Kalem bilgileri henüz yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
-                    return;
-                }
-                // Determine transfer mode: use form state if canSend, else use DB stored value
                 const effectiveTransferMode = this.canSend ? this.transferMode : this.storedTransferMode;
-                if(!effectiveTransferMode){
-                    showWarn('Transfer Türü Yok', 'Transfer türü bilgisi bulunamadı. Sayfayı yenileyip tekrar deneyin.');
-                    return;
-                }
-                if(this.hasPartitions && effectiveTransferMode === 'at_once'){
-                    showWarn('Tek Seferde Kilitli', 'Bu sipariş daha önce parçalı gönderildiği için artık sadece parçalı gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.');
-                    return;
-                }
                 const desc = this.getFieldValue('order_desc') || this.orderEntities.order_desc || '';
                 const imalatci = this.getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
-                if(!imalatci){
-                    showWarn('İmalatçı Firma Boş', 'İmalatçı Firma adı boş. Formu yazdırmadan önce imalatçı firma bilgisi girmelisiniz.');
-                    return;
-                }
-                // For partial mode in files_rejected: selectedItems may be empty (form locked), treat all items as selected
-                if(effectiveTransferMode === 'partial' && !this.selectedItems.length && !this.canSend){
-                    // DB mode: use all items as selected (order was already sent with all items or subset)
-                    // Fall through to use all items
-                } else if(effectiveTransferMode === 'partial' && !this.selectedItems.length){
-                    showWarn('Kalem Seçilmedi', 'Parçalı transfer seçtiniz ama henüz kalem işaretlemediniz. Gönderilecek kalemleri tablodan işaretleyin.');
-                    return;
-                }
-                if(effectiveTransferMode === 'partial' && this.selectedItems.length){
-                    for(const item of this.selectedItems){
-                        if(!item.amount || item.amount <= 0){
-                            showWarn('Bölme Miktarı Eksik', 'İşaretlenen kalemlerden birinin bölme miktarı girilmemiş. Tüm seçili kalemler için gönderilecek miktarı girin.');
-                            return;
-                        }
-                    }
-                }
+                const err = validatePrintForm({ itemTable, effectiveTransferMode, hasPartitions: this.hasPartitions, selectedItems: this.selectedItems, canSend: this.canSend, imalatci });
+                if(err){ showWarn(err.title, err.text); return; }
                 this.printingKabul = true;
                 this.Swal.fire({ title:'PDF oluşturuluyor...', html:'<div style="display:flex;justify-content:center;padding:10px"><i class="ki-outline ki-loading" style="font-size:26px;animation:spin 1s linear infinite;color:#059669"></i></div><div style="font-size:0.85rem;color:#64748b">Lütfen bekleyin, form hazırlanıyor</div>', allowOutsideClick:false, showConfirmButton:false, didOpen:()=>this.Swal.showLoading() });
                 const items = [];
@@ -802,113 +750,42 @@
                     for(const sel of this.selectedItems){
                         const item = itemTable.items.find(i => i.id == sel.qnid);
                         if(!item) continue;
-                        items.push({
-                            prod_code: item.prod_code || '',
-                            title: item.title || '',
-                            unit: item.unit || '',
-                            quantity: item.quantity,
-                            accept_quantity: sel.amount || item.quantity
-                        });
+                        items.push({ prod_code: item.prod_code || '', title: item.title || '', unit: item.unit || '', quantity: item.quantity, accept_quantity: sel.amount || item.quantity });
                     }
                 } else {
                     for(const item of itemTable.items){
-                        items.push({
-                            prod_code: item.prod_code || '',
-                            title: item.title || '',
-                            unit: item.unit || '',
-                            quantity: item.quantity,
-                            accept_quantity: item.quantity
-                        });
+                        items.push({ prod_code: item.prod_code || '', title: item.title || '', unit: item.unit || '', quantity: item.quantity, accept_quantity: item.quantity });
                     }
                 }
                 let orderNo = this.orderEntities.order_no || '';
-                const buyingNo = this.orderEntities.buying_no || '';
-                const createdAt = this.orderEntities.created_at || '';
-                if(effectiveTransferMode === 'partial'){
-                    orderNo = await this.calcCloneSuffix(orderNo);
-                }
+                if(effectiveTransferMode === 'partial') orderNo = await this.calcCloneSuffix(orderNo);
                 const fd = new FormData();
                 fd.append('qnid', this.id);
                 fd.append('transfer_mode', effectiveTransferMode);
                 fd.append('items', JSON.stringify(items));
                 fd.append('order_no', orderNo);
-                fd.append('buying_no', buyingNo);
-                fd.append('created_at', createdAt);
+                fd.append('buying_no', this.orderEntities.buying_no || '');
+                fd.append('created_at', this.orderEntities.created_at || '');
                 fd.append('order_desc', desc);
                 fd.append('imalatci_firma_adi', imalatci);
                 try{
-                    const rsp = await fetch('/api/v1/export/malzeme-kabul', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                            'Authorization': 'Bearer ' + (localStorage.getItem('token') || ''),
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: fd
-                    });
-                    if(!rsp.ok){
-                        const errData = await rsp.json().catch(()=>({}));
-                        throw new Error(errData.msg || 'PDF oluşturulamadı (HTTP ' + rsp.status + ')');
-                    }
-                    const ct = rsp.headers.get('content-type') || '';
-                    if(!ct.includes('pdf')){
-                        const errData = await rsp.json().catch(()=>({}));
-                        throw new Error(errData.msg || 'Sunbekten PDF yerine hata döndü. Lütfen tekrar deneyin.');
-                    }
-                    const blob = await rsp.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'malzeme-kabul-' + (this.orderEntities.order_no || this.id) + '.pdf';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    a.remove();
+                    await downloadPdf('/api/v1/export/malzeme-kabul', 'malzeme-kabul-' + (this.orderEntities.order_no || this.id) + '.pdf', fd);
                     this.Swal.close();
-                    this.printingKabul = false;
                 } catch(e){
                     this.Swal.close();
-                    this.printingKabul = false;
                     this.Swal.fire({ icon:'error', title:'PDF Oluşturulamadı', text:'PDF indirilemedi: ' + e.message, confirmButtonText:'Tamam' });
-                }
+                } finally { this.printingKabul = false; }
             },
             async printMalzemeCinsMiktar(){
                 const showWarn = (title, text) => {
                     this.Swal.fire({ icon:'warning', title, text, confirmButtonText:'Tamam', allowOutsideClick:true });
                 };
                 const itemTable = this.$refs.itemTable;
-                if(!itemTable || !itemTable.items || !itemTable.items.length){
-                    showWarn('Kalemler Yüklenmedi', 'Kalem bilgileri henüz yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
-                    return;
-                }
                 const effectiveTransferMode = this.canSend ? this.transferMode : this.storedTransferMode;
-                if(!effectiveTransferMode){
-                    showWarn('Transfer Türü Yok', 'Transfer türü bilgisi bulunamadı. Sayfayı yenileyip tekrar deneyin.');
-                    return;
-                }
-                if(this.hasPartitions && effectiveTransferMode === 'at_once'){
-                    showWarn('Tek Seferde Kilitli', 'Bu sipariş daha önce parçalı gönderildiği için artık sadece parçalı gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.');
-                    return;
-                }
                 const desc = this.getFieldValue('order_desc') || this.orderEntities.order_desc || '';
                 const imalatci = this.getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
-                if(!imalatci){
-                    showWarn('İmalatçı Firma Boş', 'İmalatçı Firma adı boş. Formu yazdırmadan önce imalatçı firma bilgisi girmelisiniz.');
-                    return;
-                }
-                if(effectiveTransferMode === 'partial' && !this.selectedItems.length && !this.canSend){
-                } else if(effectiveTransferMode === 'partial' && !this.selectedItems.length){
-                    showWarn('Kalem Seçilmedi', 'Parçalı transfer seçtiniz ama henüz kalem işaretlemediniz. Gönderilecek kalemleri tablodan işaretleyin.');
-                    return;
-                }
-                if(effectiveTransferMode === 'partial' && this.selectedItems.length){
-                    for(const item of this.selectedItems){
-                        if(!item.amount || item.amount <= 0){
-                            showWarn('Bölme Miktarı Eksik', 'İşaretlenen kalemlerden birinin bölme miktarı girilmemiş. Tüm seçili kalemler için gönderilecek miktarı girin.');
-                            return;
-                        }
-                    }
-                }
+                const err = validatePrintForm({ itemTable, effectiveTransferMode, hasPartitions: this.hasPartitions, selectedItems: this.selectedItems, canSend: this.canSend, imalatci });
+                if(err){ showWarn(err.title, err.text); return; }
                 this.printingCins = true;
                 this.Swal.fire({ title:'PDF oluşturuluyor...', html:'<div style="display:flex;justify-content:center;padding:10px"><i class="ki-outline ki-loading" style="font-size:26px;animation:spin 1s linear infinite;color:#7c3aed"></i></div><div style="font-size:0.85rem;color:#64748b">Lütfen bekleyin, form hazırlanıyor</div>', allowOutsideClick:false, showConfirmButton:false, didOpen:()=>this.Swal.showLoading() });
                 const items = [];
@@ -916,107 +793,51 @@
                     for(const sel of this.selectedItems){
                         const item = itemTable.items.find(i => i.id == sel.qnid);
                         if(!item) continue;
-                        // Use frontend serial state (newly entered), fall back to DB serials
                         const frontendSerials = itemTable.serials?.[item.id] || [];
                         const serials = frontendSerials.length > 0 ? frontendSerials : (item.serials || []);
                         if(serials.length){
                             for(const s of serials){
-                                items.push({
-                                    prod_code: item.prod_code || '',
-                                    title: item.title || '',
-                                    unit: item.unit || '',
-                                    quantity: s.quantity || '-',
-                                    serial_no: s.serial_no || '-'
-                                });
+                                items.push({ prod_code: item.prod_code || '', title: item.title || '', unit: item.unit || '', quantity: s.quantity || '-', serial_no: s.serial_no || '-' });
                             }
                         } else {
-                            items.push({
-                                prod_code: item.prod_code || '',
-                                title: item.title || '',
-                                unit: item.unit || '',
-                                quantity: sel.amount || item.quantity,
-                                serial_no: '-'
-                            });
+                            items.push({ prod_code: item.prod_code || '', title: item.title || '', unit: item.unit || '', quantity: sel.amount || item.quantity, serial_no: '-' });
                         }
                     }
                 } else {
                     for(const item of itemTable.items){
-                        // Use frontend serial state (newly entered), fall back to DB serials
                         const frontendSerials = itemTable.serials?.[item.id] || [];
                         const serials = frontendSerials.length > 0 ? frontendSerials : (item.serials || []);
                         if(serials.length){
                             for(const s of serials){
-                                items.push({
-                                    prod_code: item.prod_code || '',
-                                    title: item.title || '',
-                                    unit: item.unit || '',
-                                    quantity: s.quantity || '-',
-                                    serial_no: s.serial_no || '-'
-                                });
+                                items.push({ prod_code: item.prod_code || '', title: item.title || '', unit: item.unit || '', quantity: s.quantity || '-', serial_no: s.serial_no || '-' });
                             }
                         } else {
-                            items.push({
-                                prod_code: item.prod_code || '',
-                                title: item.title || '',
-                                unit: item.unit || '',
-                                quantity: item.quantity,
-                                serial_no: '-'
-                            });
+                            items.push({ prod_code: item.prod_code || '', title: item.title || '', unit: item.unit || '', quantity: item.quantity, serial_no: '-' });
                         }
                     }
                 }
                 let orderNo = this.orderEntities.order_no || '';
-                const buyingNo = this.orderEntities.buying_no || '';
-                const createdAt = this.orderEntities.created_at || '';
-                if(effectiveTransferMode === 'partial'){
-                    orderNo = await this.calcCloneSuffix(orderNo);
-                }
+                if(effectiveTransferMode === 'partial') orderNo = await this.calcCloneSuffix(orderNo);
                 const fd = new FormData();
                 fd.append('qnid', this.id);
                 fd.append('transfer_mode', effectiveTransferMode);
                 fd.append('items', JSON.stringify(items));
                 fd.append('order_no', orderNo);
-                fd.append('buying_no', buyingNo);
-                fd.append('created_at', createdAt);
+                fd.append('buying_no', this.orderEntities.buying_no || '');
+                fd.append('created_at', this.orderEntities.created_at || '');
                 fd.append('order_desc', desc);
                 fd.append('imalatci_firma_adi', imalatci);
                 try{
-                    const rsp = await fetch('/api/v1/export/malzeme-cins-miktar-kabul', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                            'Authorization': 'Bearer ' + (localStorage.getItem('token') || ''),
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: fd
-                    });
-                    if(!rsp.ok){
-                        const errData = await rsp.json().catch(()=>({}));
-                        throw new Error(errData.msg || 'PDF oluşturulamadı (HTTP ' + rsp.status + ')');
-                    }
-                    const ct = rsp.headers.get('content-type') || '';
-                    if(!ct.includes('pdf')){
-                        const errData = await rsp.json().catch(()=>({}));
-                        throw new Error(errData.msg || 'Sunbekten PDF yerine hata döndü. Lütfen tekrar deneyin.');
-                    }
-                    const blob = await rsp.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'malzeme-cins-miktar-' + (this.orderEntities.order_no || this.id) + '.pdf';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    a.remove();
+                    await downloadPdf('/api/v1/export/malzeme-cins-miktar-kabul', 'malzeme-cins-miktar-' + (this.orderEntities.order_no || this.id) + '.pdf', fd);
                     this.Swal.close();
-                    this.printingCins = false;
                 } catch(e){
                     this.Swal.close();
-                    this.printingCins = false;
                     this.Swal.fire({ icon:'error', title:'PDF Oluşturulamadı', text:'PDF indirilemedi: ' + e.message, confirmButtonText:'Tamam' });
-                }
+                } finally { this.printingCins = false; }
             },
             formatDate,
+            escapeHtml,
+            noteOf,
             getFieldValue(name){
                 if(!this.canSend){
                     const val = this.orderEntities[name];
@@ -1138,18 +959,18 @@
                 <div class="tedarik-step-body">
                     <div style="margin-bottom:10px; font-size:13px; color:#475569;">Sevkiyat Tipi <span style="color:#ef4444;">*</span></div>
                     <div style="display:flex; gap:12px; margin-bottom:14px;">
-                        <label class="tedarik-radio-card" :class="{ active: tedarikDisplayMode==='at_once', disabled: hasPartitions || isTransferLocked }" @click="!hasPartitions && !isTransferLocked && (transferMode='at_once')">
-                            <input type="radio" value="at_once" v-model="transferMode" :disabled="hasPartitions || isTransferLocked" style="accent-color:#FF5A1F;">
+                        <label class="tedarik-radio-card" :class="{ active: tedarikDisplayMode==='at_once', disabled: hasPartitions || isLocked }" @click="!hasPartitions && !isLocked && (transferMode='at_once')">
+                            <input type="radio" value="at_once" v-model="transferMode" :disabled="hasPartitions || isLocked" style="accent-color:#FF5A1F;">
                             <span>Tek Parça Sevkiyat</span>
-                            <i v-if="isTransferLocked" class="ki-outline ki-lock-2" style="margin-left:6px;font-size:13px;color:#94a3b8;"></i>
+                            <i v-if="isLocked" class="ki-outline ki-lock-2" style="margin-left:6px;font-size:13px;color:#94a3b8;"></i>
                         </label>
-                        <label class="tedarik-radio-card" :class="{ active: tedarikDisplayMode==='partial', disabled: isTransferLocked }" @click="!isTransferLocked && (transferMode='partial')">
-                            <input type="radio" value="partial" v-model="transferMode" :disabled="isTransferLocked" style="accent-color:#FF5A1F;">
+                        <label class="tedarik-radio-card" :class="{ active: tedarikDisplayMode==='partial', disabled: isLocked }" @click="!isLocked && (transferMode='partial')">
+                            <input type="radio" value="partial" v-model="transferMode" :disabled="isLocked" style="accent-color:#FF5A1F;">
                             <span>Parçalı Sevkiyat</span>
-                            <i v-if="isTransferLocked" class="ki-outline ki-lock-2" style="margin-left:6px;font-size:13px;color:#94a3b8;"></i>
+                            <i v-if="isLocked" class="ki-outline ki-lock-2" style="margin-left:6px;font-size:13px;color:#94a3b8;"></i>
                         </label>
                     </div>
-                    <div v-if="isTransferLocked" style="margin-bottom:12px; padding:10px 14px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:8px; color:#64748b; font-size:0.85rem; display:flex; align-items:center; gap:8px;"><i class="ki-outline ki-lock-2" style="font-size:14px;"></i> Sipariş kilitlendi — sevkiyat tipi değiştirilemez ({{ tedarikDisplayMode==='at_once' ? 'Tek Parça' : 'Parçalı' }} olarak gönderildi).</div>
+                    <div v-if="isLocked" style="margin-bottom:12px; padding:10px 14px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:8px; color:#64748b; font-size:0.85rem; display:flex; align-items:center; gap:8px;"><i class="ki-outline ki-lock-2" style="font-size:14px;"></i> Sipariş kilitlendi — sevkiyat tipi değiştirilemez ({{ tedarikDisplayMode==='at_once' ? 'Tek Parça' : 'Parçalı' }} olarak gönderildi).</div>
                     <div v-if="hasPartitions" style="margin-bottom:12px; padding:10px 14px; background:#fef3c7; border:1px solid #fde68a; border-radius:8px; color:#92400e; font-size:0.85rem;">Bu sipariş daha önce parçalı gönderildiği için artık sadece <b>Parçalı</b> gönderim yapılabilir.</div>
                     <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')+'-tedarik'" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" :readonly="isLocked" :hideHeader="true" :tedarikOrderStatus="tedarikStatus" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
                 </div>
@@ -1223,7 +1044,7 @@
                                         <button v-if="hasTedarikNote(tedarikExistingKabul)" type="button" @click="showTedarikFileNote(tedarikExistingKabul)" style="font-size:11px; font-weight:700; padding:5px 10px; border-radius:6px; border:1px solid #fed7aa; background:#ffedd5; color:#9a3412; cursor:pointer; flex-shrink:0;">Notu Gör</button>
                                     </div>
                                     <label class="tedarik-file-wrap">
-                                        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikKabulSelect" style="display:none;">
+                                        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikFileSelect($event, 'kabul')" style="display:none;">
                                         <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikKabulFile ? tedarikKabulFile.name : 'Yeni dosya seç' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
                                     </label>
                                 </div>
@@ -1243,7 +1064,7 @@
                                     </div>
                                 </div>
                                 <label v-else class="tedarik-file-wrap" :style="isFilesLocked ? 'opacity:0.55;pointer-events:none;' : ''">
-                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikKabulSelect" :disabled="isFilesLocked" style="display:none;">
+                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikFileSelect($event, 'kabul')" :disabled="isFilesLocked" style="display:none;">
                                     <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikKabulFile ? tedarikKabulFile.name : 'Dosya seçilmedi' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
                                 </label>
                             </template>
@@ -1281,7 +1102,7 @@
                                         <button v-if="hasTedarikNote(tedarikExistingCins)" type="button" @click="showTedarikFileNote(tedarikExistingCins)" style="font-size:11px; font-weight:700; padding:5px 10px; border-radius:6px; border:1px solid #fed7aa; background:#ffedd5; color:#9a3412; cursor:pointer; flex-shrink:0;">Notu Gör</button>
                                     </div>
                                     <label class="tedarik-file-wrap">
-                                        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikCinsSelect" style="display:none;">
+                                        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikFileSelect($event, 'cins')" style="display:none;">
                                         <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikCinsFile ? tedarikCinsFile.name : 'Yeni dosya seç' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
                                     </label>
                                 </div>
@@ -1301,7 +1122,7 @@
                                     </div>
                                 </div>
                                 <label v-else class="tedarik-file-wrap" :style="isFilesLocked ? 'opacity:0.55;pointer-events:none;' : ''">
-                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikCinsSelect" :disabled="isFilesLocked" style="display:none;">
+                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" @change="onTedarikFileSelect($event, 'cins')" :disabled="isFilesLocked" style="display:none;">
                                     <span class="tedarik-file-input"><span style="color:#64748b; font-size:13px;">{{ tedarikCinsFile ? tedarikCinsFile.name : 'Dosya seçilmedi' }}</span><span class="tedarik-file-btn">Dosya Seç</span></span>
                                 </label>
                             </template>
@@ -1695,28 +1516,7 @@
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 /* ===== TEDARIK DETAIL (screenshot 1:1) ===== */
 .tedarik-detail { display:flex; flex-direction:column; gap:14px; background:#ffffff; border-radius:12px; }
-.tedarik-detail-header { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px 22px 16px; position:relative; overflow:hidden; }
-.tedarik-detail-header::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #FF5A1F 0%, #fb923c 50%, #FF5A1F 100%); }
-.tedarik-detail-header-top { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid #f1f5f9; margin-bottom:10px; }
-.tedarik-back-link { display:inline-flex; align-items:center; gap:7px; background:linear-gradient(135deg, #fff7ed 0%, #fff 100%); border:1.5px solid #fed7aa; color:#ea580c; font-size:12px; font-weight:700; cursor:pointer; padding:6px 14px 6px 10px; border-radius:999px; line-height:1; transition:all 0.2s ease; margin-bottom:8px; box-shadow:0 1px 4px rgba(234,88,12,0.08); letter-spacing:0.02em; }
-.tedarik-back-link i { font-size:14px; transition:transform 0.2s ease; }
-.tedarik-back-link:hover { background:linear-gradient(135deg, #ffedd5 0%, #fff7ed 100%); border-color:#fb923c; color:#c2410c; box-shadow:0 2px 8px rgba(234,88,12,0.15); transform:translateX(-2px); }
-.tedarik-back-link:hover i { transform:translateX(-2px); }
-.tedarik-company-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.tedarik-company-icon { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #FF5A1F 0%, #fb923c 100%); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:16px; flex-shrink:0; box-shadow:0 4px 12px rgba(255,90,31,0.22); }
-.tedarik-detail-title { font-size:15.5px; font-weight:800; color:#0f172a; line-height:1.3; letter-spacing:-0.01em; }
-.tedarik-tdno-badge { display:inline-flex; align-items:center; padding:4px 8px; border-radius:6px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:11px; font-weight:700; letter-spacing:0.02em; white-space:nowrap; }
-.tedarik-detail-sub { font-size:12.5px; color:#64748b; margin-top:2px; }
-.tedarik-meta-item span { font-size:11.5px; color:#94a3b8; font-weight:500; white-space:nowrap; }
-.tedarik-meta-item b { font-size:13px; color:#0f172a; font-weight:700; white-space:nowrap; }
-.tedarik-status-drum { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:0.02em; box-shadow:0 2px 8px rgba(0,0,0,0.06); transition:all 0.2s ease; }
-.tedarik-status-dot { width:7px; height:7px; border-radius:999px; background:currentColor; opacity:0.9; display:inline-block; }
-.tedarik-detail-title { font-size:15px; font-weight:800; color:#0f172a; line-height:1.3; }
-.tedarik-detail-sub { font-size:12.5px; color:#64748b; margin-top:2px; }
 .tedarik-detail-meta { display:flex; flex-direction:column; gap:3px; align-items:flex-end; text-align:right; }
-.tedarik-meta-item { display:flex; align-items:center; gap:8px; white-space:nowrap; }
-.tedarik-meta-item span { font-size:12px; color:#94a3b8; font-weight:500; white-space:nowrap; }
-.tedarik-meta-item b { font-size:13px; color:#0f172a; font-weight:700; white-space:nowrap; }
 .tedarik-warning { background:#fff8db; border:1px solid #fde68a; border-radius:12px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; color:#92400e; font-size:12.8px; line-height:1.6; }
 .tedarik-warning i { font-size:18px; color:#f59e0b; flex-shrink:0; margin-top:2px; }
 .tedarik-step-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }

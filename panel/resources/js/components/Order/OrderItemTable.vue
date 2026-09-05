@@ -1356,7 +1356,7 @@ export default {
                                             <i class="ki-outline ki-plus" style="font-size:14px;"></i>
                                             <span>Görsel Ekle</span>
                                         </button>
-                                        <span v-else style="font-size:0.78rem;color:#94a3b8;font-style:italic;padding:6px 0;display:inline-flex;align-items:center;gap:4px"><i class="ki-outline ki-lock-2" style="font-size:12px"></i> Sipariş kilitli — görsel eklenemez</span>
+                                        <span v-else-if="!(existingImages[row.id] || []).length && !(itemImages[row.id] || []).length" style="font-size:0.78rem;color:#94a3b8;font-style:italic;padding:6px 0;display:inline-flex;align-items:center;gap:4px"><i class="ki-outline ki-lock-2" style="font-size:12px"></i> Sipariş kilitli — görsel eklenemez</span>
                                         <input type="file" :ref="el => { if(el) imageFileInputs[row.id] = el }" accept=".jpg,.jpeg,.png,.pdf" style="display:none" @change="onImageFileSelected(row, $event)" />
                                     </div>
                                 </div>

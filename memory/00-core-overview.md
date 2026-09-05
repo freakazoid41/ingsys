@@ -94,6 +94,8 @@ Per-person JSON array in EAV `op-doc-user-permission-form`. Runtime via `Permiss
 
 Central client `lib/pickle.js:824` — fetch wrapper (CSRF meta + Bearer localStorage) + form toolkit (`checkForm`, `clearElements`, `validatePassword`) + UI (`toast`, `formatMoney`, `compressImage`, `crypFunc` base64).
 
+Shared libs `resources/js/lib/`: `statusUtils.js` (parseStatus/statusLabel/statusCls/personName/noteOf), `dateUtils.js` (fmtDate/fmtDateTime/formatDate), `statusMaps.js` (ORDER_STATUS_LABEL_MAP/FILE_STATUS_ICONS), `pipe.js` (toPipe), `escape.js` (escapeHtml), `pickle.js` (Plib client).
+
 ## 11. Critical Gotchas For New Apps
 - **EAV is the abstraction** — no migrations for new fields, just new `sys_options` + `Form.vue` schema
 - **Form.vue is monolith** (~2892 lines, imperative `document.createElement`, not Vue template) — see `memory/01-form-engine.md`

@@ -45,6 +45,9 @@ All new files are **outside source** — import, don't duplicate 220 lines.
 | `resources/js/lib/escape.js` | `escapeHtml(s)` for `Swal.fire({html})` `curNo/base` `OList:708` | `import {escapeHtml} from '@/lib/escape'` |
 | `resources/js/lib/pipe.js` | `toPipe(v)` ` to / — / - → \|` `DList:15 OList:269` backend `tarih_araligi` | `import {toPipe} from '@/lib/pipe'` |
 | `resources/js/lib/statusMaps.js` | `ORDER_STATUS_LABEL_MAP, FILE_STATUS_ICONS, FILE_TYPE_ICON_MAP` `OList:15` | `import {ORDER_STATUS_LABEL_MAP} from '@/lib/statusMaps'` |
+| `resources/js/lib/statusUtils.js` | `parseStatus, statusLabel, statusCls, personName, noteOf` — status helpers for DForm/OForm file detail views | `import {parseStatus, statusLabel, statusCls, personName, noteOf} from '@/lib/statusUtils'` |
+| `resources/js/lib/dateUtils.js` | `fmtDate(fmt), fmtDateTime(fmt), formatDate(val)` — date formatting for DForm/OForm | `import {fmtDate, fmtDateTime, formatDate} from '@/lib/dateUtils'` |
+| `resources/js/lib/pdf.js` | `downloadPdf(endpoint, filename, fd), validatePrintForm({...})` — shared PDF download + print validation | `import {downloadPdf, validatePrintForm} from '@/lib/pdf.js'` |
 | `resources/js/composables/useClientModal.js` | `sirketSearch/modalClients/selectedSirkets/showClientModal/buildClientTable(force)/modalFilteredClients` 5-min cache, `loadingClients`, `Set` toggle `OList:196` | `setup(){ const modal=useClientModal(plib); return {...modal}}` or `data(){return {...useClientModalData()}}` |
 | `resources/js/composables/useTedarikDropdown.js` | `show/dropdownPos/updatePos/handleOutside/closeDelayed` `280px` clamp `window.innerWidth-12` `OList:94` | `const dd=useTedarikDropdown(); dd.toggle(e, wrapRef)` |
 | `resources/js/composables/useTedarikHeight.js` | `enforce(rAF+400)` for `selector .tedarik-card .pickletable` vs `.tedarik-docs-page .pickletable` `OList:934` | `useTedarikHeight(()=>isTedarik, '.tedarik-card .pickletable', _buildTimeouts)` |
