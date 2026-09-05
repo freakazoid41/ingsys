@@ -464,6 +464,40 @@
                         this.Swal.fire({ icon:'warning', title:'İmalatçı Firma Boş', text:'Lütfen imalatçı firma adını giriniz.', confirmButtonText:'Tamam' });
                         return;
                     }
+                    // Malzeme Kabul + Cins forms required on first send, and rejected files required on re-send (control mechanics)
+                    if(this.canSend){
+                        const hasKabulNew = !!(this.tedarikKabulFile || this.tedarikKabulRef);
+                        const hasKabulExistingOk = !!(this.tedarikExistingKabul && this.tedarikExistingKabul.last_status?.op_key !== 'doc_file_rejected');
+                        const hasCinsNew = !!(this.tedarikCinsFile || this.tedarikCinsRef);
+                        const hasCinsExistingOk = !!(this.tedarikExistingCins && this.tedarikExistingCins.last_status?.op_key !== 'doc_file_rejected');
+                        const kabulOk = hasKabulNew || hasKabulExistingOk;
+                        const cinsOk = hasCinsNew || hasCinsExistingOk;
+                        if(!kabulOk || !cinsOk){
+                            this.navigationStore.toggle(false);
+                            this.isSubmitting = false;
+                            const missing = [];
+                            if(!kabulOk) missing.push('Malzeme Kabul Formu');
+                            if(!cinsOk) missing.push('Malzeme Cins-Miktar Kabul Formu');
+                            this.Swal.fire({ icon:'warning', title:'Eksik Dosya', html:`<div style="text-align:left"><div>${missing.join(' ve ')} yüklenmelidir.</div><div style="margin-top:8px;font-size:13px;color:#64748b;">Lütfen her iki formu da doldurup <b>5. adım</b>da yükleyin. Sonra <b>Gönder</b> ile kontrole gönderin.</div></div>`, confirmButtonText:'Tamam', confirmButtonColor:'#FF5A1F' });
+                            return;
+                        }
+                    } else if(this.orderStatus === 'doc_trans_order_files_rejected'){
+                        const kabulRejected = this.tedarikExistingKabul?.last_status?.op_key === 'doc_file_rejected';
+                        const cinsRejected = this.tedarikExistingCins?.last_status?.op_key === 'doc_file_rejected';
+                        const hasKabulNew = !!(this.tedarikKabulFile || this.tedarikKabulRef);
+                        const hasCinsNew = !!(this.tedarikCinsFile || this.tedarikCinsRef);
+                        const missing = [];
+                        if(kabulRejected && !hasKabulNew) missing.push('Malzeme Kabul Formu');
+                        if(cinsRejected && !hasCinsNew) missing.push('Malzeme Cins-Miktar Kabul Formu');
+                        if(!this.tedarikExistingKabul && !hasKabulNew) missing.push('Malzeme Kabul Formu');
+                        if(!this.tedarikExistingCins && !hasCinsNew) missing.push('Malzeme Cins-Miktar Kabul Formu');
+                        if(missing.length){
+                            this.navigationStore.toggle(false);
+                            this.isSubmitting = false;
+                            this.Swal.fire({ icon:'warning', title:'Reddedilen Dosyalar', html:`<div style="text-align:left"><div>${missing.join(' ve ')} için yeni dosya yüklemeniz gerekiyor.</div><div style="margin-top:8px;font-size:13px;color:#64748b;">Reddedilen kartta <b>Yeni dosya seç</b> ile yenileyin.</div></div>`, confirmButtonText:'Tamam', confirmButtonColor:'#ef4444' });
+                            return;
+                        }
+                    }
                     rsp = { valid: true };
                 } else {
                     rsp = this.plib.checkForm('.form-item');
@@ -1235,7 +1269,7 @@
                 <div class="tedarik-step-body">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                         <div>
-                            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Malzeme Kabul Formu</div>
+                            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Malzeme Kabul Formu <span v-if="canSend || tedarikExistingKabul?.last_status?.op_key==='doc_file_rejected'" style="color:#ef4444;">*</span></div>
                             <!-- Locked + existing: viewable like admin -->
                             <div v-if="isFilesLocked && tedarikExistingKabul" style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; min-width:0; overflow:hidden;">
                                 <i class="ki-outline ki-document" style="font-size:16px;color:#3b82f6;"></i>
@@ -1295,7 +1329,7 @@
                             <div v-if="isFilesLocked" style="margin-top:6px; font-size:11.5px; color:#94a3b8; display:flex; align-items:center; gap:4px;"><i class="ki-outline ki-lock-2" style="font-size:12px;"></i> Sipariş kilitli — dosya değiştirilemez</div>
                         </div>
                         <div>
-                            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Malzeme Cins-Miktar Kabul Formu</div>
+                            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Malzeme Cins-Miktar Kabul Formu <span v-if="canSend || tedarikExistingCins?.last_status?.op_key==='doc_file_rejected'" style="color:#ef4444;">*</span></div>
                             <div v-if="isFilesLocked && tedarikExistingCins" style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; min-width:0; overflow:hidden;">
                                 <i class="ki-outline ki-document" style="font-size:16px;color:#7c3aed;"></i>
                                 <span style="flex:1; min-width:0; font-size:13px; font-weight:500; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="getTedarikDisplayName(tedarikExistingCins,'Malzeme Cins-Miktar Kabul Formu')">{{ getTedarikDisplayName(tedarikExistingCins,'Malzeme Cins-Miktar Kabul Formu') }}</span>

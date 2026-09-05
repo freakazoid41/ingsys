@@ -132,25 +132,46 @@ class Documents extends Model
 
                     break;
                     case 'op-doc-order':
-                    case 'op-doc-order-item':
-                    case 'op-doc-order-serial':
                         // INGSYS Tedarik: reseller sees only orders where spec_code (lifnr) matches one of his bound clients
-                        // clientQnidList holds qnids → resolve to lifnrs via client docs
                         $resellerQnids = array_values(array_unique(session('currentStatus')['clientQnidList']));
                         $qnidIn = "'".implode("','", array_map('noInject', $resellerQnids))."'";
                         $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
                         $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
                         if(empty($lifnrs)){
-                            // no lifnr resolved → force empty result (fails closed)
                             $where .= " and 1=0 ";
                         } else {
                             $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
-                            // spec_code on order holds lifnr string (keep leading zeros)
                             $where .= " and (
                                 exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn))
                                 or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='lifnr' and se2.entity_value in ($lifIn))
                                 or i.qnid in ($qnidIn)
                             ) ";
+                        }
+                    break;
+                    case 'op-doc-order-item':
+                        $resellerQnids = array_values(array_unique(session('currentStatus')['clientQnidList']));
+                        $qnidIn = "'".implode("','", array_map('noInject', $resellerQnids))."'";
+                        $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+                        $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
+                        if(empty($lifnrs)){
+                            $where .= " and 1=0 ";
+                        } else {
+                            $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
+                            // item's parent is the order — check order's spec_code
+                            $where .= " and exists (select 1 from documents d2 join sys_con_ops so2 on so2.main_id = d2.id join sys_con_entities se2 on se2.conn_id = so2.id where d2.id = i.parent_id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn)) ";
+                        }
+                    break;
+                    case 'op-doc-order-serial':
+                        $resellerQnids = array_values(array_unique(session('currentStatus')['clientQnidList']));
+                        $qnidIn = "'".implode("','", array_map('noInject', $resellerQnids))."'";
+                        $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+                        $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
+                        if(empty($lifnrs)){
+                            $where .= " and 1=0 ";
+                        } else {
+                            $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
+                            // serial -> item -> order (two levels up)
+                            $where .= " and exists (select 1 from documents di join documents d2 on d2.id = di.parent_id join sys_con_ops so2 on so2.main_id = d2.id join sys_con_entities se2 on se2.conn_id = so2.id where di.id = i.parent_id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn)) ";
                         }
                     break;
                     case 'op-doc-client':
