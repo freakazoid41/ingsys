@@ -135,9 +135,21 @@ export default {
 @media (max-width: 768px){
   .adm-dashboard { padding: 1rem; gap: 1rem; }
 }
+
+
+
 </style>
 
 <style>
+body.admin-dashboard-active .wrapper{
+  padding-left:0 !important;
+}
+@media (min-width: 992px) {
+  body.admin-dashboard-active .wrapper {
+      padding-left: 0px !important;
+  }
+}
+
 /* Fix: aside-fixed makes sidebar position:fixed (out of flex flow) → wrapper goes under it.
    Force aside to participate in flex ONLY when admin-dashboard is active, so mobile drawer still works elsewhere. */
 @media (min-width: 992px) {

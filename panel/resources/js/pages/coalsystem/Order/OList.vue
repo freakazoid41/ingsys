@@ -668,27 +668,72 @@
                                 btn.title='Durum değiştir';
                                 btn.style.cursor='pointer';
                                 btn.onclick=()=>{
+                                    const current = String(row.status||'').split('**')[0]||'doc_trans_order_created';
+                                    const allowed = {
+                                        'doc_trans_order_created': ['doc_trans_order_transfer_sent'],
+                                        'doc_trans_order_transfer_sent': ['doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_ready_for_shipment'],
+                                        'doc_trans_order_files_rejected': ['doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_ready_for_shipment'],
+                                        'doc_trans_order_ready_for_shipment': ['doc_trans_order_approved','doc_trans_order_rejected'],
+                                    };
+                                    const isAllowed = (target) => {
+                                        if(['doc_trans_order_approved','doc_trans_order_rejected'].includes(current)) return false;
+                                        const list = allowed[current] || [];
+                                        return list.includes(target);
+                                    };
+                                    const mkBtn = (key,label,icon,bg,color) => {
+                                        const ok = isAllowed(key);
+                                        const dis = ok ? '' : 'disabled';
+                                        const style = ok ? `background:${bg};color:${color||'#fff'};border:none;` : `background:#e5e7eb;color:#9ca3af;border:1px solid #e5e7eb;cursor:not-allowed;opacity:0.7;`;
+                                        const title = ok ? '' : `title="Bu geçişe izin verilmiyor: ${current} → ${key}"`;
+                                        return `<button class="btn doc-status" data-key="${key}" ${dis} ${title} style="${style}font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="${icon}" style="font-size:16px;"></i>${label}${ok?'':' — Kapalı'}</button>`;
+                                    };
                                     Swal.fire({
                                         title:'Durum Değiştir',
                                         showConfirmButton:false, showCloseButton:true,
                                         html:`<div class="d-flex flex-column gap-2 p-2">
-                                            <button class="btn btn-success doc-status" data-key="doc_trans_order_approved" style="background:#22c55e;border:none;"><i class="ki-outline ki-check-circle me-2"></i>Kalite Onayı Verildi</button>
-                                            <button class="btn doc-status" data-key="doc_trans_order_ready_for_shipment" style="background:#facc15;color:#713f12;border:none;"><i class="ki-outline ki-truck me-2"></i>Sipariş Sevke Hazır</button>
-                                            <button class="btn doc-status" data-key="doc_trans_order_transfer_sent" style="background:#f97316;color:#fff;border:none;"><i class="ki-outline ki-magnifier me-2"></i>Dosyalar Kontrol Ediliyor</button>
-                                            <button class="btn btn-danger doc-status" data-key="doc_trans_order_rejected"><i class="ki-outline ki-cross-circle me-2"></i>Reddedildi</button>
+                                            ${mkBtn('doc_trans_order_approved','Kalite Onayı Verildi','ki-outline ki-check-circle','#22c55e')}
+                                            ${mkBtn('doc_trans_order_ready_for_shipment','Sipariş Sevke Hazır','ki-outline ki-truck','#facc15','#713f12')}
+                                            ${mkBtn('doc_trans_order_transfer_sent','Dosyalar Kontrol Ediliyor','ki-outline ki-magnifier','#f97316')}
+                                            ${mkBtn('doc_trans_order_rejected','Reddedildi','ki-outline ki-cross-circle','#ef4444')}
+                                            <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:4px;">Mevcut: <b style="color:#0f172a;">${STATUS_LABEL_MAP[current] || current}</b></div>
                                         </div>`,
                                         willOpen:()=>{
                                             const container = (typeof Swal.getHtmlContainer==='function' ? Swal.getHtmlContainer() : document);
                                             (container || document).querySelectorAll('.doc-status').forEach(b=>b.addEventListener('click', async e=>{
-                                                const key = e.currentTarget?.dataset?.key || e.target?.dataset?.key;
-                                                if(!key) return;
-                                                const fd=new FormData(); fd.append('id',row.id); fd.append('op_key',key); fd.append('note','Durum güncellendi');
-                                                const rsp=await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
-                                                if(rsp.success){
-                                                    const newLabel = e.currentTarget.textContent.trim();
-                                                    this.table.updateRow(row.id,{status:key+'**'+newLabel});
-                                                    this.plib.toast(this.Swal,'success','Durum güncellendi');
-                                                } else Swal.showValidationMessage(rsp.msg||'Hata');
+                                                const btn = e.currentTarget;
+                                                const key = btn?.dataset?.key;
+                                                if(!key || btn.disabled) return;
+                                                // loading
+                                                const origHtml = btn.innerHTML;
+                                                btn.disabled = true;
+                                                btn.style.opacity = '0.7';
+                                                btn.style.cursor = 'wait';
+                                                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Kaydediliyor...';
+                                                // disable all
+                                                (container || document).querySelectorAll('.doc-status').forEach(x=>{ if(x!==btn) x.disabled=true; x.style.opacity='0.6'; });
+                                                try{
+                                                    const fd=new FormData(); fd.append('id',row.id); fd.append('op_key',key); fd.append('note','Durum güncellendi');
+                                                    const rsp=await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
+                                                    if(rsp && rsp.success){
+                                                        const newLabel = btn.textContent.replace(' — Kapalı','').trim() || STATUS_LABEL_MAP[key] || key;
+                                                        this.table.updateRow(row.id,{status:key+'**'+newLabel});
+                                                        Swal.close();
+                                                        this.plib.toast(this.Swal,'success','Durum güncellendi');
+                                                    } else {
+                                                        Swal.showValidationMessage(rsp?.msg || rsp?.message || 'Bu geçişe izin verilmiyor');
+                                                        btn.disabled = false;
+                                                        btn.style.opacity = '';
+                                                        btn.style.cursor = 'pointer';
+                                                        btn.innerHTML = origHtml;
+                                                        (container || document).querySelectorAll('.doc-status').forEach(x=>{ x.disabled=false; x.style.opacity=''; });
+                                                    }
+                                                }catch(err){
+                                                    Swal.showValidationMessage(err?.msg || String(err));
+                                                    btn.disabled = false;
+                                                    btn.style.opacity = '';
+                                                    btn.innerHTML = origHtml;
+                                                    (container || document).querySelectorAll('.doc-status').forEach(x=>{ x.disabled=false; x.style.opacity=''; });
+                                                }
                                             }))
                                         }
                                     })
@@ -712,30 +757,42 @@
                                 const _perms = this.authStore.permissions || [];
                                 const canKalite = _perms.includes('per-05-03');
                                 const canRename = _perms.includes('per-05-05');
-                                const aks=document.createElement('button');
-                                aks.textContent='Aksiyonlar';
-                                aks.className='btn';
-                                aks.style.background='#8e8e93';
-                                aks.style.color='#ffffff';
-                                aks.style.border='1px solid #8e8e93';
-                                aks.style.borderRadius='8px';
-                                aks.style.padding='6px 14px';
-                                aks.style.fontSize='0.78rem';
-                                aks.style.fontWeight='600';
-                                aks.style.cursor='pointer';
-                                aks.onmouseenter=()=> aks.style.background='#7f7f84';
-                                aks.onmouseleave=()=> aks.style.background='#8e8e93';
-                                aks.onclick=(e)=>{
+                                const canCancel = _perms.includes('per-05-04');
+                                const hasAny = canKalite || canRename || canCancel;
+                                // Detaylar is always visible, Aksiyonlar only if hasAny
+                                let aks = null;
+                                if(hasAny){
+                                    aks=document.createElement('button');
+                                    aks.textContent='Aksiyonlar';
+                                    aks.className='btn';
+                                    aks.style.background='#8e8e93';
+                                    aks.style.color='#ffffff';
+                                    aks.style.border='1px solid #8e8e93';
+                                    aks.style.borderRadius='8px';
+                                    aks.style.padding='6px 14px';
+                                    aks.style.fontSize='0.78rem';
+                                    aks.style.fontWeight='600';
+                                    aks.style.cursor='pointer';
+                                    aks.onmouseenter=()=> aks.style.background='#7f7f84';
+                                    aks.onmouseleave=()=> aks.style.background='#8e8e93';
+                                    aks.onclick=(e)=>{
                                     e.stopPropagation();
                                     const curNo = row.transfer_no || row.order_no || '';
                                     const isClone = /\-\d+$/.test(curNo);
                                     const opKey = String(row.status||'').split('**')[0]||'';
                                     const isEnded = ['doc_trans_order_approved','doc_trans_order_rejected'].includes(opKey);
+                                    // only show actions for which we have permission (no warning, just hide)
+                                    const kaliteBtn = canKalite ? `<button id="aks-kalite" class="btn" ${isEnded?'disabled':''} style="background:${isEnded?'#9ca3af':'#22c55e'};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;${isEnded?'opacity:0.65;cursor:not-allowed;':''}"><i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat${isEnded?' — Zaten Kapalı':''}</button>` : '';
+                                    const renameBtn = (isClone && canRename) ? `<button id="aks-rename" class="btn" style="background:#f59e0b;color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-pencil" style="font-size:16px;"></i> Sipariş Numarasını Düzenle</button>` : '';
+                                    const endedNote = isEnded ? `<div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:2px;">Bu sipariş zaten kapatılmış.</div>` : '';
+                                    // if no visible actions after filtering (e.g. non-clone + only rename perm), don't open modal
+                                    if(!kaliteBtn && !renameBtn){
+                                        return;
+                                    }
                                     const html = `<div class="d-flex flex-column gap-2 p-2">
-                                        <button id="aks-kalite" class="btn" ${isEnded || !canKalite ?'disabled':''} style="background:${isEnded?'#9ca3af': (!canKalite?'#9ca3af':'#22c55e')};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;${(isEnded||!canKalite)?'opacity:0.65;cursor:not-allowed;':''}"><i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat${isEnded?' — Zaten Kapalı': (!canKalite?' — Yetkiniz Yok (per-05-03)':'')}</button>
-                                        ${isClone ? `<button id="aks-rename" class="btn" ${!canRename?'disabled':''} style="background:${!canRename?'#9ca3af':'#f59e0b'};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;${!canRename?'opacity:0.65;cursor:not-allowed;':''}"><i class="ki-outline ki-pencil" style="font-size:16px;"></i> Sipariş Numarasını Düzenle${!canRename?' — Yetkiniz Yok (per-05-05)':''}</button>` : ''}
-                                        ${isEnded ? `<div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:2px;">Bu sipariş zaten kapatılmış.</div>` : ''}
-                                        ${!canKalite && !isEnded ? `<div style="font-size:11px;color:#ef4444;text-align:center;">Kalite onayı için per-05-03 yetkiniz yok</div>` : ''}
+                                        ${kaliteBtn}
+                                        ${renameBtn}
+                                        ${endedNote}
                                     </div>`;
                                     Swal.fire({
                                         title:'Aksiyonlar',
@@ -748,11 +805,6 @@
                                                     kaliteBtn.addEventListener('click', (ev) => {
                                                         ev.preventDefault();
                                                         Swal.showValidationMessage('Bu sipariş zaten kapatılmış — tekrar onaylanamaz.');
-                                                    });
-                                                } else if(!canKalite){
-                                                    kaliteBtn.addEventListener('click', (ev) => {
-                                                        ev.preventDefault();
-                                                        Swal.showValidationMessage('Yetkiniz yok (per-05-03 Sipariş Sevkiyata Gönderme)');
                                                     });
                                                 } else {
                                                 kaliteBtn.addEventListener('click', async () => {
@@ -783,12 +835,7 @@
                                             }
                                             const renameBtn = document.getElementById('aks-rename');
                                             if(renameBtn){
-                                                if(!canRename){
-                                                    renameBtn.addEventListener('click', (ev)=>{
-                                                        ev.preventDefault();
-                                                        Swal.showValidationMessage('Yetkiniz yok (per-05-05 Sipariş Numarası Düzenleme)');
-                                                    });
-                                                } else {
+                                                {
                                                 renameBtn.addEventListener('click', async () => {
                                                     Swal.close();
                                                     const base = curNo.substring(0, curNo.lastIndexOf('-'));
@@ -845,7 +892,8 @@
                                         }
                                     });
                                 };
-                                wrap.appendChild(aks);
+                                }
+                                if(aks) wrap.appendChild(aks);
                                 const det=document.createElement('button');
                                 det.textContent='Detaylar';
                                 det.className='btn';
