@@ -361,11 +361,16 @@ export default {
 <style scoped>
 .header-section {
   background: white;
-  padding: 2rem;
-  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  border-radius: 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  margin-bottom: 2.5rem;
+  margin-bottom: 0;
   border-top: 3px solid var(--primary-color);
+  width: 100%;
+  max-width: 100%;
+  min-height: max-content;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .header-content {

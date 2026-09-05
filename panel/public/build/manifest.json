@@ -3,6 +3,12 @@
     "file": "assets/sweetalert2.esm.all-0Z_61IYw.js",
     "name": "sweetalert2.esm.all"
   },
+  "node_modules/chart.js/auto/auto.js": {
+    "file": "assets/auto-eE5P6S0m.js",
+    "name": "auto",
+    "src": "node_modules/chart.js/auto/auto.js",
+    "isDynamicEntry": true
+  },
   "public/coaltheme/css/custom.css": {
     "file": "assets/custom-DPh-G_fi.css",
     "src": "public/coaltheme/css/custom.css",
@@ -162,7 +168,7 @@
     "isEntry": true
   },
   "public/coaltheme/css/theme.css": {
-    "file": "assets/theme-B1Akfqi6.css",
+    "file": "assets/theme-AwXIjxOG.css",
     "src": "public/coaltheme/css/theme.css",
     "isEntry": true
   },
@@ -172,15 +178,21 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-BnO0LnKR.js",
+    "file": "assets/app-CIr2eWqd.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
       "_sweetalert2.esm.all-0Z_61IYw.js"
     ],
+    "dynamicImports": [
+      "node_modules/chart.js/auto/auto.js",
+      "node_modules/chart.js/auto/auto.js",
+      "node_modules/chart.js/auto/auto.js",
+      "node_modules/chart.js/auto/auto.js"
+    ],
     "css": [
-      "assets/app-CYLwZwNV.css"
+      "assets/app-BuwHaapY.css"
     ]
   },
   "resources/js/coal-swal.js": {

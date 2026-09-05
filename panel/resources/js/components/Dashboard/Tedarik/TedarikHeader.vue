@@ -86,14 +86,15 @@ export default {
 <style scoped>
 .tdk-header {
   background: #fff;
-  padding: 1.75rem 2rem;
-  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  border-radius: 18px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  margin-bottom: 1.5rem;
+  border: 1px solid #ffe4cc;
   border-top: 3px solid #FF5A1F;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width:100%; max-width:100%; box-sizing:border-box;
 }
 .tdk-header__greeting { font-size: 1.6rem; font-weight: 700; color: #111827; margin: 0; }
 .tdk-header__name { color: #FF5A1F; }

@@ -7,6 +7,7 @@ use Illuminate\Support\ServiceProvider;
 use App\Providers\PersonsServiceProvider;
 use App\Providers\DocumentServiceProvider;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class ReportServiceProvider extends ServiceProvider
 {
@@ -112,6 +113,34 @@ class ReportServiceProvider extends ServiceProvider
             break;
             case 'tedarik-status':
                 return $this->tedarikStatusBreakdown();
+            break;
+            case 'tedarik-monthly':
+                return $this->tedarikMonthlyOrders();
+            break;
+            case 'tedarik-files':
+                return $this->tedarikRecentFiles();
+            break;
+            case 'tedarik-activity':
+                return $this->tedarikActivity();
+            break;
+            // ── ADMIN TEDARIK DASHBOARD (global, no LIFNR) ──
+            case 'admin-stats':
+                return $this->adminStats();
+            break;
+            case 'admin-status':
+                return $this->adminStatusBreakdown();
+            break;
+            case 'admin-orders':
+                return $this->adminRecentOrders();
+            break;
+            case 'admin-files':
+                return $this->adminRecentFiles();
+            break;
+            case 'admin-activity':
+                return $this->adminActivity();
+            break;
+            case 'admin-monthly':
+                return $this->adminMonthlyOrders();
             break;
             default:
                 abort(404, 'Unknown dashboard type: '.$type);
@@ -483,7 +512,7 @@ class ReportServiceProvider extends ServiceProvider
     // ─────────────────────────────────────────────────────────
 
     private function getResellerLifnrs(){
-        if(session('type_key') !== 'op-pert-reseller') return [];
+        if(session('type_key') !== 'op-pert-reseller') return null; // admin/keyuser → no LIFNR filter (global view)
         $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
         if(empty($clientQnids)) return [];
         $qnidIn = "'".implode("','", array_map('noInject', $clientQnids))."'";
@@ -492,7 +521,8 @@ class ReportServiceProvider extends ServiceProvider
     }
 
     private function resellerOrderWhere($lifnrs){
-        if(empty($lifnrs)) return " and 1=0 ";
+        if($lifnrs === null) return ""; // admin/keyuser sees all (no filter)
+        if(empty($lifnrs)) return " and 1=0 "; // reseller with no clients → fails closed
         $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
         return " and (
             exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn))
@@ -501,6 +531,8 @@ class ReportServiceProvider extends ServiceProvider
     }
 
     public function tedarikStats(){
+        $cacheKey = 'dashboard:tedarikStats:'.(session('person_id') ?? auth()->id() ?? 'guest').':'.($GLOBALS['SYS_CODE'] ?? 'GDZ');
+        return Cache::remember($cacheKey, 60, function(){
         $lifnrs = $this->getResellerLifnrs();
         $whereLif = $this->resellerOrderWhere($lifnrs);
 
@@ -539,14 +571,18 @@ class ReportServiceProvider extends ServiceProvider
             $whereLif
         ")->cnt ?? 0;
 
+        // totalItems for reseller must filter via parent order's spec_code (items have no spec_code)
+        $whereLifItems = "";
+        if($lifnrs === null) $whereLifItems = "";
+        else if(empty($lifnrs)) $whereLifItems = " and 1=0 ";
+        else {
+            $lifInItems = "'".implode("','", array_map('noInject', $lifnrs))."'";
+            $whereLifItems = " and exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=d2.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifInItems)) ";
+        }
         $totalItems = DB::selectOne("SELECT count(*) as cnt FROM documents i
             inner join sys_options sp on sp.id=i.type_id
             inner join documents d2 on d2.id=i.parent_id
-            inner join sys_con_ops so on so.main_id=d2.id
-            inner join sys_con_entities se on so.id=se.conn_id
-            where sp.op_key='op-doc-order-item' and i.status=1
-            and se.entity_tag='order_no' and se.table_tag='sys_con_ops'
-            $whereLif
+            where sp.op_key='op-doc-order-item' and i.status=1 $whereLifItems
         ")->cnt ?? 0;
 
         $todayOrders = DB::selectOne("SELECT count(*) as cnt FROM documents i
@@ -567,6 +603,7 @@ class ReportServiceProvider extends ServiceProvider
             'totalItems'    => (int)$totalItems,
             'todayOrders'   => (int)$todayOrders,
         ];
+        });
     }
 
     public function tedarikRecentOrders(){
@@ -649,6 +686,397 @@ class ReportServiceProvider extends ServiceProvider
         }
         if(empty($result)){
             $result[] = ['label' => 'Sipariş Yok', 'value' => 0, 'color' => '#d1d5db'];
+        }
+        return $result;
+    }
+
+    public function tedarikMonthlyOrders(){
+        $lifnrs = $this->getResellerLifnrs();
+        $whereLif = $this->resellerOrderWhere($lifnrs);
+        $result = [];
+        for($m=5; $m>=0; $m--){
+            $date = date('Y-m', strtotime("-$m months"));
+            $cnt = DB::selectOne("SELECT count(*) as cnt FROM documents i
+                JOIN sys_options sp ON sp.id=i.type_id
+                JOIN sys_con_ops so ON so.main_id=i.id
+                JOIN sys_con_entities se ON so.id=se.conn_id
+                WHERE sp.op_key='op-doc-order' AND i.status=1 AND i.parent_type_id=0
+                AND se.entity_tag='order_no' AND se.table_tag='sys_con_ops' $whereLif
+                AND to_char(i.created_at,'YYYY-MM') = ?", [$date]);
+            $result[] = ['month' => $date, 'label' => date('M y', strtotime($date.'-01')), 'value' => (int)($cnt->cnt ?? 0)];
+        }
+        return $result;
+    }
+
+    public function tedarikRecentFiles(){
+        $lifnrs = $this->getResellerLifnrs();
+        $whereLif = $this->resellerOrderWhere($lifnrs);
+        // For files we need to filter via the related document's order
+        // Reuse resellerOrderWhere but adapted for document_files join (d = order or item's parent order)
+        $fileWhere = "";
+        if($lifnrs === null) $fileWhere = "";
+        else if(empty($lifnrs)) $fileWhere = " and 1=0 ";
+        else {
+            $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
+            $fileWhere = " and (
+                exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=d.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn))
+                or exists (select 1 from documents pd join sys_con_ops soP on soP.main_id=pd.id join sys_con_entities seP on seP.conn_id=soP.id where pd.id=d.parent_id and seP.entity_tag='spec_code' and seP.entity_value in ($lifIn))
+            ) ";
+        }
+        $rows = DB::select("SELECT i.qnid as id, i.qnid as qnid, i.created_at, i.description as file,
+            se.entity_tag, d.qnid as relation_qnid, d.id as relation_id,
+            (SELECT json_build_object('op_key',so.op_key,'title',so.title,'note',t.description)::text
+               FROM transactions t JOIN sys_options so ON so.id=t.type_id
+               WHERE t.target_id=i.id AND t.op_id=1 ORDER BY t.id DESC LIMIT 1) as last_status,
+            COALESCE(
+                (SELECT sce.entity_value FROM sys_con_entities sce WHERE sce.conn_id = se.conn_id AND sce.entity_tag='order_no' LIMIT 1),
+                (SELECT sce.entity_value FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id JOIN documents pd ON pd.id=sco.main_id WHERE sce.entity_tag='order_no' AND pd.id=d.parent_id LIMIT 1),
+                ''
+            ) as group_key,
+            (SELECT sce.entity_value FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id WHERE sco.main_id=d.id AND sce.entity_tag='ctitle' LIMIT 1) as ctitle
+            FROM document_files i
+            JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag='document_files'
+            JOIN documents d ON d.id = i.relation_id::int
+            JOIN sys_options sf ON sf.op_key = 'op-'|| split_part(se.entity_tag,'**',1)
+            WHERE i.status=1 AND i.description!='' AND d.status=1 $fileWhere
+            AND se.entity_tag NOT LIKE '%item_images_file%'
+            ORDER BY i.created_at DESC LIMIT 8
+        ");
+        return $rows;
+    }
+
+    public function tedarikActivity(){
+        $lifnrs = $this->getResellerLifnrs();
+        // For supplier, filter to only order/file transactions; admin on tedarik sees global order-related only
+        if($lifnrs === null){
+            $rows = DB::select("SELECT ul.id, ul.created_at, so.op_key, so.title, ul.description as detail,
+                u.email as actor_email, p.name as actor_name
+                FROM user_logs ul
+                JOIN sys_options so ON so.id=ul.type_id
+                LEFT JOIN users u ON u.id=ul.user_id
+                LEFT JOIN persons p ON p.id=u.person_id
+                WHERE ul.relation='documents'
+                  AND (so.op_key LIKE 'doc_trans_order_%' OR so.op_key LIKE 'doc_file_%' OR so.group_key = 'op-trans-op-doc-order' OR so.group_key LIKE 'op-trans%')
+                ORDER BY ul.id DESC LIMIT 10
+            ");
+            foreach($rows as $r){
+                $j = @json_decode($r->detail, true);
+                if(is_array($j)){
+                    $r->actor = $j['actor'] ?? null;
+                    $r->document = $j['document'] ?? null;
+                    $r->file = $j['file'] ?? null;
+                    $r->desc_text = $j['desc'] ?? $j['note'] ?? $r->title;
+                } else {
+                    $r->desc_text = $r->title;
+                }
+                $r->detail = null;
+            }
+            return $rows;
+        }
+        if(empty($lifnrs)) return [];
+        $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
+        // Find order ids for this supplier
+        $orderIds = DB::select("SELECT i.id FROM documents i
+            JOIN sys_options sp ON sp.id=i.type_id
+            JOIN sys_con_entities se ON se.conn_id = (SELECT so.id FROM sys_con_ops so WHERE so.main_id=i.id LIMIT 1)
+            WHERE sp.op_key='op-doc-order' AND i.status=1 AND se.entity_tag='spec_code' AND se.entity_value in ($lifIn)
+        ");
+        $ids = array_map(fn($r)=> (int)$r->id, $orderIds);
+        if(empty($ids)) return [];
+        $idList = implode(',', $ids);
+        // Also include items of those orders
+        $itemIds = DB::select("SELECT id FROM documents WHERE parent_id IN ($idList) AND status=1");
+        $allIds = array_merge($ids, array_map(fn($r)=>(int)$r->id, $itemIds));
+        $allList = implode(',', $allIds);
+        if(empty($allList)) $allList = "0";
+        $rows = DB::select("SELECT ul.id, ul.created_at, so.op_key, so.title, ul.description as detail,
+            u.email as actor_email, p.name as actor_name
+            FROM user_logs ul
+            JOIN sys_options so ON so.id=ul.type_id
+            LEFT JOIN users u ON u.id=ul.user_id
+            LEFT JOIN persons p ON p.id=u.person_id
+            WHERE (
+                (ul.relation='documents' AND ul.relation_id IN ($allList)
+                  AND (so.op_key LIKE 'doc_trans_order_%' OR so.group_key = 'op-trans-op-doc-order' OR so.group_key LIKE 'op-trans%'))
+                OR
+                (ul.relation='documents' AND so.op_key LIKE 'doc_file_%'
+                  AND EXISTS (SELECT 1 FROM document_files df WHERE df.id = ul.relation_id AND df.relation_id IN ($allList)))
+            )
+            ORDER BY ul.id DESC LIMIT 10
+        ");
+        foreach($rows as $r){
+            $j = @json_decode($r->detail, true);
+            if(is_array($j)){
+                $r->actor = $j['actor'] ?? null;
+                $r->document = $j['document'] ?? null;
+                $r->file = $j['file'] ?? null;
+                $r->desc_text = $j['desc'] ?? $j['note'] ?? $r->title;
+            } else {
+                $r->desc_text = $r->title;
+            }
+            $r->detail = null;
+        }
+        return $rows;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // ADMIN DASHBOARD — global, no LIFNR scoping
+    // ─────────────────────────────────────────────────────────
+
+    public function adminStats(){
+        $sys = $GLOBALS['SYS_CODE'] ?? 'GDZ';
+        $cacheKey = 'dashboard:adminStats:'.$sys;
+        return Cache::remember($cacheKey, 60, function() use ($sys){
+        $grpFilter = " and i.grp_code ilike '%".noInject($sys)."%' ";
+
+        // Total orders (active, top-level)
+        $totalOrders = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops' $grpFilter
+        ")->cnt ?? 0;
+
+        // By status — single query with conditional counts
+        $statusRows = DB::select("SELECT
+            (select so2.op_key from transactions t inner join sys_options so2 on so2.id=t.type_id
+             where t.target_id=i.id and so2.group_key='op-trans-op-doc-order' order by t.id desc limit 1) as last_status,
+            count(*) as cnt
+            FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops' $grpFilter
+            group by last_status
+        ");
+        $statusMap = [];
+        foreach($statusRows as $r){ $statusMap[$r->last_status ?? 'doc_trans_order_created'] = (int)$r->cnt; }
+
+        $pendingOrders   = $statusMap['doc_trans_order_transfer_sent'] ?? 0;
+        $filesRejected   = $statusMap['doc_trans_order_files_rejected'] ?? 0;
+        $approvedOrders  = $statusMap['doc_trans_order_approved'] ?? 0;
+        $readyOrders     = $statusMap['doc_trans_order_ready_for_shipment'] ?? 0;
+        $createdOrders   = $statusMap['doc_trans_order_created'] ?? 0;
+        $rejectedOrders  = $statusMap['doc_trans_order_rejected'] ?? 0;
+
+        $totalItems = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            where sp.op_key='op-doc-order-item' and i.status=1 $grpFilter
+        ")->cnt ?? 0;
+
+        $totalClients = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            where sp.op_key='op-doc-client' and i.status=1 $grpFilter
+        ")->cnt ?? 0;
+
+        $totalFiles = DB::selectOne("SELECT count(*) as cnt FROM document_files df
+            inner join documents d on d.id = df.relation_id::int
+            where df.status=1 and df.description!='' and d.grp_code ilike '%".noInject($sys)."%'
+        ")->cnt ?? 0;
+
+        // Files by last doc_file_* status
+        $fileGrp = str_replace('i.', 'df.', $grpFilter);
+        // document_files has no grp_code; filter via relation document
+        $fileStatus = DB::select("SELECT so.op_key, count(*) as cnt FROM document_files df
+            inner join transactions t on t.target_id=df.id and t.op_id=1
+            inner join sys_options so on so.id=t.type_id
+            inner join (SELECT target_id, max(id) as max_id FROM transactions WHERE op_id=1 GROUP BY target_id) last on last.max_id=t.id
+            inner join documents d2 on d2.id = df.relation_id::int
+            where df.status=1 and d2.grp_code ilike '%".noInject($sys)."%'
+            group by so.op_key
+        ");
+        $fileMap = []; foreach($fileStatus as $r){ $fileMap[$r->op_key] = (int)$r->cnt; }
+        $waitingFiles  = $fileMap['doc_file_waiting'] ?? 0;
+        $acceptedFiles = $fileMap['doc_file_accepted'] ?? 0;
+        $rejectedFiles = $fileMap['doc_file_rejected'] ?? 0;
+
+        $totalUsers = DB::selectOne("SELECT count(*) as cnt FROM users WHERE email != 'kadir@kontent.com.tr' ")->cnt ?? 0;
+        $activeSessions = DB::selectOne("SELECT count(*) as cnt FROM active_sessions WHERE last_seen >= now() - interval '5 minutes' ")->cnt ?? 0;
+        $pendingUsers = DB::selectOne("SELECT count(*) as cnt FROM users WHERE status='-1' ")->cnt ?? 0;
+
+        $todayOrders = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops'
+            and i.created_at >= '".date('Y-m-d 00:00:00')."' $grpFilter
+        ")->cnt ?? 0;
+
+        $totalSerials = DB::selectOne("SELECT count(*) as cnt FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            where sp.op_key='op-doc-order-serial' and i.status=1 $grpFilter
+        ")->cnt ?? 0;
+
+        return [
+            'totalOrders'    => (int)$totalOrders,
+            'createdOrders'  => (int)$createdOrders,
+            'pendingOrders'  => (int)$pendingOrders,
+            'filesRejected'  => (int)$filesRejected,
+            'approvedOrders' => (int)$approvedOrders,
+            'readyOrders'    => (int)$readyOrders,
+            'rejectedOrders' => (int)$rejectedOrders,
+            'totalItems'     => (int)$totalItems,
+            'totalClients'   => (int)$totalClients,
+            'totalFiles'     => (int)$totalFiles,
+            'waitingFiles'   => (int)$waitingFiles,
+            'acceptedFiles'  => (int)$acceptedFiles,
+            'rejectedFiles'  => (int)$rejectedFiles,
+            'totalUsers'     => (int)$totalUsers,
+            'pendingUsers'   => (int)$pendingUsers,
+            'activeSessions' => (int)$activeSessions,
+            'todayOrders'    => (int)$todayOrders,
+            'totalSerials'   => (int)$totalSerials,
+        ];
+        });
+    }
+
+    public function adminStatusBreakdown(){
+        $sys = $GLOBALS['SYS_CODE'] ?? 'GDZ';
+        $grpFilter = " and i.grp_code ilike '%".noInject($sys)."%' ";
+        $rows = DB::select("SELECT
+            (select so2.op_key from transactions t inner join sys_options so2 on so2.id=t.type_id
+             where t.target_id=i.id and so2.group_key='op-trans-op-doc-order' order by t.id desc limit 1) as last_status,
+            count(*) as cnt
+            FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops' $grpFilter group by last_status
+        ");
+        $colorMap = [
+            'doc_trans_order_created'      => '#64748b',
+            'doc_trans_order_transfer_sent' => '#f59e0b',
+            'doc_trans_order_ready_for_shipment' => '#3b82f6',
+            'doc_trans_order_approved'      => '#10b981',
+            'doc_trans_order_rejected'      => '#ef4444',
+            'doc_trans_order_files_rejected'=> '#f97316',
+        ];
+        $labelMap = [
+            'doc_trans_order_created'      => 'Yeni',
+            'doc_trans_order_transfer_sent' => 'Kontrol Bekliyor',
+            'doc_trans_order_ready_for_shipment' => 'Sevke Hazır',
+            'doc_trans_order_approved'      => 'Onaylandı',
+            'doc_trans_order_rejected'      => 'Reddedildi',
+            'doc_trans_order_files_rejected'=> 'Dosya Reddedildi',
+        ];
+        $result = [];
+        foreach($rows as $row){
+            $key = $row->last_status ?? 'doc_trans_order_created';
+            $result[] = [
+                'label' => $labelMap[$key] ?? $key,
+                'value' => (int)$row->cnt,
+                'color' => $colorMap[$key] ?? '#9ca3af',
+                'key'   => $key,
+            ];
+        }
+        if(empty($result)){
+            $result[] = ['label' => 'Sipariş Yok', 'value' => 0, 'color' => '#d1d5db', 'key' => 'empty'];
+        }
+        return $result;
+    }
+
+    public function adminRecentOrders(){
+        $sys = $GLOBALS['SYS_CODE'] ?? 'GDZ';
+        $grpFilter = " and i.grp_code ilike '%".noInject($sys)."%' ";
+        $orders = DB::select("SELECT i.qnid as id, i.id as main_id, i.title, i.created_at,
+            i.status as document_status,
+            (select so2.op_key || '**' || so2.title || '**' || COALESCE(t.note,'')
+                from transactions t inner join sys_options so2 on so2.id=t.type_id
+                where t.target_id=i.id and so2.group_key='op-trans-op-doc-order'
+                order by t.id desc limit 1) as status
+            FROM documents i
+            inner join sys_options sp on sp.id=i.type_id
+            inner join sys_con_ops so on so.main_id=i.id
+            inner join sys_con_entities se on so.id=se.conn_id
+            where sp.op_key='op-doc-order' and i.status=1 and i.parent_type_id=0
+            and se.entity_tag='order_no' and se.table_tag='sys_con_ops' $grpFilter
+            order by i.created_at desc limit 10
+        ");
+        foreach($orders as $row){
+            $mainAttr = DB::select("SELECT se.entity_tag, se.entity_value FROM sys_con_entities se
+                inner join sys_con_ops so on so.id=se.conn_id
+                where so.main_id=? and se.table_tag='sys_con_ops'", [$row->main_id]);
+            $attr = [];
+            foreach($mainAttr as $a){
+                $tagParts = explode('**', $a->entity_tag);
+                $attr[] = ['Key' => $tagParts[0] ?? $a->entity_tag, 'Value' => $a->entity_value];
+            }
+            $row->main_attr = json_encode($attr);
+        }
+        return $orders;
+    }
+
+    public function adminRecentFiles(){
+        $sys = $GLOBALS['SYS_CODE'] ?? 'GDZ';
+        // last 10 files with last_status, join to get group_key (order_no)
+        $rows = DB::select("SELECT i.qnid as id, i.qnid as qnid, i.created_at, i.description as file,
+            se.entity_tag, d.qnid as relation_qnid, d.id as relation_id,
+            (SELECT json_build_object('op_key',so.op_key,'title',so.title,'note',t.description)::text
+               FROM transactions t JOIN sys_options so ON so.id=t.type_id
+               WHERE t.target_id=i.id AND t.op_id=1 ORDER BY t.id DESC LIMIT 1) as last_status,
+            COALESCE(
+                (SELECT sce.entity_value FROM sys_con_entities sce WHERE sce.conn_id = se.conn_id AND sce.entity_tag='order_no' LIMIT 1),
+                (SELECT sce.entity_value FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id JOIN documents pd ON pd.id=sco.main_id WHERE sce.entity_tag='order_no' AND pd.id=d.parent_id LIMIT 1),
+                ''
+            ) as group_key,
+            (SELECT sce.entity_value FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id WHERE sco.main_id=d.id AND sce.entity_tag='ctitle' LIMIT 1) as ctitle
+            FROM document_files i
+            JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag='document_files'
+            JOIN documents d ON d.id = i.relation_id::int
+            JOIN sys_options sf ON sf.op_key = 'op-'|| split_part(se.entity_tag,'**',1)
+            WHERE i.status=1 AND i.description!='' AND d.status=1 AND d.grp_code ilike '%".noInject($sys)."%'
+            AND se.entity_tag NOT LIKE '%item_images_file%'
+            ORDER BY i.created_at DESC LIMIT 10
+        ");
+        return $rows;
+    }
+
+    public function adminActivity(){
+        // last 12 user_logs with actor + doc info
+        $rows = DB::select("SELECT ul.id, ul.created_at, so.op_key, so.title, ul.description as detail,
+            u.email as actor_email, p.name as actor_name
+            FROM user_logs ul
+            JOIN sys_options so ON so.id=ul.type_id
+            LEFT JOIN users u ON u.id=ul.user_id
+            LEFT JOIN persons p ON p.id=u.person_id
+            ORDER BY ul.id DESC LIMIT 12
+        ");
+        // try to parse actor/document from description JSON for richer UI
+        foreach($rows as $r){
+            $j = @json_decode($r->detail, true);
+            if(is_array($j)){
+                $r->actor = $j['actor'] ?? null;
+                $r->document = $j['document'] ?? null;
+                $r->file = $j['file'] ?? null;
+                $r->desc_text = $j['desc'] ?? $j['note'] ?? $r->title;
+            } else {
+                $r->desc_text = $r->title;
+            }
+            // shorten detail to avoid huge payload
+            $r->detail = null;
+        }
+        return $rows;
+    }
+
+    public function adminMonthlyOrders(){
+        $sys = $GLOBALS['SYS_CODE'] ?? 'GDZ';
+        $grpFilter = " and i.grp_code ilike '%".noInject($sys)."%' ";
+        // last 6 months including current
+        $result = [];
+        for($m=5; $m>=0; $m--){
+            $date = date('Y-m', strtotime("-$m months"));
+            $cnt = DB::selectOne("SELECT count(*) as cnt FROM documents i
+                JOIN sys_options sp ON sp.id=i.type_id
+                JOIN sys_con_ops so ON so.main_id=i.id
+                JOIN sys_con_entities se ON so.id=se.conn_id
+                WHERE sp.op_key='op-doc-order' AND i.status=1 AND i.parent_type_id=0
+                AND se.entity_tag='order_no' AND se.table_tag='sys_con_ops' $grpFilter
+                AND to_char(i.created_at,'YYYY-MM') = ?", [$date]);
+            $result[] = ['month' => $date, 'label' => date('M y', strtotime($date.'-01')), 'value' => (int)($cnt->cnt ?? 0)];
         }
         return $result;
     }

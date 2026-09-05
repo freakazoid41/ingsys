@@ -43780,9 +43780,9 @@ body{
     .container,.container-fluid,.container-lg,.container-md,.container-sm,.container-xl,.container-xxl{
         padding:0 30px
     }
-    .wrapper{
+    /*.wrapper{
         padding-left:250px
-    }
+    }*/
     .header-fixed[data-kt-sticky-header=on] .wrapper{
         padding-top:240px
     }

@@ -3,9 +3,8 @@
 
 
 ** optimizasyon ve kontrol **
-** admin panel dashboard ***
-** tedaril panel bilgilendirmeler
-
+** tedarik panel bilgilendirmeler (sadece sipariş ile ilgili loglar ve o tedarikçinin siparişleri ile ilgili)
+** durumlara göre mail gönderimleri
 
 
 

@@ -1,83 +1,98 @@
 <template>
-  <div class="admin-dashboard">
-    <!-- Dashboard Header Component -->
+  <div class="admin-dashboard adm-dashboard">
     <DashboardHeader />
 
-    <!-- Stats Cards Component -->
-    <DashboardStats />
+    <!-- 8-card stats (order-centric) -->
+    <AdminStats />
 
-    <!-- Main Content Grid -->
-    <div class="dashboard-grid">
-      <!-- Row 3: Distribution and Quick Actions -->
-      <div class="grid-row-2">
-        <!-- Santral Bazlı Dağılım -->
-        <div class="grid-col-1-2">
-          <DashboardDistribution />
-        </div>
-
-        <!-- Right Column: Quick Actions -->
-        <div class="grid-col-1-2">
-          <DashboardQuickActions />
-        </div>
-      </div>
-      <!-- Row 1: Charts and Notifications -->
-      <div class="grid-row">
-        <!-- Teklif Süreç Durumu -->
-        <div class="grid-col-1-3">
-          <DashboardProcessChart />
-        </div>
-
-        <!-- Bildirimler -->
-        <div class="grid-col-1-3">
-          <DashboardNotifications />
-        </div>
-        <div class="grid-col-1-3">
-          <DashboardCalendar />
-        </div>
-      </div>
-
-      <DashboardRequestTables :sysCode="sysCode" />
-
-      
-
+    <!-- Row: Status doughnut + Monthly trend -->
+    <div class="adm-grid adm-grid--2">
+      <AdminStatusChart />
+      <AdminMonthlyChart />
     </div>
+
+    <!-- Recent orders full width -->
+    <AdminRecentOrders />
+
+    <!-- Row: Files + Activity -->
+    <div class="adm-grid adm-grid--2">
+      <AdminFiles />
+      <AdminActivity />
+    </div>
+
+    <!-- Quick actions -->
+    <AdminQuickActions />
   </div>
 </template>
 
 <script>
 import { useNavigationStore } from '@/stores/navigation';
 import DashboardHeader from './Admin/DashboardHeader.vue';
-import DashboardStats from './Admin/DashboardStats.vue';
-import DashboardDistribution from './Admin/DashboardDistribution.vue';
-import DashboardQuickActions from './Admin/DashboardQuickActions.vue';
-import DashboardProcessChart from './Admin/DashboardProcessChart.vue';
-import DashboardNotifications from './Admin/DashboardNotifications.vue';
-import DashboardCalendar from './Admin/DashboardCalendar.vue';
-import DashboardRequestTables from './Admin/DashboardRequestTables.vue';
+import AdminStats from './Admin/AdminStats.vue';
+import AdminStatusChart from './Admin/AdminStatusChart.vue';
+import AdminMonthlyChart from './Admin/AdminMonthlyChart.vue';
+import AdminRecentOrders from './Admin/AdminRecentOrders.vue';
+import AdminFiles from './Admin/AdminFiles.vue';
+import AdminActivity from './Admin/AdminActivity.vue';
+import AdminQuickActions from './Admin/AdminQuickActions.vue';
 
 export default {
     name: 'AdminDashboard',
     components: {
         DashboardHeader,
-        DashboardStats,
-        DashboardDistribution,
-        DashboardQuickActions,
-        DashboardProcessChart,
-        DashboardNotifications,
-        DashboardCalendar,
-        DashboardRequestTables
+        AdminStats,
+        AdminStatusChart,
+        AdminMonthlyChart,
+        AdminRecentOrders,
+        AdminFiles,
+        AdminActivity,
+        AdminQuickActions
     },
     data() {
-        //get dashboard informations
         return {
             sysCode : useNavigationStore().sys_code
         };
     },
     mounted() {
-      document.getElementById('kt_content_container').classList.remove('container-xxl');
+      document.body.classList.add('admin-dashboard-active');
+      // remove container-xxl so dashboard can use full wrapper width (not 1320px capped)
+      const el = document.getElementById('kt_content_container');
+      if(el){
+        el.classList.remove('container-xxl');
+        el.style.maxWidth = 'none';
+        el.style.width = '100%';
+        el.style.paddingLeft = '0';
+        el.style.paddingRight = '0';
+      }
+      // neutralize hero-overlap only on marginTop, keep layout intact (don't touch wrapper/simplebar)
+      const content = document.getElementById('kt_content');
+      if(content){
+        content.classList.remove('hero-overlap');
+        content.style.marginTop = '0px';
+      }
+      const header = document.getElementById('kt_header');
+      if(header) header.hidden = true;
+      // Dashboard.vue re-adds hero-overlap after 500ms — undo it
+      this._heroFix = setTimeout(()=>{
+        const c2 = document.getElementById('kt_content');
+        if(c2){ c2.classList.remove('hero-overlap'); c2.style.marginTop='0px'; }
+      }, 650);
     },
     beforeUnmount() {
-        document.getElementById('kt_content_container').classList.add('container-xxl');
+        document.body.classList.remove('admin-dashboard-active');
+        const el = document.getElementById('kt_content_container');
+        if(el){
+          el.classList.add('container-xxl');
+          el.style.maxWidth=''; el.style.width=''; el.style.paddingLeft=''; el.style.paddingRight='';
+        }
+        const content = document.getElementById('kt_content');
+        if(content){
+          content.classList.add('hero-overlap');
+          content.style.marginTop='-100px';
+        }
+        const header = document.getElementById('kt_header');
+        if(header) header.hidden = false;
+        if(this._heroFix) clearTimeout(this._heroFix);
     },
     methods: {}
 };
@@ -85,8 +100,6 @@ export default {
 
 
 <style scoped>
-/* Notifications are styled in child components */
-
 :root {
   --primary-color: #154B91;
   --success-color: #17C653;
@@ -98,152 +111,80 @@ export default {
   --text-secondary: #4B5675;
   --border-color: #F1F1F4;
 }
-
-.admin-dashboard {
-    min-height: 100vh;
-    padding: 2rem;
-    margin: 50px !important;
-}
-
-
-/* Stats Cards */
-.dashboard-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.grid-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-}
-
-.grid-row-2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-}
-@media(max-width:1500px) {
-  .grid-row-2 {
-    display: flex;
-    flex-direction: column;
-  }
-}
-
-.grid-col-1-3 {
-  grid-column: span 1;
-}
-
-.grid-col-1-2 {
-  grid-column: span 1;
-}
-
-/* Cards */
-.table-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  border: 1px solid var(--border-color);
-}
-
-.card-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--dark-text);
-  margin: 0 0 1.25rem 0;
-  font-family: 'Inter', sans-serif;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
-}
-
-.card-header .card-title {
-  margin: 0;
-}
-
-.card-link {
-  text-decoration: none;
-  color: var(--primary-color);
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.card-link:hover {
-  color: #0f3a6b;
-  transform: translateX(4px);
-}
-
-
-
-/* Child component styles have been moved into their respective components */
-
-
-
-/* Links */
-.view-details-link {
-  display: block;
+.adm-dashboard {
   width: 100%;
-  font-size: 0.85rem;
-  color: var(--primary-color);
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  border-top: 1px solid var(--border-color);
-  padding-top: 1rem;
-  text-align: center;
-  margin-top: auto;
+  max-width: 100%;
+  height: calc(100vh - 40px);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: #f8fafc;
+  box-sizing: border-box;
+  overflow: auto;
+  min-width: 0;
+  flex: 1 1 auto;
 }
-
-.view-details-link:hover {
-  color: #0f3a6b;
-  text-decoration: none;
+.adm-dashboard, .adm-dashboard * { box-sizing: border-box; }
+.adm-grid { display: grid; gap: 1.25rem; width: 100%; max-width: 100%; min-width: 0; }
+.adm-grid--2 { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+.adm-grid--3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+@media (max-width: 1100px){
+  .adm-grid--2, .adm-grid--3 { grid-template-columns: minmax(0,1fr); }
 }
+@media (max-width: 768px){
+  .adm-dashboard { padding: 1rem; gap: 1rem; }
+}
+</style>
 
-/* Responsive */
-@media (max-width: 1440px) {
-  .grid-row {
-    grid-template-columns: repeat(2, 1fr);
+<style>
+/* Fix: aside-fixed makes sidebar position:fixed (out of flex flow) → wrapper goes under it.
+   Force aside to participate in flex ONLY when admin-dashboard is active, so mobile drawer still works elsewhere. */
+@media (min-width: 992px) {
+  body.admin-dashboard-active.aside-fixed .aside {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    flex-shrink: 0 !important;
+    align-self: stretch !important;
+    min-height: 100vh !important;
   }
-}
-
-@media (max-width: 1200px) {
-  .grid-row {
-    grid-template-columns: repeat(2, 1fr);
+  body.admin-dashboard-active.aside-fixed .page {
+    display: flex !important;
+    flex-direction: row !important;
+    min-height: 100vh !important;
+    align-items: stretch !important;
   }
-}
-
-@media (max-width: 1024px) {
-  .grid-row {
-    grid-template-columns: 1fr;
+  body.admin-dashboard-active.aside-fixed #kt_wrapper {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100vh !important;
   }
-}
-
-@media (max-width: 768px) {
-  .admin-dashboard {
-    padding: 1rem;
+  body.admin-dashboard-active.aside-fixed #kt_content {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
   }
-
-
-  .grid-row {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
+  body.admin-dashboard-active.aside-fixed #kt_content_container {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
-}
-
-@media (max-width: 576px) {
-  .admin-dashboard {
-    padding: 0.75rem;
+  body.admin-dashboard-active.aside-fixed .simplebar-content-wrapper,
+  body.admin-dashboard-active.aside-fixed .simplebar-content,
+  body.admin-dashboard-active.aside-fixed .dashboard-page {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
   }
 }
 </style>

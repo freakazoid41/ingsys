@@ -12,10 +12,8 @@ Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/ted
 3. **File + serial wiring:** reuse `Form.vue` + `pickle.js` temp-upload (already done in admin OForm — clone for tedarik).
 4. **Rejected:** `files_rejected` orange + re-upload unlock + `still-rejected` toast — done.
 
-### Option B: Dashboard Rebuild
-1. Replace coal `topstats/monthlyoffers` with order queries (pending transfers, awaiting files, approved today)
-2. Header bell for order notifications
-3. Report cards per tenant GDZ/ADM
+### Option B: Dashboard Rebuild — DONE 2026-09-06
+Admin: `adminStats|adminStatusBreakdown|adminRecentOrders|adminRecentFiles|adminActivity|adminMonthlyOrders` (Cache 60s) + 8 Vue (Stats/Status/Monthly/RecentOrders/Files/Activity/QuickActions) + Stat→List `?status=` + sidebar fix. Tedarik: `tedarikStats (6) + tedarikMonthlyOrders|tedarikRecentFiles|tedarikActivity (Bilgilendirmeler)` + 7 Vue polished (Stats 6/Status/Monthly/Recent/Files/Activity/Quick+ DForm blue). Both live, LIFNR-scoped (tedarik) / global (admin).
 
 ### Option C: Branding — DONE 2026-09-02
 `CATES/YATAGAN → GDZ/ADM` (`public/index.php` `adm ? ADM : GDZ`, `GDZ.svg/ADM.svg`, `gdz/adm.jpg`, `SysSeeder` `GDZ Sistem`, 16 files bulk, `emails/layout` logo, DB re-seed `grp_code=GDZ`). Admin `/` still blue CATES? Now GDZ. Tedarik `/tedarik` orange Gdz.
@@ -24,8 +22,9 @@ Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/ted
 
 > **Full change log lives in `memory/05 §4` — only highlights kept here.**
 
-- **Tedarik Dashboard (2026-09-05):** `ReportServiceProvider` 3 new endpoints (`tedarik-stats/tedarik-orders/tedarik-status`) with LIFNR-scoped reseller queries. 5 Vue components: TedarikHeader (greeting+bell+Swal), TedarikStats (4 cards), TedarikStatusChart (chart.js doughnut lazy-loaded), TedarikRecentOrders (10-row table with pre-parsed attrs + sticky header scroll), TedarikQuickActions (Siparişler+Döküman links). 2-column responsive grid layout. Sidebar updated: 7 tabs with icons + arrows, active tab animation (grow 70px, gradient, scale 1.04, cubic-bezier spring transition).
-- **File-versioning-system.md merged (2026-09-05):** `file-versioning-system.md` + `file-upload-versioning-mechanics.md` → single 14-section merged doc. 18 discrepancies fixed against source code (40→42MB, finalizeTempFile 5 params, entity copy source, single-slot LIKE pattern, addFileToDb typo, Transactions target inconsistency, entity_tag reuse, permission gating location, getFormData exclusions, item_images_file exclusion, --type flag).
+ - **Tedarik Dashboard (2026-09-05):** `ReportServiceProvider` 3 new endpoints (`tedarik-stats/tedarik-orders/tedarik-status`) with LIFNR-scoped reseller queries. 5 Vue components: TedarikHeader (greeting+bell+Swal), TedarikStats (4 cards), TedarikStatusChart (chart.js doughnut lazy-loaded), TedarikRecentOrders (10-row table with pre-parsed attrs + sticky header scroll), TedarikQuickActions (Siparişler+Döküman links). 2-column responsive grid layout. Sidebar updated: 7 tabs with icons + arrows, active tab animation (grow 70px, gradient, scale 1.04, cubic-bezier spring transition).
+ - **Admin Dashboard REBUILT + Tedarik POLISHED (2026-09-06):** Admin: `adminStats (8) + adminStatusBreakdown(doughnut) + adminRecentOrders(10) + adminRecentFiles(10) + adminActivity(12) + adminMonthlyOrders(6×Sep10)` Cache 60s + 8 Vue (Stats/Status/Monthly/Recent/Files/Activity/QuickActions) + `Admin.vue` flex fix `aside:relative` scoped `admin-dashboard-active` + `OList ?status=` + `DForm admin-theme blue`. Tedarik: `tedarikStats 6 (totalItems fix parent d2) + tedarikMonthlyOrders + tedarikRecentFiles(8) + tedarikActivity→Bilgilendirmeler (only doc_trans/file) + TedarikStats 4→6 + MonthlyChart bar 22 + QuickActions 4` + 7 Vue polished. `Dashboard.vue` gap 1.25rem + `Header` 18px.
+ - **File-versioning-system.md merged (2026-09-05):** `file-versioning-system.md` + `file-upload-versioning-mechanics.md` → single 14-section merged doc. 18 discrepancies fixed against source code (40→42MB, finalizeTempFile 5 params, entity copy source, single-slot LIKE pattern, addFileToDb typo, Transactions target inconsistency, entity_tag reuse, permission gating location, getFormData exclusions, item_images_file exclusion, --type flag).
 
 - **Serial system:** KG/M required, ST<300 optional, Excel upload, collapse UI, auto date
 - **Split/partition:** quantity types, clone `EBELN-X`, partition lock, quantity restore

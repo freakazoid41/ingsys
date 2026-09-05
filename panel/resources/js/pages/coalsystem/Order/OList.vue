@@ -42,7 +42,11 @@
         mounted(){
             this.navigationStore.toggle(true);
             this.buildTable();
-            this._buildTimeouts.push(setTimeout(() => this.navigationStore.toggle(false), 300));
+            // apply ?status= filter from dashboard stat clicks (e.g. ?status=doc_trans_order_files_rejected)
+            this._buildTimeouts.push(setTimeout(() => {
+                this.applyStatusQuery(this.$route.query.status);
+                this.navigationStore.toggle(false);
+            }, 500));
             if(this.isTedarik){
                 this.$nextTick(()=> document.addEventListener('click', this.handleOutsideClick));
             }
@@ -56,6 +60,9 @@
             this._buildTimeouts = [];
         },
         watch: {
+            '$route.query.status'(newVal){
+                this.applyStatusQuery(newVal);
+            },
             isTedarik(newVal){
                 if(newVal){
                     this.$nextTick(()=> document.addEventListener('click', this.handleOutsideClick));
@@ -447,6 +454,18 @@
                 if(!this.table || !this.table.currentFilter) return this.exportTable();
                 // If no detailed filter active, allow export of full list as per note
                 this.plib.openTab('POST', '/api/v1/export/orders', this.table.currentFilter,'_blank');
+            },
+            applyStatusQuery(status){
+                if(!this.table) return;
+                if(status && typeof status === 'string' && status.trim()){
+                    const v = status.trim();
+                    // keep initial form-type/type, just add transactions filter
+                    this.table.setFilter([{key:'transactions', type:'=', value: v}]);
+                    // also clear query after apply? keep it for bookmark, but filter is applied
+                } else if(status === '' || status === null){
+                    // clear to show all (keep initial)
+                    this.table.setFilter([]);
+                }
             },
             formatDate(val){
                 if(!val) return '-';

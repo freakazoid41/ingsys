@@ -297,22 +297,25 @@ export default {
         </template>
     </div>
 
-    <!-- ADMIN (same layout, coal card chrome but shortcut too) -->
-    <div v-else class="admin-file-detail">
-        <div class="card" style="border-radius:16px; overflow:hidden;">
-            <div class="card-header" style="background:#f8fafc; display:flex; align-items:center; justify-content:space-between;">
-                <div>
-                    <a href="javascript:;" @click="goBack" style="color:#64748b; text-decoration:none;">← Belgeler</a>
-                    <h3 style="margin:4px 0 0; font-weight:800;"><span @click="goOrder" style="cursor:pointer; text-decoration:underline; text-underline-offset:3px;">{{ order?.ctitle || 'Belge Detayı' }}</span></h3>
-                    <small style="color:#64748b;">{{ order?.order_no }} • {{ order?.buying_no }} <a href="javascript:;" @click="goOrder" style="margin-left:6px; color:#3b82f6; text-decoration:none;">Sipariş →</a></small>
-                </div>
-                <div style="text-align:right; font-size:13px; color:#334155;">
-                    <div>Alım No: <b>{{ order?.buying_no }}</b></div>
-                    <div>Sipariş No: <b @click="goOrder" style="cursor:pointer; color:#1d4ed8; text-decoration:underline;">{{ order?.order_no }}</b></div>
-                    <div>Tarih: <b>{{ fmtDate(order?.created_at) }}</b></div>
-                </div>
+    <!-- ADMIN — same polished layout as tedarik but blue admin theme -->
+    <div v-else class="tedarik-file-detail admin-theme">
+        <div class="back-row">
+            <a href="javascript:;" class="back-orange admin-back" @click="goBack"><i class="ki-outline ki-left" style="font-size:14px; color:#154b91;"></i> Belgeler</a>
+            <a href="javascript:;" class="order-shortcut admin-shortcut" @click="goOrder"><i class="ki-outline ki-document"></i> Sipariş Detayına Git →</a>
+        </div>
+        <div class="supplier-row admin-supplier" @click="goOrder" style="cursor:pointer;" title="Sipariş detayına git">
+            <div>
+                <div class="muted-label">Tedarikçi Bilgileri</div>
+                <div class="supplier-name">{{ order?.ctitle || order?.spec_code || '—' }} <i class="ki-outline ki-arrow-right" style="font-size:12px; color:#94a3b8; margin-left:4px;"></i></div>
+                <div style="font-size:11.5px; color:#64748b; margin-top:3px;">siparişin tüm belgeleri bu ekranda listelenir — admin görünümü</div>
             </div>
-            <div class="card-body">
+            <div class="order-meta">
+                <div class="meta-row"><span>Alım No :</span><b>{{ order?.buying_no || '—' }}</b></div>
+                <div class="meta-row meta-click" @click.stop="goOrder"><span>Sipariş No :</span><b class="clickable admin-clickable">{{ order?.order_no || '—' }}</b></div>
+                <div class="meta-row"><span>Tarih :</span><b>{{ fmtDate(order?.created_at) }}</b></div>
+            </div>
+        </div>
+        <div class="card-body" style="padding:0; background:transparent; border:none; box-shadow:none;">
                 <div v-if="loading" style="padding:20px; text-align:center;">Yükleniyor...</div>
                 <div v-else-if="error" style="color:#dc2626;">{{ error }}</div>
                 <template v-else>
@@ -366,7 +369,6 @@ export default {
                     </div>
                 </template>
             </div>
-        </div>
     </div>
 </template>
 <style scoped>
@@ -454,7 +456,22 @@ export default {
 .file-card.active.is-old{ opacity:.92; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important; border-color:#cbd5e1 !important; }
 .file-card.active.is-old .file-tip{ color:#475569; }
 
-/* admin tweaks */
+/* admin tweaks — blue theme (same polish as tedarik, but coal blue) */
+.admin-theme{ background:#fff; border-color:#e2e8f0; }
+.admin-theme .supplier-row.admin-supplier{ background: linear-gradient(135deg, #fff 0%, #eff6ff 100%) !important; border-color:#bfdbfe !important; }
+.admin-theme .supplier-row.admin-supplier:hover{ border-color:#93c5fd !important; }
+.admin-theme .order-shortcut.admin-shortcut{ color:#1e40af !important; background:#eff6ff !important; border-color:#bfdbfe !important; }
+.admin-theme .order-shortcut.admin-shortcut:hover{ background:#dbeafe !important; }
+.admin-theme .back-orange.admin-back{ color:#475569 !important; border-color:#e2e8f0 !important; }
+.admin-theme .back-orange.admin-back i{ color:#154b91 !important; }
+.admin-theme .meta-row.meta-click .clickable.admin-clickable{ color:#1e40af !important; background:#eff6ff !important; border-color:#bfdbfe !important; }
+.admin-theme .meta-row.meta-click .clickable.admin-clickable:hover{ background:#dbeafe !important; }
+.admin-theme .file-card.active{ border-color:#154b91 !important; background: linear-gradient(135deg, #fff 0%, #eff6ff 100%) !important; box-shadow:0 8px 20px rgba(21,75,145,.12) !important; }
+.admin-theme .active-tri{ border-left-color:#154b91 !important; }
+.admin-theme .decide-pill.on{ border-color:#154b91 !important; background:#eff6ff !important; color:#1e3a8a !important; }
+.admin-theme .decide-pill input{ accent-color:#154b91 !important; }
+.admin-theme .reject-box{ border-color:#bfdbfe !important; background:#f8fafc !important; }
+.admin-theme .reject-box label{ color:#1e40af !important; }
 .admin-file-detail .file-card{ background:#fff; }
 @media (max-width: 768px){
     .files-head{ display:none; }
