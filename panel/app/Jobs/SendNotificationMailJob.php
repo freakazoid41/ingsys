@@ -61,7 +61,28 @@ class SendNotificationMailJob implements ShouldQueue
             case 'cliFileStatus':
                 $this->clientFileStatus($this->payload);
                 break;
-            // other notification types can be handled here
+            // ── TEDARIK 7 ──
+            case 'tedarikOrderImported':
+                $this->tedarikOrderImported($this->payload);
+                break;
+            case 'tedarikOrderSent':
+                $this->tedarikOrderSent($this->payload);
+                break;
+            case 'tedarikFileWaiting':
+                $this->tedarikFileWaiting($this->payload);
+                break;
+            case 'tedarikFileApproved':
+                $this->tedarikFileApproved($this->payload);
+                break;
+            case 'tedarikFileRejected':
+                $this->tedarikFileRejected($this->payload);
+                break;
+            case 'tedarikOrderApproved':
+                $this->tedarikOrderApproved($this->payload);
+                break;
+            case 'tedarikOrderRejected':
+                $this->tedarikOrderRejected($this->payload);
+                break;
             default:
                 $this->log('warning', 'SendNotificationMailJob received unknown type', ['type' => $this->payload['type'] ?? null]);
                 break;
@@ -118,13 +139,14 @@ class SendNotificationMailJob implements ShouldQueue
     }
 
     //here we are finding the users who have permission for receving the client register notification and send mail to them
+    // LEGACY: notif-00 removed → now tedarik-01 (Sipariş Sisteme Geldi SAP) — keep for backward, new flow uses tedarikOrderImported
     public function clientRegister(array $payload)
     {
         $this->log('info', 'Client Register Triggered', $this->payload);
         $subject = 'Yeni Müşteri Kaydı';
         $html = $this->renderEmailHtml($subject, '<p>Yeni bir müşteri kaydı gerçekleşti.</p><p><strong>Müşteri Mail:</strong> ' . e($payload['email'] ?? '-') . '</p><p><strong>Müşteri Telefon:</strong> ' . e($payload['phone'] ?? '-') . '</p>');
         //after that we need to inform system users who permitted
-        $this->informSystemUsers($subject, $html, 'notif-00');
+        $this->informSystemUsers($subject, $html, 'tedarik-01');
         
         $this->log('info', 'SendNotificationMailJob completed');
     }
@@ -160,8 +182,8 @@ class SendNotificationMailJob implements ShouldQueue
             }
         }
         
-        //after that we need to inform system users who permitted
-        $this->informSystemUsers($subject, $html, $isUpdate ? 'notif-03' : 'notif-02', $attachments);
+        //after that we need to inform system users who permitted — LEGACY notif-02/03 → tedarik-02 (Sipariş Onaya Gönderildi)
+        $this->informSystemUsers($subject, $html, 'tedarik-02', $attachments);
         
         $this->log('info', 'SendNotificationMailJob completed');
     }
@@ -353,18 +375,543 @@ class SendNotificationMailJob implements ShouldQueue
             }
         }
 
-        //after that we need to inform system users who permitted
-        $this->informSystemUsers($subject, $html, 'notif-01');
-       
+        //after that we need to inform system users who permitted — LEGACY notif-01 → tedarik-03 (İnceleme Bekleyen Dosyalar)
+        $this->informSystemUsers($subject, $html, 'tedarik-03');
+        
         
         
         $this->log('info', 'SendNotificationMailJob completed');
+    }
+
+    private function bukrsToSystem($bukrs): string {
+        $b = strtoupper(trim((string)$bukrs));
+        if($b === '' ) return 'GDZ';
+        if(in_array($b, ['GDZ','4000','1000','G4000'])) return 'GDZ';
+        if(in_array($b, ['ADM','5000','A5000'])) return 'ADM';
+        if(in_array($b, ['BOTH','HER_IKISI','GDZ,ADM'])) return 'BOTH';
+        if(strpos($b,'GDZ')!==false) return 'GDZ';
+        if(strpos($b,'ADM')!==false) return 'ADM';
+        return $b;
+    }
+    // ── TEDARIK notification handlers ──
+    public function tedarikOrderImported(array $payload){
+        $orderNo = $payload['order_no'] ?? $payload['transfer_no'] ?? '-';
+        $subject = 'Sipariş Sisteme Geldi (SAP Üzerinden)';
+        $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? '';
+        $bukrsSys = $this->bukrsToSystem($bukrs);
+        $html = $this->renderEmailHtml($subject, '<p>Yeni sipariş SAP üzerinden sisteme eklendi.</p><p><strong>Sipariş No:</strong> '.e($orderNo).'</p><p><strong>Sistem:</strong> '.e($bukrsSys).' ('.e($bukrs).')</p><p><strong>Tedarikçi:</strong> '.e($payload['ctitle'] ?? '-').' ('.e($payload['spec_code'] ?? '-').')</p>');
+        // BUKRS-aware dispatch: only users whose grp_code is BOTH or == bukrsSys
+        $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-01');
+        if(empty($permittedUsers['tedarik-01'])){
+            $this->log('info','No permitted users for tedarik-01');
+            return;
+        }
+        $filtered = [];
+        foreach($permittedUsers['tedarik-01'] as $u){
+            try{
+                $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', function($q) use ($u){
+                    $q->select('id')->from('persons')->where('qnid', $u['person_id'])->limit(1);
+                })->first();
+                if(!$row){
+                    // try direct person_id is id
+                    $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', $u['person_id'])->first();
+                }
+                $userSys = $this->bukrsToSystem($row->grp_code ?? 'GDZ');
+                if($userSys === 'BOTH' || $userSys === $bukrsSys) $filtered[] = $u;
+                else $this->log('info','Skipped user due BUKRS mismatch', ['user'=>$u['person_id'], 'userSys'=>$userSys, 'bukrsSys'=>$bukrsSys, 'bukrs'=>$bukrs]);
+            }catch(\Throwable $e){ $filtered[] = $u; }
+        }
+        if(empty($filtered)){
+            $this->log('info','All users filtered out by BUKRS for tedarik-01', ['bukrs'=>$bukrs, 'bukrsSys'=>$bukrsSys]);
+            return;
+        }
+        // send only to filtered
+        $this->log('info','Filtered tedarik-01 recipients by BUKRS', ['bukrs'=>$bukrs, 'bukrsSys'=>$bukrsSys, 'total'=>count($permittedUsers['tedarik-01']), 'filtered'=>count($filtered)]);
+        foreach($filtered as $user){
+            $person = $this->personProvider->getPerson($user['person_id'],null,true);
+            if($person['success']){
+                $person = $person['person'][0];
+                $contacts = json_decode($person->contacts ?? '[]', true);
+                $mailService = new \App\Services\MailService();
+                $template = ['to'=>null,'subject'=>$subject,'html'=>$html,'attachments'=>$payload['attachments']??[],'sys_code'=>$this->payload['sys_code']??null];
+                foreach($contacts as $contact){
+                    if(strpos($contact['Key'] ?? '', 'contmail') !== false){
+                        $template['to']= $contact['Value'] ?? null;
+                        $mailService->sendMail($template);
+                        $this->log('info','Sending filtered tedarik-01 mail', ['name'=>$user['name'],'email'=>$contact['Value']??null, 'bukrsSys'=>$bukrsSys]);
+                    }
+                }
+                if($template['to']===null && strpos($person->email ?? '', '@')!==false){
+                    $template['to']=$person->email ?? null;
+                    $mailService->sendMail($template);
+                }
+            }
+        }
+        return;
+    }
+    public function tedarikOrderSent(array $payload){
+        $orderNo = $payload['order_no'] ?? $payload['transfer_no'] ?? '-';
+        $mode = $payload['transfer_mode'] ?? '-';
+        $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? $payload['order_sys_code'] ?? '';
+        $bukrsSys = $this->bukrsToSystem($bukrs);
+        $subject = 'Sipariş Onaya Gönderildi';
+        $html = $this->renderEmailHtml($subject, '<p>Tedarikçi siparişi onaya gönderdi.</p><p><strong>Sipariş No:</strong> '.e($orderNo).'</p><p><strong>Mod:</strong> '.e($mode).'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Tedarikçi:</strong> '.e($payload['ctitle'] ?? '-').'</p>');
+        // BUKRS-aware dispatch: only users whose grp_code is BOTH or == order sys_code
+        $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-02');
+        if(empty($permittedUsers['tedarik-02'])){
+            $this->log('info','No permitted users for tedarik-02');
+            return;
+        }
+        $filtered = [];
+        foreach($permittedUsers['tedarik-02'] as $u){
+            try{
+                $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', function($q) use ($u){
+                    $q->select('id')->from('persons')->where('qnid', $u['person_id'])->limit(1);
+                })->first();
+                if(!$row){
+                    $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', $u['person_id'])->first();
+                }
+                $userSys = $this->bukrsToSystem($row->grp_code ?? 'GDZ');
+                if($userSys === 'BOTH' || $userSys === $bukrsSys) $filtered[] = $u;
+                else $this->log('info','Skipped user due BUKRS mismatch tedarik-02', ['user'=>$u['person_id'], 'userSys'=>$userSys, 'bukrsSys'=>$bukrsSys, 'bukrs'=>$bukrs]);
+            }catch(\Throwable $e){ $filtered[] = $u; }
+        }
+        if(empty($filtered)){
+            $this->log('info','All users filtered out by BUKRS for tedarik-02', ['bukrs'=>$bukrs, 'bukrsSys'=>$bukrsSys]);
+            return;
+        }
+        $this->log('info','Filtered tedarik-02 recipients by BUKRS', ['bukrs'=>$bukrs, 'bukrsSys'=>$bukrsSys, 'total'=>count($permittedUsers['tedarik-02']), 'filtered'=>count($filtered)]);
+        foreach($filtered as $user){
+            $person = $this->personProvider->getPerson($user['person_id'],null,true);
+            if($person['success']){
+                $person = $person['person'][0];
+                $contacts = json_decode($person->contacts ?? '[]', true);
+                $mailService = new \App\Services\MailService();
+                $template = ['to'=>null,'subject'=>$subject,'html'=>$html,'attachments'=>$payload['attachments']??[],'sys_code'=>$this->payload['sys_code']??$bukrsSys];
+                foreach($contacts as $contact){
+                    if(strpos($contact['Key'] ?? '', 'contmail') !== false){
+                        $template['to']= $contact['Value'] ?? null;
+                        $mailService->sendMail($template);
+                        $this->log('info','Sending filtered tedarik-02 mail', ['name'=>$user['name'],'email'=>$contact['Value']??null, 'bukrsSys'=>$bukrsSys]);
+                    }
+                }
+                if($template['to']===null && strpos($person->email ?? '', '@')!==false){
+                    $template['to']=$person->email ?? null;
+                    $mailService->sendMail($template);
+                }
+            }
+        }
+        return;
+    }
+    public function tedarikFileWaiting(array $payload){
+        $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? $payload['order_sys_code'] ?? '';
+        $bukrsSys = $this->bukrsToSystem($bukrs);
+        $subject = 'İnceleme Bekleyen Dosyalar Mevcut';
+        $html = $this->renderEmailHtml($subject, '<p>Sipariş ile birlikte inceleme bekleyen dosyalar eklendi.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Dosya:</strong> '.e($payload['fileTitle'] ?? '-').'</p>');
+        // BUKRS-aware: same gate as tedarik-02 (triggers together)
+        $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-03');
+        if(empty($permittedUsers['tedarik-03'])){
+            $this->log('info','No permitted users for tedarik-03');
+            return;
+        }
+        $filtered = [];
+        foreach($permittedUsers['tedarik-03'] as $u){
+            try{
+                $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', function($q) use ($u){
+                    $q->select('id')->from('persons')->where('qnid', $u['person_id'])->limit(1);
+                })->first();
+                if(!$row){
+                    $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', $u['person_id'])->first();
+                }
+                $userSys = $this->bukrsToSystem($row->grp_code ?? 'GDZ');
+                if($userSys === 'BOTH' || $userSys === $bukrsSys) $filtered[] = $u;
+                else $this->log('info','Skipped user due BUKRS mismatch tedarik-03', ['user'=>$u['person_id'], 'userSys'=>$userSys, 'bukrsSys'=>$bukrsSys]);
+            }catch(\Throwable $e){ $filtered[] = $u; }
+        }
+        if(empty($filtered)){
+            $this->log('info','All users filtered out by BUKRS for tedarik-03', ['bukrs'=>$bukrs, 'bukrsSys'=>$bukrsSys]);
+            return;
+        }
+        $this->log('info','Filtered tedarik-03 recipients by BUKRS', ['bukrs'=>$bukrs, 'bukrsSys'=>$bukrsSys, 'total'=>count($permittedUsers['tedarik-03']), 'filtered'=>count($filtered)]);
+        foreach($filtered as $user){
+            $person = $this->personProvider->getPerson($user['person_id'],null,true);
+            if($person['success']){
+                $person = $person['person'][0];
+                $contacts = json_decode($person->contacts ?? '[]', true);
+                $mailService = new \App\Services\MailService();
+                $template = ['to'=>null,'subject'=>$subject,'html'=>$html,'attachments'=>$payload['attachments']??[],'sys_code'=>$this->payload['sys_code']??$bukrsSys];
+                foreach($contacts as $contact){
+                    if(strpos($contact['Key'] ?? '', 'contmail') !== false){
+                        $template['to']= $contact['Value'] ?? null;
+                        $mailService->sendMail($template);
+                        $this->log('info','Sending filtered tedarik-03 mail', ['name'=>$user['name'],'email'=>$contact['Value']??null]);
+                    }
+                }
+                if($template['to']===null && strpos($person->email ?? '', '@')!==false){
+                    $template['to']=$person->email ?? null;
+                    $mailService->sendMail($template);
+                }
+            }
+        }
+        return;
+    }
+    public function tedarikFileApproved(array $payload){
+        $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? $payload['order_sys_code'] ?? $payload['spec_code_sys'] ?? '';
+        $bukrsSys = $this->bukrsToSystem($bukrs);
+        $orderSpec = trim((string)($payload['spec_code'] ?? $payload['order_spec'] ?? ''));
+        // fallback: try to derive spec_code from order if not in payload (via file's order)
+        if($orderSpec === '' && !empty($payload['qnid'])){
+            try{
+                $doc = \App\Models\Documents::where('qnid', $payload['qnid'])->first();
+                if($doc) {
+                    $tmp = (new \App\Providers\DocumentServiceProvider())->getFormData($payload['qnid']);
+                    foreach(($tmp['formFormat']['op-doc-order-form'] ?? []) as $cr){
+                        foreach(($cr['entities'] ?? []) as $k=>$v) if($k==='spec_code' && $orderSpec==='') $orderSpec = trim((string)$v);
+                    }
+                }
+            }catch(\Throwable $e){}
+        }
+        $subject = 'Sipariş Dosyası Onaylandı';
+        $html = $this->renderEmailHtml($subject, '<p>Sipariş dosyası onaylandı.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Dosya:</strong> '.e($payload['fileTitle'] ?? '-').'</p><p><strong>Not:</strong> '.e($payload['note'] ?? '-').'</p>');
+        // ── Recipients: (A) assigned non-tedarik BUKRS-gated + (B) matching resellers by LIFNR+BUKRS even if not assigned
+        $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-04');
+        $assigned = $permittedUsers['tedarik-04'] ?? [];
+        $filteredAssigned = [];
+        foreach($assigned as $u){
+            try{
+                // check person type — skip tedarikçi here, they go via LIFNR path
+                $ptype = \Illuminate\Support\Facades\DB::table('persons as p')->join('sys_options as sp','sp.id','=','p.type_id')->where('p.qnid',$u['person_id'])->value('sp.op_key');
+                if($ptype === 'op-pert-reseller') continue;
+                $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', function($q) use ($u){
+                    $q->select('id')->from('persons')->where('qnid', $u['person_id'])->limit(1);
+                })->first();
+                if(!$row) $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', $u['person_id'])->first();
+                $userSys = $this->bukrsToSystem($row->grp_code ?? 'GDZ');
+                if($userSys === 'BOTH' || $userSys === $bukrsSys) $filteredAssigned[] = $u;
+                else $this->log('info','Skipped assigned non-tedarik due BUKRS mismatch tedarik-04', ['user'=>$u['person_id'],'userSys'=>$userSys,'bukrsSys'=>$bukrsSys]);
+            }catch(\Throwable $e){ $filteredAssigned[] = $u; }
+        }
+        // (B) resellers whose one of client LIFNRs equals order spec_code AND BUKRS matches
+        $matchingResellers = [];
+        if($orderSpec !== ''){
+            try{
+                $resellers = \Illuminate\Support\Facades\DB::select("SELECT p.qnid, p.name, u.email as username, u.grp_code, p.id as pid FROM persons p JOIN sys_options sp ON sp.id=p.type_id AND sp.op_key='op-pert-reseller' JOIN users u ON u.person_id=p.id WHERE p.status=1 AND u.status=1");
+                foreach($resellers as $r){
+                    $userSys = $this->bukrsToSystem($r->grp_code ?? 'GDZ');
+                    if(!($userSys === 'BOTH' || $userSys === $bukrsSys)) continue;
+                    // get this reseller's lifnrs via client qnids
+                    $crows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as client_qnid FROM sys_con_entities se JOIN sys_con_ops so ON so.id=se.conn_id JOIN sys_options sp ON sp.id=so.type_id WHERE so.main_id=? AND sp.op_key='op-doc-user-client-form' AND se.entity_tag LIKE '%cliid**%'", [$r->pid]);
+                    $lifnrs = [];
+                    foreach($crows as $cr){
+                        $q = trim($cr->client_qnid ?? '');
+                        if($q==='') continue;
+                        $lr = \Illuminate\Support\Facades\DB::selectOne("SELECT se2.entity_value as lifnr FROM sys_con_entities se2 JOIN sys_con_ops so2 ON so2.id=se2.conn_id JOIN documents d2 ON d2.id=so2.main_id WHERE d2.qnid=? AND se2.entity_tag='lifnr' AND se2.table_tag='sys_con_ops' LIMIT 1", [$q]);
+                        if($lr && trim($lr->lifnr ?? '') !== '') $lifnrs[] = trim($lr->lifnr);
+                    }
+                    // also try direct lifnr on person if any
+                    if(in_array($orderSpec, $lifnrs, true)){
+                        $matchingResellers[] = ['person_id'=>$r->qnid, 'name'=>$r->name ?? $r->qnid, 'username'=>$r->username ?? $r->qnid];
+                    }
+                }
+            }catch(\Throwable $e){ $this->log('warning','reseller LIFNR match failed tedarik-04', ['e'=>$e->getMessage()]); }
+        }
+        $this->log('info','tedarik-04 recipients', ['assignedFiltered'=>count($filteredAssigned),'matchingResellers'=>count($matchingResellers),'orderSpec'=>$orderSpec,'bukrsSys'=>$bukrsSys]);
+        // merge deduplicated by person_id
+        $merged = [];
+        $seen = [];
+        foreach(array_merge($filteredAssigned, $matchingResellers) as $u){
+            $pid = $u['person_id'] ?? null;
+            if(!$pid || isset($seen[$pid])) continue;
+            $seen[$pid]=true;
+            $merged[]=$u;
+        }
+        if(empty($merged)){
+            $this->log('info','No recipients for tedarik-04 after BUKRS+LIFNR gate', ['bukrs'=>$bukrs,'bukrsSys'=>$bukrsSys,'orderSpec'=>$orderSpec]);
+            return;
+        }
+        foreach($merged as $user){
+            $person = $this->personProvider->getPerson($user['person_id'],null,true);
+            if($person['success']){
+                $person = $person['person'][0];
+                $contacts = json_decode($person->contacts ?? '[]', true);
+                $mailService = new \App\Services\MailService();
+                $template = ['to'=>null,'subject'=>$subject,'html'=>$html,'attachments'=>$payload['attachments']??[],'sys_code'=>$this->payload['sys_code']??$bukrsSys];
+                foreach($contacts as $contact){
+                    if(strpos($contact['Key'] ?? '', 'contmail') !== false){
+                        $template['to']= $contact['Value'] ?? null;
+                        $mailService->sendMail($template);
+                        $this->log('info','Sending tedarik-04 mail', ['name'=>$user['name'],'email'=>$contact['Value']??null,'kind'=> in_array($user,$matchingResellers,true) ? 'reseller-lifnr' : 'assigned']);
+                    }
+                }
+                if($template['to']===null && strpos($person->email ?? '', '@')!==false){
+                    $template['to']=$person->email ?? null;
+                    $mailService->sendMail($template);
+                }
+            }
+        }
+        return;
+    }
+    public function tedarikFileRejected(array $payload){
+        $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? $payload['order_sys_code'] ?? '';
+        $bukrsSys = $this->bukrsToSystem($bukrs);
+        $orderSpec = trim((string)($payload['spec_code'] ?? $payload['order_spec'] ?? ''));
+        if($orderSpec === '' && !empty($payload['qnid'])){
+            try{
+                $doc = \App\Models\Documents::where('qnid', $payload['qnid'])->first();
+                if($doc) {
+                    $tmp = (new \App\Providers\DocumentServiceProvider())->getFormData($payload['qnid']);
+                    foreach(($tmp['formFormat']['op-doc-order-form'] ?? []) as $cr){
+                        foreach(($cr['entities'] ?? []) as $k=>$v) if($k==='spec_code' && $orderSpec==='') $orderSpec = trim((string)$v);
+                    }
+                }
+            }catch(\Throwable $e){}
+        }
+        $subject = 'Sipariş Dosyası Yeniden Talep Edildi';
+        $html = $this->renderEmailHtml($subject, '<p>Sipariş dosyası reddedildi — yeniden talep edildi.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Dosya:</strong> '.e($payload['fileTitle'] ?? '-').'</p><p><strong>Ret Notu:</strong> '.e($payload['note'] ?? '-').'</p>');
+        $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-05');
+        $assigned = $permittedUsers['tedarik-05'] ?? [];
+        $filteredAssigned = [];
+        foreach($assigned as $u){
+            try{
+                $ptype = \Illuminate\Support\Facades\DB::table('persons as p')->join('sys_options as sp','sp.id','=','p.type_id')->where('p.qnid',$u['person_id'])->value('sp.op_key');
+                if($ptype === 'op-pert-reseller') continue;
+                $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', function($q) use ($u){
+                    $q->select('id')->from('persons')->where('qnid', $u['person_id'])->limit(1);
+                })->first();
+                if(!$row) $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', $u['person_id'])->first();
+                $userSys = $this->bukrsToSystem($row->grp_code ?? 'GDZ');
+                if($userSys === 'BOTH' || $userSys === $bukrsSys) $filteredAssigned[] = $u;
+                else $this->log('info','Skipped assigned non-tedarik due BUKRS mismatch tedarik-05', ['user'=>$u['person_id'],'userSys'=>$userSys,'bukrsSys'=>$bukrsSys]);
+            }catch(\Throwable $e){ $filteredAssigned[] = $u; }
+        }
+        $matchingResellers = [];
+        if($orderSpec !== ''){
+            try{
+                $resellers = \Illuminate\Support\Facades\DB::select("SELECT p.qnid, p.name, u.email as username, u.grp_code, p.id as pid FROM persons p JOIN sys_options sp ON sp.id=p.type_id AND sp.op_key='op-pert-reseller' JOIN users u ON u.person_id=p.id WHERE p.status=1 AND u.status=1");
+                foreach($resellers as $r){
+                    $userSys = $this->bukrsToSystem($r->grp_code ?? 'GDZ');
+                    if(!($userSys === 'BOTH' || $userSys === $bukrsSys)) continue;
+                    $crows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as client_qnid FROM sys_con_entities se JOIN sys_con_ops so ON so.id=se.conn_id JOIN sys_options sp ON sp.id=so.type_id WHERE so.main_id=? AND sp.op_key='op-doc-user-client-form' AND se.entity_tag LIKE '%cliid**%'", [$r->pid]);
+                    $lifnrs = [];
+                    foreach($crows as $cr){
+                        $q = trim($cr->client_qnid ?? '');
+                        if($q==='') continue;
+                        $lr = \Illuminate\Support\Facades\DB::selectOne("SELECT se2.entity_value as lifnr FROM sys_con_entities se2 JOIN sys_con_ops so2 ON so2.id=se2.conn_id JOIN documents d2 ON d2.id=so2.main_id WHERE d2.qnid=? AND se2.entity_tag='lifnr' AND se2.table_tag='sys_con_ops' LIMIT 1", [$q]);
+                        if($lr && trim($lr->lifnr ?? '') !== '') $lifnrs[] = trim($lr->lifnr);
+                    }
+                    if(in_array($orderSpec, $lifnrs, true)){
+                        $matchingResellers[] = ['person_id'=>$r->qnid, 'name'=>$r->name ?? $r->qnid, 'username'=>$r->username ?? $r->qnid];
+                    }
+                }
+            }catch(\Throwable $e){ $this->log('warning','reseller LIFNR match failed tedarik-05', ['e'=>$e->getMessage()]); }
+        }
+        $this->log('info','tedarik-05 recipients', ['assignedFiltered'=>count($filteredAssigned),'matchingResellers'=>count($matchingResellers),'orderSpec'=>$orderSpec,'bukrsSys'=>$bukrsSys]);
+        $merged = []; $seen=[];
+        foreach(array_merge($filteredAssigned, $matchingResellers) as $u){
+            $pid = $u['person_id'] ?? null;
+            if(!$pid || isset($seen[$pid])) continue;
+            $seen[$pid]=true; $merged[]=$u;
+        }
+        if(empty($merged)){
+            $this->log('info','No recipients for tedarik-05 after BUKRS+LIFNR gate', ['bukrs'=>$bukrs,'bukrsSys'=>$bukrsSys,'orderSpec'=>$orderSpec]);
+            return;
+        }
+        foreach($merged as $user){
+            $person = $this->personProvider->getPerson($user['person_id'],null,true);
+            if($person['success']){
+                $person = $person['person'][0];
+                $contacts = json_decode($person->contacts ?? '[]', true);
+                $mailService = new \App\Services\MailService();
+                $template = ['to'=>null,'subject'=>$subject,'html'=>$html,'attachments'=>$payload['attachments']??[],'sys_code'=>$this->payload['sys_code']??$bukrsSys];
+                foreach($contacts as $contact){
+                    if(strpos($contact['Key'] ?? '', 'contmail') !== false){
+                        $template['to']= $contact['Value'] ?? null;
+                        $mailService->sendMail($template);
+                        $this->log('info','Sending tedarik-05 mail', ['name'=>$user['name'],'email'=>$contact['Value']??null,'kind'=> in_array($user,$matchingResellers,true) ? 'reseller-lifnr' : 'assigned']);
+                    }
+                }
+                if($template['to']===null && strpos($person->email ?? '', '@')!==false){
+                    $template['to']=$person->email ?? null;
+                    $mailService->sendMail($template);
+                }
+            }
+        }
+        return;
+    }
+    public function tedarikOrderApproved(array $payload){
+        $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? $payload['order_sys_code'] ?? '';
+        $bukrsSys = $this->bukrsToSystem($bukrs);
+        $orderSpec = trim((string)($payload['spec_code'] ?? $payload['order_spec'] ?? ''));
+        if($orderSpec === '' && !empty($payload['qnid'])){
+            try{
+                $tmp = (new \App\Providers\DocumentServiceProvider())->getFormData($payload['qnid']);
+                foreach(($tmp['formFormat']['op-doc-order-form'] ?? []) as $cr){
+                    foreach(($cr['entities'] ?? []) as $k=>$v) if($k==='spec_code' && $orderSpec==='') $orderSpec = trim((string)$v);
+                }
+            }catch(\Throwable $e){}
+        }
+        $subject = 'Sipariş Kalite Onayı Verildi';
+        $html = $this->renderEmailHtml($subject, '<p>Sipariş kalite onayı verildi ve kapatıldı.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Tedarikçi:</strong> '.e($payload['ctitle'] ?? '-').'</p>');
+        $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-06');
+        $assigned = $permittedUsers['tedarik-06'] ?? [];
+        $filteredAssigned = [];
+        foreach($assigned as $u){
+            try{
+                $ptype = \Illuminate\Support\Facades\DB::table('persons as p')->join('sys_options as sp','sp.id','=','p.type_id')->where('p.qnid',$u['person_id'])->value('sp.op_key');
+                if($ptype === 'op-pert-reseller') continue;
+                $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', function($q) use ($u){
+                    $q->select('id')->from('persons')->where('qnid', $u['person_id'])->limit(1);
+                })->first();
+                if(!$row) $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', $u['person_id'])->first();
+                $userSys = $this->bukrsToSystem($row->grp_code ?? 'GDZ');
+                if($userSys === 'BOTH' || $userSys === $bukrsSys) $filteredAssigned[] = $u;
+                else $this->log('info','Skipped assigned non-tedarik due BUKRS mismatch tedarik-06', ['user'=>$u['person_id'],'userSys'=>$userSys,'bukrsSys'=>$bukrsSys]);
+            }catch(\Throwable $e){ $filteredAssigned[] = $u; }
+        }
+        $matchingResellers = [];
+        if($orderSpec !== ''){
+            try{
+                $resellers = \Illuminate\Support\Facades\DB::select("SELECT p.qnid, p.name, u.email as username, u.grp_code, p.id as pid FROM persons p JOIN sys_options sp ON sp.id=p.type_id AND sp.op_key='op-pert-reseller' JOIN users u ON u.person_id=p.id WHERE p.status=1 AND u.status=1");
+                foreach($resellers as $r){
+                    $userSys = $this->bukrsToSystem($r->grp_code ?? 'GDZ');
+                    if(!($userSys === 'BOTH' || $userSys === $bukrsSys)) continue;
+                    $crows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as client_qnid FROM sys_con_entities se JOIN sys_con_ops so ON so.id=se.conn_id JOIN sys_options sp ON sp.id=so.type_id WHERE so.main_id=? AND sp.op_key='op-doc-user-client-form' AND se.entity_tag LIKE '%cliid**%'", [$r->pid]);
+                    $lifnrs = [];
+                    foreach($crows as $cr){
+                        $q = trim($cr->client_qnid ?? '');
+                        if($q==='') continue;
+                        $lr = \Illuminate\Support\Facades\DB::selectOne("SELECT se2.entity_value as lifnr FROM sys_con_entities se2 JOIN sys_con_ops so2 ON so2.id=se2.conn_id JOIN documents d2 ON d2.id=so2.main_id WHERE d2.qnid=? AND se2.entity_tag='lifnr' AND se2.table_tag='sys_con_ops' LIMIT 1", [$q]);
+                        if($lr && trim($lr->lifnr ?? '') !== '') $lifnrs[] = trim($lr->lifnr);
+                    }
+                    if(in_array($orderSpec, $lifnrs, true)){
+                        $matchingResellers[] = ['person_id'=>$r->qnid, 'name'=>$r->name ?? $r->qnid, 'username'=>$r->username ?? $r->qnid];
+                    }
+                }
+            }catch(\Throwable $e){ $this->log('warning','reseller LIFNR match failed tedarik-06', ['e'=>$e->getMessage()]); }
+        }
+        $this->log('info','tedarik-06 recipients', ['assignedFiltered'=>count($filteredAssigned),'matchingResellers'=>count($matchingResellers),'orderSpec'=>$orderSpec,'bukrsSys'=>$bukrsSys]);
+        $merged=[]; $seen=[];
+        foreach(array_merge($filteredAssigned, $matchingResellers) as $u){
+            $pid=$u['person_id']??null;
+            if(!$pid||isset($seen[$pid])) continue;
+            $seen[$pid]=true; $merged[]=$u;
+        }
+        if(empty($merged)){
+            $this->log('info','No recipients for tedarik-06 after BUKRS+LIFNR gate', ['bukrs'=>$bukrs,'bukrsSys'=>$bukrsSys,'orderSpec'=>$orderSpec]);
+            return;
+        }
+        foreach($merged as $user){
+            $person = $this->personProvider->getPerson($user['person_id'],null,true);
+            if($person['success']){
+                $person = $person['person'][0];
+                $contacts = json_decode($person->contacts ?? '[]', true);
+                $mailService = new \App\Services\MailService();
+                $template = ['to'=>null,'subject'=>$subject,'html'=>$html,'attachments'=>$payload['attachments']??[],'sys_code'=>$this->payload['sys_code']??$bukrsSys];
+                foreach($contacts as $contact){
+                    if(strpos($contact['Key'] ?? '', 'contmail') !== false){
+                        $template['to']= $contact['Value'] ?? null;
+                        $mailService->sendMail($template);
+                        $this->log('info','Sending tedarik-06 mail', ['name'=>$user['name'],'email'=>$contact['Value']??null,'kind'=> in_array($user,$matchingResellers,true) ? 'reseller-lifnr' : 'assigned']);
+                    }
+                }
+                if($template['to']===null && strpos($person->email ?? '', '@')!==false){
+                    $template['to']=$person->email ?? null;
+                    $mailService->sendMail($template);
+                }
+            }
+        }
+        return;
+    }
+    public function tedarikOrderRejected(array $payload){
+        $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? $payload['order_sys_code'] ?? '';
+        $bukrsSys = $this->bukrsToSystem($bukrs);
+        $orderSpec = trim((string)($payload['spec_code'] ?? $payload['order_spec'] ?? ''));
+        if($orderSpec === '' && !empty($payload['qnid'])){
+            try{
+                $tmp = (new \App\Providers\DocumentServiceProvider())->getFormData($payload['qnid']);
+                foreach(($tmp['formFormat']['op-doc-order-form'] ?? []) as $cr){
+                    foreach(($cr['entities'] ?? []) as $k=>$v) if($k==='spec_code' && $orderSpec==='') $orderSpec = trim((string)$v);
+                }
+            }catch(\Throwable $e){}
+        }
+        $subject = 'Sipariş Reddedildi';
+        $html = $this->renderEmailHtml($subject, '<p>Sipariş reddedildi.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Not:</strong> '.e($payload['note'] ?? '-').'</p>');
+        $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-07');
+        $assigned = $permittedUsers['tedarik-07'] ?? [];
+        $filteredAssigned = [];
+        foreach($assigned as $u){
+            try{
+                $ptype = \Illuminate\Support\Facades\DB::table('persons as p')->join('sys_options as sp','sp.id','=','p.type_id')->where('p.qnid',$u['person_id'])->value('sp.op_key');
+                if($ptype === 'op-pert-reseller') continue;
+                $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', function($q) use ($u){
+                    $q->select('id')->from('persons')->where('qnid', $u['person_id'])->limit(1);
+                })->first();
+                if(!$row) $row = \Illuminate\Support\Facades\DB::table('users')->where('person_id', $u['person_id'])->first();
+                $userSys = $this->bukrsToSystem($row->grp_code ?? 'GDZ');
+                if($userSys === 'BOTH' || $userSys === $bukrsSys) $filteredAssigned[] = $u;
+                else $this->log('info','Skipped assigned non-tedarik due BUKRS mismatch tedarik-07', ['user'=>$u['person_id'],'userSys'=>$userSys,'bukrsSys'=>$bukrsSys]);
+            }catch(\Throwable $e){ $filteredAssigned[] = $u; }
+        }
+        $matchingResellers = [];
+        if($orderSpec !== ''){
+            try{
+                $resellers = \Illuminate\Support\Facades\DB::select("SELECT p.qnid, p.name, u.email as username, u.grp_code, p.id as pid FROM persons p JOIN sys_options sp ON sp.id=p.type_id AND sp.op_key='op-pert-reseller' JOIN users u ON u.person_id=p.id WHERE p.status=1 AND u.status=1");
+                foreach($resellers as $r){
+                    $userSys = $this->bukrsToSystem($r->grp_code ?? 'GDZ');
+                    if(!($userSys === 'BOTH' || $userSys === $bukrsSys)) continue;
+                    $crows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as client_qnid FROM sys_con_entities se JOIN sys_con_ops so ON so.id=se.conn_id JOIN sys_options sp ON sp.id=so.type_id WHERE so.main_id=? AND sp.op_key='op-doc-user-client-form' AND se.entity_tag LIKE '%cliid**%'", [$r->pid]);
+                    $lifnrs = [];
+                    foreach($crows as $cr){
+                        $q = trim($cr->client_qnid ?? '');
+                        if($q==='') continue;
+                        $lr = \Illuminate\Support\Facades\DB::selectOne("SELECT se2.entity_value as lifnr FROM sys_con_entities se2 JOIN sys_con_ops so2 ON so2.id=se2.conn_id JOIN documents d2 ON d2.id=so2.main_id WHERE d2.qnid=? AND se2.entity_tag='lifnr' AND se2.table_tag='sys_con_ops' LIMIT 1", [$q]);
+                        if($lr && trim($lr->lifnr ?? '') !== '') $lifnrs[] = trim($lr->lifnr);
+                    }
+                    if(in_array($orderSpec, $lifnrs, true)){
+                        $matchingResellers[] = ['person_id'=>$r->qnid, 'name'=>$r->name ?? $r->qnid, 'username'=>$r->username ?? $r->qnid];
+                    }
+                }
+            }catch(\Throwable $e){ $this->log('warning','reseller LIFNR match failed tedarik-07', ['e'=>$e->getMessage()]); }
+        }
+        $this->log('info','tedarik-07 recipients', ['assignedFiltered'=>count($filteredAssigned),'matchingResellers'=>count($matchingResellers),'orderSpec'=>$orderSpec,'bukrsSys'=>$bukrsSys]);
+        $merged=[]; $seen=[];
+        foreach(array_merge($filteredAssigned, $matchingResellers) as $u){
+            $pid=$u['person_id']??null;
+            if(!$pid||isset($seen[$pid])) continue;
+            $seen[$pid]=true; $merged[]=$u;
+        }
+        if(empty($merged)){
+            $this->log('info','No recipients for tedarik-07 after BUKRS+LIFNR gate', ['bukrs'=>$bukrs,'bukrsSys'=>$bukrsSys,'orderSpec'=>$orderSpec]);
+            return;
+        }
+        foreach($merged as $user){
+            $person = $this->personProvider->getPerson($user['person_id'],null,true);
+            if($person['success']){
+                $person = $person['person'][0];
+                $contacts = json_decode($person->contacts ?? '[]', true);
+                $mailService = new \App\Services\MailService();
+                $template = ['to'=>null,'subject'=>$subject,'html'=>$html,'attachments'=>$payload['attachments']??[],'sys_code'=>$this->payload['sys_code']??$bukrsSys];
+                foreach($contacts as $contact){
+                    if(strpos($contact['Key'] ?? '', 'contmail') !== false){
+                        $template['to']= $contact['Value'] ?? null;
+                        $mailService->sendMail($template);
+                        $this->log('info','Sending tedarik-07 mail', ['name'=>$user['name'],'email'=>$contact['Value']??null,'kind'=> in_array($user,$matchingResellers,true) ? 'reseller-lifnr' : 'assigned']);
+                    }
+                }
+                if($template['to']===null && strpos($person->email ?? '', '@')!==false){
+                    $template['to']=$person->email ?? null;
+                    $mailService->sendMail($template);
+                }
+            }
+        }
+        return;
     }
 
     private function informSystemUsers($subject, $html, $opKey,$attachments = []){
          
         $permittedUsers = $this->personProvider->getNotificationUsers($opKey);
         $this->log('info','Permitted Users '.$opKey ,$permittedUsers);
+        if(empty($permittedUsers[$opKey])) return;
         foreach($permittedUsers[$opKey] as $user){
             //send mail to user
             //here get users contact informations

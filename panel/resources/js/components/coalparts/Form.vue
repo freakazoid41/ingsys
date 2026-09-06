@@ -319,24 +319,21 @@
                                             await this.permissionTree.setChecked(permissionList);
                                        
                                         }
-                                    },/*{
+                                    },{
                                         class    : ['form-control','mb-2','mb-md-0','form-item'],
                                         type     : 'select',
                                         col      : 4,
-                                        hasMultiple : true,
-                                        label    : 'Tesis Sınırlaması',
-                                        setOptions  : async () => {
-                                            await this.formDataStore.setFacilitiesData()
-                                            return this.formDataStore.facilities.map(inv => {
-                                                return {
-                                                    text  : inv.title,
-                                                    value : inv.id,
-                                                };
-                                            });
-                                        },
-                                        name  : 'user_grp_code',
+                                        label    : 'Sistem',
+                                        required : true,
+                                        name     : 'user_grp_code',
+                                        defaultValue : (document.querySelector('input[name="SYS_CODE"]')?.value || 'GDZ'),
+                                        options  : [
+                                            { text: 'GDZ', value: 'GDZ' },
+                                            { text: 'ADM', value: 'ADM' },
+                                            { text: 'İki Sistemde Mevcut', value: 'BOTH' },
+                                        ],
                                         oninput  : (e) => this.submitDynamicChanges(e.target)
-                                    },*/{
+                                    },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'email',
                                         name  : 'user_username',

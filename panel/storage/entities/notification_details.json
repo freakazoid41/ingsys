@@ -1,27 +1,45 @@
 [
     {
         "parent_id": 0,
-        "title": "Tedarikçi Kayıt Başvurusu",
+        "title": "Sipariş Sisteme Geldi (SAP Üzerinden)",
         "group_key": "op-notif",
-        "op_key": "notif-00",
+        "op_key": "tedarik-01",
         "childs": []
     },{
         "parent_id": 0,
-        "title": "Tedarikçi bilgilerinde değişiklik",
+        "title": "Sipariş Onaya Gönderildi",
         "group_key": "op-notif",
-        "op_key": "notif-01",
+        "op_key": "tedarik-02",
         "childs": []
     },{
         "parent_id": 0,
-        "title": "Yeni teklif verildi",
+        "title": "İnceleme Bekleyen Dosyalar Mevcut",
         "group_key": "op-notif",
-        "op_key": "notif-02",
+        "op_key": "tedarik-03",
         "childs": []
     },{
         "parent_id": 0,
-        "title": "Teklif revize edildi ",
+        "title": "Sipariş Dosyası Onaylandı",
         "group_key": "op-notif",
-        "op_key": "notif-03",
+        "op_key": "tedarik-04",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Sipariş Dosyası Yeniden Talep Edildi",
+        "group_key": "op-notif",
+        "op_key": "tedarik-05",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Sipariş Kalite Onayı Verildi",
+        "group_key": "op-notif",
+        "op_key": "tedarik-06",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Sipariş Reddedildi",
+        "group_key": "op-notif",
+        "op_key": "tedarik-07",
         "childs": []
     }
 ]

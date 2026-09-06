@@ -67,15 +67,59 @@ export const useNavigationStore = defineStore('navigation', {
           this.notifications = { blink: 0 }; // Reset on error
         }
     },
+    async markNotificationRead(opKey, targetQnid){
+        try {
+          await (new Plib).request({
+            url      : '/api/v1/notifications/read',
+            method   : 'POST',
+            data     : { op_key: opKey, target_qnid: targetQnid },
+          }, null);
+          // Remove from local state
+          const keyMap = {
+            'tedarik-01': 'orderImported',
+            'tedarik-02': 'orderSent',
+            'tedarik-03': 'pendingFiles',
+            'tedarik-04': 'fileApproved',
+            'tedarik-05': 'fileRejected',
+            'tedarik-06': 'orderApproved',
+            'tedarik-07': 'orderRejected',
+          };
+          const arrKey = keyMap[opKey];
+          if(arrKey && Array.isArray(this.notifications[arrKey])){
+            this.notifications[arrKey] = this.notifications[arrKey].filter(n => (n.qnid || n.id) !== targetQnid);
+            // Recalculate unread total
+            let total = 0;
+            for(const k of Object.values(keyMap)){
+              if(Array.isArray(this.notifications[k])) total += this.notifications[k].length;
+            }
+            this.notifications.unreadTotal = total;
+            this.notifications.blink = total > 0 ? 1 : 0;
+          }
+        } catch(error) {
+          console.error('Failed to mark notification read:', error);
+        }
+    },
+    async markAllNotificationsRead(){
+        try {
+          await (new Plib).request({
+            url      : '/api/v1/notifications/read-all',
+            method   : 'POST',
+          }, null);
+          this.clearNotifications();
+        } catch(error) {
+          console.error('Failed to mark all notifications read:', error);
+        }
+    },
     clearNotifications(){
-        // Clear blink indicator and reset all notifications
         this.notifications = {
           blink: 0,
-          awaitingUsers: [],
-          clientChanges: [],
-          newOffer: [],
-          offerRevisionRequests: [],
-          offerChanges: []
+          orderImported: [],
+          orderSent: [],
+          pendingFiles: [],
+          fileApproved: [],
+          fileRejected: [],
+          orderApproved: [],
+          orderRejected: []
         };
     }
   },

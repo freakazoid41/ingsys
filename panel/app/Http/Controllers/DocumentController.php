@@ -176,6 +176,38 @@ class DocumentController extends Controller
                         $res['clone_qnid'] = $transferRes['clone_qnid'] ?? null;
                     }
                     $res['transfer_msg'] = $transferRes['msg'] ?? null;
+                    // ── NOTIFICATION tedarik-02 + tedarik-03: same moment (Onaya Gönderildi + Dosyalar Bekliyor)
+                    if(($transferRes['success'] ?? false) === true){
+                        try{
+                            $orderQnidForNotif = $transferRes['clone_qnid'] ?? $request->id;
+                            // resolve order's sys_code / bukrs from EAV
+                            $notifDetail = (new DocumentServiceProvider())->getFormData($orderQnidForNotif);
+                            $entitiesNotif = [];
+                            foreach(($notifDetail['formFormat']['op-doc-order-form'] ?? []) as $cr){
+                                foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($entitiesNotif[$k])) $entitiesNotif[$k]=$v;
+                            }
+                            $bukrsNotif = $entitiesNotif['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? 'GDZ';
+                            $payloadNotif = [
+                                'order_no' => $entitiesNotif['order_no'] ?? $transferRes['transfer_no'] ?? $orderQnidForNotif,
+                                'transfer_no' => $transferRes['transfer_no'] ?? $entitiesNotif['order_no'] ?? $orderQnidForNotif,
+                                'transfer_mode' => $transferMode,
+                                'sys_code' => $bukrsNotif,
+                                'bukrs' => $bukrsNotif,
+                                'BUKRS' => $bukrsNotif,
+                                'ctitle' => $entitiesNotif['ctitle'] ?? '',
+                                'spec_code' => $entitiesNotif['spec_code'] ?? '',
+                                'qnid' => $orderQnidForNotif,
+                                'order_qnid' => $orderQnidForNotif,
+                                'order_sys_code' => $bukrsNotif,
+                                'fileTitle' => 'Transfer dosyaları',
+                            ];
+                            (new \App\Providers\EmailServiceProvider())->sendTedarikOrderSent($payloadNotif);
+                            // same trigger for inspectors — separate group (tedarik-03) but same BUKRS gate
+                            (new \App\Providers\EmailServiceProvider())->sendTedarikFileWaiting($payloadNotif);
+                        }catch(\Throwable $e){
+                            \Illuminate\Support\Facades\Log::warning('tedarik-02/03 dispatch failed', ['msg'=>$e->getMessage(), 'qnid'=>$request->id]);
+                        }
+                    }
                 }
 
                 // here check if is an offer , and its last status is 'requested revision' if it is and updated make its status 'revisited'
@@ -315,6 +347,36 @@ class DocumentController extends Controller
             }
             if(($response['detail']['document']->op_key ?? null) == 'op-doc-offer'){
                 (new EmailServiceProvider())->sendOfferStatus($response);
+            }
+            // ── NOTIFICATION tedarik-06 / tedarik-07: Kalite Onayı / Reddedildi (BUKRS + LIFNR for reseller)
+            if(($response['detail']['document']->op_key ?? null) == 'op-doc-order' && in_array($request->op_key, ['doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected'], true)){
+                try{
+                    $detail = $response['detail'] ?? (new \App\Providers\DocumentServiceProvider())->getFormData($request->id);
+                    $ents = [];
+                    foreach(($detail['formFormat']['op-doc-order-form'] ?? []) as $cr){
+                        foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
+                    }
+                    $payloadNotif = [
+                        'order_no' => $ents['order_no'] ?? $request->id,
+                        'spec_code' => $ents['spec_code'] ?? '',
+                        'sys_code' => $ents['sys_code'] ?? ($detail['document']->grp_code ?? 'GDZ'),
+                        'bukrs' => $ents['sys_code'] ?? ($detail['document']->grp_code ?? 'GDZ'),
+                        'BUKRS' => $ents['sys_code'] ?? '',
+                        'ctitle' => $ents['ctitle'] ?? '',
+                        'note' => $request->note ?? '',
+                        'qnid' => $request->id,
+                        'order_qnid' => $request->id,
+                        'order_spec' => $ents['spec_code'] ?? '',
+                        'order_sys_code' => $ents['sys_code'] ?? '',
+                    ];
+                    if(in_array($request->op_key, ['doc_trans_order_rejected','doc_trans_order_files_rejected'], true)){
+                        (new \App\Providers\EmailServiceProvider())->sendTedarikOrderRejected($payloadNotif);
+                    } else {
+                        (new \App\Providers\EmailServiceProvider())->sendTedarikOrderApproved($payloadNotif);
+                    }
+                }catch(\Throwable $e){
+                    \Illuminate\Support\Facades\Log::warning('tedarik-06/07 dispatch failed', ['msg'=>$e->getMessage(), 'id'=>$request->id]);
+                }
             }
             return $response;
         }
@@ -506,6 +568,53 @@ class DocumentController extends Controller
 
                 (new EmailServiceProvider())->sendClientFileStatus($payload);
 
+            }
+            // ── NOTIFICATION tedarik-04 / tedarik-05: Dosya Onaylandı / Yeniden Talep (BUKRS + LIFNR for reseller)
+            if($result['success'] && in_array($request->op_key, ['doc_file_accepted','doc_file_rejected'], true)){
+                try{
+                    $fileQnid = $request->id;
+                    $fileRow = \App\Models\Document_files::where('qnid', $fileQnid)->first();
+                    if($fileRow){
+                        $relId = (int)$fileRow->relation_id;
+                        $relDoc = \App\Models\Documents::find($relId);
+                        if($relDoc){
+                            $orderDoc = $relDoc;
+                            if((int)$relDoc->parent_id !== 0){
+                                $maybeOrder = \App\Models\Documents::find($relDoc->parent_id);
+                                if($maybeOrder) $orderDoc = $maybeOrder;
+                            }
+                            $orderType = \App\Models\Sys_options::find($orderDoc->type_id);
+                            if(($orderType->op_key ?? null) === 'op-doc-order'){
+                                $detail = (new \App\Providers\DocumentServiceProvider())->getFormData($orderDoc->qnid);
+                                $ents = [];
+                                foreach(($detail['formFormat']['op-doc-order-form'] ?? []) as $cr){
+                                    foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
+                                }
+                                $payloadNotif = [
+                                    'order_no' => $ents['order_no'] ?? $orderDoc->qnid,
+                                    'spec_code' => $ents['spec_code'] ?? '',
+                                    'sys_code' => $ents['sys_code'] ?? $orderDoc->grp_code ?? 'GDZ',
+                                    'bukrs' => $ents['sys_code'] ?? $orderDoc->grp_code ?? 'GDZ',
+                                    'BUKRS' => $ents['sys_code'] ?? '',
+                                    'ctitle' => $ents['ctitle'] ?? '',
+                                    'fileTitle' => $result['fileTitle'] ?? 'Dosya',
+                                    'note' => $result['note'] ?? '',
+                                    'qnid' => $orderDoc->qnid,
+                                    'order_qnid' => $orderDoc->qnid,
+                                    'order_spec' => $ents['spec_code'] ?? '',
+                                    'order_sys_code' => $ents['sys_code'] ?? '',
+                                ];
+                                if($request->op_key === 'doc_file_accepted'){
+                                    (new \App\Providers\EmailServiceProvider())->sendTedarikFileApproved($payloadNotif);
+                                } else {
+                                    (new \App\Providers\EmailServiceProvider())->sendTedarikFileRejected($payloadNotif);
+                                }
+                            }
+                        }
+                    }
+                }catch(\Throwable $e){
+                    \Illuminate\Support\Facades\Log::warning('tedarik-04/05 dispatch failed', ['msg'=>$e->getMessage(), 'file'=>$request->id]);
+                }
             }
             return $result;
         }

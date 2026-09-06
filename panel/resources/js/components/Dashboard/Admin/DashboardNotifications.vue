@@ -67,50 +67,36 @@ export default {
       try {
         const addNotifications = this.navigationStore?.notifications || {};
         let list = [];
+        const parseOrder = (o) => {
+          let orderNo = o.order_no || o.group_key || '';
+          let ctitle = '';
+          try { JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='order_no'&&!orderNo) orderNo=d.Value; if(d.Key==='ctitle'&&!ctitle) ctitle=d.Value; }); } catch(e){}
+          return { orderNo: orderNo||o.id||'-', ctitle, qnid: o.qnid||o.id||o.relation_qnid };
+        };
+        const parseFile = (f) => ({ orderNo: f.group_key||'-', title: f.type_title||f.file_type||'Dosya', qnid: f.qnid||f.id||f.relation_qnid });
 
         for (const key in addNotifications) {
           switch (key) {
-            case 'awaitingUsers':
-              list = [...list, ...(addNotifications[key] || []).map(u => ({
-                id: `awaitingUser-${u.id}`,
-                text: `Yeni kullanıcı kayıt bekliyor: ${u.username}`,
-                time: `Kayıt tarihi: ${u.created_at}`,
-                type: 'awaitingUser',
-                iconClass: 'ki-outline ki-information',
-                onclick: () => { this.$router.push({ name: 'UForm', params: { id: u.id } }); }
-              }))];
+            case 'orderImported':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted01-${o.qnid||o.id}`, text: `Sipariş Sisteme Geldi (SAP) — ${m.orderNo}${m.ctitle?' — '+m.ctitle:''}`, time: `Kayıt: ${o.created_at||''}`, type:'tedarik01', iconClass:'ki-outline ki-package', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
               break;
-            case 'clientChanges':
-              list = [...list, ...(addNotifications[key] || []).map(u => ({
-                id: `clientChange-${u.id}`,
-                text: `Müşteri güncellemesi (${u.title})`, 
-                time: `Kayıt tarihi: ${u.created_at}`,
-                type: 'clientChange',
-                iconClass: 'ki-outline ki-information',
-                onclick: () => { this.$router.push({ name: 'CForm', params: { id: u.cli_id } }); }
-              }))];
+            case 'orderSent':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted02-${o.qnid||o.id}`, text: `Sipariş Onaya Gönderildi — ${m.orderNo}`, time: `Kayıt: ${o.created_at||''}`, type:'tedarik02', iconClass:'ki-outline ki-send', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
               break;
-            case 'offerRevisionRequests':
-            case 'offerChanges':
-            case 'newOffer':
-              list = [...list, ...((addNotifications[key] || []).map(offr => {
-                let title = '';
-                try {
-                  JSON.parse(offr.main_attr || '[]').forEach(det => {
-                    if (det.Key === 'clititle') title = det.Value;
-                  });
-                } catch (e) {
-                  title = '';
-                }
-                return {
-                  id: `offer-${offr.id}`,
-                  text: (key === 'offerRevisionRequests' ? 'Teklif revizyon talebi' : key === 'newOffer' ? 'Yeni Teklif' : 'Teklif güncellemesi') + (title ? ` — ${title}` : ''),
-                  time: `Kayıt tarihi: ${offr.created_at}`,
-                  type: 'newOffer',
-                  iconClass: 'ki-outline ki-information',
-                  onclick: () => { this.$router.push({ name: 'OForm', params: { id: offr.id } }); }
-                };
-              }))];
+            case 'pendingFiles':
+              list = [...list, ...(addNotifications[key]||[]).map(f=>{ const m=parseFile(f); return { id:`ted03-${f.qnid||f.id}`, text: `İnceleme Bekleyen Dosyalar — ${m.title} (${m.orderNo})`, time: `Kayıt: ${f.created_at||''}`, type:'tedarik03', iconClass:'ki-outline ki-file', onclick:()=>this.$router.push({name:'DList'}) }; })];
+              break;
+            case 'fileApproved':
+              list = [...list, ...(addNotifications[key]||[]).map(f=>{ const m=parseFile(f); return { id:`ted04-${f.qnid||f.id}`, text: `Sipariş Dosyası Onaylandı — ${m.title} (${m.orderNo})`, time: `Kayıt: ${f.created_at||''}`, type:'tedarik04', iconClass:'ki-outline ki-check', onclick:()=>this.$router.push({name:'DForm',params:{id:m.qnid}}) }; })];
+              break;
+            case 'fileRejected':
+              list = [...list, ...(addNotifications[key]||[]).map(f=>{ const m=parseFile(f); return { id:`ted05-${f.qnid||f.id}`, text: `Sipariş Dosyası Yeniden Talep — ${m.title} (${m.orderNo})`, time: `Kayıt: ${f.created_at||''}`, type:'tedarik05', iconClass:'ki-outline ki-cross', onclick:()=>this.$router.push({name:'DForm',params:{id:m.qnid}}) }; })];
+              break;
+            case 'orderApproved':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted06-${o.qnid||o.id}`, text: `Sipariş Kalite Onayı Verildi — ${m.orderNo}`, time: `Kayıt: ${o.created_at||''}`, type:'tedarik06', iconClass:'ki-outline ki-medal-star', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
+              break;
+            case 'orderRejected':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted07-${o.qnid||o.id}`, text: `Sipariş Reddedildi — ${m.orderNo}`, time: `Kayıt: ${o.created_at||''}`, type:'tedarik07', iconClass:'ki-outline ki-cross-square', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
               break;
             default:
               break;
@@ -227,6 +213,13 @@ export default {
   background: #fff7ed;
   color: #f97316;
 }
+.tedarik01 .notification-icon { background: #eff6ff; color: #2563eb; }
+.tedarik02 .notification-icon { background: #fff7ed; color: #f59e0b; }
+.tedarik03 .notification-icon { background: #fef3c7; color: #d97706; }
+.tedarik04 .notification-icon { background: #ecfdf5; color: #059669; }
+.tedarik05 .notification-icon { background: #fef2f2; color: #dc2626; }
+.tedarik06 .notification-icon { background: #f0fdf4; color: #16a34a; }
+.tedarik07 .notification-icon { background: #fef2f2; color: #991b1b; }
 
 .notification-content {
   flex: 1;
@@ -265,6 +258,13 @@ export default {
 .newOffer .notification-text::before {
   background: #f97316;
 }
+.tedarik01 .notification-text::before { background: #2563eb; }
+.tedarik02 .notification-text::before { background: #f59e0b; }
+.tedarik03 .notification-text::before { background: #d97706; }
+.tedarik04 .notification-text::before { background: #059669; }
+.tedarik05 .notification-text::before { background: #dc2626; }
+.tedarik06 .notification-text::before { background: #16a34a; }
+.tedarik07 .notification-text::before { background: #991b1b; }
 
 .notification-time {
   display: flex;

@@ -254,6 +254,7 @@ The `/v1/getpermissions` endpoint is explicitly allowed to run a soft refresh (i
 7. **Single-session is "last login wins"** — enforced at checkCode, not at credential step; an attacker with credentials but no 2FA still can't take over a session.
 8. **CSRF is globally disabled** and **all proxies are trusted** (`trustProxies('*')`) — combined with session-based flows this is fine for the internal SPA but must be revisited if the app ever faces the public internet directly.
 9. **`status = -1` registrations** can never log in until an admin activates them — the login lookup requires `users.status = '1'`. There's no self-service activation email; approval is manual.
+10. **System split `GDZ/ADM/BOTH` (2026-09-06):** `users.grp_code` + `persons.grp_code` = `GDZ`/`ADM`/`BOTH` (İki Sistemde Mevcut) — `Form.vue:323` `user_grp_code` select, `User.php:145` tri-filter exact `Tüm/GDZ/ADM/BOTH` (list shows all), `AuthController.php:280` enforces `BOTH` passes both hosts, `GDZ` only GDZ, `ADM` only ADM — lists are global, logins are split.
 
 ---
 

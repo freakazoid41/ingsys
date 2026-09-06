@@ -46,20 +46,26 @@
                 plib : new Plib(),
                 useAuthStore    : useAuthStore(),
                 navigationStore : useNavigationStore(),
+                systemFilter    : '',
             }
         },
         methods: {
+            buildFilters(){
+                const filters = [];
+                const searchVal = (document.getElementById('mainSearch')?.value || '').trim();
+                if(searchVal) filters.push({ key:'all', type:'=', value: searchVal });
+                if(this.systemFilter) filters.push({ key:'grp_code', type:'=', value: this.systemFilter });
+                return filters;
+            },
+            onSystemFilterChange(){
+                this.table.setFilter(this.buildFilters());
+            },
             searchTable(){
-                this.table.setFilter(
-                    [{
-                        key   : 'all', // column key
-                        type  : '=', // filtering type ('like','<','>')
-                        value : document.getElementById('mainSearch').value.trim()//wanted column value
-                    }]
-                );
+                this.table.setFilter(this.buildFilters());
             },
             resetSearch(){
                 document.getElementById('mainSearch').value = '';
+                this.systemFilter = '';
                 this.table.setFilter([]);
             },
             async buildTestTable(){
@@ -110,6 +116,43 @@
                         key   : 'role_title',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                    },{
+                        title : 'Sistem',
+                        key   : 'grp_code',
+                        order : true,
+                        type  : 'string',
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const span = document.createElement('span');
+                            span.style.padding = '4px 10px';
+                            span.style.borderRadius = '999px';
+                            span.style.fontWeight = '700';
+                            span.style.fontSize = '11px';
+                            span.style.border = '1px solid';
+                            span.style.display = 'inline-block';
+                            const v = (columnData || '').toString().toUpperCase();
+                            if(v === 'GDZ'){
+                                span.style.background = '#eff6ff';
+                                span.style.color = '#1e40af';
+                                span.style.borderColor = '#bfdbfe';
+                                span.innerText = 'GDZ';
+                            } else if(v === 'ADM'){
+                                span.style.background = '#fff7ed';
+                                span.style.color = '#9a3412';
+                                span.style.borderColor = '#fed7aa';
+                                span.innerText = 'ADM';
+                            } else if(v === 'BOTH'){
+                                span.style.background = 'linear-gradient(135deg,#eff6ff 0%,#fff7ed 100%)';
+                                span.style.color = '#0f172a';
+                                span.style.borderColor = '#cbd5e1';
+                                span.innerText = 'İki Sistemde Mevcut';
+                            } else {
+                                span.style.background = '#f1f5f9';
+                                span.style.color = '#475569';
+                                span.style.borderColor = '#e2e8f0';
+                                span.innerText = columnData || '-';
+                            }
+                            return span;
+                        }
                     },{
                         title : 'Kullanıcı Adı',
                         key   : 'username',
@@ -241,15 +284,6 @@
             },
             exportTable(){
                 this.plib.openTab('POST', '/api/v1/export/users', this.table.currentFilter,'_blank');
-            },
-            searchTable(){
-                this.table.setFilter(
-                    [{
-                        key   : 'all', // column key
-                        type  : '=', // filtering type ('like','<','>')
-                        value : document.getElementById('mainSearch').value.trim()//wanted column value
-                    }]
-                );
             }
         }
     }
@@ -265,6 +299,12 @@
                     </i>
                     <input type="text" id="mainSearch" class="rlist-search-input" placeholder="Kullanıcı ara...">
                 </div>
+                <select v-model="systemFilter" @change="onSystemFilterChange" class="form-select rlist-system-select" style="min-width:190px; max-width:210px; border-radius:10px; border:1.5px solid #e2e8f0; font-weight:600; font-size:13px;">
+                    <option value="">Tüm Sistemler</option>
+                    <option value="GDZ">GDZ</option>
+                    <option value="ADM">ADM</option>
+                    <option value="BOTH">İki Sistemde Mevcut</option>
+                </select>
                 <button type="button" class="rlist-btn rlist-btn-primary" @click="searchTable">
                     <i class="ki-outline ki-magnifier fs-5"></i> Ara
                 </button>

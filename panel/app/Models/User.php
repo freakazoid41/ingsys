@@ -60,7 +60,7 @@ class User extends Authenticatable
 
         static::creating(function ($post) {
             $post->qnid = (string) Str::uuid();
-            $post->grp_code = $GLOBALS['SYS_CODE'] ?? 'GDZ';
+            if(empty($post->grp_code)) $post->grp_code = $GLOBALS['SYS_CODE'] ?? 'GDZ';
             // add other column as well
         });
 
@@ -90,6 +90,7 @@ class User extends Authenticatable
             'username'      => 'u.email  as  username',
             'user_status'   => 'u.status  as  user_status',
             'needs_refresh' => 'u.needs_refresh  as  needs_refresh',
+            'grp_code'      => 'u.grp_code as grp_code',
             'created_at'    => 'u.created_at',
             'role_title'    => 'r.name  as  role_title',
             'permissions'   => "(SELECT string_agg(sr.title, ', ')
@@ -142,6 +143,21 @@ class User extends Authenticatable
                 if(isset($f['field'])) $f['key'] = $f['field'];
                 if(isset($f['value'])) $f['value'] = noInject(strip_tags($f['value']));
                 switch($f['key']){
+                    case 'grp_code':
+                        $v = strtoupper(trim($f['value']));
+                        if($v !== ''){
+                            if($v === 'BOTH'){
+                                $where .= " and u.grp_code = 'BOTH' ";
+                            } elseif(in_array($v, ['GDZ','ADM'])){
+                                // user list shows EXACT match for tri-selection; login split is inclusive
+                                $where .= " and u.grp_code = '".$v."' ";
+                            } elseif($v === 'ALL' || $v === ''){
+                                // no filter — show all users
+                            } else {
+                                $where .= " and u.grp_code = '".$v."' ";
+                            }
+                        }
+                        break;
                     case 'free':
                     case 'all':
                         $where .= ' and (';
@@ -158,7 +174,9 @@ class User extends Authenticatable
                     default:
                         $column = explode('  as  ',$columns[$f['key']])[0];
                         if(trim($f['value']) != ''){
-                            if($f['type'] != 'like'){
+                            if($f['type'] == '!='){
+                                $where.=" and ".$column."::text !='".$f['value']."' ";
+                            }elseif($f['type'] != 'like'){
                                 $where.=" and ".$column."::text ='".$f['value']."' ";
                             }else{
                                 $where.=" and ".$column."::text ilike '%".$f['value']."%' ";

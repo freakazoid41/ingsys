@@ -197,6 +197,21 @@ class PersonsServiceProvider extends ServiceProvider
                 }
             }
 
+            if(!empty($user) && isset($user['grp_code']) && $user['grp_code'] !== ''){
+                $normalized = strtoupper(trim($user['grp_code']));
+                // allow ADM, GDZ, BOTH (İki Sistemde Mevcut)
+                if(in_array($normalized, ['GDZ','ADM','BOTH','GDZ,ADM','HER_IKISI'])){
+                    if($normalized === 'GDZ,ADM' || $normalized === 'HER_IKISI') $normalized = 'BOTH';
+                    $document->grp_code = $normalized;
+                    $document->save();
+                    $u = User::where('person_id',$document->id)->first();
+                    if($u){
+                        $u->grp_code = $normalized;
+                        $u->save();
+                    }
+                }
+            }
+
             //if no explicit permissions were sent, populate them from the assigned role template
             if(empty($permissions) && !empty($user['role'])){
                 $roleTemplate = SysRoleTemplate::where('op_key', $user['role'])->first();
@@ -215,12 +230,22 @@ class PersonsServiceProvider extends ServiceProvider
                 if(isset($user['status']) && !empty($user['status'])) $sr['status'] = $user['status'];
                 if(isset($user['role']) && !empty($user['role'])) $sr['role'] = $user['role'];
                 if(isset($user['needs_refresh'])) $sr['needs_refresh'] = $user['needs_refresh'];
+                if(isset($user['grp_code']) && $user['grp_code'] !== ''){
+                    $ng = strtoupper(trim($user['grp_code']));
+                    if($ng === 'GDZ,ADM' || $ng === 'HER_IKISI') $ng = 'BOTH';
+                    if(in_array($ng, ['GDZ','ADM','BOTH'])) $sr['grp_code'] = $ng;
+                }
 
                 if( isset($user['username'])) $sr['email'] = $user['username'];
                 User::updateOrCreate(
                     ['person_id' => $document->id],
                     $sr,
                 );
+                // ensure persons grp_code in sync if provided via user_*
+                if(isset($sr['grp_code'])){
+                    $document->grp_code = $sr['grp_code'];
+                    $document->save();
+                }
             }
 
             if(!empty($permissions)){
@@ -660,7 +685,12 @@ class PersonsServiceProvider extends ServiceProvider
             }
 
             if($personId != null){
-                $sql.= " and p.qnid = '$personId' ";
+                // Handle both numeric IDs and UUIDs
+                if(is_numeric($personId)){
+                    $sql.= " and (p.id = ".intval($personId)." or p.qnid = '".addslashes($personId)."') ";
+                } else {
+                    $sql.= " and p.qnid = '".addslashes($personId)."' ";
+                }
             }
             $data = DB::select($sql);
             $permittedUsers = [];

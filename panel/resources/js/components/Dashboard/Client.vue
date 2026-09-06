@@ -580,11 +580,13 @@ export default {
     hasNotifications() {
       let count = 0;
       const notifs = this.navigationStore?.notifications || {};
-      if (Array.isArray(notifs.awaitingUsers)) count += notifs.awaitingUsers.length;
-      if (Array.isArray(notifs.clientChanges)) count += notifs.clientChanges.length;
-      if (Array.isArray(notifs.newOffer)) count += notifs.newOffer.length;
-      if (Array.isArray(notifs.offerRevisionRequests)) count += notifs.offerRevisionRequests.length;
-      if (Array.isArray(notifs.offerChanges)) count += notifs.offerChanges.length;
+      if (Array.isArray(notifs.orderImported)) count += notifs.orderImported.length;
+      if (Array.isArray(notifs.orderSent)) count += notifs.orderSent.length;
+      if (Array.isArray(notifs.pendingFiles)) count += notifs.pendingFiles.length;
+      if (Array.isArray(notifs.fileApproved)) count += notifs.fileApproved.length;
+      if (Array.isArray(notifs.fileRejected)) count += notifs.fileRejected.length;
+      if (Array.isArray(notifs.orderApproved)) count += notifs.orderApproved.length;
+      if (Array.isArray(notifs.orderRejected)) count += notifs.orderRejected.length;
       count += (this.authStore.currentStatus?.rejectedFiles || []).length;
       return count > 0;
     }

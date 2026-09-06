@@ -50,17 +50,14 @@ export default {
     totalNotificationCount() {
       let count = 0;
       const notifs = this.navigationStore?.notifications || {};
-      
-      // Count from each category
-      if(Array.isArray(notifs.awaitingUsers)) count += notifs.awaitingUsers.length;
-      if(Array.isArray(notifs.clientChanges)) count += notifs.clientChanges.length;
-      if(Array.isArray(notifs.newOffer)) count += notifs.newOffer.length;
-      if(Array.isArray(notifs.offerRevisionRequests)) count += notifs.offerRevisionRequests.length;
-      if(Array.isArray(notifs.offerChanges)) count += notifs.offerChanges.length;
-      
-      // Add rejected files
+      if(Array.isArray(notifs.orderImported)) count += notifs.orderImported.length;
+      if(Array.isArray(notifs.orderSent)) count += notifs.orderSent.length;
+      if(Array.isArray(notifs.pendingFiles)) count += notifs.pendingFiles.length;
+      if(Array.isArray(notifs.fileApproved)) count += notifs.fileApproved.length;
+      if(Array.isArray(notifs.fileRejected)) count += notifs.fileRejected.length;
+      if(Array.isArray(notifs.orderApproved)) count += notifs.orderApproved.length;
+      if(Array.isArray(notifs.orderRejected)) count += notifs.orderRejected.length;
       count += (this.notifications || []).length;
-      
       return count;
     },
     breadcrumbItems() {
@@ -113,80 +110,86 @@ export default {
       // legacy/no-op
     },
     showNotifications() {
-      //here we have multiple notification types
-      //first ones are client register notifications
       let list = [];
+      const parseOrder = (offr) => {
+        let orderNo = offr.order_no || offr.group_key || '';
+        let ctitle = offr.ctitle || '';
+        let spec = offr.spec_code || '';
+        try {
+          const arr = JSON.parse(offr.main_attr || '[]');
+          arr.forEach(det => {
+            if(det.Key === 'order_no' && !orderNo) orderNo = det.Value;
+            if(det.Key === 'ctitle' && !ctitle) ctitle = det.Value;
+            if(det.Key === 'spec_code' && !spec) spec = det.Value;
+          });
+        } catch(e){}
+        return { orderNo: orderNo || offr.id || '-', ctitle, spec, qnid: offr.qnid || offr.id || offr.relation_qnid };
+      };
+      const parseFile = (f) => {
+        return { orderNo: f.group_key || '-', title: f.type_title || f.file_type || 'Dosya', qnid: f.qnid || f.id || f.relation_qnid, created_at: f.created_at };
+      };
       for(let key in this.addNotifications){
         switch (key) {
-          case 'awaitingUsers':
-            list = [...list,...(this.addNotifications[key] || []).map(u => ({
-              title: 'Yeni Kullanıcı Kaydı',
-              message: `${u.username} adlı kullanıcı kayıt bekliyor.`,
-              time: `Kayıt tarihi: ${u.created_at}`,
-              type: 'awaitingUser',
-              onclick: () => {
-                this.$router.push({ name: 'UForm', params: { id: u.id } });
-              },
-            }))];
-            break;
-          case 'clientChanges':
-            list = [...list,...(this.addNotifications[key] || []).map(u => ({
-              title: 'Müşteri Dosya Bilgisi Girdi ('+u.title+')',
-              message: `${u.inserted_by} kullanıcısı dosya bilgisi girdi.`,
-              time: `Kayıt tarihi: ${u.created_at}`,
-              type: 'awaitingUser',
-              onclick: () => {
-                this.$router.push({ name: 'CForm', params: { id: u.cli_id } });
-              },
-            }))];
-            break;
-          case 'offerRevisionRequests':
-          case 'offerChanges':
-          case 'newOffer':
-            let offers = [];
-            (this.addNotifications[key] || []).forEach(offr => {
-              const obj = {};
-              obj.created_at = offr.created_at;
-              obj.offer_id = offr.id;
-              try {
-                JSON.parse(offr.main_attr || '[]').forEach(det => {
-                  if(det.Key == 'clititle') obj.title = det.Value;
-                });
-              } catch(e) {
-                console.warn('Failed to parse offer main_attr:', e);
-              }
-              offers.push(obj);
-            });
-
-            list = [...list,...offers.map(u => {
-                const obj = {
-                  title: 'Yeni Teklif',
-                  message: '',
-                  time: `Kayıt tarihi: ${u.created_at}`,
-                  type: 'newOffer',
-                  onclick: () => {
-                    this.$router.push({ name: 'OForm', params: { id: u.offer_id } });
-                  },
-                }
-                switch(key){
-                  case 'offerRevisionRequests':
-                    obj.title   = 'Teklif Revizyon Talebi';
-                    obj.message = `${u.created_at} tarihli teklif için revizyon talep edildi.`;
-                    break;
-                  case 'newOffer':
-                    obj.title   = 'Yeni Teklif';
-                    obj.message = `${u.title} müşterisi yeni bir teklif girdi.` ;
-                    break;
-                  case 'offerChanges':
-                    obj.title   = 'Teklif Güncellemesi';
-                    obj.message = `${u.title} müşterisi teklifini güncelledi.`;
-                    break;
-                }
-              return obj;
+          case 'orderImported': {
+            const rows = this.addNotifications[key] || [];
+            list = [...list, ...rows.map(offr => {
+              const m = parseOrder(offr);
+              const msg = m.ctitle ? `${m.orderNo} — ${m.ctitle}` : `${m.orderNo} SAP üzerinden sisteme geldi`;
+              return { title: 'Sipariş Sisteme Geldi (SAP)', message: msg, time: `Kayıt: ${offr.created_at || ''}`, type: 'tedarik01', onclick: () => this.$router.push({ name: 'OrderForm', params: { id: m.qnid } }) };
             })];
             break;
+          }
+          case 'orderSent': {
+            const rows = this.addNotifications[key] || [];
+            list = [...list, ...rows.map(offr => {
+              const m = parseOrder(offr);
+              return { title: 'Sipariş Onaya Gönderildi', message: `${m.orderNo} onaya gönderildi`, time: `Kayıt: ${offr.created_at || ''}`, type: 'tedarik02', onclick: () => this.$router.push({ name: 'OrderForm', params: { id: m.qnid } }) };
+            })];
+            break;
+          }
+          case 'pendingFiles': {
+            const rows = this.addNotifications[key] || [];
+            list = [...list, ...rows.map(f => {
+              const m = parseFile(f);
+              return { title: 'İnceleme Bekleyen Dosyalar Mevcut', message: `${m.title} — Sipariş ${m.orderNo}`, time: `Kayıt: ${f.created_at || ''}`, type: 'tedarik03', onclick: () => this.$router.push({ name: 'DList' }) };
+            })];
+            break;
+          }
+          case 'fileApproved': {
+            const rows = this.addNotifications[key] || [];
+            list = [...list, ...rows.map(f => {
+              const m = parseFile(f);
+              return { title: 'Sipariş Dosyası Onaylandı', message: `${m.title} onaylandı — ${m.orderNo}`, time: `Kayıt: ${f.created_at || ''}`, type: 'tedarik04', onclick: () => this.$router.push({ name: 'DForm', params: { id: m.qnid } }) };
+            })];
+            break;
+          }
+          case 'fileRejected': {
+            const rows = this.addNotifications[key] || [];
+            list = [...list, ...rows.map(f => {
+              const m = parseFile(f);
+              let note = '';
+              try { const j = JSON.parse(f.last_status || '{}'); note = j.note || j.title || ''; } catch(e){}
+              return { title: 'Sipariş Dosyası Yeniden Talep Edildi', message: `${m.title} yeniden talep — ${m.orderNo}${note ? ' ('+note+')' : ''}`, time: `Kayıt: ${f.created_at || ''}`, type: 'tedarik05', onclick: () => this.$router.push({ name: 'DForm', params: { id: m.qnid } }) };
+            })];
+            break;
+          }
+          case 'orderApproved': {
+            const rows = this.addNotifications[key] || [];
+            list = [...list, ...rows.map(offr => {
+              const m = parseOrder(offr);
+              return { title: 'Sipariş Kalite Onayı Verildi', message: `${m.orderNo} kalite onayı verildi`, time: `Kayıt: ${offr.created_at || ''}`, type: 'tedarik06', onclick: () => this.$router.push({ name: 'OrderForm', params: { id: m.qnid } }) };
+            })];
+            break;
+          }
+          case 'orderRejected': {
+            const rows = this.addNotifications[key] || [];
+            list = [...list, ...rows.map(offr => {
+              const m = parseOrder(offr);
+              return { title: 'Sipariş Reddedildi', message: `${m.orderNo} reddedildi`, time: `Kayıt: ${offr.created_at || ''}`, type: 'tedarik07', onclick: () => this.$router.push({ name: 'OrderForm', params: { id: m.qnid } }) };
+            })];
+            break;
+          }
           case 'blink':
-            // Skip blink property
             break;
           default:
             break;

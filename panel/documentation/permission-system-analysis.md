@@ -650,15 +650,16 @@ Frontend permission enforcement remains via Pinia and Vue, but it now aligns wit
 
 #### 8.1 `users` table
 
-The `users` table still stores:
+The `users` table now stores:
 - `email`
 - `password`
 - `person_id`
 - `role`
 - `status`
+- `grp_code` (`GDZ`/`ADM`/`BOTH` — İki Sistemde Mevcut) `User.php:63` boot respects `BOTH`, `Form.vue:323` `user_grp_code` select, `UList.vue:115` `Sistem` pill + tri-filter `Tüm/GDZ/ADM/BOTH` `User.php:145` exact, `AuthController.php:280` login split `BOTH` passes both hosts
 - `needs_refresh`
 
-Roles remain string keys in `users.role`.
+Roles remain string keys in `users.role`. `persons.grp_code` mirrors `users.grp_code` `PersonsServiceProvider.php:192` sync.
 
 #### 8.2 `persons` / `sys_con_entities`
 

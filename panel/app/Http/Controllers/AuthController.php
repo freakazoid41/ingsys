@@ -276,6 +276,15 @@ class AuthController extends Controller
             $user   = User::where(['email' => $request->email,'status' => '1'])->first();
             if(!$user) return redirect()->route($failRoute)->with('login-error', 'Bilgiler Hatalıdır...');
 
+            // System split: ADM / GDZ / İki Sistemde Mevcut (BOTH)
+            $sys = $GLOBALS['SYS_CODE'] ?? 'GDZ';
+            $userGrp = strtoupper(trim($user->grp_code ?? ''));
+            if($userGrp === '' ) $userGrp = 'GDZ';
+            if($userGrp === 'GDZ,ADM' || $userGrp === 'HER_IKISI') $userGrp = 'BOTH';
+            if($userGrp !== 'BOTH' && $userGrp !== $sys){
+                return redirect()->route($failRoute)->with('login-error', 'Bu kullanıcı '.$sys.' sisteminde yetkili değil. Lütfen doğru sistem üzerinden giriş yapın. (Sistem: '.$userGrp.')');
+            }
+
             // Lockout configuration
             $maxAttempts = 5;
             $lockMinutes = 15; // minutes

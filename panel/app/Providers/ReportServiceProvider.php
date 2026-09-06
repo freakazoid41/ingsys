@@ -15,31 +15,238 @@ class ReportServiceProvider extends ServiceProvider
        
     }
 
-    public function getAdminNotifications($notifKey){
+    // BUKRS → system mapping: SAP company code to GDZ/ADM (4000→GDZ, 5000→ADM, etc.)
+    private function bukrsToSystem($bukrs): string {
+        $b = strtoupper(trim((string)$bukrs));
+        if($b === '' ) return 'GDZ';
+        if(in_array($b, ['GDZ','4000','1000','G4000'])) return 'GDZ';
+        if(in_array($b, ['ADM','5000','A5000'])) return 'ADM';
+        if(in_array($b, ['BOTH','HER_IKISI','GDZ,ADM'])) return 'BOTH';
+        // fallback: if contains GDZ/ADM substring
+        if(strpos($b,'GDZ')!==false) return 'GDZ';
+        if(strpos($b,'ADM')!==false) return 'ADM';
+        return $b; // unknown -> compare raw
+    }
+    private function getCurrentUserSystemCode(): string {
+        try {
+            // try auth user first
+            if(auth()->check()){
+                $u = auth()->user();
+                if(!empty($u->grp_code)) return $this->bukrsToSystem($u->grp_code);
+            }
+            $personQnid = session('person_id');
+            if($personQnid){
+                // session person_id is persons.id or qnid? try both
+                $row = DB::table('users')->where('person_id', $personQnid)->first();
+                if(!$row){
+                    // try persons.qnid lookup
+                    $p = DB::table('persons')->where('qnid', $personQnid)->first();
+                    if($p) $row = DB::table('users')->where('person_id', $p->id)->first();
+                }
+                if($row && !empty($row->grp_code)) return $this->bukrsToSystem($row->grp_code);
+                // fallback to persons.grp_code
+                if($personQnid){
+                    $pr = DB::table('persons')->where('id', $personQnid)->first();
+                    if(!$pr) $pr = DB::table('persons')->where('qnid', $personQnid)->first();
+                    if($pr && !empty($pr->grp_code)) return $this->bukrsToSystem($pr->grp_code);
+                }
+            }
+        } catch(\Throwable $e){}
+        // default tenant fallback
+        return $this->bukrsToSystem($GLOBALS['SYS_CODE'] ?? 'GDZ');
+    }
+    private function filterOrdersByBukrsForCurrentUser(array $orders): array {
+        $userSys = $this->getCurrentUserSystemCode();
+        if($userSys === 'BOTH') return $orders;
+        if(empty($orders)) return $orders;
+        // fetch BUKRS (sys_code entity) for these orders
+        $qnids = array_map(fn($o)=> $o->qnid ?? $o->id ?? null, $orders);
+        $qnids = array_filter($qnids);
+        if(empty($qnids)) return $orders;
+        $qnidIn = "'".implode("','", array_map('noInject', $qnids))."'";
+        try {
+            // try entity_value first, fallback to documents.grp_code for legacy orders
+            $rows = DB::select("SELECT d.qnid, COALESCE(MAX(se.entity_value), MAX(d.grp_code)) as bukrs FROM documents d LEFT JOIN sys_con_ops so ON so.main_id=d.id LEFT JOIN sys_con_entities se ON se.conn_id=so.id AND se.entity_tag='sys_code' AND se.table_tag='sys_con_ops' WHERE d.qnid IN ($qnidIn) GROUP BY d.qnid");
+            $map = [];
+            foreach($rows as $r) $map[$r->qnid] = $this->bukrsToSystem($r->bukrs ?? 'GDZ');
+            // filter
+            $filtered = [];
+            foreach($orders as $o){
+                $qn = $o->qnid ?? $o->id ?? null;
+                $orderSys = $map[$qn] ?? 'GDZ';
+                if($orderSys === $userSys || $orderSys === 'BOTH' || $userSys === 'BOTH') $filtered[] = $o;
+            }
+            return $filtered;
+        } catch(\Throwable $e){
+            return $orders;
+        }
+    }
+    private function filterFilesByBukrsForCurrentUser(array $files): array {
+        $userSys = $this->getCurrentUserSystemCode();
+        if($userSys === 'BOTH') return $files;
+        if(empty($files)) return $files;
+        // collect file qnids (tableList returns id as file qnid, relation_qnid as order/item qnid)
+        $fileQnids = array_map(fn($f)=> $f->id ?? $f->qnid ?? null, $files);
+        $fileQnids = array_filter($fileQnids);
+        if(empty($fileQnids)) return $files;
+        $qnidIn = "'".implode("','", array_map('noInject', $fileQnids))."'";
+        try {
+            // resolve each file's order sys_code: file -> d (relation) -> ord (order, parent fallback)
+            $rows = DB::select("SELECT i.qnid as file_qnid, COALESCE(MAX(se.entity_value), MAX(ord.grp_code), MAX(d.grp_code)) as bukrs
+                FROM document_files i
+                JOIN documents d ON d.id = i.relation_id::int
+                LEFT JOIN documents ord ON ord.id = CASE WHEN d.parent_id != 0 THEN d.parent_id ELSE d.id END
+                LEFT JOIN sys_con_ops so ON so.main_id = ord.id
+                LEFT JOIN sys_con_entities se ON se.conn_id = so.id AND se.entity_tag='sys_code' AND se.table_tag='sys_con_ops'
+                WHERE i.qnid IN ($qnidIn)
+                GROUP BY i.qnid");
+            $map = [];
+            foreach($rows as $r) $map[$r->file_qnid] = $this->bukrsToSystem($r->bukrs ?? 'GDZ');
+            $filtered = [];
+            foreach($files as $f){
+                $fq = $f->id ?? $f->qnid ?? null;
+                // fallback to group_key/sys_code if map missing: try to derive from file's own grp_code?
+                $fileSys = $map[$fq] ?? $this->bukrsToSystem($f->group_key ?? $f->sys_code ?? 'GDZ');
+                if($fileSys === $userSys || $fileSys === 'BOTH' || $userSys === 'BOTH') $filtered[] = $f;
+            }
+            return $filtered;
+        } catch(\Throwable $e){
+            return $files;
+        }
+    }
+
+    public function getAdminNotifications($notifKey, ?int $limit = null){
         $personsProvider = new PersonsServiceProvider();
         $data = [];
         //means our user is in the group or not
         $permittedUsers = $personsProvider->getNotificationUsers($notifKey,session('person_id'));
-        if(empty($permittedUsers)) return [];
+        $isReseller = session('type_key') === 'op-pert-reseller';
+        // tedarik-04/05/06/07: reseller sees own LIFNR items even if not in group
+        if(empty($permittedUsers) && !(in_array($notifKey, ['tedarik-04','tedarik-05','tedarik-06','tedarik-07']) && $isReseller)) return ['data'=>[],'total'=>0];
         switch ($notifKey) {
-            //tedarikçi kayıt başvuruları
-            case 'notif-00':
-                //lets get awaiting user request list here
-                $data = $this->getAwaitingUserRequests();
+            // ── TEDARIK 7 ──
+            case 'tedarik-01': // Sipariş Sisteme Geldi (SAP Üzerinden) — doc_trans_order_created + BUKRS vs user grp_code
+                $data = $this->getTedarikOrders('doc_trans_order_created');
+                $data = $this->filterOrdersByBukrsForCurrentUser($data);
+                break;
+            case 'tedarik-02': // Sipariş Onaya Gönderildi — doc_trans_order_transfer_sent (BUKRS gate: BOTH or == order sys_code)
+                $data = $this->getTedarikOrders('doc_trans_order_transfer_sent');
+                $data = $this->filterOrdersByBukrsForCurrentUser($data);
+                break;
+            case 'tedarik-03': // İnceleme Bekleyen Dosyalar Mevcut — doc_file_waiting (BUKRS gate via order)
+                $data = $this->getTedarikFilesByStatus('doc_file_waiting');
+                $data = $this->filterFilesByBukrsForCurrentUser($data);
+                break;
+            case 'tedarik-04': // Sipariş Dosyası Onaylandı — doc_file_accepted (BUKRS gate + LIFNR for reseller)
+                if($isReseller){
+                    // reseller: own files (LIFNR-scoped via tableList) + BUKRS gate, even if not assigned
+                    $data = $this->getTedarikFilesByStatus('doc_file_accepted');
+                    $data = $this->filterFilesByBukrsForCurrentUser($data);
+                } else {
+                    // non-tedarik assigned: BUKRS gate (BOTH or == order sys_code)
+                    $data = $this->getTedarikFilesByStatus('doc_file_accepted');
+                    $data = $this->filterFilesByBukrsForCurrentUser($data);
+                }
+                break;
+            case 'tedarik-05': // Sipariş Dosyası Yeniden Talep Edildi — doc_file_rejected (BUKRS gate + LIFNR for reseller)
+                if($isReseller){
+                    $data = $this->getTedarikFilesByStatus('doc_file_rejected');
+                    $data = $this->filterFilesByBukrsForCurrentUser($data);
+                } else {
+                    $data = $this->getTedarikFilesByStatus('doc_file_rejected');
+                    $data = $this->filterFilesByBukrsForCurrentUser($data);
+                }
+                break;
+            case 'tedarik-06': // Sipariş Kalite Onayı Verildi — doc_trans_order_approved (BUKRS gate + LIFNR for reseller)
+                if($isReseller){
+                    $data = $this->getTedarikOrders('doc_trans_order_approved');
+                    $data = $this->filterOrdersByBukrsForCurrentUser($data);
+                    // extra LIFNR gate: keep only orders where spec_code in reseller's lifnrs
+                    $lifnrs = $this->getResellerLifnrs();
+                    if(!empty($lifnrs)){
+                        $data = array_values(array_filter($data, function($o) use ($lifnrs){
+                            $spec = '';
+                            try{ $arr=json_decode($o->main_attr??'[]',true); if(is_array($arr)) foreach($arr as $v) if(($v['Key']??'')==='spec_code') $spec=trim($v['Value']??''); }catch(\Throwable $e){}
+                            if($spec==='') $spec = trim($o->spec_code ?? '');
+                            return in_array($spec, $lifnrs, true);
+                        }));
+                    } else {
+                        $data = [];
+                    }
+                } else {
+                    $data = $this->getTedarikOrders('doc_trans_order_approved');
+                    $data = $this->filterOrdersByBukrsForCurrentUser($data);
+                }
+                break;
+            case 'tedarik-07': // Sipariş Reddedildi — doc_trans_order_rejected (+ files_rejected fallback) (BUKRS + LIFNR for reseller)
+                if($isReseller){
+                    $data = $this->getTedarikOrders('doc_trans_order_rejected');
+                    if(empty($data)) $data = $this->getTedarikOrders('doc_trans_order_files_rejected');
+                    $data = $this->filterOrdersByBukrsForCurrentUser($data);
+                    $lifnrs = $this->getResellerLifnrs();
+                    if(!empty($lifnrs)){
+                        $data = array_values(array_filter($data, function($o) use ($lifnrs){
+                            $spec = '';
+                            try{ $arr=json_decode($o->main_attr??'[]',true); if(is_array($arr)) foreach($arr as $v) if(($v['Key']??'')==='spec_code') $spec=trim($v['Value']??''); }catch(\Throwable $e){}
+                            if($spec==='') $spec = trim($o->spec_code ?? '');
+                            return in_array($spec, $lifnrs, true);
+                        }));
+                    } else {
+                        $data = [];
+                    }
+                } else {
+                    $data = $this->getTedarikOrders('doc_trans_order_rejected');
+                    if(empty($data)) $data = $this->getTedarikOrders('doc_trans_order_files_rejected');
+                    $data = $this->filterOrdersByBukrsForCurrentUser($data);
+                }
+                break;
+            default:
                 # code...
                 break;
-            //Tedarikçi bilgilerini güncelledi vs..
-            case 'notif-01':
-                //lets get client is upload new file
-                $data = $this->getAwaitingClientFiles();
-                break;
-            case 'notif-02':
-                //lets get client offers
-                $data = $this->getOffers();
-                break;
-            case 'notif-03':
-                //lets get client offers
-                $data = $this->getOffers('doc_trans_offer_revised');
+        }
+
+        // Filter out read notifications for current user
+        $userId = auth()->id();
+        if($userId && !empty($data)){
+            $readQnids = \App\Models\NotificationRead::where('user_id', $userId)
+                ->where('op_key', $notifKey)
+                ->pluck('target_qnid')
+                ->toArray();
+            if(!empty($readQnids)){
+                $readSet = array_flip($readQnids);
+                $data = array_values(array_filter($data, function($o) use ($readSet){
+                    $qnid = $o->id ?? $o->qnid ?? null;
+                    return $qnid && !isset($readSet[$qnid]);
+                }));
+            }
+        }
+
+        $total = count($data);
+
+        // Apply limit for listing (return only latest N unread)
+        if($limit !== null && count($data) > $limit){
+            $data = array_slice($data, 0, $limit);
+        }
+
+        return ['data' => $data, 'total' => $total];
+    }
+
+    public function getUserNotifications($notifKey){
+        switch ($notifKey) {
+            // Tedarik reseller-specific mirrors (same 7, scoped via LIFNR in tableList)
+            case 'tedarik-04':
+            case 'tedarik-05':
+            case 'tedarik-06':
+            case 'tedarik-07':
+                if(session('type_key') !== 'op-pert-reseller') return [];
+                // reuse same fetchers — Documents/Document_files tableList auto-scopes by LIFNR for reseller
+                if(in_array($notifKey, ['tedarik-04','tedarik-05'])){
+                    $status = $notifKey === 'tedarik-04' ? 'doc_file_accepted' : 'doc_file_rejected';
+                    $data = $this->getTedarikFilesByStatus($status);
+                } else {
+                    $status = $notifKey === 'tedarik-06' ? 'doc_trans_order_approved' : 'doc_trans_order_rejected';
+                    $data = $this->getTedarikOrders($status);
+                }
                 break;
             default:
                 # code...
@@ -49,19 +256,25 @@ class ReportServiceProvider extends ServiceProvider
         return $data;
     }
 
-    public function getUserNotifications($notifKey){
-        switch ($notifKey) {
-            //tedarikçi kayıt başvuruları
-            case 'offer-revision-request':
-                if(session('type_key') != 'op-pert-reseller') return [];
-                $data = $this->getOffers('doc_trans_offer_revision');
-                break;
-            default:
-                # code...
-                break;
-        }
+    // ── TEDARIK helpers ──
+    public function getTedarikOrders($statusKey){
+        $data = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'transactions', 'type' => '=','value' => $statusKey],
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-order'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-order-form'],
+            ]
+        ]);
+        return $data['data'] ?? [];
+    }
 
-        return $data;
+    public function getTedarikFilesByStatus($fileStatusKey){
+        $data = \App\Models\Document_files::tableList([
+            'filter' => [
+                ['key' => 'file_status', 'type' => '=','value' => $fileStatusKey],
+            ]
+        ]);
+        return $data['data'] ?? [];
     }
 
     public function getAwaitingUserRequests(){
@@ -750,14 +963,22 @@ class ReportServiceProvider extends ServiceProvider
         // For supplier, filter to only order/file transactions; admin on tedarik sees global order-related only
         if($lifnrs === null){
             $rows = DB::select("SELECT ul.id, ul.created_at, so.op_key, so.title, ul.description as detail,
-                u.email as actor_email, p.name as actor_name
+                u.email as actor_email, p.name as actor_name,
+                (SELECT se.entity_value FROM sys_con_entities se JOIN sys_con_ops so2 ON so2.id=se.conn_id WHERE so2.main_id=ul.relation_id AND se.entity_tag='order_no' AND se.table_tag='sys_con_ops' LIMIT 1) as order_no,
+                (SELECT se.entity_value FROM sys_con_entities se JOIN sys_con_ops so2 ON so2.id=se.conn_id WHERE so2.main_id=ul.relation_id AND se.entity_tag='spec_code' AND se.table_tag='sys_con_ops' LIMIT 1) as spec_code,
+                (SELECT qnid FROM documents WHERE id=ul.relation_id LIMIT 1) as qnid,
+                ul.relation_id
                 FROM user_logs ul
                 JOIN sys_options so ON so.id=ul.type_id
                 LEFT JOIN users u ON u.id=ul.user_id
                 LEFT JOIN persons p ON p.id=u.person_id
                 WHERE ul.relation='documents'
-                  AND (so.op_key LIKE 'doc_trans_order_%' OR so.op_key LIKE 'doc_file_%' OR so.group_key = 'op-trans-op-doc-order' OR so.group_key LIKE 'op-trans%')
-                ORDER BY ul.id DESC LIMIT 10
+                  AND (
+                    so.op_key LIKE 'doc_trans_order_%' OR so.op_key LIKE 'doc_file_%' OR so.group_key = 'op-trans-op-doc-order' OR so.group_key LIKE 'op-trans%'
+                    OR (so.op_key IN ('log-order-update','log-document-status-update','log-tender-update') AND EXISTS (SELECT 1 FROM documents d JOIN sys_options sp ON sp.id=d.type_id WHERE d.id=ul.relation_id AND sp.op_key='op-doc-order'))
+                    OR so.op_key IN ('log-file-added','log-notification-group-update')
+                  )
+                ORDER BY ul.id DESC LIMIT 12
             ");
             foreach($rows as $r){
                 $j = @json_decode($r->detail, true);
@@ -790,19 +1011,24 @@ class ReportServiceProvider extends ServiceProvider
         $allList = implode(',', $allIds);
         if(empty($allList)) $allList = "0";
         $rows = DB::select("SELECT ul.id, ul.created_at, so.op_key, so.title, ul.description as detail,
-            u.email as actor_email, p.name as actor_name
+            u.email as actor_email, p.name as actor_name,
+            (SELECT se.entity_value FROM sys_con_entities se JOIN sys_con_ops so2 ON so2.id=se.conn_id WHERE so2.main_id=ul.relation_id AND se.entity_tag='order_no' AND se.table_tag='sys_con_ops' LIMIT 1) as order_no,
+            (SELECT qnid FROM documents WHERE id=ul.relation_id LIMIT 1) as qnid,
+            ul.relation_id
             FROM user_logs ul
             JOIN sys_options so ON so.id=ul.type_id
             LEFT JOIN users u ON u.id=ul.user_id
             LEFT JOIN persons p ON p.id=u.person_id
             WHERE (
                 (ul.relation='documents' AND ul.relation_id IN ($allList)
-                  AND (so.op_key LIKE 'doc_trans_order_%' OR so.group_key = 'op-trans-op-doc-order' OR so.group_key LIKE 'op-trans%'))
+                  AND (so.op_key LIKE 'doc_trans_order_%' OR so.group_key = 'op-trans-op-doc-order' OR so.group_key LIKE 'op-trans%' OR (so.op_key IN ('log-order-update','log-document-status-update','log-tender-update') AND EXISTS (SELECT 1 FROM documents d2 JOIN sys_options sp2 ON sp2.id=d2.type_id WHERE d2.id=ul.relation_id AND sp2.op_key='op-doc-order'))))
                 OR
                 (ul.relation='documents' AND so.op_key LIKE 'doc_file_%'
                   AND EXISTS (SELECT 1 FROM document_files df WHERE df.id = ul.relation_id AND df.relation_id IN ($allList)))
+                OR
+                (ul.relation='documents' AND so.op_key IN ('log-file-added','log-notification-group-update') AND ul.relation_id IN ($allList))
             )
-            ORDER BY ul.id DESC LIMIT 10
+            ORDER BY ul.id DESC LIMIT 12
         ");
         foreach($rows as $r){
             $j = @json_decode($r->detail, true);

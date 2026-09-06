@@ -7,10 +7,11 @@
     <div v-if="loading" class="tdk-activity__loading"><div class="tdk-activity__spinner"></div></div>
     <div v-else-if="!items.length" class="tdk-activity__empty">Henüz sipariş işlemi yok</div>
     <div v-else class="tdk-activity__timeline">
-      <div v-for="a in items" :key="a.id" class="tdk-activity__item">
+      <div v-for="a in items" :key="a.id" class="tdk-activity__item" :class="{ 'is-clickable': !!a.qnid }" @click="goDetail(a)">
         <div class="tdk-activity__avatar" :style="{ background: avatarBg(a) }">{{ initials(a) }}</div>
         <div class="tdk-activity__body">
           <div class="tdk-activity__text">{{ a.desc_text || a.title }}</div>
+          <div v-if="a.order_no" class="tdk-activity__detail"><i class="ki-outline ki-package" style="font-size:11px"></i> {{ a.order_no }}<span v-if="a.spec_code" style="opacity:.6"> · {{ a.spec_code }}</span></div>
           <div class="tdk-activity__meta">
             <span class="tdk-activity__actor">{{ a.actor_name || a.actor_email || 'Sistem' }}</span>
             <span class="tdk-activity__dot">·</span>
@@ -52,13 +53,41 @@ export default {
     pillLabel(a){
       const k=(a.op_key||'');
       if(k.includes('file')) return 'Dosya';
-      if(k.includes('order')||k.includes('tender')||k.includes('document')) return 'Sipariş';
+      if(k.includes('order')||k.includes('tender')||k.includes('document')||k.includes('log-order')) return 'Sipariş';
       return 'İşlem';
     },
     pillCls(a){
       const k=(a.op_key||'');
       if(k.includes('file')) return 'is-file';
       return 'is-order';
+    },
+    goDetail(a){
+      if(!a.qnid) return;
+      const isFile = (a.op_key||'').includes('file');
+      // Determine opKey for read tracking
+      let opKey = '';
+      const k = a.op_key || '';
+      if(k.includes('order') && (a.order_no || '').includes('-')) opKey = 'tedarik-02'; // clone = transfer_sent
+      else if(k.includes('order') && k.includes('created')) opKey = 'tedarik-01';
+      else if(k.includes('order') && k.includes('approved')) opKey = 'tedarik-06';
+      else if(k.includes('order') && (k.includes('rejected') || k.includes('files_rejected'))) opKey = 'tedarik-07';
+      else if(k.includes('file') && k.includes('waiting')) opKey = 'tedarik-03';
+      else if(k.includes('file') && k.includes('accepted')) opKey = 'tedarik-04';
+      else if(k.includes('file') && k.includes('rejected')) opKey = 'tedarik-05';
+      else if(k.includes('log-order') || k.includes('log-document') || k.includes('log-tender')) opKey = 'tedarik-01';
+
+      // Mark as read
+      if(opKey && a.qnid){
+        const { useNavigationStore } = require('@/stores/navigation');
+        const navStore = useNavigationStore();
+        navStore.markNotificationRead(opKey, a.qnid);
+      }
+
+      if(isFile){
+        this.$router.push({ name: 'TedarikDList' });
+      } else {
+        this.$router.push({ name: 'TedarikOrderForm', params: { id: a.qnid } });
+      }
     }
   }
 };
@@ -73,7 +102,10 @@ export default {
 @keyframes tdk-spin{ to{ transform:rotate(360deg);} }
 .tdk-activity__empty{ text-align:center; padding:2rem; color:#9ca3af; font-size:0.9rem; }
 .tdk-activity__timeline{ display:flex; flex-direction:column; gap:0.7rem; max-height:380px; overflow-y:auto; padding-right:4px; }
-.tdk-activity__item{ display:flex; align-items:flex-start; gap:0.9rem; padding:0.7rem 0; border-bottom:1px solid #fff7ed; }
+.tdk-activity__item{ display:flex; align-items:flex-start; gap:0.9rem; padding:0.7rem 0; border-bottom:1px solid #fff7ed; transition: background .15s; border-radius:10px; padding-left:0.4rem; padding-right:0.4rem; }
+.tdk-activity__item.is-clickable{ cursor:pointer; }
+.tdk-activity__item.is-clickable:hover{ background:#fff7ed; }
+.tdk-activity__detail{ font-size:0.72rem; color:#ea580c; font-weight:600; display:flex; align-items:center; gap:4px; margin-top:2px; }
 .tdk-activity__item:last-child{ border-bottom:none; }
 .tdk-activity__avatar{ width:36px; height:36px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.7rem; font-weight:800; flex-shrink:0; }
 .tdk-activity__body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:0.2rem; }

@@ -148,6 +148,22 @@ class SyncOrdersCommand extends Command
                 }
 
                 DB::commit();
+                // ── NOTIFICATION tedarik-01 (Sipariş Sisteme Geldi) — later planning: dispatch with BUKRS-aware filtering
+                try {
+                    $payload = [
+                        'order_no' => $ebeln,
+                        'transfer_no' => $ebeln,
+                        'bukrs' => $bukrs,
+                        'sys_code' => $bukrs,
+                        'BUKRS' => $bukrs,
+                        'ctitle' => $mcod1,
+                        'spec_code' => $lifnr,
+                        'qnid' => $orderQnid,
+                    ];
+                    (new \App\Providers\EmailServiceProvider())->sendTedarikOrderImported($payload);
+                } catch(\Throwable $e){
+                    $this->warn("  Notification tedarik-01 failed for {$ebeln}: ".$e->getMessage());
+                }
             } catch (\Exception $e) {
                 DB::rollBack();
                 $this->error("  Failed: " . $e->getMessage());

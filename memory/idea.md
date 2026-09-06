@@ -3,8 +3,10 @@
 
 
 ** optimizasyon ve kontrol **
-** tedarik panel bilgilendirmeler (sadece sipariş ile ilgili loglar ve o tedarikçinin siparişleri ile ilgili)
-** durumlara göre mail gönderimleri
+
+** sistem bildirimleri **
+ - Bildirimleri dene
+ - durumlara göre mail gönderimleri
 
 
 
@@ -21,10 +23,6 @@
 ** veri aktarımı
 ** eski sistemi kurallar için kontrol et
 
-
-
-
-** tedairk raporlar
 
 
 

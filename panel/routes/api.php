@@ -45,6 +45,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     Route::any('/v1/users/{id?}',                      [PersonsController::class, 'uindex']);
     Route::any('/v1/persons/{id?}',                    [PersonsController::class, 'index']);
     Route::get('/v1/notifications',                    [SystemController::class, 'getNotifications']);
+    Route::post('/v1/notifications/read',              [SystemController::class, 'markNotificationRead']);
+    Route::post('/v1/notifications/read-all',          [SystemController::class, 'markAllNotificationsRead']);
     Route::post('/v1/notificationlog/{id}/retrigger',  [SystemController::class, 'retriggerNotification']);
     Route::get('/v1/notification-users',               [PersonsController::class, 'getNotificationUsers']);
     Route::post('/v1/set-notification-groups',         [PersonsController::class, 'saveNotificationGroups']);

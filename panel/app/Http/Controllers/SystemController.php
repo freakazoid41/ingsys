@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Providers\ReportServiceProvider;
 use App\Models\NotificationLog;
+use App\Models\NotificationRead;
 use App\Models\UserLog;
 use App\Services\MailService;
 use App\Services\PermissionService;
@@ -76,26 +77,89 @@ class SystemController extends Controller
     }
 
     public function getNotifications(){
-        $response = ['blink' => 0];
+        $response = ['blink' => 0, 'unreadTotal' => 0];
         $provider = new ReportServiceProvider();
-        // here we are getting live notifications for user targeted or general ones
-        // here check for new client inserted notifications
-        $response['awaitingUsers'] = $provider->getAdminNotifications('notif-00');
-        if(!empty($response['awaitingUsers'])) $response['blink'] = 1;
+        $limit = 10; // show only 10 unread per category
 
-        $response['clientChanges'] = $provider->getAdminNotifications('notif-01');
-        if(!empty($response['clientChanges'])) $response['blink'] = 1;
+        // ── TEDARIK 7 ── each checks getNotificationUsers membership (op-doc-user-notification-form)
+        $r = $provider->getAdminNotifications('tedarik-01', $limit);
+        $response['orderImported'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
 
-        $response['newOffer'] = $provider->getAdminNotifications('notif-02');
-        if(!empty($response['newOffer'])) $response['blink'] = 1;
+        $r = $provider->getAdminNotifications('tedarik-02', $limit);
+        $response['orderSent'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
 
-        $response['offerRevisionRequests'] = $provider->getUserNotifications('offer-revision-request');
-        if(!empty($response['offerRevisionRequests'])) $response['blink'] = 1;
+        $r = $provider->getAdminNotifications('tedarik-03', $limit);
+        $response['pendingFiles'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
 
-        $response['offerChanges'] = $provider->getAdminNotifications('notif-03');
-        if(!empty($response['offerChanges'])) $response['blink'] = 1;
+        $r = $provider->getAdminNotifications('tedarik-04', $limit);
+        $response['fileApproved'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
+        $r = $provider->getAdminNotifications('tedarik-05', $limit);
+        $response['fileRejected'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
+        $r = $provider->getAdminNotifications('tedarik-06', $limit);
+        $response['orderApproved'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
+        $r = $provider->getAdminNotifications('tedarik-07', $limit);
+        $response['orderRejected'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
 
         return $response;
 
+    }
+
+    public function markNotificationRead(\Illuminate\Http\Request $request){
+        $userId = auth()->id();
+        if(!$userId) return response()->json(['success'=>false,'msg'=>'Unauthorized'], 401);
+
+        $opKey = $request->input('op_key') ?? $request->get('op_key') ?? ($request->all()['op_key'] ?? null);
+        $targetQnid = $request->input('target_qnid') ?? $request->get('target_qnid') ?? ($request->all()['target_qnid'] ?? null);
+
+        if(empty($opKey) || empty($targetQnid)){
+            return response()->json(['success'=>false,'msg'=>'op_key and target_qnid required','received'=>$request->all()], 422);
+        }
+
+        \App\Models\NotificationRead::updateOrCreate(
+            ['user_id'=>$userId, 'op_key'=>$opKey, 'target_qnid'=>$targetQnid],
+            ['read_at'=>now()]
+        );
+
+        return response()->json(['success'=>true]);
+    }
+
+    public function markAllNotificationsRead(){
+        $userId = auth()->id();
+        if(!$userId) return response()->json(['success'=>false,'msg'=>'Unauthorized'], 401);
+
+        $opKeys = ['tedarik-01','tedarik-02','tedarik-03','tedarik-04','tedarik-05','tedarik-06','tedarik-07'];
+        foreach($opKeys as $opKey){
+            $provider = new ReportServiceProvider();
+            $result = $provider->getAdminNotifications($opKey);
+            $items = is_array($result) ? ($result['data'] ?? []) : $result;
+            foreach($items as $item){
+                $qnid = $item->qnid ?? $item->id ?? null;
+                if($qnid){
+                    \App\Models\NotificationRead::updateOrCreate(
+                        ['user_id'=>$userId, 'op_key'=>$opKey, 'target_qnid'=>$qnid],
+                        ['read_at'=>now()]
+                    );
+                }
+            }
+        }
+
+        return response()->json(['success'=>true]);
     }
 }

@@ -40,26 +40,29 @@ CoalApp has a custom notification delivery system for email and SMS built on top
 
 ### 3.1 Email notification provider
 
-`panel/app/Providers/EmailServiceProvider.php` dispatches notification jobs for application events such as:
+`panel/app/Providers/EmailServiceProvider.php` dispatches notification jobs for TEDARIK 7 + legacy:
 
-- register
-- offer creation
-- offer status changes
-- activation
-- client updates
-- client file status changes
+- `tedarik-01` Sipariş Sisteme Geldi (SAP) → `sendTedarikOrderImported()` → `tedarikOrderImported()` **BUKRS-gated**
+- `tedarik-02` Sipariş Onaya Gönderildi → `sendTedarikOrderSent()` → `tedarikOrderSent()` **BUKRS-gated 2026-09-06 night**
+- `tedarik-03` İnceleme Bekleyen Dosyalar → `sendTedarikFileWaiting()` → `tedarikFileWaiting()` **BUKRS-gated 2026-09-06 night**
+- `tedarik-04` Dosya Onaylandı → `sendTedarikFileApproved()` **dual BUKRS/LIFNR 2026-09-06 night**
+- `tedarik-05` Dosya Yeniden Talep → `sendTedarikFileRejected()` **dual BUKRS/LIFNR 2026-09-06 night**
+- `tedarik-06` Kalite Onayı → `sendTedarikOrderApproved()` **dual BUKRS/LIFNR 2026-09-06 night**
+- `tedarik-07` Sipariş Reddedildi → `sendTedarikOrderRejected()` **dual BUKRS/LIFNR 2026-09-06 night**
+- `tedarik-06` Kalite Onayı → `sendTedarikOrderApproved()`
+- `tedarik-07` Sipariş Reddedildi → `sendTedarikOrderRejected()`
+- legacy `register / offerGiven / offerStatus / clientUpdate / cliFileStatus` → remapped to `tedarik-01..03` (deprecated)
 
-It uses `SendNotificationMailJob` to carry the payload and perform actual email sending.
+It uses `SendNotificationMailJob` to carry the payload and perform actual email sending via `informSystemUsers(opKey)` → `PersonsServiceProvider::getNotificationUsers()`. **BUKRS gate:** `tedarik-01` (`SyncOrdersCommand:151` payload `bukrs/sys_code/BUKRS`) and `tedarik-02`/`tedarik-03` (`DocumentController:179` same moment after `processOrderTransfer` success, payload `sys_code/bukrs` via `getFormData(clone_qnid ?? id)` entity `sys_code`, `fileTitle='Transfer dosyaları'` for `03`) both filter recipients in `SendNotificationMailJob:386,452,506` (`bukrsToSystem()` `4000/GDZ`/`5000/ADM`/`BOTH`, fetch `users.grp_code` via `persons.qnid` → only `BOTH` or `==bukrsSys` pass; `tedarik-03` uses order's sys_code via file→order resolution). **Dual gate `tedarik-04`/`05`/`06`/`07`:** `SendNotificationMailJob:558,654,741,848` — (A) assigned non-tedarik `BOTH/==sys_code` (skip `op-pert-reseller` in assigned), (B) matching resellers `persons p + sp op-pert-reseller + users` → per-person `clientQnidList` (`cliid**` → `lifnr`) → if `order spec_code` in lifnrs AND `users.grp_code BOTH/==sys_code` → add; merge deduplicated. Trigger `DocumentController:498` `setFileStatus` `doc_file_accepted`/`rejected` + `318` `setStatus` `approved/rejected/files_rejected` resolves file→order (`relation_id → parent fallback`) → `getFormData` `spec_code/sys_code` → `sendTedarikFileApproved`/`sendTedarikFileRejected`.
 
 ### 3.2 Notification job
 
 `panel/app/Jobs/SendNotificationMailJob.php`:
 
-- inspects payload `type`
-- routes to a handler method such as `clientRegister()`, `clientOfferGive()`, `clientActivation()`, etc.
-- builds email content and recipients
-- sends email via `MailService`
-- logs job execution progress and failures
+- inspects payload `type` (`tedarikOrderImported|tedarikOrderSent|tedarikFileWaiting|tedarikFileApproved|tedarikFileRejected|tedarikOrderApproved|tedarikOrderRejected` + legacy)
+- routes to TEDARIK handler `tedarikOrderImported()` etc. → `informSystemUsers(subject, html, 'tedarik-0X')` (**`tedarik-01:397`, `tedarik-02:452`, `tedarik-03:506`, `tedarik-04:558`, `tedarik-05:654`, `tedarik-06:741`, `tedarik-07:848` bypass it with BUKRS/LIFNR-filtered manual `MailService::sendMail` loops; others use unfiltered `informSystemUsers:710`**)
+- builds email content and recipients via `MailService`
+- logs job execution progress and failures; `informSystemUsers` now guards `empty($permittedUsers[$opKey])` return; BUKRS handlers log `Skipped user due BUKRS mismatch` + `Filtered ... by BUKRS`; `tedarik-02`/`tedarik-03` triggered together (`DocumentController:179` sends both with same `bukrs/sys_code`), `tedarik-04`/`05` dual (assigned non-tedarik + lifnr-matching reseller via `clientQnid→lifnr==spec_code` + `BOTH/==sys_code`)
 
 ### 3.3 Password reset / info email jobs
 
@@ -182,6 +185,7 @@ Important env values:
 - `panel/app/Jobs/SendResetMailJob.php`
 - `panel/app/Jobs/SendInfoMailJob.php`
 - `panel/app/Models/NotificationLog.php`
+- `panel/app/Models/NotificationRead.php` — read tracking (user_id, op_key, target_qnid)
 - `panel/app/Console/Commands/RetryNotificationSend.php`
 - `panel/app/Console/Commands/RetryNotificationSendJob.php`
 - `panel/app/Http/Controllers/SystemController.php`

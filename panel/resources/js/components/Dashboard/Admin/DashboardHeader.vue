@@ -54,17 +54,14 @@ export default {
     hasNotifications() {
       let count = 0;
       const notifs = this.navigationStore?.notifications || {};
-      
-      // Count from each category
-      if (Array.isArray(notifs.awaitingUsers)) count += notifs.awaitingUsers.length;
-      if (Array.isArray(notifs.clientChanges)) count += notifs.clientChanges.length;
-      if (Array.isArray(notifs.newOffer)) count += notifs.newOffer.length;
-      if (Array.isArray(notifs.offerRevisionRequests)) count += notifs.offerRevisionRequests.length;
-      if (Array.isArray(notifs.offerChanges)) count += notifs.offerChanges.length;
-      
-      // Add rejected files
+      if (Array.isArray(notifs.orderImported)) count += notifs.orderImported.length;
+      if (Array.isArray(notifs.orderSent)) count += notifs.orderSent.length;
+      if (Array.isArray(notifs.pendingFiles)) count += notifs.pendingFiles.length;
+      if (Array.isArray(notifs.fileApproved)) count += notifs.fileApproved.length;
+      if (Array.isArray(notifs.fileRejected)) count += notifs.fileRejected.length;
+      if (Array.isArray(notifs.orderApproved)) count += notifs.orderApproved.length;
+      if (Array.isArray(notifs.orderRejected)) count += notifs.orderRejected.length;
       count += (this.notifications || []).length;
-      
       return count > 0;
     }
   },
@@ -104,48 +101,35 @@ export default {
       try {
         const addNotifications = this.navigationStore?.notifications || {};
         let list = [];
+        const parseOrder = (o) => {
+          let orderNo = o.order_no || o.group_key || '';
+          let ctitle = '';
+          try { JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='order_no'&&!orderNo) orderNo=d.Value; if(d.Key==='ctitle'&&!ctitle) ctitle=d.Value; }); } catch(e){}
+          return { orderNo: orderNo||o.id||'-', ctitle, qnid: o.qnid||o.id||o.relation_qnid };
+        };
+        const parseFile = (f) => ({ orderNo: f.group_key||'-', title: f.type_title||f.file_type||'Dosya', qnid: f.qnid||f.id||f.relation_qnid });
         for (const key in addNotifications) {
           switch (key) {
-            case 'awaitingUsers':
-              list = [...list, ...(addNotifications[key] || []).map(u => ({
-                id: `awaitingUser-${u.id}`,
-                text: `Yeni kullanıcı kayıt bekliyor: ${u.username}`,
-                time: `Kayıt tarihi: ${u.created_at}`,
-                type: 'awaitingUser',
-                iconClass: 'ki-outline ki-user',
-                onclick: () => { this.$router.push({ name: 'UForm', params: { id: u.id } }); }
-              }))];
+            case 'orderImported':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted01-${o.qnid||o.id}`, text: `Sipariş Sisteme Geldi (SAP) — ${m.orderNo}${m.ctitle?' — '+m.ctitle:''}`, time: `Kayıt: ${o.created_at||''}`, type: 'tedarik01', opKey:'tedarik-01', targetQnid:m.qnid, iconClass: 'ki-outline ki-package', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
               break;
-            case 'clientChanges':
-              list = [...list, ...(addNotifications[key] || []).map(u => ({
-                id: `clientChange-${u.id}`,
-                text: `Müşteri güncellemesi (${u.title})`, 
-                time: `Kayıt tarihi: ${u.created_at}`,
-                type: 'clientChange',
-                iconClass: 'ki-outline ki-file',
-                onclick: () => { this.$router.push({ name: 'CForm', params: { id: u.cli_id } }); }
-              }))];
+            case 'orderSent':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted02-${o.qnid||o.id}`, text: `Sipariş Onaya Gönderildi — ${m.orderNo}`, time: `Kayıt: ${o.created_at||''}`, type: 'tedarik02', opKey:'tedarik-02', targetQnid:m.qnid, iconClass: 'ki-outline ki-send', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
               break;
-            case 'offerRevisionRequests':
-            case 'offerChanges':
-            case 'newOffer':
-              const offers = (addNotifications[key] || []).map(offr => {
-                let title = '';
-                try {
-                  JSON.parse(offr.main_attr || '[]').forEach(det => {
-                    if (det.Key == 'clititle') title = det.Value;
-                  });
-                } catch (e) {}
-                return {
-                  id: `offer-${offr.id}`,
-                  text: (key === 'offerRevisionRequests' ? 'Teklif revizyon talebi' : key === 'newOffer' ? 'Yeni Teklif' : 'Teklif güncellemesi') + (title ? ` — ${title}` : ''),
-                  time: `Kayıt tarihi: ${offr.created_at}`,
-                  type: 'newOffer',
-                  iconClass: 'ki-outline ki-bell',
-                  onclick: () => { this.$router.push({ name: 'OForm', params: { id: offr.id } }); }
-                };
-              });
-              list = [...list, ...offers];
+            case 'pendingFiles':
+              list = [...list, ...(addNotifications[key]||[]).map(f=>{ const m=parseFile(f); return { id:`ted03-${f.qnid||f.id}`, text: `İnceleme Bekleyen Dosyalar — ${m.title} (${m.orderNo})`, time: `Kayıt: ${f.created_at||''}`, type: 'tedarik03', opKey:'tedarik-03', targetQnid:m.qnid, iconClass: 'ki-outline ki-file', onclick:()=>this.$router.push({name:'DList'}) }; })];
+              break;
+            case 'fileApproved':
+              list = [...list, ...(addNotifications[key]||[]).map(f=>{ const m=parseFile(f); return { id:`ted04-${f.qnid||f.id}`, text: `Sipariş Dosyası Onaylandı — ${m.title} (${m.orderNo})`, time: `Kayıt: ${f.created_at||''}`, type: 'tedarik04', opKey:'tedarik-04', targetQnid:m.qnid, iconClass: 'ki-outline ki-check', onclick:()=>this.$router.push({name:'DForm',params:{id:m.qnid}}) }; })];
+              break;
+            case 'fileRejected':
+              list = [...list, ...(addNotifications[key]||[]).map(f=>{ const m=parseFile(f); return { id:`ted05-${f.qnid||f.id}`, text: `Sipariş Dosyası Yeniden Talep — ${m.title} (${m.orderNo})`, time: `Kayıt: ${f.created_at||''}`, type: 'tedarik05', opKey:'tedarik-05', targetQnid:m.qnid, iconClass: 'ki-outline ki-cross', onclick:()=>this.$router.push({name:'DForm',params:{id:m.qnid}}) }; })];
+              break;
+            case 'orderApproved':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted06-${o.qnid||o.id}`, text: `Sipariş Kalite Onayı Verildi — ${m.orderNo}`, time: `Kayıt: ${o.created_at||''}`, type: 'tedarik06', opKey:'tedarik-06', targetQnid:m.qnid, iconClass: 'ki-outline ki-medal-star', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
+              break;
+            case 'orderRejected':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted07-${o.qnid||o.id}`, text: `Sipariş Reddedildi — ${m.orderNo}`, time: `Kayıt: ${o.created_at||''}`, type: 'tedarik07', opKey:'tedarik-07', targetQnid:m.qnid, iconClass: 'ki-outline ki-cross-square', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
               break;
             default:
               break;
@@ -179,6 +163,8 @@ export default {
         time: n.time || n.date || '',
         iconClass: n.iconClass || 'ki-outline ki-bell',
         type: n.type || '',
+        opKey: n.opKey || '',
+        targetQnid: n.targetQnid || '',
         onclick: typeof n.onclick === 'function' ? n.onclick : null
       }));
 
@@ -232,18 +218,22 @@ export default {
             justify-content:center;
             font-size:32px;
             background:${
-              n.type === 'awaitingUser'
-                ? '#f3f6ff'
-                : n.type === 'clientChange'
-                ? '#eefbf2'
-                : '#fff7ed'
+              n.type === 'tedarik04' ? '#ecfdf5' :
+              n.type === 'tedarik05' ? '#fef2f2' :
+              n.type === 'tedarik06' ? '#f0fdf4' :
+              n.type === 'tedarik07' ? '#fef2f2' :
+              n.type === 'tedarik01' ? '#eff6ff' :
+              n.type === 'tedarik02' ? '#fff7ed' :
+              n.type === 'tedarik03' ? '#fef3c7' : '#fff7ed'
             };
             color:${
-              n.type === 'awaitingUser'
-                ? '#2563ff'
-                : n.type === 'clientChange'
-                ? '#0ea85d'
-                : '#f97316'
+              n.type === 'tedarik04' ? '#059669' :
+              n.type === 'tedarik05' ? '#dc2626' :
+              n.type === 'tedarik06' ? '#16a34a' :
+              n.type === 'tedarik07' ? '#991b1b' :
+              n.type === 'tedarik01' ? '#2563eb' :
+              n.type === 'tedarik02' ? '#f59e0b' :
+              n.type === 'tedarik03' ? '#d97706' : '#f97316'
             };
           "
         >
@@ -287,11 +277,13 @@ export default {
                 border-radius:50%;
                 margin-top:2.5px;
                 background:${
-                  n.type === 'awaitingUser'
-                    ? '#2563ff'
-                    : n.type === 'clientChange'
-                    ? '#0ea85d'
-                    : '#f97316'
+                  n.type === 'tedarik04' ? '#059669' :
+                  n.type === 'tedarik05' ? '#dc2626' :
+                  n.type === 'tedarik06' ? '#16a34a' :
+                  n.type === 'tedarik07' ? '#991b1b' :
+                  n.type === 'tedarik01' ? '#2563eb' :
+                  n.type === 'tedarik02' ? '#f59e0b' :
+                  n.type === 'tedarik03' ? '#d97706' : '#f97316'
                 };
               "
             ></span>
@@ -347,7 +339,12 @@ export default {
             el.addEventListener('click', () => {
               const idx = Number(el.dataset.index);
               const item = list?.[idx];
-              if (item && typeof item.onclick === 'function') item.onclick();
+              // Mark as read
+              if(item && item.opKey && item.targetQnid){
+                this.navigationStore.markNotificationRead(item.opKey, item.targetQnid);
+              }
+              // Navigate
+              if(item && typeof item.onclick === 'function') item.onclick();
               Swal.close();
             });
           });

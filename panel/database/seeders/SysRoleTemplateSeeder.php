@@ -200,5 +200,15 @@ class SysRoleTemplateSeeder extends Seeder
 
             $this->command->line("✓ Notification type seeded: {$code} - {$notifData['title']}");
         }
+
+        // Cleanup obsolete notification types not in JSON (remove old notif-00..03 / offer-revision-request)
+        $jsonCodes = array_map(fn($n) => $n['op_key'] ?? null, $notifications);
+        $jsonCodes = array_filter($jsonCodes);
+        $dbCodes = SysNotificationType::pluck('code')->toArray();
+        $obsoleteNotif = array_diff($dbCodes, $jsonCodes);
+        foreach ($obsoleteNotif as $obs) {
+            SysNotificationType::where('code', $obs)->delete();
+            $this->command->warn("✗ Removed obsolete notification type: {$obs}");
+        }
     }
 }

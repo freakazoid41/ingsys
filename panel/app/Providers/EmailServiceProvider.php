@@ -109,5 +109,25 @@ class EmailServiceProvider extends ServiceProvider
         
     }
 
+    // ── TEDARIK 7 dispatchers ──
+    public function sendTedarikOrderImported($payload){ $this->dispatchTedarik('tedarikOrderImported', $payload); }
+    public function sendTedarikOrderSent($payload){ $this->dispatchTedarik('tedarikOrderSent', $payload); }
+    public function sendTedarikFileWaiting($payload){ $this->dispatchTedarik('tedarikFileWaiting', $payload); }
+    public function sendTedarikFileApproved($payload){ $this->dispatchTedarik('tedarikFileApproved', $payload); }
+    public function sendTedarikFileRejected($payload){ $this->dispatchTedarik('tedarikFileRejected', $payload); }
+    public function sendTedarikOrderApproved($payload){ $this->dispatchTedarik('tedarikOrderApproved', $payload); }
+    public function sendTedarikOrderRejected($payload){ $this->dispatchTedarik('tedarikOrderRejected', $payload); }
+
+    private function dispatchTedarik($type, $payload){
+        try{
+            $payload['type'] = $type;
+            $payload['sys_code'] = $payload['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? null;
+            SendNotificationMailJob::dispatch($payload)->onQueue('default');
+            Log::info($type.' dispatched', $payload);
+        }catch(\Throwable $e){
+            Log::error($type.' dispatch failed', ['exception'=>$e, 'payload'=>$payload]);
+        }
+    }
+
    
 }
