@@ -633,6 +633,28 @@ notification_reads (
 - `panel/resources/js/components/Dashboard/Tedarik/TedarikHeader.vue` — bell + modal click → mark read
 - `panel/resources/js/components/Dashboard/Tedarik/TedarikActivity.vue` — `goDetail()` → mark read
 
+## 9. Bilgilendirmeler Page (2026-09-07) — PickleTable TEDARIK
+
+**Route:** `/tedarikpanel/bilgilendirmeler` → `resources/js/pages/tedarik/Bilgilendirmeler.vue` (named `TedarikBilgilendirmeler`, `router/index.js:62` child of `TedarikPanel`).
+
+**Layout:** `order-list-card tedarik-card tedarik-docs-page` — same chrome as `DList.vue` tedarik file list. `PickleTable` `type:'local'` `height:'60vh'` (max, capped — file list 75vh), `pageLimit 10 / 5 mobile`, `paginationType number`, `thead{display:none}` (rows self-explanatory), dummy `document_card` hidden for alignment, widths `185px Belge Başlık / 265px Sipariş-İlişki / 135px Eklenme / 175px Güncel / 160px Detaylar` (`920px minWidth`), pills `102px/138px`, `border-collapse:separate 0 7px` `13px 14px` `#fff/#e8e8ea` `8px radius` hover `translateY(-1px) shadow`.
+
+**Sidebar wiring:** `TedarikPanel.vue:106` `bilgilendirmeCount` (`notifications.unreadTotal ?? rawItems.length`) drives `tedarik-info-badge` (`is-zero grey / has-unread orange pulse`), `isBilgilendirmelerActive` toggles `active` gradient like menu, `router-link to="/tedarikpanel/bilgilendirmeler"` (was `javascript:; push /tedarikpanel`). Bell `TedarikHeader.vue:85` SweetAlert `Tüm Bilgilendirmeleri Gör →` → `TedarikBilgilendirmeler`.
+
+**Data:** `useNavigationStore.getNotifications()` → `lib/notificationHelpers.js:12` `buildNotificationRows(notifications, rejectedFiles)` (7 TEDARIK feeds + legacy `rejectedFiles`), `fmtDateTime` from `lib/dateUtils.js:19` for `_created_at_fmt`, sorting newest first, `CHIP_DEFS` + `CAT_META/getCatMeta` from `lib/notificationMaps.js` (shared `CAT_META 7+rejected`, `CAT_LIST`, `CHIP_DEFS` 8).
+
+**Table helpers:** `HEADERS` const outside component, `bili-*` CSS classes replace inline `style.cssText` (`bili-icon--cat`, `bili-pill--order/company`, `bili-status--cat`, `bili-act is-view/is-go/is-okundu`), `isFileCat()` for routing (`tedarik-03/04/05 → TedarikDList`, else `TedarikOrderForm`), `uid()` via `crypto.randomUUID` fallback.
+
+**Actions:** `markOne` → `POST /v1/notifications/read` + local `rawItems` filter + toast, `markAll` → `POST /v1/notifications/read-all` + clear, `openItem` → mark read + push, `chips` + `tedarik-docs-searchrow` filter via `getFilteredData()` (cat + `includes` on `file_type/group_key/ctitle`), `resetSearch` clears + `all`.
+
+**Key files 2026-09-07:**
+- `resources/js/pages/tedarik/Bilgilendirmeler.vue` (653→479 lines after clean, 60vh max)
+- `resources/js/lib/notificationMaps.js` (new)
+- `resources/js/lib/notificationHelpers.js` (new)
+- `resources/js/layouts/TedarikPanel.vue:106,244` (badge + active)
+- `resources/js/components/Dashboard/Tedarik/TedarikHeader.vue:85` (Tüm Gör link)
+- `resources/js/router/index.js:62`
+
 ## 9. Recommended Improvements
 
 ### 1. ✅ Implement Notification Read Status (DONE 2026-09-07)

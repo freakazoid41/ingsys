@@ -1,7 +1,8 @@
 # 05 — Order System State (snapshot)
 
-> **Updated:** 2026-09-06
+> **Updated:** 2026-09-07
 > **Read after:** `tedarik-system-process.md`
+> **2026-09-07 — Bilgilendirmeler PickleTable: `/tedarikpanel/bilgilendirmeler` 60vh max, same card-rows as DList tedarik (0 7px gap, 13px 14px #fff/#e8e8ea), headers hidden, widths 185/265/135/175/160 (920px), sidebar `bilgilendirmeCount` + `isBilgilendirmelerActive` + bell `Tüm Gör`. Libs `lib/notificationMaps.js` + `lib/notificationHelpers.js` (`buildNotificationRows`) + `lib/dateUtils fmtDateTime`, height via manual 60vh enforce (was 75vh).**
 
 ## Current Live Data
 
@@ -65,3 +66,10 @@ doc_file_waiting (default)
 - Retake button has text label "Yeniden Talep Et" alongside icon (like admin view)
 - "Detaylar" text button removed (redundant with Detay icon button)
 - Column width reduced `210px → 160px` for tedarik
+
+### Bilgilendirmeler.vue (2026-09-07)
+- `PickleTable local` 60vh max (same card-rows `0 7px` `13px 14px` as DList), headers hidden (`thead{display:none}`), dummy `document_card` for alignment
+- Widths `185/265/135/175/160` (`920px` min), pills `102/138px`, `bili-*` CSS classes replace inline `style.cssText` (icon/status)
+- Libs: `lib/notificationMaps.js` `CAT_META/CHIP_DEFS/getCatMeta` + `lib/notificationHelpers.js` `buildNotificationRows/parseOrder/parseFile/isFileCat` (replaces 7× mk) + `lib/dateUtils fmtDateTime`, manual 60vh enforce (was `useTedarikHeight` 75vh)
+- Sidebar `TedarikPanel:244` `router-link` + `bilgilendirmeCount` (`unreadTotal`) + `isBilgilendirmelerActive`, bell adds `Tüm Gör → Bilgilendirmeler`
+- Route `router/index.js:62` `/tedarikpanel/bilgilendirmeler` `TedarikBilgilendirmeler`
