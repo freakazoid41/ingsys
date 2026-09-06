@@ -54,6 +54,8 @@ export default {
         }
     },
     mounted() {
+        // fetch notifications for Bilgilendirmeler badge
+        try { this.navigationStore.getNotifications(); } catch(e) {}
         document.body.dataset.saTheme = localStorage.getItem("sa-theme");
         try {
             const el = document.querySelector('input[name="SYS_CODE"]');
@@ -106,10 +108,27 @@ export default {
         isOrdersActive() { return this.$route.path.includes('/orders'); },
         isDokumanActive() { return this.$route.path.includes('/document'); },
         isDashboardActive() { return this.$route.path === '/tedarikpanel' || this.$route.path === '/tedarikpanel/'; },
+        isBilgilendirmelerActive() { return this.$route.path.includes('/bilgilendirmeler'); },
         modules() {
             const perms = this.authStore.permissions || [];
             const hasAll = perms.includes('per-041') || perms.includes('per-00');
             return this.allModules.filter(m => hasAll || perms.includes(m.perm));
+        },
+        bilgilendirmeCount() {
+            const n = this.navigationStore?.notifications || {};
+            // prefer server-calculated unreadTotal (read-tracking aware)
+            if (typeof n.unreadTotal === 'number') return n.unreadTotal;
+            // fallback: sum of tedarik-01..07 arrays like TedarikHeader.mergeNotifications()
+            let c = 0;
+            if (Array.isArray(n.orderImported)) c += n.orderImported.length;
+            if (Array.isArray(n.orderSent)) c += n.orderSent.length;
+            if (Array.isArray(n.pendingFiles)) c += n.pendingFiles.length;
+            if (Array.isArray(n.fileApproved)) c += n.fileApproved.length;
+            if (Array.isArray(n.fileRejected)) c += n.fileRejected.length;
+            if (Array.isArray(n.orderApproved)) c += n.orderApproved.length;
+            if (Array.isArray(n.orderRejected)) c += n.orderRejected.length;
+            c += (this.authStore.currentStatus?.rejectedFiles || []).length;
+            return c;
         },
     },
     methods: {
@@ -223,10 +242,12 @@ export default {
                 </nav>
 
                 <div class="tedarik-bottom">
-                    <a class="tedarik-info-card" href="javascript:;">
-                        <span class="tedarik-info-label">Bilgilendirmeler</span>
-                        <span class="tedarik-info-badge">0</span>
-                    </a>
+                    <router-link to="/tedarikpanel/bilgilendirmeler" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" class="tedarik-info-card" :class="{ active: isBilgilendirmelerActive, 'has-unread': bilgilendirmeCount > 0 }">
+                            <span class="tedarik-info-label">Bilgilendirmeler</span>
+                            <span class="tedarik-info-badge" :class="{ 'is-zero': bilgilendirmeCount === 0 }">{{ bilgilendirmeCount }}</span>
+                        </a>
+                    </router-link>
 
                     <a href="javascript:;" class="tedarik-modules-btn" @click="showModuleModal=true">
                         <span>Modüller</span>
@@ -449,6 +470,10 @@ export default {
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 .tedarik-info-card:hover { border-color: #d1d5db; }
+.tedarik-info-card.active { background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%); color:#fff; border-color: rgba(255,255,255,.15); box-shadow: 0 6px 20px rgba(255,90,31,.25); }
+.tedarik-info-card.active .tedarik-info-label{ color:#fff; }
+.tedarik-info-card.has-unread { border-color: #fed7aa; background: #fff7ed; }
+.tedarik-info-card.active.has-unread{ background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%); }
 .tedarik-info-badge {
     width: 20px;
     height: 20px;
@@ -461,6 +486,13 @@ export default {
     font-size: 11px;
     font-weight: 700;
     line-height: 1;
+}
+.tedarik-info-badge.is-zero { background: #e5e7eb; color: #6b7280; }
+.tedarik-info-card.has-unread .tedarik-info-badge { background: #FF5A1F; animation: tdk-badge-pulse 1.8s infinite; }
+@keyframes tdk-badge-pulse{
+  0%{ box-shadow: 0 0 0 0 rgba(255,90,31,.45); }
+  60%{ box-shadow: 0 0 0 6px rgba(255,90,31,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(255,90,31,0); }
 }
 .tedarik-logout {
     height: 64px;

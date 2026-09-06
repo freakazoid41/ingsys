@@ -85,7 +85,7 @@ export default {
         <div class="tdk-notif-item" data-idx="${idx}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #f1f1f4;cursor:pointer;border-radius:6px;transition:background .15s;">
           <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${n.type === 'rejected' ? '#ef4444' : '#f59e0b'}"></span>
           <div style="flex:1"><div style="font-weight:600;font-size:13px;color:#1e293b;">${n.text}</div><div style="font-size:11px;color:#8a94a6;">${n.time||''}</div></div>
-        </div>`).join('')}</div>`;
+        </div>`).join('')}</div><div style="margin-top:12px;text-align:center;"><a href="javascript:;" id="tdk-go-bilgi" style="display:inline-flex;align-items:center;gap:6px;background:#FF5A1F;color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none;">Tüm Bilgilendirmeleri Gör →</a></div>`;
       Swal.fire({ title: 'Bildirimler', html, width: 420, showCloseButton: true, showConfirmButton: false,
         didOpen: () => {
           document.querySelectorAll('.tdk-notif-item').forEach(el => {
@@ -104,6 +104,8 @@ export default {
               Swal.close();
             });
           });
+          const goBtn = document.getElementById('tdk-go-bilgi');
+          if(goBtn) goBtn.addEventListener('click', ()=>{ Swal.close(); this.$router.push({ name:'TedarikBilgilendirmeler' }).catch(()=>{}); });
         }
       });
     }

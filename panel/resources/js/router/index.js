@@ -23,6 +23,7 @@ import OrderForm from "@/pages/coalsystem/Order/OForm.vue";
 // Tedarik Public Panel
 import TedarikPanel from '@/layouts/TedarikPanel.vue';
 import TedarikDashboard from '@/pages/tedarik/Dashboard.vue';
+import TedarikBilgilendirmeler from '@/pages/tedarik/Bilgilendirmeler.vue';
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -60,6 +61,7 @@ const router = createRouter({
       component: TedarikPanel,
       children: [
         { path: "/tedarikpanel", name: 'TedarikDashboard', component: TedarikDashboard },
+        { path: "/tedarikpanel/bilgilendirmeler", name: 'TedarikBilgilendirmeler', component: TedarikBilgilendirmeler },
         { path: "/tedarikpanel/orders", name: 'TedarikOrderList', component: OrderList },
         { path: "/tedarikpanel/orders/form/:id?", name: 'TedarikOrderForm', component: OrderForm },
         { path: "/tedarikpanel/documents", name: 'TedarikDList', component: DList },

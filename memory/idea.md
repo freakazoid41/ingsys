@@ -8,6 +8,8 @@
  - Bildirimleri dene
  - durumlara göre mail gönderimleri
 
+** optimizasyon ve kontrol **
+
 
 
 ** excel çıktıları
