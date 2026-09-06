@@ -1470,6 +1470,24 @@ class DocumentServiceProvider extends ServiceProvider
             }
             $transferNo = $baseNo.'-'.$x;
 
+            // Guard: lock 0-quantity items — never send a depleted kalem to another partition
+            if (!empty($selectedItems)) {
+                foreach ($selectedItems as $chk) {
+                    $chkQnid = is_array($chk) ? ($chk['qnid'] ?? '') : $chk;
+                    $chkAmt = is_array($chk) ? (float) ($chk['amount'] ?? 0) : 0;
+                    if (empty($chkQnid) || $chkAmt <= 0) continue;
+                    $chkDoc = Documents::where('qnid', $chkQnid)->first();
+                    if (!$chkDoc) continue;
+                    $curQty = $this->getItemQuantityForTransfer((int) $chkDoc->id);
+                    if ($curQty <= 0) {
+                        return ['success' => false, 'msg' => 'Kalem tükendi (stok 0) — başka partisyona gönderilemez: ' . $chkQnid];
+                    }
+                    if ($chkAmt > $curQty) {
+                        return ['success' => false, 'msg' => 'Kalem için bölme miktarı stoktan fazla: ' . $chkQnid . ' (' . $chkAmt . ' > ' . $curQty . ')'];
+                    }
+                }
+            }
+
             // Build the clone payload (header + desc + imalatci carried from the order).
             $cloneEntities = [
                 'order_no' => $transferNo,
@@ -1804,6 +1822,14 @@ class DocumentServiceProvider extends ServiceProvider
         }
     }
 
+    private function getItemQuantityForTransfer(int $itemDocId): float
+    {
+        $conn = Sys_con_ops::where('main_id', $itemDocId)->where('conn_id', 0)->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-item-form'))->first();
+        if (empty($conn)) return 0;
+        $val = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'quantity', 'table_tag' => 'sys_con_ops'])->value('entity_value');
+        return (float) ($val ?? 0);
+    }
+
     /**
      * Creates serial number documents parented to an order item.
      * Each serial is its own Documents record with EAV entities.
@@ -1836,18 +1862,32 @@ class DocumentServiceProvider extends ServiceProvider
             $doc->parent_id = $parentItemId;
             $doc->save();
 
-            // Birth transaction
+            // Birth transaction — enriched so LList shows real actor + document + Belge Tipi (Seri Numarası)
             $birthType = Sys_options::where('op_key', 'doc_trans_created')->first();
             if ($birthType) {
                 $logTypeId = Sys_options::where('op_key', 'log-order-update')->first()?->id ?? 0;
-                $userId = DB::table('users')->where('status', 1)->first()?->id ?? 0;
+                $actor = $this->actorSnapshot();
                 $log = UserLog::create([
-                    'user_id' => $userId,
-                    'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
+                    'user_id' => $actor['user_id'] ?? 0,
+                    'sys_code' => $actor['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? 'GDZ',
                     'relation' => 'documents',
                     'relation_id' => $doc->id,
                     'type_id' => $logTypeId,
-                    'description' => json_encode(['desc' => 'Seri Numarası Oluşturuldu']),
+                    'description' => json_encode([
+                        'actor' => $actor,
+                        'document' => [
+                            'id' => $doc->id,
+                            'qnid' => $doc->qnid,
+                            'op_key' => 'op-doc-order-serial',
+                            'serial_no' => $serialNo,
+                            'production_date' => $productionDate,
+                            'quantity' => $quantity,
+                            'unit' => $unit,
+                            'parent_item_id' => $parentItemId,
+                        ],
+                        'desc' => 'Seri Numarası Oluşturuldu',
+                        'note' => trim($serialNo . ' | ' . $productionDate . ' | ' . $quantity . ' ' . $unit),
+                    ], JSON_UNESCAPED_UNICODE),
                 ]);
                 Transactions::create([
                     'op_id' => 0,

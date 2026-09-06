@@ -51,11 +51,12 @@ class UserLog extends Model
             'ip'                 => 'i.ip',
             'relation_id'        => 'i.relation_id',
             'relation'           => 'i.relation',
-            'form_type'          => "(select
-                                            title
-                                                from sys_options as top
-                                            where top.op_key = (i.description::jsonb -> 'after' -> 'document' ->> 'op_key')
-                                            )  as  form_type"
+            'form_type'          => "(SELECT COALESCE(
+                                                (SELECT title FROM sys_options AS top WHERE top.op_key = (i.description::jsonb -> 'after' -> 'document' ->> 'op_key')),
+                                                (SELECT title FROM sys_options AS top WHERE top.op_key = (i.description::jsonb -> 'document' ->> 'op_key')),
+                                                (SELECT (so2.title || ' Dökümanı') FROM documents d JOIN sys_options so2 ON so2.id = d.type_id WHERE d.qnid = (i.description::jsonb -> 'file' ->> 'order_qnid') LIMIT 1),
+                                                (SELECT so2.title FROM documents d JOIN sys_options so2 ON so2.id = d.type_id WHERE d.qnid = (i.description::jsonb -> 'document' ->> 'qnid') LIMIT 1)
+                                            )) AS form_type"
         ];
 
 
@@ -104,7 +105,7 @@ class UserLog extends Model
                     case 'doc_qnid':
                         if(trim($f['value']) != ''){
                             $qnid = strtolower(noInject(strip_tags($f['value'])));
-                            $where .= " and lower(i.description::jsonb -> 'after' -> 'document' ->> 'qnid') = '" . $qnid . "'";
+                            $where .= " and ( lower(i.description::jsonb -> 'after' -> 'document' ->> 'qnid') = '" . $qnid . "' OR lower(i.description::jsonb -> 'document' ->> 'qnid') = '" . $qnid . "' OR lower(i.description::jsonb -> 'file' ->> 'order_qnid') = '" . $qnid . "' OR lower(i.description::jsonb -> 'file' ->> 'qnid') = '" . $qnid . "' )";
                         }
                     break;
                     case 'free':

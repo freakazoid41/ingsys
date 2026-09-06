@@ -456,6 +456,10 @@ export default {
             }
             return { label: 'Test Dokümanı<br/>Bekleniyor', cls: 'tedarik-status--waiting' };
         },
+        isDepleted(row){
+            const q = parseFloat(row.quantity);
+            return !isNaN(q) && q <= 0;
+        },
         triggerExcelUpload(item){
             this._excelUploadSplitAmt = parseFloat(this.splitAmounts[item.id]) || 0;
             const input = this.excelFileInputs[item.id];
@@ -623,6 +627,10 @@ export default {
             event.target.value = val;
         },
         toggleCard(row){
+            if(this.isDepleted(row)){
+                this.plib.toast(Swal,'info','Bu kalem tükendi — miktarı 0, başka partisyona gönderilemez.');
+                return;
+            }
             if(!this.selectable){ this.showDetail(row); return; }
             const qnid = row.id;
             const wasSelected = !!this.selected[qnid];
@@ -805,16 +813,19 @@ export default {
             return !!(f && f.last_status && f.last_status.op_key === 'doc_file_rejected');
         },
         triggerTestUpload(item){
+            if(this.isDepleted(item)){ this.plib.toast(Swal,'info','Bu kalem tükendi — dosyası değiştirilemez.'); return; }
             if(this.readonly && !this.isTestRejected(item.id)) return;
             const input = this.testFileInputs[item.id];
             if(input){ input.value = ''; input.click(); }
         },
         triggerImageUpload(item){
+            if(this.isDepleted(item)){ this.plib.toast(Swal,'info','Bu kalem tükendi — görsel eklenemez.'); return; }
             if(this.readonly) return;
             const input = this.imageFileInputs[item.id];
             if(input){ input.value = ''; input.click(); }
         },
         async onTestFileSelected(item, event){
+            if(this.isDepleted(item)){ this.plib.toast(Swal,'info','Bu kalem tükendi — dosyası değiştirilemez.'); return; }
             if(this.readonly && !this.isTestRejected(item.id)) return;
             const file = event.target.files[0];
             if(!file) return;
@@ -846,6 +857,7 @@ export default {
             return ['jpg','jpeg','png','webp','gif'].includes(ext) || (file.type||'').startsWith('image/');
         },
         async onImageFileSelected(item, event){
+            if(this.isDepleted(item)){ this.plib.toast(Swal,'info','Bu kalem tükendi — görsel eklenemez.'); return; }
             if(this.readonly) return;
             const file = event.target.files[0];
             if(!file) return;
@@ -1190,9 +1202,10 @@ export default {
                 <div class="oic-list" :class="{ 'oic-list--tedarik': hideHeader }">
                     <div v-for="(row, idx) in items" :key="row.id" class="oic-row-wrap" :data-item-qnid="row.id">
                         <!-- Main row — tedarik theme -->
-                        <div v-if="hideHeader" class="oic-row oic-row--tedarik" :class="{ 'oic-selected': isSelected(row), 'oic-selectable': selectable }" @click="toggleCard(row)">
+                        <div v-if="hideHeader" class="oic-row oic-row--tedarik" :class="{ 'oic-selected': isSelected(row), 'oic-selectable': selectable && !isDepleted(row), 'oic-row--depleted': isDepleted(row) }" @click="toggleCard(row)">
                             <div v-if="selectable" class="tedarik-col tedarik-col--check" @click.stop="toggleCard(row)">
-                                <div class="oic-check" :class="{ checked: isSelected(row) }">
+                                <div v-if="isDepleted(row)" class="oic-check oic-check--depleted" title="Tükendi — başka partisyona gönderilemez"><i class="ki-outline ki-lock-2" style="font-size:12px;color:#94a3b8"></i></div>
+                                <div v-else class="oic-check" :class="{ checked: isSelected(row) }">
                                     <i class="ki-outline ki-check" v-if="isSelected(row)"></i>
                                 </div>
                             </div>
@@ -1203,9 +1216,13 @@ export default {
                                 <span v-if="quantityChanged(row)">
                                     <span style="text-decoration:line-through;color:#94a3b8;font-weight:500;">{{ row.original_quantity }}</span>
                                     <span style="color:#94a3b8;margin:0 4px;">→</span>
-                                    <strong>{{ row.quantity }}</strong>
+                                    <strong :style="isDepleted(row) ? 'color:#991b1b' : ''">{{ row.quantity }}</strong>
+                                    <span v-if="isDepleted(row)" style="margin-left:6px;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;vertical-align:middle;">Tükendi</span>
                                 </span>
-                                <strong v-else>{{ row.quantity }}</strong>
+                                <span v-else>
+                                    <strong :style="isDepleted(row) ? 'color:#991b1b' : ''">{{ row.quantity }}</strong>
+                                    <span v-if="isDepleted(row)" style="margin-left:6px;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;vertical-align:middle;">Tükendi</span>
+                                </span>
                             </div>
                             <div class="tedarik-col tedarik-col--durum">
                                 <span class="tedarik-status-btn" :class="getTedarikDurum(row).cls" v-html="getTedarikDurum(row).label"></span>
@@ -1215,10 +1232,11 @@ export default {
                             </div>
                         </div>
                         <!-- Main row — admin (default) -->
-                        <div v-else class="oic-row" :class="{ 'oic-selected': isSelected(row), 'oic-selectable': selectable }" @click="toggleCard(row)">
+                        <div v-else class="oic-row" :class="{ 'oic-selected': isSelected(row), 'oic-selectable': selectable && !isDepleted(row), 'oic-row--depleted': isDepleted(row) }" @click="toggleCard(row)">
                             <div class="oic-idx">{{ idx + 1 }}</div>
-                            <div v-if="selectable" class="oic-check" :class="{ checked: isSelected(row) }" @click.stop="toggleCard(row)">
-                                <i class="ki-outline ki-check" v-if="isSelected(row)"></i>
+                            <div v-if="selectable" class="oic-check-wrapper" @click.stop="toggleCard(row)">
+                                <div v-if="isDepleted(row)" class="oic-check oic-check--depleted" title="Tükendi — başka partisyona gönderilemez"><i class="ki-outline ki-lock-2" style="font-size:11px;color:#94a3b8"></i></div>
+                                <div v-else class="oic-check" :class="{ checked: isSelected(row) }"><i class="ki-outline ki-check" v-if="isSelected(row)"></i></div>
                             </div>
                             <div class="oic-code">
                                 <div class="oic-code-icon"><i class="ki-outline ki-box"></i></div>
@@ -1228,12 +1246,14 @@ export default {
                             <span class="oic-qty" v-if="quantityChanged(row)">
                                 <strong style="text-decoration:line-through;color:#94a3b8;font-weight:500;">{{ row.original_quantity }}</strong>
                                 <i class="ki-outline ki-arrow-right" style="font-size:11px;color:#94a3b8;margin:0 2px;"></i>
-                                <strong>{{ row.quantity }}</strong>
+                                <strong :style="isDepleted(row) ? 'color:#991b1b' : ''">{{ row.quantity }}</strong>
                                 <em v-if="row.unit">{{ row.unit }}</em>
+                                <span v-if="isDepleted(row)" style="margin-left:6px;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;vertical-align:middle;">Tükendi</span>
                             </span>
                             <span class="oic-qty" v-else>
-                                <strong>{{ row.quantity }}</strong>
+                                <strong :style="isDepleted(row) ? 'color:#991b1b' : ''">{{ row.quantity }}</strong>
                                 <em v-if="row.unit">{{ row.unit }}</em>
+                                <span v-if="isDepleted(row)" style="margin-left:6px;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;vertical-align:middle;">Tükendi</span>
                             </span>
                             <!-- Serial summary badge -->
                             <span v-if="(isSelected(row) || atOnceMode) && hasSerialData(row)" class="oic-serial-badge" @click.stop>
@@ -1302,18 +1322,20 @@ export default {
                                                 <i class="ki-outline ki-eye" style="font-size:12px;"></i>
                                             </button>
                                         </div>
-                                        <button class="oic-item-file-btn" @click.stop="triggerTestUpload(row)">
+                                        <button v-if="!readonly && !isDepleted(row)" class="oic-item-file-btn" @click.stop="triggerTestUpload(row)">
                                             <i class="ki-outline ki-file-up" style="font-size:14px;"></i>
                                             <span>Yeni Test Dökümanı Yükle</span>
                                         </button>
+                                        <span v-else-if="isDepleted(row)" style="font-size:0.78rem;color:#991b1b;font-weight:600;padding:6px 0;display:inline-flex;align-items:center;gap:4px;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;padding:4px 8px"><i class="ki-outline ki-cross-circle" style="font-size:12px"></i> Kalem tükendi — dosya eklenemez</span>
                                         <input type="file" :ref="el => { if(el) testFileInputs[row.id] = el }" accept=".pdf,.xls,.xlsx,.jpg,.jpeg,.png" style="display:none" @change="onTestFileSelected(row, $event)" />
                                     </div>
                                     <!-- No file at all — upload button -->
                                     <div v-else class="oic-item-file-upload">
-                                        <button v-if="!readonly" class="oic-item-file-btn" @click.stop="triggerTestUpload(row)" :disabled="itemTestFiles[row.id]?.uploading">
+                                        <button v-if="!readonly && !isDepleted(row)" class="oic-item-file-btn" @click.stop="triggerTestUpload(row)" :disabled="itemTestFiles[row.id]?.uploading">
                                             <i :class="itemTestFiles[row.id]?.uploading ? 'ki-outline ki-loading' : 'ki-outline ki-file-up'" style="font-size:14px;"></i>
                                             <span>{{ itemTestFiles[row.id]?.uploading ? 'Yükleniyor...' : 'Test Dökümanı Yükle' }}</span>
                                         </button>
+                                        <span v-else-if="isDepleted(row)" style="font-size:0.78rem;color:#991b1b;font-weight:600;padding:6px 0;display:inline-flex;align-items:center;gap:4px;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;padding:4px 8px"><i class="ki-outline ki-cross-circle" style="font-size:12px"></i> Kalem tükendi — dosya eklenemez</span>
                                         <span v-else style="font-size:0.78rem;color:#94a3b8;font-style:italic;padding:6px 0;display:inline-flex;align-items:center;gap:4px"><i class="ki-outline ki-lock-2" style="font-size:12px"></i> Sipariş kilitli — dosya eklenemez</span>
                                         <input type="file" :ref="el => { if(el) testFileInputs[row.id] = el }" accept=".pdf,.xls,.xlsx,.jpg,.jpeg,.png" style="display:none" @change="onTestFileSelected(row, $event)" />
                                     </div>
@@ -1331,8 +1353,8 @@ export default {
                                         <div v-for="(ef, efi) in existingImages[row.id]" :key="'ei-'+ef.id" class="oic-image-thumb" @click.stop="openGallery(row.id, efi)" title="Önizlemek için tıklayın">
                                             <img :src="'/order-file/' + ef.qnid" :alt="ef.name" loading="lazy" @error="onThumbError" />
                                             <div class="oic-image-overlay oic-split">
-                                                <button class="oic-split-half left" :class="{'full': readonly}" @click.stop="openGallery(row.id, efi)" :title="readonly ? 'Önizle (kilitli)' : 'Önizle'"><i class="ki-outline ki-eye" style="font-size:22px;"></i></button>
-                                                <button v-if="!readonly" class="oic-split-half right" @click.stop="removeExistingImageFile(row.id, efi)" title="Sil"><i class="ki-outline ki-cross-circle" style="font-size:22px;"></i></button>
+                                                <button class="oic-split-half left" :class="{'full': readonly || isDepleted(row)}" @click.stop="openGallery(row.id, efi)" :title="readonly || isDepleted(row) ? 'Önizle (kilitli)' : 'Önizle'"><i class="ki-outline ki-eye" style="font-size:22px;"></i></button>
+                                                <button v-if="!readonly && !isDepleted(row)" class="oic-split-half right" @click.stop="removeExistingImageFile(row.id, efi)" title="Sil"><i class="ki-outline ki-cross-circle" style="font-size:22px;"></i></button>
                                             </div>
                                         </div>
                                     </div>
@@ -1345,17 +1367,18 @@ export default {
                                             </div>
                                             <div v-else class="oic-thumb-fallback"><i class="ki-outline ki-document" style="font-size:22px;color:#94a3b8"></i><span style="font-size:0.68rem;color:#64748b;margin-top:2px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ img.file?.name }}</span></div>
                                             <div class="oic-image-overlay oic-split" v-if="!img.uploading">
-                                                <button class="oic-split-half left" :class="{'full': readonly}" @click.stop="openGallery(row.id, (existingImages[row.id]||[]).length + imgIdx)" :title="readonly ? 'Önizle (kilitli)' : 'Önizle'"><i class="ki-outline ki-eye" style="font-size:22px;"></i></button>
-                                                <button v-if="!readonly" class="oic-split-half right" @click.stop="removeImageFile(row.id, imgIdx)" title="Sil"><i class="ki-outline ki-cross-circle" style="font-size:22px;"></i></button>
+                                                <button class="oic-split-half left" :class="{'full': readonly || isDepleted(row)}" @click.stop="openGallery(row.id, (existingImages[row.id]||[]).length + imgIdx)" :title="readonly || isDepleted(row) ? 'Önizle (kilitli)' : 'Önizle'"><i class="ki-outline ki-eye" style="font-size:22px;"></i></button>
+                                                <button v-if="!readonly && !isDepleted(row)" class="oic-split-half right" @click.stop="removeImageFile(row.id, imgIdx)" title="Sil"><i class="ki-outline ki-cross-circle" style="font-size:22px;"></i></button>
                                             </div>
                                         </div>
                                     </div>
                                     <!-- Add image button -->
                                     <div class="oic-item-file-upload">
-                                        <button v-if="!readonly" class="oic-item-file-btn oic-item-file-btn-image" @click.stop="triggerImageUpload(row)">
+                                        <button v-if="!readonly && !isDepleted(row)" class="oic-item-file-btn oic-item-file-btn-image" @click.stop="triggerImageUpload(row)">
                                             <i class="ki-outline ki-plus" style="font-size:14px;"></i>
                                             <span>Görsel Ekle</span>
                                         </button>
+                                        <span v-else-if="isDepleted(row)" style="font-size:0.78rem;color:#991b1b;font-weight:600;padding:6px 0;display:inline-flex;align-items:center;gap:4px;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;padding:4px 8px"><i class="ki-outline ki-cross-circle" style="font-size:12px"></i> Kalem tükendi — görsel eklenemez</span>
                                         <span v-else-if="!(existingImages[row.id] || []).length && !(itemImages[row.id] || []).length" style="font-size:0.78rem;color:#94a3b8;font-style:italic;padding:6px 0;display:inline-flex;align-items:center;gap:4px"><i class="ki-outline ki-lock-2" style="font-size:12px"></i> Sipariş kilitli — görsel eklenemez</span>
                                         <input type="file" :ref="el => { if(el) imageFileInputs[row.id] = el }" accept=".jpg,.jpeg,.png,.pdf" style="display:none" @change="onImageFileSelected(row, $event)" />
                                     </div>
@@ -1710,6 +1733,9 @@ export default {
 .oic-eye:hover { background:#f1f5f9; color:#3b82f6; border-color:#bfdbfe; }
 .oic-check { width:24px; height:24px; border-radius:7px; border:2px solid #cbd5e1; background:#fff; display:flex; align-items:center; justify-content:center; color:transparent; transition:all 0.15s; flex-shrink:0; }
 .oic-check.checked { background:#3b82f6; border-color:#3b82f6; color:#fff; box-shadow:0 1px 4px rgba(59,130,246,0.3); }
+.oic-row--depleted { opacity:0.62; background:#f8fafc !important; border-color:#e2e8f0 !important; }
+.oic-row--depleted:hover { background:#f1f5f9 !important; border-color:#cbd5e1 !important; }
+.oic-check--depleted { background:#f1f5f9; border-color:#cbd5e1; color:#94a3b8; cursor:not-allowed; }
 
 /* Split bar */
 .oic-split-bar { display:flex; flex-direction:column; gap:0; background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%); border:1px solid #fde68a; border-top:none; border-bottom-left-radius:12px; border-bottom-right-radius:12px; margin-top:-1px; }
