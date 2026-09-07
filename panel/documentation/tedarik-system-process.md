@@ -2,6 +2,7 @@
 
 > **Purpose:** Malzeme Tedarik İş Süreci — SAP creates purchase orders, suppliers (Tedarikçiler) complete them with serials + files, GDZ/ADM (İB) reviews files and closes orders. This is the single source of truth for testing both panels.
 > **Read after:** `logging-mechanics.md`, `file-upload-versioning-mechanics.md`, `form-system-mechanics.md`, `session-and-login-mechanics.md`, `memory/05-order-system-state.md`.
+> **⚠️ 2026-09-07 late6: BÜTÜN FORMLARI İNDİR + HISTORY — both panels `OForm` now `Bütün Formları İndir` ZIP (`downloadAllOrderFiles` incl. rejected `status 0` + `listOrderFiles` with `last_status`) + `Malzeme Kabul/Cinsi` eye now lists **all** `transfer_kabul/cins` files (was only `tedarikExistingKabul` last) via `showFileHistory('kabul'|'cins')` modal (status pill + `fmtDateTime` + parsed `{"note":"SDASD"}`), removed duplicate `Bütün` from tedarik Step 4 `Lütfen gerekli formları indirin.`**
 > **⚠️ 2026-09-07 late5: CLIENT SYSTEM SPLIT — `GDZ-0000300186` vs `ADM-0000300186` same numeric `lifnr` as `GDZ`/`ADM` via `client_system` entity + `grp_code` sync, `SyncOrders lifnr+system`, `LIFNR+SYSTEM` gates in `Documents/Files/ReportServiceProvider`, `CList`+modals+`Bağlı Cariler` Sistem pill, admin sees all `GDZ+ADM` (9).**
 > **⚠️ 2026-09-07 late4: notifications now `last_trans_at` (status change `05:57:15`) not `i.created_at` birth (`04:56:38`) — fixes `3510004400-1` Kalite `04:56` below `05:44/05:56` files; `OrderItemTable 1325` `Yeni Test` now `(!readonly||isTestRejected)` for `files_rejected` locked.**
 

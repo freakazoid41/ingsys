@@ -905,4 +905,202 @@ class DocumentController extends Controller
         ]);
     }
 
+    /**
+     * Bulk download all entered files for an order (including rejected old versions) as ZIP.
+     * GET /v1/order/{qnid}/download-all  or  POST /v1/order/download-all {qnid}
+     * Shared for both panels (isTedarik agnostic) — uses same LIFNR+SYSTEM scope as fileDetail.
+     */
+    public function downloadAllOrderFiles(Request $request, $qnid = null){
+        $orderQnid = $qnid ?? $request->input('qnid') ?? $request->input('id') ?? $request->route('qnid');
+        if(empty($orderQnid)) return response()->json(['success'=>false,'msg'=>'Sipariş qnid gerekli'],422);
+        // normalize uuid
+        if(!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $orderQnid)){
+            return response()->json(['success'=>false,'msg'=>'Geçersiz qnid'],422);
+        }
+        $order = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.qnid = ? LIMIT 1", [$orderQnid]);
+        if(!$order) return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
+        if($order->type_key !== 'op-doc-order'){
+            // allow item qnid → resolve to parent order
+            if($order->type_key === 'op-doc-order-item'){
+                $parent = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.id = ? LIMIT 1", [(int)$order->parent_id]);
+                if($parent) $order = $parent;
+            }
+        }
+        if(!$order || $order->type_key !== 'op-doc-order') return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
+        $orderId = $order->id;
+
+        // permission: admin or owner reseller (LIFNR+SYSTEM)
+        $permOk = false;
+        if(\App\Services\PermissionService::class && method_exists(\App\Services\PermissionService::class, 'has')){
+            // use PermissionService if needed, but simple: admin sees all, reseller needs LIFNR+SYSTEM match
+        }
+        if(session('type_key') === 'op-pert-reseller'){
+            $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
+            if(empty($clientQnids)) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
+            $qnidIn = "'".implode("','", array_map('noInject', $clientQnids))."'";
+            $lifRows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+            $bySys = ['GDZ'=>[],'ADM'=>[]];
+            foreach($lifRows as $lr){ $sys=strtoupper(trim($lr->sys??'GDZ')); if($sys==='') $sys='GDZ'; if(!in_array($sys,['GDZ','ADM'])) $sys='GDZ'; $v=trim($lr->lifnr??''); if($v!=='') $bySys[$sys][]=$v; }
+            $specRow = \Illuminate\Support\Facades\DB::selectOne("SELECT sce.entity_value as spec, COALESCE(sy.entity_value, 'GDZ') as sys FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id LEFT JOIN sys_con_entities sy ON sy.conn_id=sco.id AND sy.entity_tag='sys_code' WHERE sco.main_id = ? AND sce.entity_tag = 'spec_code' LIMIT 1", [$orderId]);
+            $spec = trim($specRow->spec ?? '');
+            $orderSysRaw = $specRow->sys ?? 'GDZ';
+            // normalize BUKRS → GDZ/ADM
+            $norm = strtoupper(trim($orderSysRaw));
+            $orderSys = 'GDZ';
+            if(in_array($norm,['ADM','5000','A5000'])) $orderSys='ADM';
+            else if(strpos($norm,'ADM')!==false) $orderSys='ADM';
+            $allowed = false;
+            if(in_array($order->qnid ?? '', $clientQnids, true)) $allowed = true;
+            $bucket = $bySys[$orderSys] ?? [];
+            if(in_array($spec, $bucket, true)) $allowed = true;
+            if(!$allowed) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
+        }
+
+        // fetch ALL files for order including rejected old versions (i.status 0/1, no status filter)
+        $files = \Illuminate\Support\Facades\DB::select("
+            SELECT i.qnid as file_qnid, i.id as file_id, i.status as file_status, i.created_at as file_created_at,
+                   i.description as file_desc,
+                   sf.title as file_type, sf.op_key as file_type_key, se.entity_tag,
+                   d.qnid as relation_qnid, dt.op_key as relation_type
+            FROM document_files i
+            JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag = 'document_files'
+            JOIN documents d ON d.id = i.relation_id::int
+            JOIN sys_options dt ON dt.id = d.type_id
+            JOIN sys_options sf ON sf.op_key = 'op-'||split_part(se.entity_tag,'**',1)
+            WHERE (d.id = ? OR d.parent_id = ?)
+              AND se.entity_tag NOT LIKE '%item_images_file%'
+              AND i.description != ''
+            ORDER BY i.created_at DESC
+        ", [$orderId, $orderId]);
+
+        if(empty($files)){
+            return response()->json(['success'=>false,'msg'=>'İndirilecek form bulunamadı'],404);
+        }
+
+        // order_no for zip name
+        $orderNo = \Illuminate\Support\Facades\DB::selectOne("SELECT se.entity_value as v FROM sys_con_entities se JOIN sys_con_ops so ON so.id=se.conn_id WHERE so.main_id=? AND se.entity_tag='order_no' LIMIT 1", [$orderId]);
+        $zipBase = preg_replace('/[^A-Za-z0-9_\-]/','-', $orderNo->v ?? $orderQnid);
+        $zipName = 'order-'.$zipBase.'-tum-formlar.zip';
+        $zipPath = sys_get_temp_dir().'/'.$zipName.'-'.uniqid().'.zip';
+        $zip = new \ZipArchive();
+        if($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true){
+            return response()->json(['success'=>false,'msg'=>'ZIP oluşturulamadı'],500);
+        }
+        $enc = new \App\Providers\EncryptionProvider();
+        $used = [];
+        $added = 0;
+        $skipped = 0;
+        foreach($files as $f){
+            try{
+                $plain = $enc->decrypt($f->file_desc);
+            }catch(\Throwable $e){
+                $skipped++; continue;
+            }
+            $path = storage_path('app/public/documents/'.$plain);
+            if(!file_exists($path)){
+                // try temp location fallback
+                $alt = storage_path('app/public/temp/'.$plain);
+                if(file_exists($alt)) $path = $alt;
+                else { $skipped++; continue; }
+            }
+            $ext = pathinfo($plain, PATHINFO_EXTENSION);
+            if(!$ext) $ext = 'pdf';
+            // file_type may contain spaces — slugify
+            $typeSlug = preg_replace('/[^A-Za-z0-9_\-]/','-', $f->file_type ?? 'form');
+            $typeSlug = trim($typeSlug,'-');
+            if($typeSlug==='') $typeSlug='form';
+            $base = $typeSlug.'-'.substr($f->file_qnid,0,8).'.'.$ext;
+            $name = $base; $c=1;
+            while(isset($used[$name])){
+                $name = pathinfo($base, PATHINFO_FILENAME).'-'.$c++.'.'.$ext;
+            }
+            $used[$name]=true;
+            $zip->addFile($path, $name);
+            $added++;
+        }
+        $zip->close();
+        if($added===0){
+            @unlink($zipPath);
+            return response()->json(['success'=>false,'msg'=>'Dosyalar diskte bulunamadı'],404);
+        }
+        \Illuminate\Support\Facades\Log::info('downloadAllOrderFiles', ['order_qnid'=>$orderQnid,'order_no'=>$orderNo->v ?? '', 'added'=>$added,'skipped'=>$skipped]);
+        return response()->download($zipPath, 'order-'.$zipBase.'-tum-formlar.zip')->deleteFileAfterSend(true);
+    }
+
+    /**
+     * List all entered files for an order (including rejected old versions) with status + inspector.
+     * GET /v1/order/{qnid}/files
+     */
+    public function listOrderFiles(Request $request, $qnid = null){
+        $orderQnid = $qnid ?? $request->input('qnid') ?? $request->input('id') ?? $request->route('qnid');
+        if(empty($orderQnid)) return response()->json(['success'=>false,'msg'=>'Sipariş qnid gerekli'],422);
+        if(!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $orderQnid)){
+            return response()->json(['success'=>false,'msg'=>'Geçersiz qnid'],422);
+        }
+        $order = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.qnid = ? LIMIT 1", [$orderQnid]);
+        if(!$order) return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
+        if($order->type_key !== 'op-doc-order'){
+            if($order->type_key === 'op-doc-order-item'){
+                $parent = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.id = ? LIMIT 1", [(int)$order->parent_id]);
+                if($parent) $order = $parent;
+            }
+        }
+        if(!$order || $order->type_key !== 'op-doc-order') return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
+        $orderId = $order->id;
+        if(session('type_key') === 'op-pert-reseller'){
+            $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
+            if(empty($clientQnids)) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
+            $qnidIn = "'".implode("','", array_map('noInject', $clientQnids))."'";
+            $lifRows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+            $bySys = ['GDZ'=>[],'ADM'=>[]];
+            foreach($lifRows as $lr){ $sys=strtoupper(trim($lr->sys??'GDZ')); if($sys==='') $sys='GDZ'; if(!in_array($sys,['GDZ','ADM'])) $sys='GDZ'; $v=trim($lr->lifnr??''); if($v!=='') $bySys[$sys][]=$v; }
+            $specRow = \Illuminate\Support\Facades\DB::selectOne("SELECT sce.entity_value as spec, COALESCE(sy.entity_value, 'GDZ') as sys FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id LEFT JOIN sys_con_entities sy ON sy.conn_id=sco.id AND sy.entity_tag='sys_code' WHERE sco.main_id = ? AND sce.entity_tag = 'spec_code' LIMIT 1", [$orderId]);
+            $spec = trim($specRow->spec ?? '');
+            $orderSysRaw = $specRow->sys ?? 'GDZ';
+            $norm = strtoupper(trim($orderSysRaw));
+            $orderSys = 'GDZ';
+            if(in_array($norm,['ADM','5000','A5000'])) $orderSys='ADM';
+            else if(strpos($norm,'ADM')!==false) $orderSys='ADM';
+            $allowed = false;
+            if(in_array($order->qnid ?? '', $clientQnids, true)) $allowed = true;
+            $bucket = $bySys[$orderSys] ?? [];
+            if(in_array($spec, $bucket, true)) $allowed = true;
+            if(!$allowed) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
+        }
+        $files = \Illuminate\Support\Facades\DB::select("
+            SELECT i.qnid as file_qnid, i.id as file_id, i.status as file_status, i.created_at as file_created_at,
+                   i.description as file_desc,
+                   sf.title as file_type, sf.op_key as file_type_key, se.entity_tag,
+                   d.qnid as relation_qnid, dt.op_key as relation_type,
+                   (SELECT json_build_object('op_key', sot.op_key, 'title', sot.title, 'name', p.name, 'note', t.description, 'created_at', t.created_at)
+                    FROM transactions t
+                    JOIN sys_options sot ON sot.id = t.type_id
+                    JOIN user_logs ul ON ul.id = t.log_id
+                    JOIN users u ON u.id = ul.user_id
+                    JOIN persons p ON p.id = u.person_id
+                    WHERE t.target_id = i.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) as last_status
+            FROM document_files i
+            JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag = 'document_files'
+            JOIN documents d ON d.id = i.relation_id::int
+            JOIN sys_options dt ON dt.id = d.type_id
+            JOIN sys_options sf ON sf.op_key = 'op-'||split_part(se.entity_tag,'**',1)
+            WHERE (d.id = ? OR d.parent_id = ?)
+              AND se.entity_tag NOT LIKE '%item_images_file%'
+              AND i.description != ''
+            ORDER BY i.created_at DESC
+        ", [$orderId, $orderId]);
+        foreach($files as &$f){
+            if(is_string($f->last_status)){
+                try{ $f->last_status = json_decode($f->last_status, true) ?? json_decode($f->last_status); }catch(\Throwable $e){}
+            }
+            // decrypt display name for UI
+            try{
+                $enc = new \App\Providers\EncryptionProvider();
+                $plain = $enc->decrypt($f->file_desc);
+                $f->display_name = $plain;
+            }catch(\Throwable $e){ $f->display_name = $f->file_qnid; }
+        }
+        return response()->json(['success'=>true,'data'=>['files'=>$files]]);
+    }
+
 }

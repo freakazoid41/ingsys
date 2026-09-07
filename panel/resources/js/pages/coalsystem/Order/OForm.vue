@@ -7,7 +7,7 @@
     import Swal from 'sweetalert2';
     import Form from '@/components/coalparts/Form.vue';
     import OrderItemTable from '@/components/Order/OrderItemTable.vue';
-    import { formatDate } from '@/lib/dateUtils';
+    import { formatDate, fmtDateTime } from '@/lib/dateUtils';
     import { validatePrintForm, downloadPdf } from '@/lib/pdf.js';
     import { escapeHtml } from '@/lib/escape.js';
     import { noteOf } from '@/lib/statusUtils.js';
@@ -84,6 +84,7 @@
                 itemRemovedFiles: [],
                 printingKabul: false,
                 printingCins: false,
+                downloadingAll: false,
                 isSubmitting: false,
                 // tedarik detail (fresh order screenshot)
                 tedarikDesc: '',
@@ -125,6 +126,22 @@
             parentOrderNo(){
                 const orderNo = this.orderEntities?.order_no || '';
                 return this.isCloneOrder ? orderNo.replace(/\-\d+$/, '') : null;
+            },
+            hasAnyFile(){
+                // show button always, but disable if truly no file yet (order-level or item)
+                if(this.tedarikExistingKabul || this.tedarikExistingCins) return true;
+                try{
+                    const it = this.$refs.itemTable;
+                    if(it){
+                        // any existing file or currently selected file
+                        if(Object.keys(it.itemFiles?.testFiles || {}).length) return true;
+                        if(Object.keys(it.itemFiles?.images || {}).some(k=> (it.itemFiles.images[k]||[]).length)) return true;
+                        if(it.existingTestFiles && Object.values(it.existingTestFiles).some(arr=> Array.isArray(arr) && arr.length)) return true;
+                        if(it.existingImages && Object.values(it.existingImages).some(arr=> Array.isArray(arr) && arr.length)) return true;
+                    }
+                }catch(e){}
+                // fallback: allow download, backend will 404 if none
+                return true;
             },
             orderEntities(){
                 return this.orderFormEntities;
@@ -835,7 +852,101 @@
                     this.Swal.fire({ icon:'error', title:'PDF Oluşturulamadı', text:'PDF indirilemedi: ' + e.message, confirmButtonText:'Tamam' });
                 } finally { this.printingCins = false; }
             },
+            async downloadAllForms(){
+                if(this.downloadingAll) return;
+                if(!this.id){
+                    this.Swal.fire({ icon:'warning', title:'Sipariş bulunamadı', text:'Qnid eksik', confirmButtonText:'Tamam' });
+                    return;
+                }
+                this.downloadingAll = true;
+                this.Swal.fire({ title:'İndiriliyor…', html:'<div style="display:flex;justify-content:center;padding:10px"><i class="ki-outline ki-loading" style="font-size:26px;animation:spin 1s linear infinite;color:#FF5A1F"></i></div><div style="font-size:0.85rem;color:#64748b">Formlar hazırlanıyor, lütfen bekleyin</div>', allowOutsideClick:false, showConfirmButton:false, didOpen:()=>this.Swal.showLoading() });
+                try{
+                    const token = localStorage.getItem('token') || '';
+                    const res = await fetch(`/api/v1/order/${this.id}/download-all`, { method:'GET', headers: { 'Authorization': `Bearer ${token}`, 'Accept':'application/json' } });
+                    if(!res.ok){
+                        let msg = `HTTP ${res.status}`;
+                        try{ const j=await res.json(); msg=j.msg||j.message||msg; }catch(e){}
+                        throw new Error(msg);
+                    }
+                    const blob = await res.blob();
+                    const cd = res.headers.get('Content-Disposition') || '';
+                    let filename = `order-${this.orderEntities?.order_no || this.id}-tum-formlar.zip`;
+                    const m = cd.match(/filename="?([^"]+)"?/);
+                    if(m) filename = m[1];
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+                    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+                    this.Swal.close();
+                    this.plib.toast(this.Swal,'success','İndirildi');
+                }catch(e){
+                    this.Swal.close();
+                    this.Swal.fire({ icon:'error', title:'İndirilemedi', text:e.message||'Bilinmeyen hata', confirmButtonText:'Tamam' });
+                }finally{ this.downloadingAll = false; }
+            },
+            async showFileHistory(kind){
+                const isKabul = kind === 'kabul';
+                const title = isKabul ? 'Malzeme Kabul Formu — Geçmiş' : 'Malzeme Cinsi Kabul Formu — Geçmiş';
+                const filterTag = isKabul ? 'transfer_kabul_file' : 'transfer_cins_file';
+                this.Swal.fire({ title, html:'<div style="padding:20px;text-align:center;color:#64748b;"><i class="ki-outline ki-loading" style="font-size:22px;animation:spin 1s linear infinite;"></i><div style="margin-top:8px;">Yükleniyor…</div></div>', showConfirmButton:false, allowOutsideClick:false, didOpen:()=>this.Swal.showLoading() });
+                try{
+                    const token = localStorage.getItem('token') || '';
+                    const res = await fetch(`/api/v1/order/${this.id}/files`, { headers:{ 'Authorization':`Bearer ${token}` } });
+                    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const j = await res.json();
+                    const files = (j.data?.files || []).filter(f => (f.entity_tag||'').includes(filterTag));
+                    if(!files.length){
+                        this.Swal.fire({ icon:'info', title:'Kayıt yok', text:'Bu tipte henüz form yüklenmemiş.', confirmButtonText:'Tamam' });
+                        return;
+                    }
+                    const rows = files.map(f=>{
+                        const st = f.last_status || {};
+                        const op = st.op_key || '';
+                        const statusText = op==='doc_file_accepted' ? 'Onaylandı' : op==='doc_file_rejected' ? 'Reddedildi' : op==='doc_file_refreshed' ? 'Yenilendi' : 'Beklemede';
+                        const statusColor = op==='doc_file_accepted' ? '#16a34a' : op==='doc_file_rejected' ? '#ef4444' : op==='doc_file_waiting' ? '#f59e0b' : '#64748b';
+                        const bg = op==='doc_file_accepted' ? '#dcfce7' : op==='doc_file_rejected' ? '#fee2e2' : '#fef3c7';
+                        const who = this.escapeHtml(st.name || '-');
+                        const whenRaw = st.created_at || f.file_created_at;
+                        const when = this.fmtDateTime(whenRaw);
+                        // st.note is JSON string like {"actor":"Admin ...","from":"doc_file_...","to":"...","note":"SDASD"} or null
+                        let noteText = '';
+                        if(st.note){
+                            try{
+                                const parsed = JSON.parse(st.note);
+                                if(parsed && typeof parsed === 'object'){
+                                    noteText = parsed.note ?? parsed.Note ?? '';
+                                }else{
+                                    noteText = String(parsed);
+                                }
+                            }catch(e){
+                                noteText = String(st.note);
+                            }
+                            if(noteText === 'null' || noteText === 'undefined') noteText = '';
+                            noteText = String(noteText||'').trim();
+                        }
+                        const note = noteText ? `<div style="margin-top:4px;padding:6px 8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;font-size:12px;color:#9a3412;"><b>Not:</b> ${this.escapeHtml(noteText)}</div>` : '';
+                        const qnid = this.escapeHtml(f.file_qnid);
+                        return `<div style="display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;margin-bottom:8px;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;background:${bg};color:${statusColor};border:1px solid ${statusColor}20;">${statusText}</span>
+                                <span style="font-size:12px;color:#64748b;flex:1;">${when} • ${who} tarafından</span>
+                                <button data-qnid="${qnid}" class="hist-preview" style="padding:6px 10px;border-radius:8px;border:1px solid #e0e7ff;background:#eef2ff;color:#4f46e5;font-size:12px;font-weight:600;cursor:pointer;"><i class="ki-outline ki-eye" style="font-size:12px;"></i> Gör</button>
+                                <button data-qnid="${qnid}" class="hist-download" style="padding:6px 10px;border-radius:8px;border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;font-size:12px;font-weight:600;cursor:pointer;"><i class="ki-outline ki-file-down" style="font-size:12px;"></i> İndir</button>
+                            </div>
+                            <div style="font-size:11px;color:#94a3b8;word-break:break-all;">${qnid}</div>
+                            ${note}
+                        </div>`;
+                    }).join('');
+                    const html = `<div style="max-height:55vh;overflow-y:auto;padding:4px;">${rows}<div style="margin-top:10px;font-size:11px;color:#94a3b8;text-align:center;">Toplam ${files.length} kayıt • en yeni üstte</div></div>`;
+                    this.Swal.fire({ title, html, width:'640px', showCloseButton:true, showConfirmButton:false, didOpen:()=>{
+                        document.querySelectorAll('.hist-preview').forEach(b=> b.addEventListener('click', ()=> window.open('/order-file/'+b.dataset.qnid, '_blank')));
+                        document.querySelectorAll('.hist-download').forEach(b=> b.addEventListener('click', ()=> { const u='/order-file/'+b.dataset.qnid; const a=document.createElement('a'); a.href=u; a.download=''; document.body.appendChild(a); a.click(); a.remove(); }));
+                    }});
+                }catch(e){
+                    this.Swal.fire({ icon:'error', title:'Yüklenemedi', text:e.message, confirmButtonText:'Tamam' });
+                }
+            },
             formatDate,
+            fmtDateTime,
             escapeHtml,
             noteOf,
             getFieldValue(name){
@@ -1133,6 +1244,16 @@
                 </div>
             </div>
 
+            <!-- File History — Bütün Formları + entered Malzeme forms history (lists ALL, incl. rejected old versions) -->
+            <div class="tedarik-step-card" v-if="id && loadForm" style="border:1px solid #e2e8f0;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; padding:14px;">
+                    <button type="button" @click="downloadAllForms" :disabled="downloadingAll" class="tedarik-orange-btn"><i :class="downloadingAll ? 'ki-outline ki-loading' : 'ki-outline ki-file-down'" :style="downloadingAll ? 'animation:spin 1s linear infinite' : ''"></i> {{ downloadingAll ? 'İndiriliyor…' : 'Bütün Formları İndir' }}</button>
+                    <button type="button" @click="showFileHistory('kabul')" class="tedarik-orange-btn"><i class="ki-outline ki-eye"></i> Malzeme Kabul Formu</button>
+                    <button type="button" @click="showFileHistory('cins')" class="tedarik-orange-btn"><i class="ki-outline ki-eye"></i> Malzeme Cinsi Kabul Formu</button>
+                </div>
+                <div style="padding:0 14px 10px; font-size:11.5px; color:#64748b;">Onaylanan, reddedilen ve bekleyen <b>tüm</b> formlar — ZIP ile toplu veya göz ile tek tek, geçmiş dahil.</div>
+            </div>
+
             <!-- Step 6 -->
             <div class="tedarik-step-card" v-if="canSend || orderStatus === 'doc_trans_order_files_rejected'">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">6</span><span>Lütfen “Gönder” butonuna tıklamadan önce verilerin doğruluğuna emin olunuz.</span></div>
@@ -1186,7 +1307,11 @@
                     <i class="ki-outline ki-information-2" style="font-size:16px;"></i>
                     <span>Bu sipariş daha önce parçalı gönderildiği için artık sadece <b>Parçalı</b> gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.</span>
                 </div>
-                <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:10px;">
+                <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+                    <button type="button" @click="downloadAllForms" :disabled="downloadingAll" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:10px;border:1px solid #FF5A1F;background:#FF5A1F;color:#fff;font-weight:700;cursor:pointer;">
+                        <i :class="downloadingAll ? 'ki-outline ki-loading' : 'ki-outline ki-file-down'" :style="downloadingAll ? 'font-size:16px;animation:spin 1s linear infinite' : 'font-size:16px;'"></i>
+                        <span>{{ downloadingAll ? 'İndiriliyor…' : 'Bütün Formları İndir' }}</span>
+                    </button>
                     <button type="button" @click="printMalzemeKabul" class="print-kabul-btn" :disabled="printingKabul">
                         <i :class="printingKabul ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingKabul ? 'font-size:16px;animation:spin 1s linear infinite' : ''"></i>
                         <span>{{ printingKabul ? 'Oluşturuluyor...' : 'Malzeme Kabul Formu Yazdır' }}</span>
@@ -1200,6 +1325,13 @@
             <div style="background:#fff;padding:0;">
                 <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" :readonly="isLocked" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
             </div>
+            <!-- Bütün Formları İndir + entered Malzeme history — admin (lists ALL, incl. rejected old versions) -->
+            <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <button type="button" @click="downloadAllForms" :disabled="downloadingAll" class="tedarik-orange-btn" style="background:#3b82f6;border-color:#3b82f6; color:#fff;"><i :class="downloadingAll ? 'ki-outline ki-loading' : 'ki-outline ki-file-down'" :style="downloadingAll ? 'animation:spin 1s linear infinite' : ''"></i> {{ downloadingAll ? 'İndiriliyor…' : 'Bütün Formları İndir' }}</button>
+                <button type="button" @click="showFileHistory('kabul')" class="tedarik-orange-btn" style="background:#FF5A1F;border-color:#FF5A1F;"><i class="ki-outline ki-eye"></i> Malzeme Kabul Formu</button>
+                <button type="button" @click="showFileHistory('cins')" class="tedarik-orange-btn" style="background:#FF5A1F;border-color:#FF5A1F;"><i class="ki-outline ki-eye"></i> Malzeme Cinsi Kabul Formu</button>
+            </div>
+            <div style="margin-top:6px; font-size:11.5px; color:#64748b;">Onaylanan, reddedilen ve bekleyen <b>tüm</b> formlar — ZIP ile toplu veya göz ile geçmiş dahil.</div>
         </div>
 
         <div class="clone-origin-card mb-6" v-if="id && loadForm && isCloneOrder">

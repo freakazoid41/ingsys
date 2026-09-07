@@ -8,7 +8,6 @@
 ** optimizasyon ve kontrol **
 
 
-** sipairş detayında eklenen bütün dosyaları indiren button
 
 ** excel çıktıları
 ** ön panel aramalar için detaylı filtreler

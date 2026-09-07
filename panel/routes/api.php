@@ -68,6 +68,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     Route::post('/v1/orders/cancel',                   [DocumentController::class, 'cancelOrder']);
     Route::post('/v1/orders/rename',                   [DocumentController::class, 'renameOrder']);
     Route::get('/v1/file-detail/{id}',                 [DocumentController::class, 'fileDetail']);
+    Route::get('/v1/order/{qnid}/files',               [DocumentController::class, 'listOrderFiles']);
+    Route::get('/v1/order/{qnid}/download-all',        [DocumentController::class, 'downloadAllOrderFiles']);
+    Route::post('/v1/order/download-all',              [DocumentController::class, 'downloadAllOrderFiles']);
 
     Route::any('/v1/dashboard/{type}/{period?}',       [ReportController::class, 'dashboard']);
     Route::any('/v1/setbackground',                    [PersonsController::class, 'changeBackground']);
