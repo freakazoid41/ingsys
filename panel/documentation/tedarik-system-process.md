@@ -2,6 +2,7 @@
 
 > **Purpose:** Malzeme Tedarik İş Süreci — SAP creates purchase orders, suppliers (Tedarikçiler) complete them with serials + files, GDZ/ADM (İB) reviews files and closes orders. This is the single source of truth for testing both panels.
 > **Read after:** `logging-mechanics.md`, `file-upload-versioning-mechanics.md`, `form-system-mechanics.md`, `session-and-login-mechanics.md`, `memory/05-order-system-state.md`.
+> **⚠️ 2026-09-07 late5: CLIENT SYSTEM SPLIT — `GDZ-0000300186` vs `ADM-0000300186` same numeric `lifnr` as `GDZ`/`ADM` via `client_system` entity + `grp_code` sync, `SyncOrders lifnr+system`, `LIFNR+SYSTEM` gates in `Documents/Files/ReportServiceProvider`, `CList`+modals+`Bağlı Cariler` Sistem pill, admin sees all `GDZ+ADM` (9).**
 > **⚠️ 2026-09-07 late4: notifications now `last_trans_at` (status change `05:57:15`) not `i.created_at` birth (`04:56:38`) — fixes `3510004400-1` Kalite `04:56` below `05:44/05:56` files; `OrderItemTable 1325` `Yeni Test` now `(!readonly||isTestRejected)` for `files_rejected` locked.**
 
 **Key files:**
@@ -40,10 +41,10 @@ Strict guards 2026-09-04: `cancelOrder → per-05-04 ONLY`, `renameOrder → per
 
 ## 2. Data Model — Critical
 
-1. **Order ↔ Client link = `LIFNR` string (no FK):** `order.spec_code = client.lifnr` entity `Cari Kodu`, keep leading zeros `0000300184`.
+1. **Order ↔ Client link = `LIFNR` + `SYSTEM` composite (no FK):** `order.spec_code = client.lifnr AND order.sys_code (BUKRS→GDZ/ADM) = client.client_system` (`GDZ/ADM`, `client_system` entity + `documents.grp_code` synced). Same numeric `0000300186` can be `GDZ-0000300186` and `ADM-0000300186`. `Cari Kodu` numeric kept, display `SYSTEM-LIFNR`. **2026-09-07 late5.**
 2. **Order Items = `op-doc-order-item` docs** `parent_id = order.id` (not `documents.parent_id` legacy). Fields `prod_code (= MATNR**EBELP)`, `title (TXZ01)`, `quantity (MENGE)`, `unit (MEINS: ST/KG/M)`.
 3. **Serials = `op-doc-order-serial` docs** `parent_id = item.id`. Entities `serial_no`, `production_date (YYYY-MM-01)`, `quantity`, `unit`. Parent item flag `has_serials=1`.
-4. **Forms:** `op-doc-order-form` (order_no/buying_no(SUBMI)/spec_code/sys_code/ctitle(MCOD1)/created_at(BEDAT d/m/Y) readOnly + `order_desc` textarea rows3 + `imalatci_firma_adi` + `transfer_kabul` `transfer_kabul_file` single `hideAdd:true` + `transfer_cins` `transfer_cins_file` single `hideAdd:true`), `op-doc-order-item-form` (prod_code/title/quantity/unit readOnly + `item_test_docs` `item_test_file` single + `item_images` `item_images_file` multi `**img-{id}`), `op-doc-order-serial-form`, `op-doc-client-form + lifnr`.
+4. **Forms:** `op-doc-order-form` (order_no/buying_no(SUBMI)/spec_code/sys_code/ctitle(MCOD1)/created_at(BEDAT d/m/Y) readOnly + `order_desc` textarea rows3 + `imalatci_firma_adi` + `transfer_kabul` `transfer_kabul_file` single `hideAdd:true` + `transfer_cins` `transfer_cins_file` single `hideAdd:true`), `op-doc-order-item-form` (prod_code/title/quantity/unit readOnly + `item_test_docs` `item_test_file` single + `item_images` `item_images_file` multi `**img-{id}`), `op-doc-order-serial-form`, `op-doc-client-form + lifnr + client_system (GDZ/ADM select, grp_code sync)`.
 5. **Status `op-trans-op-doc-order`:** `doc_trans_order_created → doc_trans_order_transfer_sent (Dosyalar Kontrol Ediliyor) → doc_trans_order_ready_for_shipment (Sevke Hazır) → doc_trans_order_approved (Kalite Onayı Verildi) / doc_trans_order_rejected` + `doc_trans_order_files_rejected (Reddedilen Dosyalar Mevcut, auto)`. `documents.status` binary (1 active, 0 cancelled), rich history in `transactions` `op_id 0/1`.
 6. **Files:** `op-transfer_kabul_file`, `op-transfer_cins_file`, `op-item_test_file`, `op-item_images_file` in `op-file-types`. Files linked via `sys_con_entities table_tag=document_files entity_value=fileId`. Versioning = new `sys_con_entities` row per upload + `document_files status=1` active, `replaced_id` backward chain.
 

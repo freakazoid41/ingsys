@@ -34,7 +34,7 @@
 
 ## 2. Data Model — CRITICAL (Master's rules)
 
-1. **Order ↔ Client link = `LIFNR` string** (no FK): `order.spec_code = client.lifnr`. `Cari Kodu` = `LIFNR` from SAP, **keep leading zeros**.
+1. **Order ↔ Client link = `LIFNR` + `SYSTEM` composite** (no FK): `order.spec_code = client.lifnr AND order.sys_code (BUKRS→GDZ/ADM) = client.client_system` (`GDZ/ADM`, stored as `client_system` entity, `documents.grp_code` synced). Same numeric `0000300186` can be `GDZ-0000300186` (`7a15… YILDIZ TEKSTIL`) and `ADM-0000300186` (`5e5e… YILDIZ ADM`). **2026-09-07 late5.** `Cari Kodu` = `LIFNR` numeric (keep leading zeros), display as `SYSTEM-LIFNR`.
 2. **Order Items = own `op-doc-order-item` docs** linked `parent_id = order.id`.
 3. **SAP sends ONLY order items** (flat rows). Our cron **groups by `EBELN`** → creates main `op-doc-order` + `op-doc-order-item` rows.
 4. **Partial split → clone** as new `op-doc-order` `transfer_no = EBELN-X`. Clone only exists if partially split.
