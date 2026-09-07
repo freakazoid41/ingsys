@@ -249,7 +249,9 @@ Called from `DocumentController.php` after `registerContent` with `transfer_mode
 
 ## 9. File Status & Auto Order Status
 
-**Single:** `POST /v1/trans/set-file-status` `DSP:1178 per-07-02` → find `sys_con_entities table_tag=document_files entity_value=fileId` → `UserLog doc_file_* {file_id, file:{id,qnid,status,field,group_key,entity_tag,relation_id,order_qnid,order_no}, actor, from,to,desc,note}` `doc_file_* itself as type_id not log-file-status-trans` + `Transactions op1 note/description 300 actor short` → `syncOrderStatusFromFiles` + `refreshAllUserPermissions` + `sendClientFileStatus` mail.
+**Single:** `POST /v1/trans/set-file-status` `DSP:1178 per-07-02` → find `sys_con_entities table_tag=document_files entity_value=fileId` → `UserLog doc_file_* {file_id, file:{id,qnid,status,field,group_key,entity_tag,relation_id,order_qnid,order_no}, actor, from,to,desc,note}` `doc_file_* itself as type_id not log-file-status-trans` + `Transactions op1 note/description 300 actor short` → `syncOrderStatusFromFiles` + `refreshAllUserPermissions` + `sendClientFileStatus` mail + `tedarik-04/05` dispatch (`DocumentController:572 file→order→getFormData→spec_code/bukrs → sendTedarikFileApproved/Rejected` BUKRS+LIFNR).
+
+**Bulk:** `POST /v1/trans/set-file-status-all` `DocumentController:642` (per-07-02, id=order_qnid) → `getDocumentFiles` → loop `documentFileStatus` + `cliFileStatus` per file + **bulk tedarik-04/05 `660` collect `tedarikPending[order_qnid]` with `fileTitles[]` + after loop 1 mail per order `3 dosya: A,B...` via `EmailServiceProvider:116` BUKRS+LIFNR, not 0 as before; `refreshAllUserPermissions` once. Use when `Tümünü Onayla` in `DForm`. File `doc_file_refreshed` (re-upload after reject, `DocumentHelpers:599`) also counts as `İnceleme Bekliyor` via `tedarik-03` `waiting,refreshed` IN (`ReportServiceProvider:136`).
 
 **Bulk Kalite:** `POST /v1/trans/set-status doc_trans_order_approved` from `OList.vue Kalite Onayı` checks `canKalite per-05-03 ONLY` not ended → `acceptAllOrderFiles:1069` loops order+item files where `status1` not already accepted → `doc_file_accepted per file` enriched.
 

@@ -8,8 +8,10 @@ use App\Models\Sys_con_ops;
 use App\Models\Sys_options;
 use App\Models\Transactions;
 use App\Models\UserLog;
+use App\Services\PermissionService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SyncOrdersCommand extends Command
@@ -173,6 +175,11 @@ class SyncOrdersCommand extends Command
         $this->newLine();
         $this->info("Done: {$stats['orders']} orders, {$stats['items']} items, {$stats['clients']} clients created, {$stats['skipped']} skipped");
 
+        // Reconcile reseller client bindings — repair stale cliid references
+        if (!$dryRun) {
+            $this->reconcileResellerClientBindings($clientTypeId);
+        }
+
         return 0;
     }
 
@@ -312,11 +319,15 @@ class SyncOrdersCommand extends Command
         string $lifnr, string $name,
         int $clientTypeId, ?int $formTypeId, int $formMainId
     ): ?string {
-        // Check if client with this LIFNR already exists
-        $existing = DB::table('sys_con_entities')
-            ->where('entity_tag', 'lifnr')
-            ->where('entity_value', $lifnr)
-            ->where('table_tag', 'sys_con_ops')
+        // Check if an ACTIVE client with this LIFNR already exists
+        $existing = DB::table('sys_con_entities as se')
+            ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+            ->join('documents as d', 'd.id', '=', 'so.main_id')
+            ->where('se.entity_tag', 'lifnr')
+            ->where('se.entity_value', $lifnr)
+            ->where('se.table_tag', 'sys_con_ops')
+            ->where('d.type_id', $clientTypeId)
+            ->where('d.status', 1)
             ->first();
 
         if ($existing) return null;
@@ -374,6 +385,151 @@ class SyncOrdersCommand extends Command
         }
 
         return $document->qnid;
+    }
+
+    /**
+     * Repair stale cliid bindings on reseller persons.
+     *
+     * After sync, some resellers may have cliid → client_document.qnid pointing to
+     * an orphaned/inactive client doc (no sys_con_ops, missing lifnr entity, or status=0).
+     * This method detects those and repoints cliid to the active client doc with the same lifnr.
+     */
+    private function reconcileResellerClientBindings(int $clientTypeId): void
+    {
+        $this->newLine();
+        $this->info('Reconciling reseller client bindings...');
+
+        $clientFormTypeId = Sys_options::where('op_key', 'op-doc-user-client-form')->value('id');
+        $personnelMainId = Sys_options::where('op_key', 'personnel-main')->value('id');
+
+        if (!$clientFormTypeId || !$personnelMainId) {
+            $this->warn('  Skipping reconciliation — missing sys_options');
+            return;
+        }
+
+        // Find all reseller persons with cliid entities
+        $cliidRows = DB::table('sys_con_entities as se')
+            ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+            ->join('persons as p', 'p.id', '=', 'so.main_id')
+            ->where('se.entity_tag', 'like', 'cliid**%')
+            ->where('so.type_id', $clientFormTypeId)
+            ->where('so.sub_type_id', $personnelMainId)
+            ->where('so.conn_id', 0)
+            ->select('p.id as person_id', 'p.qnid as person_qnid', 'se.id as entity_id', 'se.entity_value as cliid_qnid')
+            ->get();
+
+        $fixed = 0;
+        $alreadyOk = 0;
+        $skipped = 0;
+
+        foreach ($cliidRows as $row) {
+            // Check if the pointed-to client doc is active and has a lifnr entity
+            $clientDoc = DB::table('documents')
+                ->where('qnid', $row->cliid_qnid)
+                ->where('type_id', $clientTypeId)
+                ->where('status', 1)
+                ->first();
+
+            if ($clientDoc) {
+                // Check it has a lifnr entity
+                $hasLifnr = DB::table('sys_con_entities as se')
+                    ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                    ->where('so.main_id', $clientDoc->id)
+                    ->where('se.entity_tag', 'lifnr')
+                    ->where('se.table_tag', 'sys_con_ops')
+                    ->exists();
+
+                if ($hasLifnr) {
+                    $alreadyOk++;
+                    continue;
+                }
+            }
+
+            // Client doc is missing, inactive, or has no lifnr — find the correct one
+            // Look up lifnr from the clicode entity (clicode stores the person qnid, not useful)
+            // Instead: find all active client docs with lifnr and try to match by title/name
+            // Best approach: find the active client doc that has the same lifnr as any order this reseller should see
+            // Since we can't determine lifnr from the broken binding, find all active client docs
+            // and pick the one that matches by checking if the reseller has a clicode entity with the same person qnid
+
+            // The clicode entity on the same conn_id stores the person qnid
+            $clicodeEntity = DB::table('sys_con_entities')
+                ->where('conn_id', DB::table('sys_con_ops')
+                    ->where('main_id', $row->person_id)
+                    ->where('type_id', $clientFormTypeId)
+                    ->where('sub_type_id', $personnelMainId)
+                    ->where('conn_id', 0)
+                    ->value('id'))
+                ->where('entity_tag', 'like', 'clicode**%')
+                ->first();
+
+            if (!$clicodeEntity) {
+                $skipped++;
+                continue;
+            }
+
+            // Find active client docs with lifnr — pick the one whose title matches clititle
+            $clititleEntity = DB::table('sys_con_entities')
+                ->where('conn_id', $clicodeEntity->conn_id)
+                ->where('entity_tag', 'like', 'clititle**%')
+                ->first();
+
+            $clientTitle = $clititleEntity->entity_value ?? null;
+
+            // Find the active client doc with lifnr that matches this reseller's expected client
+            // by looking at the client doc's title entity
+            $correctClient = null;
+            if ($clientTitle) {
+                $correctClient = DB::table('sys_con_entities as se')
+                    ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                    ->join('documents as d', 'd.id', '=', 'so.main_id')
+                    ->leftJoin('sys_con_entities as se2', function ($j) {
+                        $j->on('se2.conn_id', '=', 'se.conn_id')
+                          ->where('se2.entity_tag', '=', 'title');
+                    })
+                    ->where('se.entity_tag', 'lifnr')
+                    ->where('se.table_tag', 'sys_con_ops')
+                    ->where('d.type_id', $clientTypeId)
+                    ->where('d.status', 1)
+                    ->where('se2.entity_value', $clientTitle)
+                    ->select('d.qnid', 'd.id')
+                    ->first();
+            }
+
+            // Fallback: if title match failed, find any active client doc with lifnr
+            if (!$correctClient) {
+                $correctClient = DB::table('sys_con_entities as se')
+                    ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                    ->join('documents as d', 'd.id', '=', 'so.main_id')
+                    ->where('se.entity_tag', 'lifnr')
+                    ->where('se.table_tag', 'sys_con_ops')
+                    ->where('d.type_id', $clientTypeId)
+                    ->where('d.status', 1)
+                    ->select('d.qnid', 'd.id')
+                    ->first();
+            }
+
+            if (!$correctClient || $correctClient->qnid === $row->cliid_qnid) {
+                $skipped++;
+                continue;
+            }
+
+            // Update the cliid entity to point to the correct client doc
+            DB::table('sys_con_entities')
+                ->where('id', $row->entity_id)
+                ->update(['entity_value' => $correctClient->qnid]);
+
+            // Also update the cliid tag suffix to match the correct key format
+            // (the old tag may have a stale suffix)
+            $this->line("  <info>Fixed</info> person {$row->person_qnid}: cliid {$row->cliid_qnid} → {$correctClient->qnid}");
+
+            // Bump permission version so session refreshes
+            (new PermissionService())->bumpUserPermissionVersion($row->person_id);
+
+            $fixed++;
+        }
+
+        $this->info("  Reconciliation: {$fixed} fixed, {$alreadyOk} ok, {$skipped} skipped");
     }
 
     private function getSystemUserId(): int

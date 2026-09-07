@@ -14,7 +14,7 @@ function parseOrder(o) {
       if (d.Key === 'ctitle' && !ctitle) ctitle = d.Value;
     });
   } catch {}
-  return { orderNo: orderNo || o.qnid || '-', ctitle, qnid: o.qnid || o.id || o.relation_qnid || '' };
+  return { orderNo: orderNo || o.qnid || '-', ctitle, qnid: o.qnid || o.id || o.relation_qnid || '', main_id: o.main_id || 0, created_at: o.created_at || '' };
 }
 
 function parseFile(f) {
@@ -22,6 +22,8 @@ function parseFile(f) {
     orderNo: f.group_key || '-',
     ctitle: f.ctitle || '',
     qnid: f.qnid || f.id || f.relation_qnid || '',
+    main_id: f.main_id || 0,
+    created_at: f.created_at || '',
   };
 }
 
@@ -30,7 +32,7 @@ function uid(cat, qnid) {
   catch { return `${cat}-${qnid}-${Math.random().toString(36).slice(2, 8)}`; }
 }
 
-function makeRow(cat, orderNo, ctitle, qnid, created_at) {
+function makeRow(cat, orderNo, ctitle, qnid, created_at, main_id) {
   const meta = getCatMeta(cat);
   return {
     id: uid(cat, qnid),
@@ -39,6 +41,7 @@ function makeRow(cat, orderNo, ctitle, qnid, created_at) {
     group_key: orderNo,
     ctitle,
     created_at: created_at || '',
+    main_id: main_id || 0,
     _created_at_fmt: fmtDateTime(created_at),
     last_status: JSON.stringify({ op_key: cat, title: meta.label }),
   };
@@ -58,14 +61,14 @@ export function buildNotificationRows(notifications, rejectedFiles = []) {
     if (!Array.isArray(arr)) return;
     arr.forEach(o => {
       const m = parseOrder(o);
-      rows.push(makeRow(cat, m.orderNo, m.ctitle, m.qnid, o.created_at));
+      rows.push(makeRow(cat, m.orderNo, m.ctitle, m.qnid, m.created_at || o.created_at, m.main_id || o.main_id));
     });
   };
   const addFiles = (arr, cat) => {
     if (!Array.isArray(arr)) return;
     arr.forEach(f => {
       const m = parseFile(f);
-      rows.push(makeRow(cat, m.orderNo, m.ctitle, m.qnid, f.created_at));
+      rows.push(makeRow(cat, m.orderNo, m.ctitle, m.qnid, m.created_at || f.created_at, m.main_id || f.main_id));
     });
   };
 
@@ -78,10 +81,19 @@ export function buildNotificationRows(notifications, rejectedFiles = []) {
   addOrders(n.orderRejected, 'tedarik-07');
 
   (rejectedFiles || []).forEach(fl => {
-    rows.push(makeRow('rejected', fl.cli_id || '', '', fl.cli_id || '', fl.created_at || ''));
+    rows.push(makeRow('rejected', fl.cli_id || '', '', fl.cli_id || '', fl.created_at || '', 0));
   });
 
-  rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  // newest first — mirrors SQL `order by id desc` via created_at (cross-table ids aren't comparable)
+  // so we sort by created_at desc primary, then main_id desc (i.id) fallback, then qnid
+  rows.sort((a, b) => {
+    const aT = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bT = b.created_at ? new Date(b.created_at).getTime() : 0;
+    if (aT !== bT) return bT - aT;
+    const aId = parseInt(a.main_id || 0, 10), bId = parseInt(b.main_id || 0, 10);
+    if (aId && bId && aId !== bId) return bId - aId;
+    return String(b.qnid || '').localeCompare(String(a.qnid || ''));
+  });
   return rows;
 }
 

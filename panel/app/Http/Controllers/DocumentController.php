@@ -658,6 +658,7 @@ class DocumentController extends Controller
             $files = (new DocumentServiceProvider())->getDocumentFiles($request->id);
             $result = ['success' => false];
             $anySuccess = false;
+            $tedarikPending = []; // order_qnid => payloadNotif + fileTitles[]
             if($files['success']){
                 foreach($files['data'] as $file){
                     $result = (new DocumentServiceProvider())->documentFileStatus($file->qnid,$request->op_key,$request->note);
@@ -683,6 +684,71 @@ class DocumentController extends Controller
                         }
 
                         (new EmailServiceProvider())->sendClientFileStatus($payload);
+
+                        // ── bulk tedarik-04/05: collect per-order payload, dedup to 1 mail per order (avoid 5x spam)
+                        if(in_array($request->op_key, ['doc_file_accepted','doc_file_rejected'], true)){
+                            try{
+                                $fileRow = \App\Models\Document_files::where('qnid', $file->qnid)->first();
+                                if($fileRow){
+                                    $relId = (int)$fileRow->relation_id;
+                                    $relDoc = \App\Models\Documents::find($relId);
+                                    if($relDoc){
+                                        $orderDoc = $relDoc;
+                                        if((int)$relDoc->parent_id !== 0){
+                                            $maybeOrder = \App\Models\Documents::find($relDoc->parent_id);
+                                            if($maybeOrder) $orderDoc = $maybeOrder;
+                                        }
+                                        $orderType = \App\Models\Sys_options::find($orderDoc->type_id);
+                                        if(($orderType->op_key ?? null) === 'op-doc-order'){
+                                            $detail = (new \App\Providers\DocumentServiceProvider())->getFormData($orderDoc->qnid);
+                                            $ents = [];
+                                            foreach(($detail['formFormat']['op-doc-order-form'] ?? []) as $cr){
+                                                foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
+                                            }
+                                            $qnidKey = $orderDoc->qnid;
+                                            if(!isset($tedarikPending[$qnidKey])){
+                                                $tedarikPending[$qnidKey] = [
+                                                    'order_no' => $ents['order_no'] ?? $orderDoc->qnid,
+                                                    'spec_code' => $ents['spec_code'] ?? '',
+                                                    'sys_code' => $ents['sys_code'] ?? $orderDoc->grp_code ?? 'GDZ',
+                                                    'bukrs' => $ents['sys_code'] ?? $orderDoc->grp_code ?? 'GDZ',
+                                                    'BUKRS' => $ents['sys_code'] ?? '',
+                                                    'ctitle' => $ents['ctitle'] ?? '',
+                                                    'qnid' => $orderDoc->qnid,
+                                                    'order_qnid' => $orderDoc->qnid,
+                                                    'order_spec' => $ents['spec_code'] ?? '',
+                                                    'order_sys_code' => $ents['sys_code'] ?? '',
+                                                    'note' => $request->note ?? '',
+                                                    'fileTitles' => [],
+                                                ];
+                                            }
+                                            $tedarikPending[$qnidKey]['fileTitles'][] = $result['fileTitle'] ?? 'Dosya';
+                                        }
+                                    }
+                                }
+                            }catch(\Throwable $e){
+                                \Illuminate\Support\Facades\Log::warning('bulk tedarik-04/05 collect failed', ['msg'=>$e->getMessage(), 'file'=>$file->qnid]);
+                            }
+                        }
+                    }
+                }
+
+                // dispatch tedarik mails once per order (bulk: 1 mail per order, not per file)
+                if(!empty($tedarikPending)){
+                    foreach($tedarikPending as $payloadNotif){
+                        $titles = array_values(array_unique(array_filter($payloadNotif['fileTitles'])));
+                        $payloadNotif['fileTitle'] = count($titles) > 1 ? count($titles).' dosya: '.implode(', ', array_slice($titles,0,3)).(count($titles)>3?' …':'') : ($titles[0] ?? 'Dosya');
+                        // keep array for job but remove helper key
+                        unset($payloadNotif['fileTitles']);
+                        try{
+                            if($request->op_key === 'doc_file_accepted'){
+                                (new \App\Providers\EmailServiceProvider())->sendTedarikFileApproved($payloadNotif);
+                            } else {
+                                (new \App\Providers\EmailServiceProvider())->sendTedarikFileRejected($payloadNotif);
+                            }
+                        }catch(\Throwable $e){
+                            \Illuminate\Support\Facades\Log::warning('bulk tedarik-04/05 dispatch failed', ['msg'=>$e->getMessage()]);
+                        }
                     }
                 }
 

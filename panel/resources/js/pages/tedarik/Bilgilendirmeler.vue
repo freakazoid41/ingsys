@@ -108,7 +108,8 @@ const HEADERS = [
   },
   {
     title: 'Detaylar', key: 'id', order: false, colAlign: 'center', headAlign: 'center', width: '160px', type: 'string',
-    columnFormatter: (elm, rowData, _col, vm) => {
+    columnFormatter: function(elm, rowData, _col) {
+      const vm = this; // bound Vue instance via .bind(this) in buildTableWithData — arrow can't be bound, so use function
       const wrap = document.createElement('div'); wrap.className = 'bili-actions';
       const btn = (icon, tip, cls, cb) => {
         const b = document.createElement('button'); b.className = `bili-act ${cls}`; b.title = tip;
@@ -122,7 +123,6 @@ const HEADERS = [
         b.addEventListener('click', e => { e.stopPropagation(); cb(); });
         return b;
       };
-      // vm is `this` bound via .bind(this) in buildTable
       wrap.append(
         btn('ki-eye', 'Gör', 'is-view', () => vm.openItem(rowData)),
         txtBtn('Okundu', 'ki-check', 'Okundu işaretle', 'is-okundu', () => vm.markOne(rowData)),
@@ -281,7 +281,7 @@ export default {
         this.rawItems = this.rawItems.filter(i => i.id !== rowData.id);
         this.$nextTick(() => this.applyFilterToTable());
       }
-      if (isFileCat(rowData.cat)) this.$router.push({ name: 'TedarikDList' }).catch(() => {});
+      if (isFileCat(rowData.cat) && rowData.qnid) this.$router.push({ name: 'TedarikDForm', params: { id: rowData.qnid } }).catch(() => {});
       else if (rowData.qnid) this.$router.push({ name: 'TedarikOrderForm', params: { id: rowData.qnid } }).catch(() => {});
     },
   },

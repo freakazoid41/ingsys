@@ -3,6 +3,8 @@ import { useAuthStore } from '@/stores/auth';
 import { useNavigationStore } from '@/stores/navigation';
 import Plib from '@/lib/pickle';
 import Swal from 'sweetalert2';
+import { getCatMeta } from '@/lib/notificationMaps';
+import { fmtDateTime } from '@/lib/dateUtils';
 export default {
   setup() {
     return {
@@ -110,148 +112,143 @@ export default {
       // legacy/no-op
     },
     showNotifications() {
+      // ── build unified items (same logic as tedarik, admin routes) ──
+      const rejected = (this.notifications || []).map(n => ({
+        cat: 'rejected',
+        text: n.title || 'Reddedilen Dosya',
+        sub: n.message || '',
+        time: n.time || '',
+        fmtTime: n.time || '',
+        rawTime: n.created_at || 0,
+        rawId: n.main_id || 0,
+        qnid: n.qnid || '',
+        opKey: null,
+        onclick: n.onclick,
+      }));
       let list = [];
       const parseOrder = (offr) => {
         let orderNo = offr.order_no || offr.group_key || '';
         let ctitle = offr.ctitle || '';
-        let spec = offr.spec_code || '';
-        try {
-          const arr = JSON.parse(offr.main_attr || '[]');
-          arr.forEach(det => {
-            if(det.Key === 'order_no' && !orderNo) orderNo = det.Value;
-            if(det.Key === 'ctitle' && !ctitle) ctitle = det.Value;
-            if(det.Key === 'spec_code' && !spec) spec = det.Value;
-          });
-        } catch(e){}
-        return { orderNo: orderNo || offr.id || '-', ctitle, spec, qnid: offr.qnid || offr.id || offr.relation_qnid };
+        try { const arr = JSON.parse(offr.main_attr || '[]'); arr.forEach(det => { if(det.Key === 'order_no' && !orderNo) orderNo = det.Value; if(det.Key === 'ctitle' && !ctitle) ctitle = det.Value; }); } catch(e){}
+        return { orderNo: orderNo || offr.qnid || offr.id || '-', ctitle, qnid: offr.qnid || offr.id || offr.relation_qnid, main_id: offr.main_id || 0, created_at: offr.created_at || '' };
       };
-      const parseFile = (f) => {
-        return { orderNo: f.group_key || '-', title: f.type_title || f.file_type || 'Dosya', qnid: f.qnid || f.id || f.relation_qnid, created_at: f.created_at };
+      const parseFile = (f) => ({ orderNo: f.group_key || '-', title: f.type_title || f.file_type || 'Dosya', qnid: f.qnid || f.id || f.relation_qnid, main_id: f.main_id || 0, created_at: f.created_at || '' });
+      const catMap = {
+        orderImported: { cat:'tedarik-01', opKey:'tedarik-01', label:'Sipariş Sisteme Geldi' },
+        orderSent: { cat:'tedarik-02', opKey:'tedarik-02', label:'Onaya Gönderildi' },
+        pendingFiles: { cat:'tedarik-03', opKey:'tedarik-03', label:'İnceleme Bekliyor' },
+        fileApproved: { cat:'tedarik-04', opKey:'tedarik-04', label:'Dosya Onaylandı' },
+        fileRejected: { cat:'tedarik-05', opKey:'tedarik-05', label:'Yeniden Talep' },
+        orderApproved: { cat:'tedarik-06', opKey:'tedarik-06', label:'Kalite Onayı' },
+        orderRejected: { cat:'tedarik-07', opKey:'tedarik-07', label:'Reddedildi' },
       };
       for(let key in this.addNotifications){
-        switch (key) {
-          case 'orderImported': {
-            const rows = this.addNotifications[key] || [];
-            list = [...list, ...rows.map(offr => {
-              const m = parseOrder(offr);
-              const msg = m.ctitle ? `${m.orderNo} — ${m.ctitle}` : `${m.orderNo} SAP üzerinden sisteme geldi`;
-              return { title: 'Sipariş Sisteme Geldi (SAP)', message: msg, time: `Kayıt: ${offr.created_at || ''}`, type: 'tedarik01', onclick: () => this.$router.push({ name: 'OrderForm', params: { id: m.qnid } }) };
-            })];
-            break;
+        if(key==='blink' || !(key in catMap)) continue;
+        const rows = this.addNotifications[key] || [];
+        const cfg = catMap[key];
+        rows.forEach(offr => {
+          const isFile = key==='pendingFiles'||key==='fileApproved'||key==='fileRejected';
+          let title='', message='', qnid='', created_at='', main_id=0, cb=null, orderNo='', sub='';
+          if(isFile){
+            const m = parseFile(offr);
+            qnid=m.qnid; created_at=m.created_at; main_id=m.main_id; orderNo=m.orderNo;
+            if(key==='pendingFiles'){ title=`İnceleme Bekliyor — ${m.title}`; message=`Sipariş ${m.orderNo}`; sub=m.title; cb=()=> this.$router.push({ name: 'DList' }); }
+            else if(key==='fileApproved'){ title=`Dosya Onaylandı — ${m.title}`; message=m.title; sub=m.title; cb=()=> this.$router.push({ name: 'DForm', params:{ id:m.qnid }}); }
+            else { let note=''; try{ const j=JSON.parse(offr.last_status||'{}'); note=j.note||j.title||'';}catch(e){} title=`Yeniden Talep — ${m.title}`; message=`${m.title} — ${m.orderNo}${note?' ('+note+')':''}`; sub=m.title; cb=()=> this.$router.push({ name: 'DForm', params:{ id:m.qnid }}); }
+          } else {
+            const m = parseOrder(offr);
+            qnid=m.qnid; created_at=m.created_at; main_id=m.main_id; orderNo=m.orderNo; sub=m.ctitle;
+            if(key==='orderImported'){ const msg = m.ctitle ? `${m.orderNo} — ${m.ctitle}` : `${m.orderNo}`; title=`Sipariş Geldi — ${m.orderNo}`; message=msg; }
+            else if(key==='orderSent'){ title=`Onaya Gönderildi — ${m.orderNo}`; message=m.orderNo; }
+            else if(key==='orderApproved'){ title=`Kalite Onayı — ${m.orderNo}`; message=m.orderNo; }
+            else if(key==='orderRejected'){ title=`Reddedildi — ${m.orderNo}`; message=m.orderNo; }
+            cb=()=> this.$router.push({ name: 'OrderForm', params:{ id:m.qnid }});
           }
-          case 'orderSent': {
-            const rows = this.addNotifications[key] || [];
-            list = [...list, ...rows.map(offr => {
-              const m = parseOrder(offr);
-              return { title: 'Sipariş Onaya Gönderildi', message: `${m.orderNo} onaya gönderildi`, time: `Kayıt: ${offr.created_at || ''}`, type: 'tedarik02', onclick: () => this.$router.push({ name: 'OrderForm', params: { id: m.qnid } }) };
-            })];
-            break;
-          }
-          case 'pendingFiles': {
-            const rows = this.addNotifications[key] || [];
-            list = [...list, ...rows.map(f => {
-              const m = parseFile(f);
-              return { title: 'İnceleme Bekleyen Dosyalar Mevcut', message: `${m.title} — Sipariş ${m.orderNo}`, time: `Kayıt: ${f.created_at || ''}`, type: 'tedarik03', onclick: () => this.$router.push({ name: 'DList' }) };
-            })];
-            break;
-          }
-          case 'fileApproved': {
-            const rows = this.addNotifications[key] || [];
-            list = [...list, ...rows.map(f => {
-              const m = parseFile(f);
-              return { title: 'Sipariş Dosyası Onaylandı', message: `${m.title} onaylandı — ${m.orderNo}`, time: `Kayıt: ${f.created_at || ''}`, type: 'tedarik04', onclick: () => this.$router.push({ name: 'DForm', params: { id: m.qnid } }) };
-            })];
-            break;
-          }
-          case 'fileRejected': {
-            const rows = this.addNotifications[key] || [];
-            list = [...list, ...rows.map(f => {
-              const m = parseFile(f);
-              let note = '';
-              try { const j = JSON.parse(f.last_status || '{}'); note = j.note || j.title || ''; } catch(e){}
-              return { title: 'Sipariş Dosyası Yeniden Talep Edildi', message: `${m.title} yeniden talep — ${m.orderNo}${note ? ' ('+note+')' : ''}`, time: `Kayıt: ${f.created_at || ''}`, type: 'tedarik05', onclick: () => this.$router.push({ name: 'DForm', params: { id: m.qnid } }) };
-            })];
-            break;
-          }
-          case 'orderApproved': {
-            const rows = this.addNotifications[key] || [];
-            list = [...list, ...rows.map(offr => {
-              const m = parseOrder(offr);
-              return { title: 'Sipariş Kalite Onayı Verildi', message: `${m.orderNo} kalite onayı verildi`, time: `Kayıt: ${offr.created_at || ''}`, type: 'tedarik06', onclick: () => this.$router.push({ name: 'OrderForm', params: { id: m.qnid } }) };
-            })];
-            break;
-          }
-          case 'orderRejected': {
-            const rows = this.addNotifications[key] || [];
-            list = [...list, ...rows.map(offr => {
-              const m = parseOrder(offr);
-              return { title: 'Sipariş Reddedildi', message: `${m.orderNo} reddedildi`, time: `Kayıt: ${offr.created_at || ''}`, type: 'tedarik07', onclick: () => this.$router.push({ name: 'OrderForm', params: { id: m.qnid } }) };
-            })];
-            break;
-          }
-          case 'blink':
-            break;
-          default:
-            break;
-        }
-      }
-
-      // Merge with rejected files notifications
-      list = [...list, ...(this.notifications || [])];
-      
-      // No notifications
-      if(list.length === 0) {
-        Swal.fire({
-          title: 'Bildirimler',
-          html: '<div style="text-align:center;padding:20px;color:#999;">Yeni bildirim yok</div>',
-          width: '480px',
-          showCloseButton: true,
-          showCancelButton: false,
-          showConfirmButton: false,
+          list.push({ cat:cfg.cat, opKey:cfg.opKey, label:cfg.label, title, message, sub, orderNo, time:`Kayıt: ${created_at||''}`, fmtTime: created_at ? this.fmtTime(created_at) : '', created_at, main_id, qnid, onclick: cb });
         });
+      }
+      list = [...list, ...rejected];
+      list.sort((a,b)=>{
+        const aT = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bT = b.created_at ? new Date(b.created_at).getTime() : 0;
+        if(aT!==bT) return bT - aT;
+        const aId = parseInt(a.main_id||0,10), bId = parseInt(b.main_id||0,10);
+        if(aId && bId && aId!==bId) return bId - aId;
+        return String(b.qnid||'').localeCompare(String(a.qnid||''));
+      });
+
+      if(list.length === 0){
+        const emptyHtml = `
+          <div class="adm-notif-wrap">
+            <div class="adm-notif-head">
+              <div class="adm-notif-head-left">
+                <div class="adm-notif-head-icon"><i class="ki-outline ki-notification-bing" style="font-size:22px"></i></div>
+                <div><h3 class="adm-notif-head-title">Bildirimler</h3><p class="adm-notif-head-sub">Henüz bir şey yok</p></div>
+              </div>
+              <button class="adm-notif-head-close" id="adm-notif-close-empty"><i class="ki-outline ki-cross" style="font-size:16px"></i></button>
+            </div>
+            <div class="adm-notif-empty"><div class="adm-notif-empty-icon"><i class="ki-outline ki-notification-circle"></i></div><h4>Tertemiz — bildirim yok</h4><p>Yeni siparişler, dosya onayları ve sistem güncellemeleri burada görünecek.</p></div>
+          </div>`;
+        Swal.fire({ html: emptyHtml, width: 460, padding:0, showConfirmButton:false, showCloseButton:false, background:'#fff', customClass:{ popup:'adm-notif-popup', htmlContainer:'adm-notif-html' }, didOpen:()=> document.getElementById('adm-notif-close-empty')?.addEventListener('click',()=> Swal.close()) });
         return;
       }
-      
+
+      const cards = list.map((n, idx)=>{
+        const meta = getCatMeta(n.cat || 'tedarik-01');
+        const icon = meta.icon;
+        const subLine = [n.fmtTime || n.time || '', n.sub && n.sub!==n.orderNo ? n.sub : n.message].filter(Boolean).map(s=> this.esc(s)).join(' • ');
+        // title is already "Label — orderNo", keep single line
+        return `
+        <div class="adm-n-item adm-n-item--${n.cat||'tedarik-01'}" data-idx="${idx}" role="button" tabindex="0">
+          <div class="adm-n-icon adm-n-icon--${n.cat||'tedarik-01'}"><i class="${icon}" style="font-size:17px"></i></div>
+          <div class="adm-n-main">
+            <div class="adm-n-title" title="${this.esc(n.title)}">${this.esc(n.title)}</div>
+            ${subLine ? `<div class="adm-n-meta" title="${subLine}"><i class="ki-outline ki-time" style="font-size:11px;opacity:.6"></i> ${subLine}</div>` : ''}
+          </div>
+          <div class="adm-n-arrow"><i class="ki-outline ki-arrow-right" style="font-size:13px"></i></div>
+        </div>`;
+      }).join('');
+
       const html = `
-                    <div style="text-align:left;max-height:280px;overflow-y:auto;">
-                        ${list
-                          .map(
-                            (n, idx) => `<div class="swal-notification-item" data-index="${idx}" style="margin-bottom:12px;padding:10px;border-radius:8px;border:1px solid #eee;cursor:pointer;transition:background 0.2s;">
-                            <div style="font-weight:600;margin-bottom:3px;">${n.title}</div>
-                            <div style="font-size:13px;margin-bottom:5px;color:#515151;">${n.message}</div>
-                            <div style="font-size:11px;color:#999;">${n.time}</div>
-                        </div>`
-                          )
-                          .join('')}
-                    </div>
-                `;
-      Swal.fire({
-        title: 'Bildirimler',
-        html,
-        width: '480px',
-        showCloseButton: true,
-        showCancelButton: false,
-        showConfirmButton: false,
+        <div class="adm-notif-wrap">
+          <div class="adm-notif-head">
+            <div class="adm-notif-head-left">
+              <div class="adm-notif-head-icon"><i class="ki-outline ki-notification-bing" style="font-size:22px"></i></div>
+              <div>
+                <h3 class="adm-notif-head-title">Bildirimler <span class="adm-notif-head-badge">${list.length}</span></h3>
+                <p class="adm-notif-head-sub">${list.length} okunmamış • en yeni üstte</p>
+              </div>
+            </div>
+            <button class="adm-notif-head-close" id="adm-notif-close"><i class="ki-outline ki-cross" style="font-size:14px"></i></button>
+          </div>
+          <div class="adm-notif-body">${cards}</div>
+          <div class="adm-notif-foot">
+            <button class="adm-notif-btn adm-notif-btn--ghost" id="adm-mark-all"><i class="ki-outline ki-check" style="font-size:14px"></i> Tümünü Okundu</button>
+            <button class="adm-notif-btn adm-notif-btn--primary" id="adm-close">Kapat</button>
+          </div>
+        </div>`;
+
+      Swal.fire({ html, width: 460, padding:0, showConfirmButton:false, showCloseButton:false, background:'#fff', customClass:{ popup:'adm-notif-popup', htmlContainer:'adm-notif-html' },
         didOpen: () => {
-          document.querySelectorAll('.swal-notification-item').forEach((el) => {
-            el.addEventListener('mouseover', () => {
-              el.style.background = '#f8f9fa';
-            });
-            el.addEventListener('mouseout', () => {
-              el.style.background = 'transparent';
-            });
-            el.addEventListener('click', () => {
-              const idx = Number(el.dataset.index);
+          document.getElementById('adm-notif-close')?.addEventListener('click',()=> Swal.close());
+          document.getElementById('adm-close')?.addEventListener('click',()=> Swal.close());
+          document.getElementById('adm-mark-all')?.addEventListener('click', async ()=>{ try{ await this.navigationStore.markAllNotificationsRead(); }catch(e){} Swal.close(); });
+          document.querySelectorAll('.adm-n-item').forEach(el=>{
+            const go = ()=>{
+              const idx = Number(el.dataset.idx);
               const item = list?.[idx];
-              if (item && typeof item.onclick === 'function') {
-                item.onclick();
-              }
+              if(item?.opKey && item?.qnid) this.navigationStore.markNotificationRead(item.opKey, item.qnid).catch(()=>{});
+              if(item && typeof item.onclick==='function'){ try{ item.onclick(); }catch(e){} }
               Swal.close();
-            });
+            };
+            el.addEventListener('click', go);
+            el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); }});
           });
         }
       });
     },
+    fmtTime(v){ try{ return fmtDateTime(v); }catch{ return String(v||'').slice(0,16); } },
+    esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); },
   },
 };
 </script>
@@ -379,4 +376,64 @@ export default {
   .page-title-text .title-sub{display:none}
 }
 
+</style>
+
+<style>
+/* ── Admin notifications modal — navy enterprise (mirrors tedarik but cooler) ── */
+.adm-notif-popup{ border-radius:18px !important; padding:0 !important; overflow:hidden !important; box-shadow:0 24px 64px rgba(15,23,42,.22), 0 8px 24px rgba(15,23,42,.10) !important; border:1px solid #e2e8f0 !important; background:#fff !important; }
+.adm-notif-html{ padding:0 !important; margin:0 !important; }
+.swal2-html-container.adm-notif-html{ padding:0 !important; margin:0 !important; }
+.adm-notif-wrap{ width:100%; max-width:460px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; text-align:left; }
+.adm-notif-head{ background: linear-gradient(135deg,#fff 0%,#f1f5f9 100%); border-bottom:1px solid #e2e8f0; border-top:3px solid #154B91; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.adm-notif-head-left{ display:flex; align-items:center; gap:12px; min-width:0; }
+.adm-notif-head-icon{ width:44px; height:44px; border-radius:13px; background: linear-gradient(135deg,#154B91 0%,#1e3a8a 100%); display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(21,75,145,.22); }
+.adm-notif-head-title{ font-size:15.5px; font-weight:800; color:#0f172a; margin:0; line-height:1.2; display:flex; align-items:center; gap:8px; letter-spacing:-.02em; }
+.adm-notif-head-badge{ background:#154B91; color:#fff; font-size:11px; font-weight:800; padding:3px 7px; border-radius:999px; line-height:1; box-shadow:0 2px 6px rgba(21,75,145,.18); }
+.adm-notif-head-sub{ font-size:11.5px; color:#475569; opacity:.75; margin:2px 0 0; font-weight:500; }
+.adm-notif-head-close{ width:34px; height:34px; border-radius:50%; border:1.5px solid #e2e8f0; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; flex-shrink:0; transition:.15s; }
+.adm-notif-head-close:hover{ background:#f1f5f9; border-color:#cbd5e1; color:#0f172a; transform:rotate(90deg); }
+.adm-notif-body{ max-height:360px; overflow-y:auto; padding:12px 12px 10px; background:#f8fafc; }
+.adm-notif-body::-webkit-scrollbar{ width:6px; }
+.adm-notif-body::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:999px; }
+.adm-notif-body::-webkit-scrollbar-thumb:hover{ background:#94a3b8; }
+.adm-notif-body::-webkit-scrollbar-track{ background:transparent; }
+.adm-n-item{ display:flex; align-items:center; gap:12px; padding:11px 12px; background:#fff; border:1px solid #e2e8f0; border-left:3px solid transparent; border-radius:13px; cursor:pointer; transition:all .18s cubic-bezier(.2,.8,.2,1); margin-bottom:9px; box-sizing:border-box; }
+.adm-n-item:last-child{ margin-bottom:2px; }
+.adm-n-item:hover{ transform:translateY(-1px); box-shadow:0 8px 22px rgba(15,23,42,.08); border-color:#cbd5e1; border-left-color:#154B91; background:#fff; }
+.adm-n-item:active{ transform:translateY(0); box-shadow:0 2px 8px rgba(15,23,42,.05); }
+.adm-n-icon{ width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1.5px solid; font-size:17px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.adm-n-icon--tedarik-01{ background:#eff6ff; border-color:#dbeafe; color:#1e40af; }
+.adm-n-icon--tedarik-02{ background:#fef3c7; border-color:#fde68a; color:#92400e; }
+.adm-n-icon--tedarik-03{ background:#fef3c7; border-color:#fde68a; color:#b45309; }
+.adm-n-icon--tedarik-04{ background:#dcfce7; border-color:#bbf7d0; color:#166534; }
+.adm-n-icon--tedarik-05{ background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+.adm-n-icon--tedarik-06{ background:#d1fae5; border-color:#6ee7b7; color:#064e3b; }
+.adm-n-icon--tedarik-07{ background:#fee2e2; border-color:#fca5a5; color:#7f1d1d; }
+.adm-n-icon--rejected{ background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+.adm-n-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.adm-n-title{ font-size:13px; font-weight:700; color:#0f172a; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:-.01em; }
+.adm-n-meta{ font-size:11.5px; color:#64748b; font-weight:500; display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.adm-n-meta i{ flex-shrink:0; }
+.adm-n-arrow{ width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:1.5px solid #e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b; flex-shrink:0; transition:.18s; }
+.adm-n-item:hover .adm-n-arrow{ background:#154B91; border-color:#154B91; color:#fff; transform:translateX(2px); box-shadow:0 2px 8px rgba(21,75,145,.18); }
+.adm-notif-foot{ display:flex; gap:10px; padding:14px 14px; background:#fff; border-top:1px solid #e2e8f0; }
+.adm-notif-btn{ flex:1; height:42px; border-radius:11px; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; transition:.18s; border:1.5px solid transparent; letter-spacing:-.01em; }
+.adm-notif-btn--ghost{ background:#fff; border-color:#e2e8f0; color:#475569; }
+.adm-notif-btn--ghost:hover{ background:#f8fafc; border-color:#cbd5e1; color:#0f172a; transform:translateY(-1px); box-shadow:0 2px 8px rgba(0,0,0,.04); }
+.adm-notif-btn--ghost:active{ transform:translateY(0); }
+.adm-notif-btn--primary{ background:linear-gradient(135deg,#154B91 0%,#1e40af 100%); color:#fff; border-color:#154B91; box-shadow:0 3px 10px rgba(21,75,145,.22); }
+.adm-notif-btn--primary:hover{ background:linear-gradient(135deg,#0f2f5c 0%,#1e3a8a 100%); box-shadow:0 6px 16px rgba(21,75,145,.28); transform:translateY(-1px); }
+.adm-notif-btn--primary:active{ transform:translateY(0); }
+.adm-notif-empty{ text-align:center; padding:32px 22px 28px; color:#64748b; background:#f8fafc; }
+.adm-notif-empty-icon{ width:64px; height:64px; border-radius:20px; background:#eff6ff; border:1.5px solid #dbeafe; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-size:28px; color:#154B91; box-shadow:0 4px 12px rgba(21,75,145,.08); }
+.adm-notif-empty h4{ margin:0 0 6px; font-size:15px; font-weight:800; color:#0f172a; }
+.adm-notif-empty p{ margin:0 auto; font-size:13px; line-height:1.5; max-width:280px; color:#94a3b8; }
+@media (max-width: 480px){
+  .adm-notif-popup{ width:92% !important; margin:0 auto !important; }
+  .adm-notif-body{ max-height:50vh; padding:10px 10px 8px; }
+  .adm-n-item{ padding:10px 11px; gap:10px; }
+  .adm-n-icon{ width:36px; height:36px; font-size:16px; }
+  .adm-n-title{ white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .adm-n-meta{ white-space:normal; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+}
 </style>

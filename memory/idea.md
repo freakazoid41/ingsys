@@ -10,7 +10,8 @@
 
 ** optimizasyon ve kontrol **
 
-
+** Cariler aynı kodulu fakat farklı sistemli olabilir filtrelerde bu önemli panelde hepsi gözükmeli
+** sipairş detayında eklenen bütün dosyaları indiren button
 
 ** excel çıktıları
 ** ön panel aramalar için detaylı filtreler

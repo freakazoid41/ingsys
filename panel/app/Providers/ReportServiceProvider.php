@@ -133,8 +133,8 @@ class ReportServiceProvider extends ServiceProvider
                 $data = $this->getTedarikOrders('doc_trans_order_transfer_sent');
                 $data = $this->filterOrdersByBukrsForCurrentUser($data);
                 break;
-            case 'tedarik-03': // İnceleme Bekleyen Dosyalar Mevcut — doc_file_waiting (BUKRS gate via order)
-                $data = $this->getTedarikFilesByStatus('doc_file_waiting');
+            case 'tedarik-03': // İnceleme Bekleyen Dosyalar Mevcut — doc_file_waiting + doc_file_refreshed (both need review, BUKRS via order)
+                $data = $this->getTedarikFilesByStatus('doc_file_waiting,doc_file_refreshed');
                 $data = $this->filterFilesByBukrsForCurrentUser($data);
                 break;
             case 'tedarik-04': // Sipariş Dosyası Onaylandı — doc_file_accepted (BUKRS gate + LIFNR for reseller)
@@ -178,10 +178,9 @@ class ReportServiceProvider extends ServiceProvider
                     $data = $this->filterOrdersByBukrsForCurrentUser($data);
                 }
                 break;
-            case 'tedarik-07': // Sipariş Reddedildi — doc_trans_order_rejected (+ files_rejected fallback) (BUKRS + LIFNR for reseller)
+            case 'tedarik-07': // Sipariş Reddedildi — doc_trans_order_rejected ONLY (files_rejected is file-level tedarik-05, not order)
                 if($isReseller){
                     $data = $this->getTedarikOrders('doc_trans_order_rejected');
-                    if(empty($data)) $data = $this->getTedarikOrders('doc_trans_order_files_rejected');
                     $data = $this->filterOrdersByBukrsForCurrentUser($data);
                     $lifnrs = $this->getResellerLifnrs();
                     if(!empty($lifnrs)){
@@ -196,7 +195,6 @@ class ReportServiceProvider extends ServiceProvider
                     }
                 } else {
                     $data = $this->getTedarikOrders('doc_trans_order_rejected');
-                    if(empty($data)) $data = $this->getTedarikOrders('doc_trans_order_files_rejected');
                     $data = $this->filterOrdersByBukrsForCurrentUser($data);
                 }
                 break;
@@ -219,6 +217,26 @@ class ReportServiceProvider extends ServiceProvider
                     return $qnid && !isset($readSet[$qnid]);
                 }));
             }
+        }
+
+        // Ensure newest first — ORDER BY id DESC (i.id) — tableList already does this, but BUKRS/read filtering preserves input order
+        // For per-category sorting (single table), id desc is correct. We keep created_at as primary for recency of status changes,
+        // then main_id (int id) fallback to honour `order by id desc` literally, then qnid.
+        if(!empty($data)){
+            usort($data, function($a,$b){
+                $aTime = isset($a->created_at) ? strtotime($a->created_at) : 0;
+                $bTime = isset($b->created_at) ? strtotime($b->created_at) : 0;
+                if($aTime && $bTime && $aTime !== $bTime){
+                    return $bTime <=> $aTime;
+                }
+                $aMid = $a->main_id ?? null;
+                $bMid = $b->main_id ?? null;
+                if($aMid !== null && $bMid !== null && $aMid != $bMid){
+                    return (int)$bMid <=> (int)$aMid;
+                }
+                // final tie-breaker: qnid/id lexicographically (UUIDs are roughly time-ordered)
+                return strcmp((string)($b->id ?? $b->qnid ?? ''), (string)($a->id ?? $a->qnid ?? ''));
+            });
         }
 
         $total = count($data);
@@ -263,7 +281,8 @@ class ReportServiceProvider extends ServiceProvider
                 ['key' => 'transactions', 'type' => '=','value' => $statusKey],
                 ['key' => 'type', 'type' => '=','value' => 'op-doc-order'],
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-order-form'],
-            ]
+            ],
+            'order' => ['key' => 'main_id', 'style' => 'desc'],
         ]);
         return $data['data'] ?? [];
     }
@@ -272,7 +291,8 @@ class ReportServiceProvider extends ServiceProvider
         $data = \App\Models\Document_files::tableList([
             'filter' => [
                 ['key' => 'file_status', 'type' => '=','value' => $fileStatusKey],
-            ]
+            ],
+            'order' => ['key' => 'main_id', 'style' => 'desc'],
         ]);
         return $data['data'] ?? [];
     }

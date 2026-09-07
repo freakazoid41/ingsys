@@ -178,7 +178,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-BQwUtM74.js",
+    "file": "assets/app-Czw34RJD.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -192,7 +192,7 @@
       "node_modules/chart.js/auto/auto.js"
     ],
     "css": [
-      "assets/app-BYV2TyY2.css"
+      "assets/app-hkfDGW-H.css"
     ]
   },
   "resources/js/coal-swal.js": {

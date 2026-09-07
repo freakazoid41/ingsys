@@ -61,6 +61,7 @@ class Document_files extends Model
     static function tableList($obj){
         
         $columns = array(
+            'main_id'           => 'i.id  as  main_id',
             'id'                => 'i.qnid  as  id',
             'file'              => 'i.description  as  file',
             'type_title'        => 'so.title  as  type_title',

@@ -696,7 +696,32 @@ async getNotifications(){
 
 ---
 
-## 10. Testing Checklist
+## 10. 2026-09-07 Fixes — Order, Modal, Routing, Click
+
+### 10.1 `order by id desc` restored (newest first)
+* **Backend `ReportServiceProvider.php:181,224,280,291`** — per-category `usort` now `created_at DESC` primary + `main_id (i.id) DESC` fallback (was `main_id` first → cross-table id compare broke global order; e.g. file `id 5` newer `04:56:39` lost to order `id 1000` older `04:56:48`), explicit `Documents::tableList:264` / `Document_files::tableList:202` default `order by i.id desc` now forced via `'order'=>['key'=>'main_id','style'=>'desc']` in `getTedarikOrders/Files`. After BUKRS/read filter, `array_slice(...,0,10)` keeps newest 10.
+* **Frontend `notificationHelpers.js:87` `buildNotificationRows`** — same `created_at→main_id→qnid` sort (was `main_id` first). `parseOrder/parseFile` now carry `main_id+created_at`.
+* **Headers** `TedarikHeader.vue:82`, `DashboardHeader.vue:101`, `coalparts/Header.vue:201` all `sortByNewest` `rawTime/rawId` so bell modal interleaves types correctly. Screenshot bug `3510004400 20:30:48` on top of `3510004400-1 04:56:39` fixed.
+
+### 10.2 Modal redesign — no overlap, no clipped rows
+* **Tedarik** `TedarikHeader.vue:260` `tdk-notif-*` orange `460px` `fff→fff7ed` header `44px` gradient icon, body `360px #fcfcfe` **block + margin-bottom 9px** (not flex `gap`) + `border-left 3px` (not `::before` stub), icon `38px 10px` per-type `tedarik-01 #fff7ed/#9a3412` etc, `title 13px 700` + `meta 11.5px #64748b ki-time`, arrow `28px` hover `FF5A1F`. Previous `gap:9px` collapsed inside Swal `.htmlContainer` + `::before` `top0/bottom0` rendered as 8px stub → rows overlapped, pills duplicated.
+* **Admin** `coalparts/Header.vue` + `DashboardHeader.vue:390` `adm-notif-*` navy `154B91` same cards `11.5px meta`, `eff6ff` icons, `f8fafc` body `cbd5e1` scrollbar. Both use `customClass: adm/tdk-notif-popup (18px radius, 0 padding, 0 24px 64px shadow)`.
+
+### 10.3 File tap → detail, not list
+* **`Bilgilendirmeler.vue:284`** and **`TedarikHeader.vue:193`** both were `TedarikDList` (`/tedarikpanel/documents`) for `tedarik-03/04/05` (`isFileCat`). Fixed to `TedarikDForm` `{id: file_qnid}` (file detail `DForm`). Order cats still `TedarikOrderForm` `{id: order_qnid}`. Admin `DForm/OrderForm` unchanged.
+
+### 10.4 Click `TypeError` for `kbbozat41`
+* **`Bilgilendirmeler.vue:111`** `HEADERS[5]` `Detaylar` was arrow ` (elm,rowData,_col,vm)=>vm.openItem` + `bind(this)` — arrow ignores `bind`, `PickleTable:558` calls `columnFormatter(col,data,colData)` with 3 args → `vm undefined` → `129:65 vm.openItem`. Fixed to `function(elm,rowData,_col){ const vm=this; ... }` regular function so `bind` works.
+
+### 10.5 `tedarik-03` now includes refreshed
+* **`ReportServiceProvider.php:136`** `tedarik-03` was `doc_file_waiting` only. Supplier refresh at `05:44:04` creates `doc_file_refreshed` (`DocumentHelpers:599`), not `waiting`, so `kadir BOTH` saw `0` waiting. Fixed to `'doc_file_waiting,doc_file_refreshed'` (Document_files `IN` handles comma) → 1 row `09aff8b5 3510004400-1`.
+
+### 10.6 `tedarik-07` false `Sipariş Reddedildi`
+* **`ReportServiceProvider.php:181`** had fallback `if(empty(rejected)) get(files_rejected)`. `files_rejected` = `syncOrderStatusFromFiles` auto `doc_trans_order_files_rejected` when any file rejected (not whole order). Bulk `3510004400-1` with 1 file approved + 1 rejected at `04:56` went to `files_rejected` → fallback made order appear as `Sipariş Reddedildi` while only files were rejected. Removed fallback — now strictly `doc_trans_order_rejected` only. `files_rejected` only via `tedarik-05` file cards.
+
+---
+
+## 11. Testing Checklist
 
 - [ ] Verify rejectedFiles load on app init
 - [ ] Verify API notifications load on bell click

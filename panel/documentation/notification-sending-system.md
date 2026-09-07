@@ -170,7 +170,15 @@ Important env values:
 - `ILETISIM_ORIGINATOR_ID`
 - `ILETISIM_CLIENT_ID`
 
-## 7. Notes and recommendations
+## 7. 2026-09-07 Fixes — Gmail + Bulk
+
+### 7.1 Gmail SMTP (replaces Mailtrap demo)
+* `panel/.env:82-85` was `live.smtp.mailtrap.io / api / 86e1...` `hello@demomailtrap.co` → `smtp.gmail.com:587 tls kadir@kontent.com.tr / hruxkivfrwdndogm (hrux kivf rwdn dogm without spaces)` `kadir@kontent.com.tr`. `MAIL_USE_RELAY=false`, `config:clear` + `mail:test` `→ sent` at `05:31:42`. Previous `NotificationLog:102` `554 5.7.1 Demo domains can only be used to send to account owners` for `kbbozat41@hotmail.com` at `05:23:53` fixed via `php artisan notification:retry 102 → sent`. Gmail via `MailService.php:42` `smtp.gmail.com` with `verify_peer false`.
+
+### 7.2 Bulk `Tümünü Onayla` now fires `tedarik-04/05`
+* `DocumentController.php:642 setFileStatusAll` (bulk `POST /v1/trans/set-file-status-all` per-07-02) previously looped `documentFileStatus` + `cliFileStatus` only (line 658-686), never dispatched `tedarik-04/05` (line 572 in single `setFileStatus`). So bulk 5 files = 0 mails to admin/reseller vs single = 1. Fixed `660` collects `tedarikPending[order_qnid]` with `fileTitles[]` per file's order (`relation_id → parent fallback → getFormData → spec_code/sys_code`), after loop aggregates `fileTitle = "3 dosya: A,B,C…"` per order and dispatches once per order (`sendTedarikFileApproved/Rejected`) via `EmailServiceProvider:116` BUKRS+LIFNR. Prevents 5× spam, matches single logic. `refreshAllUserPermissions` still once.
+
+## 8. Notes and recommendations
 
 - The system currently disables SMTP peer verification at runtime for relay mail; this should be used carefully and restricted to development or trusted environments.
 - SMS gateway responses may be XML or JSON, and the service handles both formats.
