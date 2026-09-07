@@ -4,6 +4,7 @@
 
 ** optimizasyon ve kontrol **
 
+** bildirim sistemleri için çok query atıyor bunlar queue içinde bağımsız olmalı 
 
 ** optimizasyon ve kontrol **
 
@@ -21,7 +22,7 @@
 ** süreci iki paneldende full test et 
 ** veri aktarımı
 ** eski sistemi kurallar için kontrol et
-
+** mail templateleri üzerinde çalış
 
 
 

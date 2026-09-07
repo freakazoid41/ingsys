@@ -12,7 +12,7 @@
           </svg>
         </button>
         <div v-if="showVideoMenu" class="tdk-video-dropdown" @mouseenter="showVideoMenu = true" @mouseleave="showVideoMenu = false">
-          <div v-for="sec in videoSections" :key="sec.title" class="tdk-video-sec">
+          <div v-for="sec in visibleVideoSections" :key="sec.title" class="tdk-video-sec">
             <div class="tdk-video-sec-title">{{ sec.title }}</div>
             <a v-for="it in sec.items" :key="it" href="javascript:;" class="tdk-video-item" @click.prevent="openHelpVideo(it)">{{ it }}</a>
           </div>
@@ -54,7 +54,16 @@ export default {
   computed: {
     userName() {
       return this.authStore.userName || this.authStore.currentStatus?.main_name || 'Kullanıcı';
-    }
+    },
+    isTedarikUser() {
+      const k = String(this.authStore.typeKey || '').toLowerCase();
+      if (!k) return true;
+      return k.includes('reseller') || k.includes('tedarik');
+    },
+    visibleVideoSections() {
+      if (this.isTedarikUser) return this.videoSections.filter(s => s.title === 'Tedarikçi');
+      return this.videoSections;
+    },
   },
   mounted() {
     this.mergeNotifications();
@@ -225,9 +234,28 @@ export default {
       const map = {
         'Tek Parça Sevkiyat': '/coaltheme/demoVideos/tekParcaSiparis.mp4',
         'Tek Parca Sevkiyat': '/coaltheme/demoVideos/tekParcaSiparis.mp4',
+        'Parçalı Sevkiyat': '/coaltheme/demoVideos/parcaliSiparis.mp4',
+        'Parcali Sevkiyat': '/coaltheme/demoVideos/parcaliSiparis.mp4',
+        'Dosya Görüntüleme': '/coaltheme/demoVideos/tedarikciDokumanlar.mp4',
+        'Dosya Goruntuleme': '/coaltheme/demoVideos/tedarikciDokumanlar.mp4',
+        'Sesli Anlatım Eğitim Videosu': '/coaltheme/demoVideos/egitim-video.mp4',
+        'Sesli Anlatim Egitim Videosu': '/coaltheme/demoVideos/egitim-video.mp4',
+        'Doküman Kontrol': '/coaltheme/demoVideos/dosyaKontrol.mp4',
+        'Dokuman Kontrol': '/coaltheme/demoVideos/dosyaKontrol.mp4',
+        'Döküman Kontrol': '/coaltheme/demoVideos/dosyaKontrol.mp4',
+        'İptal Edilen Dosyayı Tekrar Kabul Etme': '/coaltheme/demoVideos/iptalYenileme.mp4',
+        'Iptal Edilen Dosyayi Tekrar Kabul Etme': '/coaltheme/demoVideos/iptalYenileme.mp4',
+        'İptal Edilen Dosyayı Yeniden Kabul Etme': '/coaltheme/demoVideos/iptalYenileme.mp4',
+        'Iptal Edilen Dosyayi Yeniden Kabul Etme': '/coaltheme/demoVideos/iptalYenileme.mp4',
       };
       const src = map[title] || '/coaltheme/demoVideos/loginVideo.mp4';
-      const fallback = src.includes('tekParca') ? '/coaltheme/demoVideos/tekParcaSiparis.mov' : '/coaltheme/demoVideos/loginVideo.mov';
+      let fallback = '/coaltheme/demoVideos/loginVideo.mov';
+      if(src.includes('tekParca')) fallback = '/coaltheme/demoVideos/tekParcaSiparis.mov';
+      else if(src.includes('parcali')) fallback = '/coaltheme/demoVideos/parcaliSiparis.mov';
+      else if(src.includes('tedarikciDokumanlar')) fallback = '/coaltheme/demoVideos/tedarikciDokumanlar.mov';
+      else if(src.includes('egitim-video')) fallback = '/coaltheme/demoVideos/egitim-video.mp4';
+      else if(src.includes('dosyaKontrol')) fallback = '/coaltheme/demoVideos/dosyaKontrol.mp4';
+      else if(src.includes('iptalYenileme')) fallback = '/coaltheme/demoVideos/iptalYenileme.mov';
       Swal.fire({
         title: title,
         html: `<div style="border-radius:12px;overflow:hidden;background:#000;"><video controls autoplay playsinline style="width:100%;max-height:62vh;display:block;"><source src="${src}" type="video/mp4"><source src="${fallback}" type="video/quicktime">Tarayıcınız video etiketini desteklemiyor.</video></div><div style="margin-top:10px;font-size:12px;color:#64748b;text-align:center;">${this.esc(title)} — tanıtım videosu</div>`,

@@ -756,8 +756,8 @@
                 };
                 const itemTable = this.$refs.itemTable;
                 const effectiveTransferMode = this.canSend ? this.transferMode : this.storedTransferMode;
-                const desc = this.getFieldValue('order_desc') || this.orderEntities.order_desc || '';
-                const imalatci = this.getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
+                const desc = (this.tedarikDesc && String(this.tedarikDesc).trim()) || this.getFieldValue('order_desc') || this.orderEntities.order_desc || '';
+                const imalatci = (this.tedarikImalatci && String(this.tedarikImalatci).trim()) || this.getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
                 const err = validatePrintForm({ itemTable, effectiveTransferMode, hasPartitions: this.hasPartitions, selectedItems: this.selectedItems, canSend: this.canSend, imalatci });
                 if(err){ showWarn(err.title, err.text); return; }
                 this.printingKabul = true;
@@ -799,8 +799,8 @@
                 };
                 const itemTable = this.$refs.itemTable;
                 const effectiveTransferMode = this.canSend ? this.transferMode : this.storedTransferMode;
-                const desc = this.getFieldValue('order_desc') || this.orderEntities.order_desc || '';
-                const imalatci = this.getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
+                const desc = (this.tedarikDesc && String(this.tedarikDesc).trim()) || this.getFieldValue('order_desc') || this.orderEntities.order_desc || '';
+                const imalatci = (this.tedarikImalatci && String(this.tedarikImalatci).trim()) || this.getFieldValue('imalatci_firma_adi') || this.orderEntities.imalatci_firma_adi || '';
                 const err = validatePrintForm({ itemTable, effectiveTransferMode, hasPartitions: this.hasPartitions, selectedItems: this.selectedItems, canSend: this.canSend, imalatci });
                 if(err){ showWarn(err.title, err.text); return; }
                 this.printingCins = true;

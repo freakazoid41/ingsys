@@ -269,6 +269,8 @@ class DocumentServiceProvider extends ServiceProvider
 
                 // now check if any file is sended
                 $stypeId = (Sys_options::where(['ctitle' => 'sub_type_id', 'op_key' => 'form-file'])->first())->id;
+                $lastFileEntity = null;
+                $refreshedFromRejected = false;
                 foreach ($dynamicFiles as $fkey => $file) {
                     if (strpos($fkey, $id) !== false) {
                         $fileName = explode('*-*', $fkey)[1] ?? '';
@@ -361,6 +363,18 @@ class DocumentServiceProvider extends ServiceProvider
                         $entity->entity_value = strip_tags($fileId);
                         $entity->save();
                         $lastFileEntity = $entity;
+                        // Track if this was a replacement of a rejected file → needs tedarik-03 mail after commit.
+                        if (!empty($existingFileId) && $existingFileId > 0 && !$refreshedFromRejected) {
+                            try {
+                                $oldLastOp = DB::table('transactions as t')
+                                    ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                                    ->where('t.target_id', $existingFileId)
+                                    ->where('t.op_id', 1)
+                                    ->orderByDesc('t.id')
+                                    ->value('so.op_key');
+                                if ($oldLastOp === 'doc_file_rejected') $refreshedFromRejected = true;
+                            } catch (\Throwable $e) {}
+                        }
                     }
                 }
             }
@@ -374,6 +388,49 @@ class DocumentServiceProvider extends ServiceProvider
             // otherwise its "created only" guard would reject the send.
             if (! empty($lastFileEntity) && empty($requestData['transfer_mode'])) {
                 $this->syncOrderStatusFromFiles($lastFileEntity);
+            }
+            // ── NOTIFICATION tedarik-03: resend after rejection → "İnceleme Bekleyen Dosyalar Mevcut"
+            // Initial transfer already sends tedarik-03 via DocumentController after processOrderTransfer,
+            // but file replacement (doc_file_refreshed) via registerContent did NOT. Without this,
+            // admins assigned to tedarik-03 never get mail when tedarik resends a rejected file.
+            // ReportServiceProvider tedarik-03 already lists doc_file_refreshed as waiting, so mail must mirror.
+            if (!empty($refreshedFromRejected) && empty($requestData['transfer_mode']) && !empty($lastFileEntity)) {
+                try {
+                    $tmpConn = Sys_con_ops::where('id', $lastFileEntity->conn_id)->first();
+                    $orderDocForNotif = null;
+                    if ($tmpConn) {
+                        $candidate = Documents::where('id', $tmpConn->main_id)->first();
+                        $candTypeKey = $candidate ? Sys_options::where('id', $candidate->type_id)->value('op_key') : null;
+                        while ($candidate && $candTypeKey !== 'op-doc-order' && (int)$candidate->parent_id > 0) {
+                            $candidate = Documents::where('id', $candidate->parent_id)->first();
+                            $candTypeKey = $candidate ? Sys_options::where('id', $candidate->type_id)->value('op_key') : null;
+                        }
+                        if ($candidate && ($candTypeKey === 'op-doc-order')) $orderDocForNotif = $candidate;
+                    }
+                    $notifyDoc = $orderDocForNotif ?? $document;
+                    // Fallback to orderSnapshot for sys_code/order_no
+                    $snap = null;
+                    try { $snap = $this->orderSnapshot($notifyDoc); } catch (\Throwable $e2) { $snap = null; }
+                    $sysCode = $snap['sys_code'] ?? $notifyDoc->grp_code ?? $GLOBALS['SYS_CODE'] ?? 'GDZ';
+                    $orderNoForMail = $snap['order_no'] ?? $snap['transfer_no'] ?? $notifyDoc->qnid ?? '';
+                    $payloadNotif = [
+                        'order_no' => $orderNoForMail,
+                        'transfer_no' => $orderNoForMail,
+                        'transfer_mode' => 'refresh',
+                        'sys_code' => $sysCode,
+                        'bukrs' => $sysCode,
+                        'BUKRS' => $sysCode,
+                        'ctitle' => $snap['ctitle'] ?? '',
+                        'spec_code' => $snap['spec_code'] ?? $snap['lifnr'] ?? '',
+                        'qnid' => $notifyDoc->qnid,
+                        'order_qnid' => $notifyDoc->qnid,
+                        'order_sys_code' => $sysCode,
+                        'fileTitle' => 'Yenilenen dosya',
+                    ];
+                    (new \App\Providers\EmailServiceProvider())->sendTedarikFileWaiting($payloadNotif);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('tedarik-03 refresh dispatch failed [registerContent]', ['msg'=>$e->getMessage(), 'qnid'=>$document->qnid ?? null]);
+                }
             }
 
             // here get updated data

@@ -98,5 +98,6 @@ npm i date-fns       # if you prefer `format(new Date(val), 'dd.MM.yyyy')` over 
 3. Add new field? → `sys_options op-doc-*` + `Form.vue forms[op-doc-*-form]` `01-form-engine.md:2` — no migration.
 4. Add new `YList` → copy `OList.vue:487` headers, add `Documents::tableList` `case 'my_key'` `ilike`, add `PermissionHelpers docPermCheck` `per-09`, `SysRoleTemplateSeeder` `op_key` unique.
 5. Need to touch `pickletable` height? → use `useTedarikHeight` not `setAttribute(style height)` `DList:1032` `pt-auto-height` guard.
+6. **Detached `v-model` trap `OForm.vue:759`:** any tedarik `v-model="tedarikX"` detached from hidden `<Form>` is invisible to `getFieldValue()`. Print/validate must do `(tedarikX?.trim())||getFieldValue('x')||orderEntities.x` — see `tedarik-system-process.md:164` late15 `cab9f8a→ed18d08` 15 commits broken. `submitForm` manual `dynamicF` inject is not enough for pre-save preview. Checklist: `grep -n "v-model.*tedarik" OForm.vue` → verify every consumer prefers `tedarik*` first.
 
 > Keep `OList/OForm/DList/DForm` **shared via `isTedarik`** `OList:45/DList:51` — don't fork. Fork only if supplier flow diverges more than `DList` `isTedarik ? solid orange : pastel` `DList:765`.

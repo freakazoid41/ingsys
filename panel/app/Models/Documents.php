@@ -84,8 +84,8 @@ class Documents extends Model
                                 from transactions as t
                                     inner join sys_options so on so.id = t.type_id
                                 where target_id = i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1)  as  status",
-            'last_trans_at'=> "(select t.created_at from transactions t inner join sys_options so on so.id = t.type_id where t.target_id = i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1) as last_trans_at",
-            'client_system'=> "(select se.entity_value from sys_con_entities se join sys_con_ops sox on sox.id=se.conn_id where sox.main_id=i.id and se.entity_tag='client_system' and se.table_tag='sys_con_ops' limit 1) as client_system",
+            'last_trans_at'=> "(select t.created_at from transactions t inner join sys_options so on so.id = t.type_id where t.target_id = i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1)  as  last_trans_at",
+            'client_system'=> "(select se.entity_value from sys_con_entities se join sys_con_ops sox on sox.id=se.conn_id where sox.main_id=i.id and se.entity_tag='client_system' and se.table_tag='sys_con_ops' limit 1)  as  client_system",
             //document activeness (documents.status) is a separate axis from the transaction status above.
             //for offers 0 means "cancelled", for other document types it keeps its "passive" meaning.
             'document_status' => 'i.status  as  document_status',
@@ -540,7 +540,11 @@ class Documents extends Model
                             if($k == 'document_status') continue;
 
                             if($i!=0) $where.=' or ';
-                            $column = explode('as  ',$columns[$k])[0];
+                            // alias strip must use LAST " as " — columns contain inner " as t" (single) inside subqueries.
+                            // original explode('as  ') (double space) avoided inner split but broke late4 last_trans_at (single space).
+                            $colStr = $columns[$k];
+                            $pos = strripos($colStr, ' as ');
+                            $column = $pos !== false ? trim(substr($colStr, 0, $pos)) : trim($colStr);
 
                             if($k == 'main_attr') $column = 'main_attr.main_attr';
 
@@ -550,7 +554,9 @@ class Documents extends Model
                         $where .= ' ) ';
                     break;
                     default:
-                        $column = explode('as  ',($columns[$f['key']] ?? $columns['main_attr']))[0];
+                        $tmpCol = $columns[$f['key']] ?? $columns['main_attr'];
+                        $pos = strripos($tmpCol, ' as ');
+                        $column = $pos !== false ? trim(substr($tmpCol, 0, $pos)) : trim($tmpCol);
                         if(trim($f['value']) != ''){
                             if($f['type'] != 'like'){
                                 $where .= " and $column = '".$f['value']."' ";
