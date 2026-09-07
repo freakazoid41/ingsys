@@ -130,9 +130,10 @@ export default {
         let orderNo = offr.order_no || offr.group_key || '';
         let ctitle = offr.ctitle || '';
         try { const arr = JSON.parse(offr.main_attr || '[]'); arr.forEach(det => { if(det.Key === 'order_no' && !orderNo) orderNo = det.Value; if(det.Key === 'ctitle' && !ctitle) ctitle = det.Value; }); } catch(e){}
-        return { orderNo: orderNo || offr.qnid || offr.id || '-', ctitle, qnid: offr.qnid || offr.id || offr.relation_qnid, main_id: offr.main_id || 0, created_at: offr.created_at || '' };
+        const statusAt = offr.last_trans_at || offr.created_at || '';
+        return { orderNo: orderNo || offr.qnid || offr.id || '-', ctitle, qnid: offr.qnid || offr.id || offr.relation_qnid, main_id: offr.main_id || 0, created_at: statusAt };
       };
-      const parseFile = (f) => ({ orderNo: f.group_key || '-', title: f.type_title || f.file_type || 'Dosya', qnid: f.qnid || f.id || f.relation_qnid, main_id: f.main_id || 0, created_at: f.created_at || '' });
+      const parseFile = (f) => { let sAt = f.last_trans_at || ''; if(!sAt && f.last_status){ try{ const j=typeof f.last_status==='string'?JSON.parse(f.last_status):f.last_status; sAt=j.created_at||''; }catch{} } sAt = sAt || f.created_at || ''; return { orderNo: f.group_key || '-', title: f.type_title || f.file_type || 'Dosya', qnid: f.qnid || f.id || f.relation_qnid, main_id: f.main_id || 0, created_at: sAt }; };
       const catMap = {
         orderImported: { cat:'tedarik-01', opKey:'tedarik-01', label:'Sipariş Sisteme Geldi' },
         orderSent: { cat:'tedarik-02', opKey:'tedarik-02', label:'Onaya Gönderildi' },

@@ -76,8 +76,8 @@ export default {
       }));
       const notifs = this.navigationStore?.notifications || {};
       const items = [];
-      const parseOrder = (o)=>{ let orderNo=o.order_no||o.group_key||''; let ctitle=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='order_no'&&!orderNo) orderNo=d.Value; if(d.Key==='ctitle'&&!ctitle) ctitle=d.Value; }); }catch(e){} return {orderNo:orderNo||o.qnid||o.id||'-',ctitle,qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:o.created_at||''}; };
-      const parseFile = (f)=> ({orderNo:f.group_key||'-',title:f.type_title||f.file_type||'Dosya',qnid:f.qnid||f.id||f.relation_qnid, main_id:f.main_id||0, created_at:f.created_at||''});
+      const parseOrder = (o)=>{ let orderNo=o.order_no||o.group_key||''; let ctitle=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='order_no'&&!orderNo) orderNo=d.Value; if(d.Key==='ctitle'&&!ctitle) ctitle=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return {orderNo:orderNo||o.qnid||o.id||'-',ctitle,qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt}; };
+      const parseFile = (f)=> { let sAt = f.last_trans_at || ''; if(!sAt && f.last_status){ try{ const j = typeof f.last_status==='string'?JSON.parse(f.last_status):f.last_status; sAt = j.created_at || ''; }catch{} } sAt = sAt || f.created_at || ''; return {orderNo:f.group_key||'-',title:f.type_title||f.file_type||'Dosya',qnid:f.qnid||f.id||f.relation_qnid, main_id:f.main_id||0, created_at:sAt}; };
       const push = (obj, cat, opKey, title) => {
         const meta = getCatMeta(cat);
         items.push({
@@ -92,13 +92,13 @@ export default {
           orderNo: obj.orderNo,
         });
       };
-      if (Array.isArray(notifs.orderImported)) notifs.orderImported.forEach(o=>{ const m=parseOrder(o); const title = `Sipariş Sisteme Geldi — ${m.orderNo}`; push({ ...m, created_at: o.created_at, main_id: m.main_id, qnid: m.qnid }, 'tedarik-01', 'tedarik-01', title); });
-      if (Array.isArray(notifs.orderSent)) notifs.orderSent.forEach(o=>{ const m=parseOrder(o); push({ ...m, created_at: o.created_at, main_id: m.main_id, qnid: m.qnid }, 'tedarik-02', 'tedarik-02', `Onaya Gönderildi — ${m.orderNo}`); });
-      if (Array.isArray(notifs.pendingFiles)) notifs.pendingFiles.forEach(f=>{ const m=parseFile(f); push({ ...m, created_at: f.created_at, main_id: m.main_id, qnid: m.qnid, title: m.title }, 'tedarik-03', 'tedarik-03', `İnceleme Bekliyor — ${m.title}`); });
-      if (Array.isArray(notifs.fileApproved)) notifs.fileApproved.forEach(f=>{ const m=parseFile(f); push({ ...m, created_at: f.created_at, main_id: m.main_id, qnid: m.qnid, title: m.title }, 'tedarik-04', 'tedarik-04', `Dosya Onaylandı — ${m.title}`); });
-      if (Array.isArray(notifs.fileRejected)) notifs.fileRejected.forEach(f=>{ const m=parseFile(f); push({ ...m, created_at: f.created_at, main_id: m.main_id, qnid: m.qnid, title: m.title }, 'tedarik-05', 'tedarik-05', `Yeniden Talep — ${m.title}`); });
-      if (Array.isArray(notifs.orderApproved)) notifs.orderApproved.forEach(o=>{ const m=parseOrder(o); push({ ...m, created_at: o.created_at, main_id: m.main_id, qnid: m.qnid }, 'tedarik-06', 'tedarik-06', `Kalite Onayı — ${m.orderNo}`); });
-      if (Array.isArray(notifs.orderRejected)) notifs.orderRejected.forEach(o=>{ const m=parseOrder(o); push({ ...m, created_at: o.created_at, main_id: m.main_id, qnid: m.qnid }, 'tedarik-07', 'tedarik-07', `Reddedildi — ${m.orderNo}`); });
+      if (Array.isArray(notifs.orderImported)) notifs.orderImported.forEach(o=>{ const m=parseOrder(o); const title = `Sipariş Sisteme Geldi — ${m.orderNo}`; push(m, 'tedarik-01', 'tedarik-01', title); });
+      if (Array.isArray(notifs.orderSent)) notifs.orderSent.forEach(o=>{ const m=parseOrder(o); push(m, 'tedarik-02', 'tedarik-02', `Onaya Gönderildi — ${m.orderNo}`); });
+      if (Array.isArray(notifs.pendingFiles)) notifs.pendingFiles.forEach(f=>{ const m=parseFile(f); push(m, 'tedarik-03', 'tedarik-03', `İnceleme Bekliyor — ${m.title}`); });
+      if (Array.isArray(notifs.fileApproved)) notifs.fileApproved.forEach(f=>{ const m=parseFile(f); push(m, 'tedarik-04', 'tedarik-04', `Dosya Onaylandı — ${m.title}`); });
+      if (Array.isArray(notifs.fileRejected)) notifs.fileRejected.forEach(f=>{ const m=parseFile(f); push(m, 'tedarik-05', 'tedarik-05', `Yeniden Talep — ${m.title}`); });
+      if (Array.isArray(notifs.orderApproved)) notifs.orderApproved.forEach(o=>{ const m=parseOrder(o); push(m, 'tedarik-06', 'tedarik-06', `Kalite Onayı — ${m.orderNo}`); });
+      if (Array.isArray(notifs.orderRejected)) notifs.orderRejected.forEach(o=>{ const m=parseOrder(o); push(m, 'tedarik-07', 'tedarik-07', `Reddedildi — ${m.orderNo}`); });
 
       const sortByNewest = (a,b)=>{
         const aT = a.rawTime ? new Date(a.rawTime).getTime() : 0;

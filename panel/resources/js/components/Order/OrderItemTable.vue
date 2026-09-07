@@ -1322,11 +1322,12 @@ export default {
                                                 <i class="ki-outline ki-eye" style="font-size:12px;"></i>
                                             </button>
                                         </div>
-                                        <button v-if="!readonly && !isDepleted(row)" class="oic-item-file-btn" @click.stop="triggerTestUpload(row)">
+                                        <button v-if="(!readonly || isTestRejected(row.id)) && !isDepleted(row)" class="oic-item-file-btn" @click.stop="triggerTestUpload(row)">
                                             <i class="ki-outline ki-file-up" style="font-size:14px;"></i>
                                             <span>Yeni Test Dökümanı Yükle</span>
                                         </button>
                                         <span v-else-if="isDepleted(row)" style="font-size:0.78rem;color:#991b1b;font-weight:600;padding:6px 0;display:inline-flex;align-items:center;gap:4px;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;padding:4px 8px"><i class="ki-outline ki-cross-circle" style="font-size:12px"></i> Kalem tükendi — dosya eklenemez</span>
+                                        <span v-else-if="readonly" style="font-size:0.78rem;color:#94a3b8;font-style:italic;padding:6px 0;display:inline-flex;align-items:center;gap:4px"><i class="ki-outline ki-lock-2" style="font-size:12px"></i> Sipariş kilitli — dosya eklenemez</span>
                                         <input type="file" :ref="el => { if(el) testFileInputs[row.id] = el }" accept=".pdf,.xls,.xlsx,.jpg,.jpeg,.png" style="display:none" @change="onTestFileSelected(row, $event)" />
                                     </div>
                                     <!-- No file at all — upload button -->
@@ -1864,7 +1865,7 @@ export default {
 .oic-previewable { cursor:pointer; transition:all 0.15s; }
 .oic-previewable:hover { border-color:#c7d2fe; background:#f8fafc; box-shadow:0 1px 4px rgba(99,102,241,0.08); }
 .oic-item-file-upload { display:flex; align-items:center; gap:8px; }
-.oic-item-file-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border:1px dashed #cbd5e1; border-radius:8px; background:transparent; color:#64748b; font-size:0.82rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.oic-item-file-btn {     max-width: 320px;display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border:1px dashed #cbd5e1; border-radius:8px; background:transparent; color:#64748b; font-size:0.82rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
 .oic-item-file-btn:hover { background:#f8fafc; border-color:#94a3b8; color:#334155; }
 .oic-item-file-btn:disabled { opacity:0.5; cursor:not-allowed; }
 .oic-item-file-btn-image { border-color:#c4b5fd; color:#7c3aed; }

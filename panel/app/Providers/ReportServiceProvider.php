@@ -221,20 +221,30 @@ class ReportServiceProvider extends ServiceProvider
 
         // Ensure newest first — ORDER BY id DESC (i.id) — tableList already does this, but BUKRS/read filtering preserves input order
         // For per-category sorting (single table), id desc is correct. We keep created_at as primary for recency of status changes,
-        // then main_id (int id) fallback to honour `order by id desc` literally, then qnid.
+        // newest by status change time (last_trans_at / last_status.created_at), not birth — so Kalite Onayı (approved at 05:57) sorts above files created 05:56 but approved 05:51
         if(!empty($data)){
             usort($data, function($a,$b){
-                $aTime = isset($a->created_at) ? strtotime($a->created_at) : 0;
-                $bTime = isset($b->created_at) ? strtotime($b->created_at) : 0;
+                $aRaw = $a->last_trans_at ?? null;
+                if(!$aRaw && isset($a->last_status)){
+                    $tmp = is_string($a->last_status) ? @json_decode($a->last_status, true) : (array)$a->last_status;
+                    $aRaw = $tmp['created_at'] ?? null;
+                }
+                $bRaw = $b->last_trans_at ?? null;
+                if(!$bRaw && isset($b->last_status)){
+                    $tmp = is_string($b->last_status) ? @json_decode($b->last_status, true) : (array)$b->last_status;
+                    $bRaw = $tmp['created_at'] ?? null;
+                }
+                $aTime = $aRaw ? strtotime($aRaw) : (isset($a->created_at) ? strtotime($a->created_at) : 0);
+                $bTime = $bRaw ? strtotime($bRaw) : (isset($b->created_at) ? strtotime($b->created_at) : 0);
                 if($aTime && $bTime && $aTime !== $bTime){
                     return $bTime <=> $aTime;
                 }
+                // fallback to main_id (i.id) for ties — honours order by id desc literally
                 $aMid = $a->main_id ?? null;
                 $bMid = $b->main_id ?? null;
                 if($aMid !== null && $bMid !== null && $aMid != $bMid){
                     return (int)$bMid <=> (int)$aMid;
                 }
-                // final tie-breaker: qnid/id lexicographically (UUIDs are roughly time-ordered)
                 return strcmp((string)($b->id ?? $b->qnid ?? ''), (string)($a->id ?? $a->qnid ?? ''));
             });
         }

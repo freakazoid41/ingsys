@@ -96,7 +96,8 @@ class Document_files extends Model
                                                     'op_key',sot.op_key,
                                                     'title' , sot.title,
                                                     'name'  , p.name,
-                                                    'note' , t.description
+                                                    'note' , t.description,
+                                                    'created_at', t.created_at
                                                 ) 
                                                     from transactions t 
                                             
@@ -105,6 +106,7 @@ class Document_files extends Model
                                                 inner join users u on u.id = ul.user_id
                                                 inner join persons p on p.id = u.person_id
                                             where t.target_id = i.id and op_id = 1 order by t.id desc limit 1)  as  last_status",
+            'last_trans_at'     => "(select t.created_at from transactions t where t.target_id = i.id and t.op_id = 1 order by t.id desc limit 1) as last_trans_at",
             'title'             => "COALESCE(
                                         (SELECT sce.entity_value FROM sys_con_entities sce
                                          WHERE sce.conn_id = se.conn_id AND sce.entity_tag = 'title' AND sce.table_tag = 'sys_con_ops' LIMIT 1),

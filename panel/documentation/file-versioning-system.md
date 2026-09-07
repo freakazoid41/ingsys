@@ -327,6 +327,7 @@ Reuses `getDocumentFiles($documentId)` (files of a client document with their la
 - `getDocumentFiles($qnid)` — active files of a client document joined with their latest file transaction + who acted (used by `setFileStatusAll`).
 - `getRejectedClientFiles($list)` — active files whose **last** file transaction is `doc_file_rejected`, joined with rejecter name (feeds `currentStatus.rejectedFiles` → the notification bell's "Reddedilen Dosya" items).
 - `getAwaitingClientFiles($list)` — client-document files whose last status is `doc_file_waiting` (feeds the `notif-01` admin notifications). Also filters by `sod.op_key = 'op-doc-client'` (only client documents).
+- **2026-09-07 fix:** `OrderItemTable.vue:1325` `Yeni Test Dökümanı Yükle` now `(!readonly || isTestRejected(row.id)) && !isDepleted(row)` (was `!readonly &&` → hid when `files_rejected` locked `af59e4e6` `Maden Drogi` `Reddedildi` had no upload). JS `triggerTestUpload:817` already allowed `isTestRejected`, template now matches. `isTestRejected:811` checks `existingTestFiles[id][0].last_status.op_key === 'doc_file_rejected'`.
 
 ### 7.4 Notifications After Status Change
 

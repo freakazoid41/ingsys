@@ -1,7 +1,8 @@
-# Tedarik System Process — End-to-End Order Lifecycle (2026-09-04)
+# Tedarik System Process — End-to-End Order Lifecycle (2026-09-07)
 
 > **Purpose:** Malzeme Tedarik İş Süreci — SAP creates purchase orders, suppliers (Tedarikçiler) complete them with serials + files, GDZ/ADM (İB) reviews files and closes orders. This is the single source of truth for testing both panels.
 > **Read after:** `logging-mechanics.md`, `file-upload-versioning-mechanics.md`, `form-system-mechanics.md`, `session-and-login-mechanics.md`, `memory/05-order-system-state.md`.
+> **⚠️ 2026-09-07 late4: notifications now `last_trans_at` (status change `05:57:15`) not `i.created_at` birth (`04:56:38`) — fixes `3510004400-1` Kalite `04:56` below `05:44/05:56` files; `OrderItemTable 1325` `Yeni Test` now `(!readonly||isTestRejected)` for `files_rejected` locked.**
 
 **Key files:**
 - `app/Console/Commands/SyncOrdersCommand.php` — SAP sync

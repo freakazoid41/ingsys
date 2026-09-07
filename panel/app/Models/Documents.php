@@ -84,6 +84,7 @@ class Documents extends Model
                                 from transactions as t
                                     inner join sys_options so on so.id = t.type_id
                                 where target_id = i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1)  as  status",
+            'last_trans_at'=> "(select t.created_at from transactions t inner join sys_options so on so.id = t.type_id where t.target_id = i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1) as last_trans_at",
             //document activeness (documents.status) is a separate axis from the transaction status above.
             //for offers 0 means "cancelled", for other document types it keeps its "passive" meaning.
             'document_status' => 'i.status  as  document_status',

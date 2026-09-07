@@ -14,16 +14,25 @@ function parseOrder(o) {
       if (d.Key === 'ctitle' && !ctitle) ctitle = d.Value;
     });
   } catch {}
-  return { orderNo: orderNo || o.qnid || '-', ctitle, qnid: o.qnid || o.id || o.relation_qnid || '', main_id: o.main_id || 0, created_at: o.created_at || '' };
+  // status time is last_trans_at (when order moved to this status), fallback to created_at
+  const statusAt = o.last_trans_at || o.created_at || '';
+  return { orderNo: orderNo || o.qnid || '-', ctitle, qnid: o.qnid || o.id || o.relation_qnid || '', main_id: o.main_id || 0, created_at: statusAt, raw_created_at: o.created_at || '', last_trans_at: o.last_trans_at || '' };
 }
 
 function parseFile(f) {
+  let statusAt = f.last_trans_at || '';
+  if(!statusAt && f.last_status){
+    try { const j = typeof f.last_status === 'string' ? JSON.parse(f.last_status) : f.last_status; statusAt = j.created_at || ''; } catch {}
+  }
+  statusAt = statusAt || f.created_at || '';
   return {
     orderNo: f.group_key || '-',
     ctitle: f.ctitle || '',
     qnid: f.qnid || f.id || f.relation_qnid || '',
     main_id: f.main_id || 0,
-    created_at: f.created_at || '',
+    created_at: statusAt,
+    raw_created_at: f.created_at || '',
+    last_trans_at: f.last_trans_at || statusAt,
   };
 }
 
