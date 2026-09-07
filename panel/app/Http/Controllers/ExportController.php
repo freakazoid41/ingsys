@@ -33,9 +33,12 @@ class ExportController extends Controller
             case 'clients':
                 $filename = 'cariler.xlsx';
                 $headers = [
-                    'title'       => 'Firma Ünvanı',
-                    'clicode'     => 'Cari Kodu',
-                    'created_at'  => 'Oluşturulma Tarihi'
+                    'title'         => 'Firma Ünvanı',
+                    'client_system' => 'Sistem',
+                    'lifnr'         => 'Cari Kodu',
+                    'lifnr_full'    => 'Cari Kodu (Sistemli)',
+                    'clicode'       => 'Firma Kodu',
+                    'created_at'    => 'Oluşturulma Tarihi'
                 ];
                 
                 $data = (array)\App\Models\Documents::tableList([
@@ -133,7 +136,10 @@ class ExportController extends Controller
                     foreach($mainAttr as $ma){
                         $value->{$ma['Key']} = $ma['Value'];
                     }
+                    $value->client_system = $value->client_system ?? $value->client_system ?? $value->sys_code ?? 'GDZ';
+                    $value->lifnr_full = (strtoupper($value->client_system) . '-' . ($value->lifnr ?? ''));
                 }
+
 
                 $rowCallback = function ($row, $key, $label, $rowIndex, $columnIndex) {
                     $row = (array) $row;

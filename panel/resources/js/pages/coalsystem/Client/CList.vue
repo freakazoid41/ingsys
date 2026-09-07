@@ -105,6 +105,9 @@
             formatClientCard(rowData){
                 const title = rowData.title || '-';
                 const code = rowData.clicode || '-';
+                const sys = (rowData.client_system || rowData.sys_code || 'GDZ').toString().toUpperCase();
+                const lifnrRaw = rowData.lifnr || '-';
+                const lifnrDisplay = lifnrRaw !== '-' ? `${sys}-${lifnrRaw}` : '-';
 
                 const card = document.createElement('div');
                 card.classList.add('client-card');
@@ -123,8 +126,12 @@
 
                 const lifnrEl = document.createElement('div');
                 lifnrEl.classList.add('text-muted','fs-7');
-                lifnrEl.textContent = 'Cari Kodu: ' + (rowData.lifnr || '-');
+                lifnrEl.textContent = 'Cari Kodu: ' + lifnrDisplay;
                 lifnrEl.style.marginTop = '4px';
+                const sysPill = document.createElement('span');
+                sysPill.textContent = sys;
+                sysPill.style.cssText = 'display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;margin-left:6px;vertical-align:middle;border:1px solid ' + (sys==='ADM' ? '#bfdbfe;background:#eff6ff;color:#1e40af' : '#fed7aa;background:#fff7ed;color:#9a3412');
+                lifnrEl.appendChild(sysPill);
                 
                 headerLeft.appendChild(badge);
                 headerLeft.appendChild(cardTitle);
@@ -198,10 +205,31 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
+                        title : 'Sistem',
+                        key   : 'client_system',
+                        order : true,
+                        type  : 'string',
+                        columnFormatter : (elm,rowData,col) => {
+                            const sys = (col || rowData.client_system || 'GDZ').toString().toUpperCase();
+                            const pill = document.createElement('span');
+                            pill.textContent = sys;
+                            pill.style.cssText = 'display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid '+(sys==='ADM'?'#bfdbfe;background:#eff6ff;color:#1e40af':'#fed7aa;background:#fff7ed;color:#9a3412');
+                            return pill;
+                        }
+                    },{
                         title : 'Cari Kodu',
                         key   : 'lifnr',
                         order : true,
                         type  : 'string',
+                        columnFormatter : (elm,rowData,col) => {
+                            const sys = (rowData.client_system || 'GDZ').toString().toUpperCase();
+                            const raw = col || rowData.lifnr || '-';
+                            const display = raw !== '-' ? `${sys}-${raw}` : raw;
+                            const span = document.createElement('span');
+                            span.textContent = display;
+                            span.title = display;
+                            return span;
+                        }
                     },{
                         title : '',
                         key   : 'id',

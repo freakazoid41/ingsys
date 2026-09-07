@@ -157,18 +157,19 @@ class ReportServiceProvider extends ServiceProvider
                     $data = $this->filterFilesByBukrsForCurrentUser($data);
                 }
                 break;
-            case 'tedarik-06': // Sipariş Kalite Onayı Verildi — doc_trans_order_approved (BUKRS gate + LIFNR for reseller)
+            case 'tedarik-06': // Sipariş Kalite Onayı Verildi — doc_trans_order_approved (BUKRS+SYSTEM-aware LIFNR)
                 if($isReseller){
                     $data = $this->getTedarikOrders('doc_trans_order_approved');
                     $data = $this->filterOrdersByBukrsForCurrentUser($data);
-                    // extra LIFNR gate: keep only orders where spec_code in reseller's lifnrs
-                    $lifnrs = $this->getResellerLifnrs();
-                    if(!empty($lifnrs)){
-                        $data = array_values(array_filter($data, function($o) use ($lifnrs){
-                            $spec = '';
-                            try{ $arr=json_decode($o->main_attr??'[]',true); if(is_array($arr)) foreach($arr as $v) if(($v['Key']??'')==='spec_code') $spec=trim($v['Value']??''); }catch(\Throwable $e){}
+                    $lifBySys = $this->getResellerLifnrsBySys();
+                    if(!empty($lifBySys['GDZ']) || !empty($lifBySys['ADM'])){
+                        $data = array_values(array_filter($data, function($o) use ($lifBySys){
+                            $spec=''; $sys='GDZ';
+                            try{ $arr=json_decode($o->main_attr??'[]',true); if(is_array($arr)) foreach($arr as $v){ if(($v['Key']??'')==='spec_code') $spec=trim($v['Value']??''); if(($v['Key']??'')==='sys_code') $sys=$this->bukrsToSystem(trim($v['Value']??'GDZ')); } }catch(\Throwable $e){}
                             if($spec==='') $spec = trim($o->spec_code ?? '');
-                            return in_array($spec, $lifnrs, true);
+                            if(!isset($sys) || $sys==='') $sys = $this->bukrsToSystem(trim($o->sys_code ?? $o->grp_code ?? 'GDZ'));
+                            $bucket = $lifBySys[$sys] ?? [];
+                            return in_array($spec, $bucket, true);
                         }));
                     } else {
                         $data = [];
@@ -178,17 +179,19 @@ class ReportServiceProvider extends ServiceProvider
                     $data = $this->filterOrdersByBukrsForCurrentUser($data);
                 }
                 break;
-            case 'tedarik-07': // Sipariş Reddedildi — doc_trans_order_rejected ONLY (files_rejected is file-level tedarik-05, not order)
+            case 'tedarik-07': // Sipariş Reddedildi — doc_trans_order_rejected ONLY (SYSTEM-aware LIFNR)
                 if($isReseller){
                     $data = $this->getTedarikOrders('doc_trans_order_rejected');
                     $data = $this->filterOrdersByBukrsForCurrentUser($data);
-                    $lifnrs = $this->getResellerLifnrs();
-                    if(!empty($lifnrs)){
-                        $data = array_values(array_filter($data, function($o) use ($lifnrs){
-                            $spec = '';
-                            try{ $arr=json_decode($o->main_attr??'[]',true); if(is_array($arr)) foreach($arr as $v) if(($v['Key']??'')==='spec_code') $spec=trim($v['Value']??''); }catch(\Throwable $e){}
+                    $lifBySys = $this->getResellerLifnrsBySys();
+                    if(!empty($lifBySys['GDZ']) || !empty($lifBySys['ADM'])){
+                        $data = array_values(array_filter($data, function($o) use ($lifBySys){
+                            $spec=''; $sys='GDZ';
+                            try{ $arr=json_decode($o->main_attr??'[]',true); if(is_array($arr)) foreach($arr as $v){ if(($v['Key']??'')==='spec_code') $spec=trim($v['Value']??''); if(($v['Key']??'')==='sys_code') $sys=$this->bukrsToSystem(trim($v['Value']??'GDZ')); } }catch(\Throwable $e){}
                             if($spec==='') $spec = trim($o->spec_code ?? '');
-                            return in_array($spec, $lifnrs, true);
+                            if(!isset($sys) || $sys==='') $sys = $this->bukrsToSystem(trim($o->sys_code ?? $o->grp_code ?? 'GDZ'));
+                            $bucket = $lifBySys[$sys] ?? [];
+                            return in_array($spec, $bucket, true);
                         }));
                     } else {
                         $data = [];
@@ -755,28 +758,62 @@ class ReportServiceProvider extends ServiceProvider
     // ─────────────────────────────────────────────────────────
 
     private function getResellerLifnrs(){
+        // Backward compat flat list (for legacy callers) — now system-aware deduplicated
+        $bySys = $this->getResellerLifnrsBySys();
+        if($bySys === null) return null;
+        return array_values(array_unique(array_merge($bySys['GDZ'] ?? [], $bySys['ADM'] ?? [])));
+    }
+
+    private function getResellerLifnrsBySys(){
         if(session('type_key') !== 'op-pert-reseller') return null; // admin/keyuser → no LIFNR filter (global view)
         $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
-        if(empty($clientQnids)) return [];
+        if(empty($clientQnids)) return ['GDZ'=>[],'ADM'=>[]];
         $qnidIn = "'".implode("','", array_map('noInject', $clientQnids))."'";
-        $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
-        return array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
+        $lifRows = DB::select("SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+        $bySys = ['GDZ'=>[], 'ADM'=>[]];
+        foreach($lifRows as $r){
+            $sys = strtoupper(trim($r->sys ?? 'GDZ'));
+            if($sys==='') $sys='GDZ';
+            if(!in_array($sys,['GDZ','ADM'])) $sys='GDZ';
+            $v = trim($r->lifnr ?? '');
+            if($v!=='') $bySys[$sys][] = $v;
+        }
+        $bySys['GDZ'] = array_values(array_unique($bySys['GDZ']));
+        $bySys['ADM'] = array_values(array_unique($bySys['ADM']));
+        return $bySys;
     }
 
     private function resellerOrderWhere($lifnrs){
+        // $lifnrs may be flat array (legacy) or bySys map — handle both; system-aware WHERE
         if($lifnrs === null) return ""; // admin/keyuser sees all (no filter)
-        if(empty($lifnrs)) return " and 1=0 "; // reseller with no clients → fails closed
-        $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
-        return " and (
-            exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn))
-            or exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id join documents d3 on d3.id=so3.main_id where d3.parent_id=i.id and se3.entity_tag='spec_code' and se3.entity_value in ($lifIn))
-        ) ";
+        $bySys = null;
+        if(is_array($lifnrs) && isset($lifnrs['GDZ']) && isset($lifnrs['ADM'])){
+            $bySys = $lifnrs;
+        } else {
+            // flat list → treat as GDZ only (backward compat, but caller should use BySys)
+            if(empty($lifnrs)) return " and 1=0 ";
+            $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
+            return " and (
+                exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn))
+                or exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id join documents d3 on d3.id=so3.main_id where d3.parent_id=i.id and se3.entity_tag='spec_code' and se3.entity_value in ($lifIn))
+            ) ";
+        }
+        if(empty($bySys['GDZ']) && empty($bySys['ADM'])) return " and 1=0 ";
+        $ors=[];
+        foreach(['GDZ','ADM'] as $sys){
+            if(empty($bySys[$sys])) continue;
+            $lifIn = "'".implode("','", array_map('noInject', $bySys[$sys]))."'";
+            $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
+            $ors[] = "exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%')))";
+            $ors[] = "exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id join documents d3 on d3.id=so3.main_id where d3.parent_id=i.id and se3.entity_tag='spec_code' and se3.entity_value in ($lifIn) and exists (select 1 from sys_con_entities se4 join sys_con_ops so4 on so4.id=se4.conn_id where so4.main_id=d3.id and se4.entity_tag='sys_code' and (se4.entity_value in ($sysVals) or se4.entity_value ilike '%$sys%')))";
+        }
+        return " and (".implode(" or ", $ors).") ";
     }
 
     public function tedarikStats(){
         $cacheKey = 'dashboard:tedarikStats:'.(session('person_id') ?? auth()->id() ?? 'guest').':'.($GLOBALS['SYS_CODE'] ?? 'GDZ');
         return Cache::remember($cacheKey, 60, function(){
-        $lifnrs = $this->getResellerLifnrs();
+        $lifnrs = $this->getResellerLifnrsBySys();
         $whereLif = $this->resellerOrderWhere($lifnrs);
 
         $totalOrders = DB::selectOne("SELECT count(*) as cnt FROM documents i
@@ -850,7 +887,7 @@ class ReportServiceProvider extends ServiceProvider
     }
 
     public function tedarikRecentOrders(){
-        $lifnrs = $this->getResellerLifnrs();
+        $lifnrs = $this->getResellerLifnrsBySys();
         $whereLif = $this->resellerOrderWhere($lifnrs);
 
         $orders = DB::select("SELECT i.qnid as id, i.id as main_id, i.title, i.created_at,
@@ -885,7 +922,7 @@ class ReportServiceProvider extends ServiceProvider
     }
 
     public function tedarikStatusBreakdown(){
-        $lifnrs = $this->getResellerLifnrs();
+        $lifnrs = $this->getResellerLifnrsBySys();
         $whereLif = $this->resellerOrderWhere($lifnrs);
 
         $rows = DB::select("SELECT
@@ -934,7 +971,7 @@ class ReportServiceProvider extends ServiceProvider
     }
 
     public function tedarikMonthlyOrders(){
-        $lifnrs = $this->getResellerLifnrs();
+        $lifnrs = $this->getResellerLifnrsBySys();
         $whereLif = $this->resellerOrderWhere($lifnrs);
         $result = [];
         for($m=5; $m>=0; $m--){
@@ -952,7 +989,7 @@ class ReportServiceProvider extends ServiceProvider
     }
 
     public function tedarikRecentFiles(){
-        $lifnrs = $this->getResellerLifnrs();
+        $lifnrs = $this->getResellerLifnrsBySys();
         $whereLif = $this->resellerOrderWhere($lifnrs);
         // For files we need to filter via the related document's order
         // Reuse resellerOrderWhere but adapted for document_files join (d = order or item's parent order)
@@ -989,7 +1026,7 @@ class ReportServiceProvider extends ServiceProvider
     }
 
     public function tedarikActivity(){
-        $lifnrs = $this->getResellerLifnrs();
+        $lifnrs = $this->getResellerLifnrsBySys();
         // For supplier, filter to only order/file transactions; admin on tedarik sees global order-related only
         if($lifnrs === null){
             $rows = DB::select("SELECT ul.id, ul.created_at, so.op_key, so.title, ul.description as detail,

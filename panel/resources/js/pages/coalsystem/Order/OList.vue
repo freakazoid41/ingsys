@@ -84,7 +84,7 @@
             modalFilteredClients(){
                 const q=this.sirketSearch.trim().toLowerCase();
                 if(!q) return this.modalClients;
-                return this.modalClients.filter(o=> o.clititle.toLowerCase().includes(q) || o.lifnr.toLowerCase().includes(q) || (o.label&&o.label.toLowerCase().includes(q)));
+                return this.modalClients.filter(o=> o.clititle.toLowerCase().includes(q) || o.lifnr.toLowerCase().includes(q) || (o.lifnrDisplay&&o.lifnrDisplay.toLowerCase().includes(q)) || (o.client_system&&o.client_system.toLowerCase().includes(q)) || (o.label&&o.label.toLowerCase().includes(q)));
             }
         },
         data() {
@@ -248,8 +248,10 @@
                             const attrs=JSON.parse(r.main_attr||'[]');
                             const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
                             const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr||'-';
-                            const label = title ? `${title} (${lifnr})` : lifnr;
-                            return { id:r.id, lifnr, clititle:title, label, main_attr:r.main_attr, qnid:r.id };
+                            const sys=(attrs.find(a=>a.Key==='client_system')||{}).Value||r.client_system||'GDZ';
+                            const lifnrDisplay = lifnr ? `${sys}-${lifnr}` : lifnr;
+                            const label = title ? `${title} (${lifnrDisplay})` : lifnrDisplay;
+                            return { id:r.id, lifnr, lifnrDisplay, clititle:title, client_system:sys, label, main_attr:r.main_attr, qnid:r.id };
                         }catch(e){ return null; }
                     }).filter(Boolean);
                     this.modalClients = localData;
@@ -1176,7 +1178,8 @@
                                             <input v-if="clientModalMode==='multi'" type="checkbox" :checked="selectedSirkets.includes(opt.lifnr)" @change="toggleSirket(opt.lifnr)" @click.stop style="width:16px;height:16px;accent-color:#FF5A1F;flex-shrink:0;">
                                             <input v-else type="radio" :checked="detay[detailedModalTarget]===opt.lifnr" @change="selectSingleClient(opt)" @click.stop style="width:16px;height:16px;accent-color:#FF5A1F;flex-shrink:0;" :name="'single-'+detailedModalTarget">
                                             <span style="flex:1;font-weight:500;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{opt.clititle}}</span>
-                                            <span style="font-weight:600;color:#475569;font-size:13px;white-space:nowrap;">{{opt.lifnr}}</span>
+                                            <span style="display:inline-flex;align-items:center;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:800;border:1px solid;margin-right:4px;" :style="opt.client_system==='ADM' ? 'border-color:#bfdbfe;background:#eff6ff;color:#1e40af' : 'border-color:#fed7aa;background:#fff7ed;color:#9a3412'">{{opt.client_system||'GDZ'}}</span>
+                                            <span style="font-weight:600;color:#475569;font-size:13px;white-space:nowrap;">{{opt.lifnrDisplay||opt.lifnr}}</span>
                                         </label>
                                         <div v-if="!modalFilteredClients.length" style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">Sonuç bulunamadı</div>
                                     </div>

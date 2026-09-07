@@ -150,27 +150,35 @@ class Document_files extends Model
         // Exclude product images from files listing — they are per-item and not actionable
         $where  .= " and se.entity_tag not like '%item_images_file%' ";
 
-        // Tedarik supplier scope: reseller sees only own files (LIFNR-matched orders/items + own client docs)
-        // Mirrors Documents::tableList clientQnidList gating — fails closed for reseller, open for admin
+        // Tedarik supplier scope: reseller sees only own files (LIFNR+SYSTEM-matched orders/items + own client docs)
+        // Handles duplicate numeric codes across GDZ/ADM via client_system
         if (session('currentStatus') !== null && !empty(session('currentStatus')['clientQnidList'])) {
             if (session('type_key') == 'op-pert-reseller') {
                 $qnids = session('currentStatus')['clientQnidList'];
                 $qnidIn = "'" . implode("','", array_map('noInject', $qnids)) . "'";
-                // resolve LIFNRs for these client qnids (op-doc-client lifnr)
                 $lifRows = [];
                 try {
-                    $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+                    $lifRows = DB::select("SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
                 } catch (\Throwable $e) { $lifRows = []; }
-                $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
-                if (!empty($lifnrs)) {
-                    $lifList = "'" . implode("','", array_map('noInject', $lifnrs)) . "'";
-                    $where .= " and ( d.qnid IN ($qnidIn)"
-                             . " or exists (select 1 from sys_con_entities sce3 join sys_con_ops sco3 on sco3.id=sce3.conn_id where sco3.main_id=d.id and sce3.entity_tag='spec_code' and sce3.entity_value IN ($lifList) )"
-                             . " or exists (select 1 from documents pd join sys_con_ops sco_p on sco_p.main_id=pd.id and sco_p.conn_id=0 join sys_con_entities sce_p on sce_p.conn_id=sco_p.id where pd.id = d.parent_id and pd.status=1 and sce_p.entity_tag='spec_code' and sce_p.entity_value IN ($lifList) )"
-                             . " or exists (select 1 from sys_con_entities sce4 join sys_con_ops sco4 on sco4.id=sce4.conn_id where sco4.main_id=d.id and sce4.entity_tag='lifnr' and sce4.entity_value IN ($lifList) )"
-                             . " ) ";
+                $bySys = ['GDZ'=>[], 'ADM'=>[]];
+                foreach($lifRows as $lr){ $sys=strtoupper(trim($lr->sys??'GDZ')); if($sys==='') $sys='GDZ'; if(!in_array($sys,['GDZ','ADM'])) $sys='GDZ'; $v=trim($lr->lifnr??''); if($v!=='') $bySys[$sys][]=$v; }
+                $bySys['GDZ']=array_values(array_unique($bySys['GDZ'])); $bySys['ADM']=array_values(array_unique($bySys['ADM']));
+                if (!empty($bySys['GDZ']) || !empty($bySys['ADM'])) {
+                    $ors=[];
+                    foreach(['GDZ','ADM'] as $sys){
+                        if(empty($bySys[$sys])) continue;
+                        $lifList = "'" . implode("','", array_map('noInject', $bySys[$sys])) . "'";
+                        $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
+                        // spec_code on d (order) + sys_code matches client's system
+                        $ors[] = "exists (select 1 from sys_con_entities sce3 join sys_con_ops sco3 on sco3.id=sce3.conn_id where sco3.main_id=d.id and sce3.entity_tag='spec_code' and sce3.entity_value IN ($lifList) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=d.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%')))";
+                        // spec_code on parent order (for item files)
+                        $ors[] = "exists (select 1 from documents pd join sys_con_ops sco_p on sco_p.main_id=pd.id and sco_p.conn_id=0 join sys_con_entities sce_p on sce_p.conn_id=sco_p.id where pd.id = d.parent_id and pd.status=1 and sce_p.entity_tag='spec_code' and sce_p.entity_value IN ($lifList) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=pd.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%')))";
+                        // direct lifnr on d (client docs themselves)
+                        $ors[] = "exists (select 1 from sys_con_entities sce4 join sys_con_ops sco4 on sco4.id=sce4.conn_id where sco4.main_id=d.id and sce4.entity_tag='lifnr' and sce4.entity_value IN ($lifList))";
+                    }
+                    $ors[] = "d.qnid IN ($qnidIn)";
+                    $where .= " and (".implode(" or ", $ors).") ";
                 } else {
-                    // no LIFNR yet — at least allow own client doc files (imza sirküleri etc)
                     $where .= " and d.qnid IN ($qnidIn) ";
                 }
             }

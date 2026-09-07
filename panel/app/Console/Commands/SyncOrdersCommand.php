@@ -128,8 +128,8 @@ class SyncOrdersCommand extends Command
                 continue;
             }
 
-            // Create or find client
-            $clientQnid = $this->findOrCreateClient($lifnr, $mcod1, $clientTypeId, $clientFormTypeId, $formMainId);
+            // Create or find client (system-aware: same lifnr can exist in GDZ and ADM)
+            $clientQnid = $this->findOrCreateClient($lifnr, $mcod1, $clientTypeId, $clientFormTypeId, $formMainId, $bukrs);
             if ($clientQnid) $stats['clients']++;
 
             // Create order document
@@ -315,11 +315,24 @@ class SyncOrdersCommand extends Command
         }
     }
 
+    private function bukrsToSystem(string $bukrs): string {
+        $b = strtoupper(trim($bukrs));
+        if ($b === '' ) return 'GDZ';
+        if (in_array($b, ['GDZ','4000','1000','G4000'])) return 'GDZ';
+        if (in_array($b, ['ADM','5000','A5000'])) return 'ADM';
+        if (in_array($b, ['BOTH','HER_IKISI','GDZ,ADM'])) return 'BOTH';
+        if (strpos($b,'GDZ')!==false) return 'GDZ';
+        if (strpos($b,'ADM')!==false) return 'ADM';
+        return $b;
+    }
+
     private function findOrCreateClient(
         string $lifnr, string $name,
-        int $clientTypeId, ?int $formTypeId, int $formMainId
+        int $clientTypeId, ?int $formTypeId, int $formMainId,
+        string $bukrs = ''
     ): ?string {
-        // Check if an ACTIVE client with this LIFNR already exists
+        $sysCode = $this->bukrsToSystem($bukrs);
+        // Check if an ACTIVE client with this LIFNR + SYSTEM already exists (composite key)
         $existing = DB::table('sys_con_entities as se')
             ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
             ->join('documents as d', 'd.id', '=', 'so.main_id')
@@ -328,13 +341,63 @@ class SyncOrdersCommand extends Command
             ->where('se.table_tag', 'sys_con_ops')
             ->where('d.type_id', $clientTypeId)
             ->where('d.status', 1)
+            ->whereExists(function($q) use ($sysCode) {
+                $q->from('sys_con_entities as se2')
+                  ->join('sys_con_ops as so2','so2.id','=','se2.conn_id')
+                  ->whereColumn('so2.main_id','d.id')
+                  ->where('se2.entity_tag','client_system')
+                  ->where('se2.entity_value',$sysCode)
+                  ->where('se2.table_tag','sys_con_ops');
+            })
             ->first();
+        // Backward compat: if no system-aware match, check legacy lifnr-only (pre-migration GDZ clients without client_system)
+        if (!$existing) {
+            $legacy = DB::table('sys_con_entities as se')
+                ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                ->join('documents as d', 'd.id', '=', 'so.main_id')
+                ->where('se.entity_tag', 'lifnr')
+                ->where('se.entity_value', $lifnr)
+                ->where('se.table_tag', 'sys_con_ops')
+                ->where('d.type_id', $clientTypeId)
+                ->where('d.status', 1)
+                ->whereNotExists(function($q){
+                    $q->from('sys_con_entities as se2')
+                      ->join('sys_con_ops as so2','so2.id','=','se2.conn_id')
+                      ->whereColumn('so2.main_id','d.id')
+                      ->where('se2.entity_tag','client_system');
+                })
+                ->first();
+            if ($legacy && $sysCode === 'GDZ') {
+                // Backfill missing client_system as GDZ for legacy row and reuse it
+                $legacyConn = DB::table('sys_con_ops')->where('main_id',$legacy->so_main_id ?? $legacy->main_id ?? 0)->where('type_id',$formTypeId)->where('conn_id',0)->first();
+                // Fallback: find any conn for this doc
+                if (!$legacyConn) $legacyConn = DB::table('sys_con_ops')->where('main_id', DB::table('documents')->where('id',$legacy->d_id ?? 0)->value('id') ?? 0)->first();
+                try {
+                    $docId = DB::table('sys_con_ops')->where('id',$legacy->conn_id)->value('main_id') ?? DB::table('documents')->where('id',$legacy->d_id)->value('id');
+                    if ($docId) {
+                        $connId = DB::table('sys_con_ops')->where('main_id',$docId)->where('type_id',$formTypeId)->where('conn_id',0)->value('id');
+                        if ($connId) {
+                            DB::table('sys_con_entities')->insert([
+                                'conn_id' => $connId,
+                                'entity_tag' => 'client_system',
+                                'entity_value' => 'GDZ',
+                                'table_tag' => 'sys_con_ops',
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+                } catch(\Throwable $e){}
+                return null;
+            }
+        }
 
         if ($existing) return null;
 
         $document = new Documents();
         $document->type_id = $clientTypeId;
         $document->person_id = 'system';
+        $document->grp_code = $sysCode;
         $document->save();
 
         // Birth transaction — must have user_logs entry for getFormData status subquery
@@ -372,6 +435,7 @@ class SyncOrdersCommand extends Command
                 'clicode' => $document->qnid,
                 'title' => $name,
                 'lifnr' => $lifnr,
+                'client_system' => $sysCode,
             ];
 
             foreach ($entities as $tag => $value) {

@@ -85,6 +85,7 @@ class Documents extends Model
                                     inner join sys_options so on so.id = t.type_id
                                 where target_id = i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1)  as  status",
             'last_trans_at'=> "(select t.created_at from transactions t inner join sys_options so on so.id = t.type_id where t.target_id = i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1) as last_trans_at",
+            'client_system'=> "(select se.entity_value from sys_con_entities se join sys_con_ops sox on sox.id=se.conn_id where sox.main_id=i.id and se.entity_tag='client_system' and se.table_tag='sys_con_ops' limit 1) as client_system",
             //document activeness (documents.status) is a separate axis from the transaction status above.
             //for offers 0 means "cancelled", for other document types it keeps its "passive" meaning.
             'document_status' => 'i.status  as  document_status',
@@ -133,46 +134,74 @@ class Documents extends Model
 
                     break;
                     case 'op-doc-order':
-                        // INGSYS Tedarik: reseller sees only orders where spec_code (lifnr) matches one of his bound clients
+                        // INGSYS Tedarik: reseller sees only orders where (spec_code == lifnr AND sys_code matches client_system) — handles duplicate numeric codes across GDZ/ADM
                         $resellerQnids = array_values(array_unique(session('currentStatus')['clientQnidList']));
                         $qnidIn = "'".implode("','", array_map('noInject', $resellerQnids))."'";
-                        $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
-                        $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
-                        if(empty($lifnrs)){
+                        $lifRows = DB::select("SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+                        $bySys = ['GDZ'=>[], 'ADM'=>[]];
+                        foreach($lifRows as $lr){
+                            $sys = strtoupper(trim($lr->sys ?? 'GDZ'));
+                            if($sys==='') $sys='GDZ';
+                            if(!in_array($sys,['GDZ','ADM'])) $sys='GDZ';
+                            $v = trim($lr->lifnr ?? '');
+                            if($v!=='') $bySys[$sys][] = $v;
+                        }
+                        $bySys['GDZ'] = array_values(array_unique($bySys['GDZ']));
+                        $bySys['ADM'] = array_values(array_unique($bySys['ADM']));
+                        if(empty($bySys['GDZ']) && empty($bySys['ADM'])){
                             $where .= " and 1=0 ";
                         } else {
-                            $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
-                            $where .= " and (
-                                exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn))
-                                or exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='lifnr' and se2.entity_value in ($lifIn))
-                                or i.qnid in ($qnidIn)
-                            ) ";
+                            $ors = [];
+                            foreach(['GDZ','ADM'] as $sys){
+                                if(empty($bySys[$sys])) continue;
+                                $lifIn = "'".implode("','", array_map('noInject', $bySys[$sys]))."'" ;
+                                $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
+                                // order's spec_code matches AND its sys_code (BUKRS normalized) matches client's system
+                                $ors[] = "exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn)) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%'))";
+                                $ors[] = "exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='lifnr' and se2.entity_value in ($lifIn)) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%'))";
+                            }
+                            $ors[] = "i.qnid in ($qnidIn)";
+                            $where .= " and (".implode(" or ", $ors).") ";
                         }
                     break;
                     case 'op-doc-order-item':
                         $resellerQnids = array_values(array_unique(session('currentStatus')['clientQnidList']));
                         $qnidIn = "'".implode("','", array_map('noInject', $resellerQnids))."'";
-                        $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
-                        $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
-                        if(empty($lifnrs)){
+                        $lifRows = DB::select("SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+                        $bySys = ['GDZ'=>[], 'ADM'=>[]];
+                        foreach($lifRows as $lr){ $sys=strtoupper(trim($lr->sys??'GDZ')); if($sys==='') $sys='GDZ'; if(!in_array($sys,['GDZ','ADM'])) $sys='GDZ'; $v=trim($lr->lifnr??''); if($v!=='') $bySys[$sys][]=$v; }
+                        $bySys['GDZ']=array_values(array_unique($bySys['GDZ'])); $bySys['ADM']=array_values(array_unique($bySys['ADM']));
+                        if(empty($bySys['GDZ']) && empty($bySys['ADM'])){
                             $where .= " and 1=0 ";
                         } else {
-                            $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
-                            // item's parent is the order — check order's spec_code
-                            $where .= " and exists (select 1 from documents d2 join sys_con_ops so2 on so2.main_id = d2.id join sys_con_entities se2 on se2.conn_id = so2.id where d2.id = i.parent_id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn)) ";
+                            $ors=[];
+                            foreach(['GDZ','ADM'] as $sys){
+                                if(empty($bySys[$sys])) continue;
+                                $lifIn = "'".implode("','", array_map('noInject', $bySys[$sys]))."'" ;
+                                $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
+                                $ors[] = "exists (select 1 from documents d2 join sys_con_ops so2 on so2.main_id = d2.id join sys_con_entities se2 on se2.conn_id = so2.id where d2.id = i.parent_id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=d2.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%')))";
+                            }
+                            $where .= " and (".implode(" or ", $ors).") ";
                         }
                     break;
                     case 'op-doc-order-serial':
                         $resellerQnids = array_values(array_unique(session('currentStatus')['clientQnidList']));
                         $qnidIn = "'".implode("','", array_map('noInject', $resellerQnids))."'";
-                        $lifRows = DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
-                        $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
-                        if(empty($lifnrs)){
+                        $lifRows = DB::select("SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
+                        $bySys = ['GDZ'=>[], 'ADM'=>[]];
+                        foreach($lifRows as $lr){ $sys=strtoupper(trim($lr->sys??'GDZ')); if($sys==='') $sys='GDZ'; if(!in_array($sys,['GDZ','ADM'])) $sys='GDZ'; $v=trim($lr->lifnr??''); if($v!=='') $bySys[$sys][]=$v; }
+                        $bySys['GDZ']=array_values(array_unique($bySys['GDZ'])); $bySys['ADM']=array_values(array_unique($bySys['ADM']));
+                        if(empty($bySys['GDZ']) && empty($bySys['ADM'])){
                             $where .= " and 1=0 ";
                         } else {
-                            $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
-                            // serial -> item -> order (two levels up)
-                            $where .= " and exists (select 1 from documents di join documents d2 on d2.id = di.parent_id join sys_con_ops so2 on so2.main_id = d2.id join sys_con_entities se2 on se2.conn_id = so2.id where di.id = i.parent_id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn)) ";
+                            $ors=[];
+                            foreach(['GDZ','ADM'] as $sys){
+                                if(empty($bySys[$sys])) continue;
+                                $lifIn = "'".implode("','", array_map('noInject', $bySys[$sys]))."'" ;
+                                $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
+                                $ors[] = "exists (select 1 from documents di join documents d2 on d2.id = di.parent_id join sys_con_ops so2 on so2.main_id = d2.id join sys_con_entities se2 on se2.conn_id = so2.id where di.id = i.parent_id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=d2.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%')))";
+                            }
+                            $where .= " and (".implode(" or ", $ors).") ";
                         }
                     break;
                     case 'op-doc-client':
@@ -225,6 +254,10 @@ class Documents extends Model
                 }
                  
             break;
+            case 'op-doc-client':
+                // Admin sees all clients across GDZ/ADM — system column shows pill, no tenant filter (Master request: admin sees all)
+                // Reseller already limited above via qnid list, so no extra filter
+                break;
             default:
                 if(isset($GLOBALS['SYS_CODE'])) $where .= " and i.grp_code ilike '%".$GLOBALS['SYS_CODE']."%'";
             break;

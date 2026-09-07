@@ -258,6 +258,14 @@ class DocumentServiceProvider extends ServiceProvider
                         $document->save();
                     }
                 }
+                // client system → grp_code sync (composite key GDZ/ADM)
+                if ($typeKey === 'op-doc-client' && isset($field['entities']['client_system'])) {
+                    $sys = strtoupper(trim((string)$field['entities']['client_system']));
+                    if (in_array($sys, ['GDZ','ADM'], true)) {
+                        $document->grp_code = $sys;
+                        $document->save();
+                    }
+                }
 
                 // now check if any file is sended
                 $stypeId = (Sys_options::where(['ctitle' => 'sub_type_id', 'op_key' => 'form-file'])->first())->id;

@@ -115,13 +115,16 @@
                             const codeElm = element.parentNode.parentNode.parentNode.querySelector('input[name^="clicode"]');
                             const titleElm = element.parentNode.parentNode.parentNode.querySelector('input[name^="clititle"]');
                             const idElm   = element.parentNode.parentNode.parentNode.querySelector('input[name^="cliid"]');
+                            const sysElm  = element.parentNode.parentNode.parentNode.querySelector('input[name^="client_system"]');
                             titleElm.value = data.title;
                             idElm.value    = data.id;
                             codeElm.value  = data.clicode; 
+                            if(sysElm) sysElm.value = (data.client_system || data.sys_code || 'GDZ').toString().toUpperCase();
                            
                             codeElm.dispatchEvent(new Event('input'));
                             idElm.dispatchEvent(new Event('input'));
                             titleElm.dispatchEvent(new Event('input'));
+                            if(sysElm) sysElm.dispatchEvent(new Event('input'));
                             Swal.close();
                         });
                         
@@ -423,13 +426,13 @@
                                 name  : 'sub_312',
                                 disabled : !useAuthStore().permissions?.includes('per-04-02'),
                                 label : 'Bağlı Cariler',
-                                col   : 6,
+                                col   : 12,
                                 group_key : 'userclientgroup',
                                 subs  : [
                                     {
                                         class : ['form-control','mb-2','mb-md-0'],
                                         type  : 'text',
-                                        col   : 4,
+                                        col   : 3,
                                         readOnly : true,
                                         name  : 'cliid',
                                         hidden : true,
@@ -438,7 +441,7 @@
                                     },{
                                         class : ['form-control','mb-2','mb-md-0'],
                                         type  : 'text',
-                                        col   : 4,
+                                        col   : 3,
                                         readOnly : true,
                                         name  : 'clicode',
                                         label : 'Cari Kodu',
@@ -448,9 +451,19 @@
                                         class : ['form-control','mb-2','mb-md-0'],
                                         type  : 'text',
                                         readOnly : true,
-                                        col   : 4,
+                                        col   : 3,
                                         name  : 'clititle',
                                         label : 'Cari Başlık',
+                                        onclick : usersClientClick,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0'],
+                                        type  : 'text',
+                                        readOnly : true,
+                                        col   : 3,
+                                        name  : 'client_system',
+                                        label : 'Sistem',
+                                        placeholder : 'GDZ / ADM',
                                         onclick : usersClientClick,
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
@@ -1043,6 +1056,19 @@
                                         required : true,
                                         label : 'Firma Ünvanı',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'select',
+                                        name  : 'client_system',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Sistem',
+                                        defaultValue : 'GDZ',
+                                        options  : [
+                                            { text: 'GDZ', value: 'GDZ' },
+                                            { text: 'ADM', value: 'ADM' },
+                                        ],
+                                        oninput  : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
@@ -3092,6 +3118,18 @@
                         key   : 'clicode',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                    },{
+                        title : 'Sistem',
+                        key   : 'client_system',
+                        order : true,
+                        type  : 'string',
+                        columnFormatter : (elm,rowData,col) => {
+                            const sys = (col || rowData.client_system || 'GDZ').toString().toUpperCase();
+                            const pill = document.createElement('span');
+                            pill.textContent = sys;
+                            pill.style.cssText = 'display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid '+(sys==='ADM'?'#bfdbfe;background:#eff6ff;color:#1e40af':'#fed7aa;background:#fff7ed;color:#9a3412');
+                            return pill;
+                        }
                     }
                 ];
                 

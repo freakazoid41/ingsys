@@ -40,7 +40,7 @@ export function useClientModal(plibInstance = null) {
   const modalFilteredClients = computed(() => {
     const q = sirketSearch.value.trim().toLowerCase();
     if (!q) return modalClients.value;
-    return modalClients.value.filter(o => o.clititle.toLowerCase().includes(q) || o.lifnr.toLowerCase().includes(q) || (o.label && o.label.toLowerCase().includes(q)));
+    return modalClients.value.filter(o => o.clititle.toLowerCase().includes(q) || o.lifnr.toLowerCase().includes(q) || (o.lifnrDisplay&&o.lifnrDisplay.toLowerCase().includes(q)) || (o.client_system&&o.client_system.toLowerCase().includes(q)) || (o.label && o.label.toLowerCase().includes(q)));
   });
 
   async function buildClientTable(force=false) {
@@ -60,8 +60,10 @@ export function useClientModal(plibInstance = null) {
           const attrs=JSON.parse(r.main_attr||'[]');
           const lifnr=(attrs.find(a=>a.Key==='lifnr')||{}).Value||'';
           const title=(attrs.find(a=>a.Key==='title')||{}).Value||lifnr||'-';
-          const label = title ? `${title} (${lifnr})` : lifnr;
-          return { id:r.id, lifnr, clititle:title, label, main_attr:r.main_attr, qnid:r.id };
+          const sys=(attrs.find(a=>a.Key==='client_system')||{}).Value||r.client_system||'GDZ';
+          const lifnrDisplay = lifnr ? `${sys}-${lifnr}` : lifnr;
+          const label = title ? `${title} (${lifnrDisplay})` : lifnrDisplay;
+          return { id:r.id, lifnr, lifnrDisplay, clititle:title, client_system:sys, label, main_attr:r.main_attr, qnid:r.id };
         }catch(e){ return null; }
       }).filter(Boolean);
       modalClients.value = localData;

@@ -4,13 +4,10 @@
 
 ** optimizasyon ve kontrol **
 
-** sistem bildirimleri **
- - Bildirimleri dene
- - durumlara göre mail gönderimleri
 
 ** optimizasyon ve kontrol **
 
-** Cariler aynı kodulu fakat farklı sistemli olabilir filtrelerde bu önemli panelde hepsi gözükmeli
+
 ** sipairş detayında eklenen bütün dosyaları indiren button
 
 ** excel çıktıları
