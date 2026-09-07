@@ -5,7 +5,7 @@
 ** optimizasyon ve kontrol **
 
 ** bildirim sistemleri için çok query atıyor bunlar queue içinde bağımsız olmalı 
-
+** document controller code improvement
 ** optimizasyon ve kontrol **
 
 
@@ -15,7 +15,7 @@
  - Tedarikçi ara olayı cari kullanıcıları üzerinden arama ama aynı kod
 
 ** sipariş detayı ve süreçleri
-** eğitim videoları
+
 ** raporlar
 
 

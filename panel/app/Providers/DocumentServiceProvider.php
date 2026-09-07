@@ -1309,13 +1309,16 @@ class DocumentServiceProvider extends ServiceProvider
             }
 
             // Collect active files on this order and its direct order items only.
+            // FIX: do NOT leak clone order's files when viewing base order. d is file host (order or item).
+            // order-level file: d is order → d.id = orderId. item file: d is item → d.parent_id = orderId AND dt=op-doc-order-item.
             $orderFileRows = DB::select(
                 "SELECT df.id, sce.entity_tag, d.id AS doc_id FROM document_files df
                  JOIN sys_con_entities sce ON sce.entity_value = df.id::text AND sce.table_tag = 'document_files'
                  JOIN sys_con_ops sco ON sco.id = sce.conn_id
                  JOIN documents d ON d.id = sco.main_id
+                 JOIN sys_options dt ON dt.id = d.type_id
                  WHERE df.status = 1 AND df.relation = 'documents'
-                   AND (d.id = ? OR d.parent_id = ?)",
+                   AND ((d.id = ? AND dt.op_key = 'op-doc-order') OR (d.parent_id = ? AND dt.op_key = 'op-doc-order-item'))",
                 [$doc->id, $doc->id]
             );
 

@@ -69,7 +69,7 @@ class Document_files extends Model
             'file_type'         => 'sf.title  as  file_type',
             'file_type_key'     => 'sf.op_key  as  file_type_key',
             'relation'          => 'i.relation',
-            'relation_qnid'     => 'd.qnid  as  relation_qnid',
+            'relation_qnid'     => "CASE WHEN dt.op_key = 'op-doc-order-item' THEN COALESCE((SELECT pd.qnid FROM documents pd WHERE pd.id = d.parent_id), d.qnid) ELSE d.qnid END  as  relation_qnid",
             'relation_type'     => 'dt.op_key  as  relation_type',
             'entity_tag'        => 'se.entity_tag  as  entity_tag',
             'created_at'        => 'i.created_at   as  created_at',

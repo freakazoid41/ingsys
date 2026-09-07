@@ -247,6 +247,8 @@ export default {
         'Iptal Edilen Dosyayi Tekrar Kabul Etme': '/coaltheme/demoVideos/iptalYenileme.mp4',
         'İptal Edilen Dosyayı Yeniden Kabul Etme': '/coaltheme/demoVideos/iptalYenileme.mp4',
         'Iptal Edilen Dosyayi Yeniden Kabul Etme': '/coaltheme/demoVideos/iptalYenileme.mp4',
+        'Aksiyondan Sevkiyat Kapatma': '/coaltheme/demoVideos/sevkOnayi.mp4',
+        'Aksiyondan Sevkiyat Kapama': '/coaltheme/demoVideos/sevkOnayi.mp4',
       };
       const src = map[title] || '/coaltheme/demoVideos/loginVideo.mp4';
       let fallback = '/coaltheme/demoVideos/loginVideo.mov';
@@ -256,6 +258,7 @@ export default {
       else if(src.includes('egitim-video')) fallback = '/coaltheme/demoVideos/egitim-video.mp4';
       else if(src.includes('dosyaKontrol')) fallback = '/coaltheme/demoVideos/dosyaKontrol.mp4';
       else if(src.includes('iptalYenileme')) fallback = '/coaltheme/demoVideos/iptalYenileme.mov';
+      else if(src.includes('sevkOnayi')) fallback = '/coaltheme/demoVideos/sevkOnayi.mov';
       Swal.fire({
         title: title,
         html: `<div style="border-radius:12px;overflow:hidden;background:#000;"><video controls autoplay playsinline style="width:100%;max-height:62vh;display:block;"><source src="${src}" type="video/mp4"><source src="${fallback}" type="video/quicktime">Tarayıcınız video etiketini desteklemiyor.</video></div><div style="margin-top:10px;font-size:12px;color:#64748b;text-align:center;">${this.esc(title)} — tanıtım videosu</div>`,

@@ -86,6 +86,7 @@
                 printingCins: false,
                 downloadingAll: false,
                 isSubmitting: false,
+                kaliteLoading: false,
                 // tedarik detail (fresh order screenshot)
                 tedarikDesc: '',
                 tedarikImalatci: '',
@@ -128,7 +129,8 @@
                 return this.isCloneOrder ? orderNo.replace(/\-\d+$/, '') : null;
             },
             hasAnyFile(){
-                // show button always, but disable if truly no file yet (order-level or item)
+                // admin bottom strip (Bütün Formları / history) visible only if order actually has files
+                // base order 3510004400 now correctly has 0 (clone files no longer leak), so hide strip
                 if(this.tedarikExistingKabul || this.tedarikExistingCins) return true;
                 try{
                     const it = this.$refs.itemTable;
@@ -138,10 +140,28 @@
                         if(Object.keys(it.itemFiles?.images || {}).some(k=> (it.itemFiles.images[k]||[]).length)) return true;
                         if(it.existingTestFiles && Object.values(it.existingTestFiles).some(arr=> Array.isArray(arr) && arr.length)) return true;
                         if(it.existingImages && Object.values(it.existingImages).some(arr=> Array.isArray(arr) && arr.length)) return true;
+                        // order-level files (transfer_kabul/cins) are on the order itself, not per-item
+                        // for base 84428217 they are 0 after leak fix, for clone 3c1cf1f2 they are 3
+                        if(it.existingOrderFiles && Object.values(it.existingOrderFiles).some(arr=> Array.isArray(arr) && arr.length)) return true;
                     }
                 }catch(e){}
-                // fallback: allow download, backend will 404 if none
-                return true;
+                // check order-level via tedarikExisting (already) and via rawData file entities fallback
+                try{
+                    const form = this.rawData?.formFormat?.['op-doc-order-form'] || {};
+                    for(const cid in form){
+                        const ents = form[cid]?.entities || {};
+                        for(const k in ents){
+                            if(k.includes('transfer_kabul_file') || k.includes('transfer_cins_file')){
+                                const raw = ents[k];
+                                let parsed = null;
+                                if(typeof raw === 'object' && raw !== null && raw.id) parsed = raw;
+                                else if(typeof raw === 'string'){ try{ parsed = JSON.parse(raw); }catch(e){} }
+                                if(parsed && parsed.id) return true;
+                            }
+                        }
+                    }
+                }catch(e){}
+                return false;
             },
             orderEntities(){
                 return this.orderFormEntities;
@@ -188,6 +208,13 @@
                     label = 'Beklemede'; cls = 'tedarik-status--waiting'; icon = 'ki-outline ki-time';
                 }
                 return { label, cls, icon, op };
+            },
+            canKalite(){
+                if(!this.id || !this.loadForm) return false;
+                if(!this.authStore.permissions?.includes('per-07-02')) return false;
+                if(['doc_trans_order_approved','doc_trans_order_rejected'].includes(this.orderStatus)) return false;
+                // allow from any sent state; block on pure draft without files? keep open - backend will validate transition
+                return true;
             },
         },
         methods: {
@@ -618,6 +645,61 @@
                 this.plib.toast(this.Swal, rsp.success?'success':'error', rsp.msg||'İşlem Tamamlandı',()=>{
                     if(rsp.success) this.$router.push({name: targetListCancel});
                 });
+            },
+            async kaliteOnayi(){
+                if(this.kaliteLoading) return;
+                if(!this.authStore.permissions?.includes('per-07-02')){
+                    this.Swal.fire({icon:'warning', title:'Yetki yok', text:'Kalite onayı için yetkiniz yok (per-07-02)', confirmButtonText:'Tamam'});
+                    return;
+                }
+                if(['doc_trans_order_approved','doc_trans_order_rejected'].includes(this.orderStatus)){
+                    this.Swal.fire({icon:'info', title:'Zaten Kapalı', text:'Sipariş zaten kapatılmış.', confirmButtonText:'Tamam'});
+                    return;
+                }
+                const conf = await this.Swal.fire({
+                    title: 'Kalite Onayı Ver',
+                    html: '<div style="text-align:left;font-size:13px;color:#334155;">Tüm bekleyen dosyalar <b>kabul</b> edilecek ve sipariş <b>Kalite Onayı Verildi</b> durumuna geçecek.<br><span style="color:#64748b;font-size:11.5px;">Onay sonrası sipariş kilitlenir.</span></div>',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, Onayla',
+                    cancelButtonText: 'Vazgeç',
+                    confirmButtonColor: '#22c55e',
+                    cancelButtonColor: '#64748b'
+                });
+                if(!conf.isConfirmed) return;
+                this.kaliteLoading = true;
+                this.Swal.fire({
+                    title: 'Onaylanıyor...',
+                    html: '<div style="display:flex;justify-content:center;padding:12px"><i class="ki-outline ki-loading" style="font-size:24px;animation:spin 1s linear infinite;color:#22c55e"></i></div><div style="font-size:12px;color:#64748b;">Lütfen bekleyin</div>',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => this.Swal.showLoading()
+                });
+                try{
+                    const fd = new FormData();
+                    fd.append('id', this.id);
+                    fd.append('op_key', 'doc_trans_order_approved');
+                    fd.append('note', 'Kalite onayı verildi ve kapatıldı (detay)');
+                    const rsp = await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
+                    this.Swal.close();
+                    if(rsp?.success){
+                        this.plib.toast(this.Swal, 'success', rsp.msg || 'Kalite onayı verildi — tüm dosyalar kabul edildi', async () => {
+                            try{
+                                const refreshed = await this.plib.request({url:'/api/v1/document/'+this.id, method:'GET'}, null);
+                                this.rawData = refreshed?.data || this.rawData;
+                                this.formDataStore.rawData = refreshed?.data || this.formDataStore.rawData;
+                                try{ this.parsedStatus = JSON.parse(this.rawData?.document?.status || '[]'); }catch(e){ this.parsedStatus=[]; }
+                            }catch(e){}
+                        });
+                    } else {
+                        this.Swal.fire({icon:'error', title:'Olmadı', text: rsp?.msg || rsp?.message || 'Onay verilemedi', confirmButtonText:'Tamam'});
+                    }
+                }catch(e){
+                    this.Swal.close();
+                    this.Swal.fire({icon:'error', title:'Hata', text: e?.msg || e?.message || 'Beklenmeyen hata', confirmButtonText:'Tamam'});
+                } finally {
+                    this.kaliteLoading = false;
+                }
             },
             async saveItemFiles(){
                 const tf = this.itemFiles?.testFiles || {};
@@ -1244,6 +1326,20 @@
                 </div>
             </div>
 
+            <!-- Kalite Onayı — tedarik after step 5 (per-07-02) -->
+            <div class="tedarik-step-card" v-if="canKalite" style="border:1px solid #bbf7d0; background:#f0fdf4;">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; gap:12px; flex-wrap:wrap;">
+                    <div style="min-width:0; flex:1;">
+                        <div style="font-weight:800; color:#166534; font-size:13px; display:flex; align-items:center; gap:6px;"><i class="ki-outline ki-check-circle" style="font-size:15px;"></i> Kalite Onayı</div>
+                        <div style="font-size:11.5px; color:#15803d; margin-top:3px; line-height:1.4;">Siparişi <b>Kalite Onayı Verildi</b> durumuna alınır , tüm bekleyen dosyalar kabul edilir ve sipariş kilitlenir.</div>
+                    </div>
+                    <button @click="kaliteOnayi" :disabled="kaliteLoading" :style="kaliteLoading ? 'background:#9ca3af; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-weight:700; font-size:13px; opacity:0.72; cursor:not-allowed; display:inline-flex; align-items:center; gap:8px; min-width:170px; justify-content:center;' : 'background:#22c55e; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; min-width:170px; justify-content:center; box-shadow:0 2px 8px rgba(34,197,94,0.18);'">
+                        <i :class="kaliteLoading ? 'ki-outline ki-loading' : 'ki-outline ki-check-circle'" :style="kaliteLoading ? 'font-size:15px; animation:spin 1s linear infinite;' : 'font-size:15px;'"></i>
+                        {{ kaliteLoading ? 'Onaylanıyor...' : 'Kalite Onayı Verildi' }}
+                    </button>
+                </div>
+            </div>
+
             <!-- File History — Bütün Formları + entered Malzeme forms history (lists ALL, incl. rejected old versions) — only after first send for review -->
             <div class="tedarik-step-card" v-if="id && loadForm && orderStatus && orderStatus !== 'doc_trans_order_created'" style="border:1px solid #e2e8f0;">
                 <div style="display:flex; gap:10px; flex-wrap:wrap; padding:14px;">
@@ -1258,9 +1354,16 @@
             <div class="tedarik-step-card" v-if="canSend || orderStatus === 'doc_trans_order_files_rejected'">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">6</span><span>Lütfen “Gönder” butonuna tıklamadan önce verilerin doğruluğuna emin olunuz.</span></div>
                 <div class="tedarik-step-body">
-                    <button @click="() => { if(isSubmitting) return; const fd = ($refs.formRef && $refs.formRef.getCurrentFormData) ? $refs.formRef.getCurrentFormData() : { dynamicF:{}, files:{} }; submitForm(fd); }" class="tedarik-gonder-btn w-100" :disabled="isSubmitting" :style="isSubmitting ? 'opacity:0.72;cursor:not-allowed;' : ''"><i v-if="isSubmitting" class="ki-outline ki-loading" style="font-size:14px; animation:spin 1s linear infinite; margin-right:6px;"></i> {{ isSubmitting ? 'Gönderiliyor...' : 'Gönder' }}</button>
-                    <div v-if="isSubmitting" style="margin-top:8px; font-size:12px; color:#6366f1; display:flex; align-items:center; gap:6px;"><i class="ki-outline ki-loading" style="font-size:12px; animation:spin 1s linear infinite;"></i> Kaydediliyor, lütfen bekleyin...</div>
-                    <div v-if="orderStatus === 'doc_trans_order_files_rejected'" style="margin-top:10px; display:flex; gap:8px; align-items:center;">
+                    <button @click="() => { if(isSubmitting) return; const fd = ($refs.formRef && $refs.formRef.getCurrentFormData) ? $refs.formRef.getCurrentFormData() : { dynamicF:{}, files:{} }; submitForm(fd); }" class="tedarik-gonder-btn w-100" :disabled="isSubmitting" :class="{ 'is-loading': isSubmitting }" :style="isSubmitting ? 'opacity:0.82; cursor:not-allowed; background:linear-gradient(135deg,#ff7a3a,#FF5A1F); box-shadow:0 4px 14px rgba(255,90,31,.28); position:relative; overflow:hidden;' : ''">
+                        <span v-if="!isSubmitting" style="display:inline-flex; align-items:center; gap:6px; justify-content:center;">Gönder</span>
+                        <span v-else style="display:inline-flex; align-items:center; gap:8px; justify-content:center;"><i class="ki-outline ki-loading" style="font-size:15px; animation:spin 1s linear infinite;"></i> Gönderiliyor...</span>
+                        <span v-if="isSubmitting" style="position:absolute; left:0; bottom:0; height:3px; width:100%; background:rgba(255,255,255,.45); animation:tedarikProgress 1.2s ease-in-out infinite;"></span>
+                    </button>
+                    <div v-if="isSubmitting" style="margin-top:10px; display:flex; align-items:center; gap:10px; padding:10px 12px; background:linear-gradient(135deg,#fff7ed,#fff); border:1px solid #fed7aa; border-radius:10px; color:#9a3412; font-size:12.5px; line-height:1.4;">
+                        <span style="width:28px; height:28px; border-radius:8px; background:#FF5A1F; color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="ki-outline ki-loading" style="font-size:14px; animation:spin 1s linear infinite;"></i></span>
+                        <span><b>Kaydediliyor</b> — dosyalar işleniyor, lütfen bekleyin...</span>
+                    </div>
+                    <div hidden v-if="orderStatus === 'doc_trans_order_files_rejected'" style="margin-top:10px; display:flex; gap:8px; align-items:center;">
                         <button type="button" @click="printMalzemeKabul" class="tedarik-orange-btn small" :disabled="printingKabul"><i :class="printingKabul ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingKabul ? 'animation:spin 1s linear infinite' : ''"></i> {{ printingKabul ? 'Oluşturuluyor...' : 'Malzeme Kabul (yeniden yazdır)' }}</button>
                         <button type="button" @click="printMalzemeCinsMiktar" class="tedarik-orange-btn small" :disabled="printingCins"><i :class="printingCins ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingCins ? 'animation:spin 1s linear infinite' : ''"></i> {{ printingCins ? 'Oluşturuluyor...' : 'Cins-Miktar (yeniden yazdır)' }}</button>
                     </div>
@@ -1308,10 +1411,7 @@
                     <span>Bu sipariş daha önce parçalı gönderildiği için artık sadece <b>Parçalı</b> gönderim yapılabilir. Tüm parçalar silinirse tek seferde tekrar mümkün.</span>
                 </div>
                 <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
-                    <button type="button" @click="downloadAllForms" :disabled="downloadingAll" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:10px;border:1px solid #FF5A1F;background:#FF5A1F;color:#fff;font-weight:700;cursor:pointer;">
-                        <i :class="downloadingAll ? 'ki-outline ki-loading' : 'ki-outline ki-file-down'" :style="downloadingAll ? 'font-size:16px;animation:spin 1s linear infinite' : 'font-size:16px;'"></i>
-                        <span>{{ downloadingAll ? 'İndiriliyor…' : 'Bütün Formları İndir' }}</span>
-                    </button>
+                    
                     <button type="button" @click="printMalzemeKabul" class="print-kabul-btn" :disabled="printingKabul">
                         <i :class="printingKabul ? 'ki-outline ki-loading' : 'ki-outline ki-printer'" :style="printingKabul ? 'font-size:16px;animation:spin 1s linear infinite' : ''"></i>
                         <span>{{ printingKabul ? 'Oluşturuluyor...' : 'Malzeme Kabul Formu Yazdır' }}</span>
@@ -1325,13 +1425,13 @@
             <div style="background:#fff;padding:0;">
                 <OrderItemTable ref="itemTable" :key="(canSend ? transferMode : 'ro')" :orderId="id" :orderNumericId="formDataStore.rawData?.document?.id" :orderDate="orderEntities.created_at || ''" :selectable="canSend && transferMode==='partial'" :atOnceMode="canSend && transferMode==='at_once'" :highlightQnid="highlightItemQnid" :containerSuffix="canSend ? '-sel' : ''" :readonly="isLocked" @select="onItemsSelected" @serials="onItemSerials" @item-files="onItemFiles" />
             </div>
-            <!-- Bütün Formları İndir + entered Malzeme history — admin (lists ALL, incl. rejected old versions) -->
-            <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <!-- Bütün Formları İndir + entered Malzeme history — admin (lists ALL, incl. rejected old versions) — hidden when no files (base 84428217 now 0 after leak fix) -->
+            <div v-if="hasAnyFile" style="margin:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;justify-content: center;">
                 <button type="button" @click="downloadAllForms" :disabled="downloadingAll" class="tedarik-orange-btn" style="background:#3b82f6;border-color:#3b82f6; color:#fff;"><i :class="downloadingAll ? 'ki-outline ki-loading' : 'ki-outline ki-file-down'" :style="downloadingAll ? 'animation:spin 1s linear infinite' : ''"></i> {{ downloadingAll ? 'İndiriliyor…' : 'Bütün Formları İndir' }}</button>
                 <button type="button" @click="showFileHistory('kabul')" class="tedarik-orange-btn" style="background:#FF5A1F;border-color:#FF5A1F;"><i class="ki-outline ki-eye"></i> Malzeme Kabul Formu</button>
                 <button type="button" @click="showFileHistory('cins')" class="tedarik-orange-btn" style="background:#FF5A1F;border-color:#FF5A1F;"><i class="ki-outline ki-eye"></i> Malzeme Cinsi Kabul Formu</button>
             </div>
-            <div style="margin-top:6px; font-size:11.5px; color:#64748b;">Onaylanan, reddedilen ve bekleyen <b>tüm</b> formlar — ZIP ile toplu veya göz ile geçmiş dahil.</div>
+            
         </div>
 
         <div class="clone-origin-card mb-6" v-if="id && loadForm && isCloneOrder">
@@ -1394,6 +1494,23 @@
                         <span>{{ isCloneOrder ? 'Parçayı Sil' : 'İptal Et' }}</span>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Kalite Onayı — admin detail (per-07-02) — area on image: after Kaynak/Transfer/Kilitli -->
+        <div class="card mb-6" v-if="id && loadForm && canKalite" style="border:1px solid #bbf7d0; border-radius:14px; overflow:hidden; background:#f0fdf4; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; gap:12px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
+                    <div style="width:42px; height:42px; border-radius:10px; background:#22c55e; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; flex-shrink:0; box-shadow:0 2px 6px rgba(34,197,94,0.2);"><i class="ki-outline ki-check-circle"></i></div>
+                    <div style="min-width:0;">
+                        <div style="font-weight:800; color:#166534; font-size:13px;">Kalite Onayı</div>
+                        <div style="font-size:11.5px; color:#15803d; margin-top:2px; line-height:1.4;">Tüm bekleyen dosyalar kabul edilecek, sipariş <b>Kalite Onayı Verildi</b> durumuna geçecek.</div>
+                    </div>
+                </div>
+                <button @click="kaliteOnayi" :disabled="kaliteLoading" :style="kaliteLoading ? 'background:#9ca3af; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-weight:700; font-size:13px; opacity:0.72; cursor:not-allowed; display:inline-flex; align-items:center; gap:8px; min-width:170px; justify-content:center;' : 'background:#22c55e; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; min-width:170px; justify-content:center; box-shadow:0 2px 8px rgba(34,197,94,0.18);'">
+                    <i :class="kaliteLoading ? 'ki-outline ki-loading' : 'ki-outline ki-check-circle'" :style="kaliteLoading ? 'font-size:15px; animation:spin 1s linear infinite;' : 'font-size:15px;'"></i>
+                    {{ kaliteLoading ? 'Onaylanıyor...' : 'Kalite Onayı Verildi' }}
+                </button>
             </div>
         </div>
 
@@ -1692,5 +1809,6 @@
 .tedarik-status-drum.tedarik-status--ready { background:#fef3c7; color:#92400e; border-color:#fde68a; }
 .tedarik-status-drum.tedarik-status--approved { background:#dcfce7; color:#166534; border-color:#86efac; }
 .tedarik-status-drum.tedarik-status--rejected { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
-
+@keyframes tedarikProgress{ 0%{ transform:translateX(-100%);} 100%{ transform:translateX(100%);} }
+.tedarik-gonder-btn.is-loading{ position:relative; overflow:hidden; }
 </style>

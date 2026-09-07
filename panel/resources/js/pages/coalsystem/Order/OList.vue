@@ -826,6 +826,17 @@
                                                     });
                                                 } else {
                                                 kaliteBtn.addEventListener('click', async () => {
+                                                    const conf = await Swal.fire({
+                                                        title: 'Kalite Onayı Ver',
+                                                        html: '<div style="text-align:left;font-size:13px;color:#334155;">Tüm bekleyen dosyalar <b>kabul</b> edilecek ve sipariş <b>Kalite Onayı Verildi</b> durumuna geçecek.<br><span style="color:#64748b;font-size:11.5px;">Onay sonrası sipariş kilitlenir.</span></div>',
+                                                        icon: 'warning',
+                                                        showCancelButton: true,
+                                                        confirmButtonText: 'Evet, Onayla',
+                                                        cancelButtonText: 'Vazgeç',
+                                                        confirmButtonColor: '#22c55e',
+                                                        cancelButtonColor: '#64748b'
+                                                    });
+                                                    if(!conf.isConfirmed) return;
                                                     kaliteBtn.disabled = true;
                                                     kaliteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> İşleniyor...';
                                                     try{
