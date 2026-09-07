@@ -5,6 +5,19 @@
       <p class="tdk-header__subtitle">Tedarikçi Paneli</p>
     </div>
     <div class="tdk-header__right">
+      <div class="tdk-header__video-wrap" @mouseenter="showVideoMenu = true" @mouseleave="showVideoMenu = false">
+        <button class="tdk-header__bell tdk-header__video" aria-label="Yardım Videoları" @click="showVideoMenu = !showVideoMenu">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z"/>
+          </svg>
+        </button>
+        <div v-if="showVideoMenu" class="tdk-video-dropdown" @mouseenter="showVideoMenu = true" @mouseleave="showVideoMenu = false">
+          <div v-for="sec in videoSections" :key="sec.title" class="tdk-video-sec">
+            <div class="tdk-video-sec-title">{{ sec.title }}</div>
+            <a v-for="it in sec.items" :key="it" href="javascript:;" class="tdk-video-item" @click.prevent="openHelpVideo(it)">{{ it }}</a>
+          </div>
+        </div>
+      </div>
       <button @click="showNotifications" class="tdk-header__bell" :class="{ 'has-notif': notifCount > 0 }">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
@@ -30,6 +43,12 @@ export default {
       navigationStore: useNavigationStore(),
       greeting: 'Hoş Geldiniz',
       notifCount: 0,
+      showVideoMenu: false,
+      videoSections: [
+        { title: 'Tedarikçi', items: ['Tek Parça Sevkiyat', 'Parçalı Sevkiyat', 'Dosya Görüntüleme'] },
+        { title: 'Sesli Anlatım', items: ['Sesli Anlatım Eğitim Videosu'] },
+        { title: 'İş Birimi', items: ['Doküman Kontrol', 'Aksiyondan Sevkiyat Kapatma', 'Fabrika Kabul Formu İsteme', 'İptal Edilen Dosyayı Tekrar Kabul Etme'] },
+      ],
     };
   },
   computed: {
@@ -202,6 +221,29 @@ export default {
         }
       });
     },
+    openHelpVideo(title){
+      const map = {
+        'Tek Parça Sevkiyat': '/coaltheme/demoVideos/tekParcaSiparis.mp4',
+        'Tek Parca Sevkiyat': '/coaltheme/demoVideos/tekParcaSiparis.mp4',
+      };
+      const src = map[title] || '/coaltheme/demoVideos/loginVideo.mp4';
+      const fallback = src.includes('tekParca') ? '/coaltheme/demoVideos/tekParcaSiparis.mov' : '/coaltheme/demoVideos/loginVideo.mov';
+      Swal.fire({
+        title: title,
+        html: `<div style="border-radius:12px;overflow:hidden;background:#000;"><video controls autoplay playsinline style="width:100%;max-height:62vh;display:block;"><source src="${src}" type="video/mp4"><source src="${fallback}" type="video/quicktime">Tarayıcınız video etiketini desteklemiyor.</video></div><div style="margin-top:10px;font-size:12px;color:#64748b;text-align:center;">${this.esc(title)} — tanıtım videosu</div>`,
+        width: '860px',
+        padding: '18px 18px 14px',
+        showCloseButton: true,
+        showConfirmButton: false,
+        background: '#fff',
+        customClass: { popup: 'tdk-notif-popup' },
+        didClose: () => {
+          const v = Swal.getHtmlContainer()?.querySelector('video');
+          if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+        }
+      });
+      this.showVideoMenu = false;
+    },
     fmtTime(v){
       try { return fmtDateTime(v); } catch { return String(v||'').slice(0,16); }
     },
@@ -228,6 +270,7 @@ export default {
 .tdk-header__greeting { font-size: 1.6rem; font-weight: 700; color: #111827; margin: 0; }
 .tdk-header__name { color: #FF5A1F; }
 .tdk-header__subtitle { color: #6b7280; font-size: 0.85rem; margin: 0.3rem 0 0; font-weight: 500; }
+.tdk-header__right{ display:flex; align-items:center; gap:10px; position:relative; }
 .tdk-header__bell {
   width: 44px; height: 44px; border: 1.5px solid #ffedd5; background: #fff; border-radius: 50%;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -237,6 +280,18 @@ export default {
 .tdk-header__bell:hover { background: #FF5A1F; color: #fff; border-color: #FF5A1F; transform: scale(1.06); box-shadow: 0 4px 12px rgba(255,90,31,.18); }
 .tdk-header__bell.has-notif{ border-color: #FF5A1F; background: #fff7ed; }
 .tdk-header__bell.has-notif:hover{ background: #FF5A1F; color: #fff; }
+.tdk-header__video-wrap{ position:relative; display:flex; }
+.tdk-header__video{ border-color:#ffe4cc; color:#9a3412; background:#fff; }
+.tdk-header__video:hover{ background:#FF5A1F; color:#fff; border-color:#FF5A1F; }
+.tdk-video-dropdown{
+  position:absolute; top:52px; right:0; width:300px; background:#fff; border:1px solid #ffe4cc; border-radius:16px;
+  box-shadow:0 12px 32px rgba(15,23,42,.12), 0 2px 8px rgba(15,23,42,.06); padding:14px 14px 10px; z-index:40;
+}
+.tdk-video-sec{ margin-bottom:12px; }
+.tdk-video-sec:last-child{ margin-bottom:2px; }
+.tdk-video-sec-title{ font-size:13.5px; font-weight:800; color:#FF5A1F; margin:0 0 6px; letter-spacing:-.01em; }
+.tdk-video-item{ display:block; font-size:13px; font-weight:500; color:#1e293b; text-decoration:none; padding:5px 8px; border-radius:8px; line-height:1.35; }
+.tdk-video-item:hover{ background:#fff7ed; color:#9a3412; }
 .tdk-header__badge {
   position: absolute; top: 3px; right: 3px; width: 12px; height: 12px;
   background: #ef4444; border-radius: 50%; border: 2px solid #fff;

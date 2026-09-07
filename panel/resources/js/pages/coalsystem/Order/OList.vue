@@ -430,6 +430,22 @@
             exportTable(){
                 this.plib.openTab('POST', '/api/v1/export/orders', this.table.currentFilter,'_blank');
             },
+            showDemoVideo(){
+                const src = '/coaltheme/demoVideos/loginVideo.mp4';
+                Swal.fire({
+                    title: 'Tanıtım Videosu',
+                    html: `<div style="border-radius:12px;overflow:hidden;background:#000;"><video controls autoplay playsinline style="width:100%;max-height:62vh;display:block;"><source src="${src}" type="video/mp4"><source src="/coaltheme/demoVideos/loginVideo.mov" type="video/quicktime">Tarayıcınız video etiketini desteklemiyor.</video></div><div style="margin-top:10px;font-size:12px;color:#64748b;text-align:center;">Sipariş Platformu tanıtım videosu</div>`,
+                    width: '860px',
+                    padding: '18px 18px 14px',
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                    background: '#fff',
+                    didClose: () => {
+                        const v = Swal.getHtmlContainer()?.querySelector('video');
+                        if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+                    }
+                });
+            },
             applyDetailedFilter(){
                 const f=[];
                 const v=this.detay;
@@ -1103,7 +1119,7 @@
         <div v-else class="tedarik-list-top">
             <div class="tedarik-list-title">
                 <span>Sipariş Listesi</span>
-                <i class="ki-outline ki-video tedarik-title-icon"></i>
+              
             </div>
             <div class="tedarik-filters">
                 <a href="javascript:;" class="tedarik-filter" @click="toggleDetailed"><i class="ki-outline ki-filter"></i> Detaylı Filtre</a>
@@ -1436,7 +1452,9 @@
     align-items: center;
     justify-content: center;
     background: #fff;
+    transition: all .15s;
 }
+.tedarik-title-icon:hover { border-color:#FF5A1F; color:#FF5A1F; background:#fff7ed; }
 .tedarik-filters {
     display: flex;
     align-items: center;

@@ -17,6 +17,9 @@ This document covers the **full login pipeline, session state, token lifecycle, 
 - `app/Services/SmsService.php`, `app/Services/MailService.php` — code delivery channels
 - `app/Console/Commands/CleanActiveSessions.php` — stale session cleanup
 - `resources/js/stores/auth.js`, `resources/js/lib/pickle.js` — frontend auth handling
+- `resources/views/auth/tedariklogin.blade.php` + `coallogin.blade.php` — login shells with demo video `video-btn` pill (`52x38` white `Heroicons` `M15.75…` -> `Swal 860px <video controls autoplay>`) + `public/coaltheme/demoVideos/loginVideo.mp4` (`1.6M MOV 1538x924 60fps` → `152K 1280x768 30fps crf24 medium faststart` `ffmpeg`) + `tekParcaSiparis.mp4` (`21M MOV 1626x946 60fps 86s` → `2.0M 1280x744 30fps crf24 medium faststart`)
+- `public/front/pages/tedariklogin/page.js` + `coallogin/page.js` — `localStorage token` + `video-btn` `Swal` handler same as `OList/DList tedarik-title-icon showDemoVideo` + `TedarikHeader.vue:65 videoSections` (`Tek Parça Sevkiyat→tekParca`, else `loginVideo`) + `tdk-video-dropdown` hover `300px` + `TedarikHeader` video `44px` bell-adjacent
+- `resources/js/components/Dashboard/Tedarik/TedarikHeader.vue` — header `Hoş Geldiniz` + `🔔` bell + `📹` video `44px` `tdk-header__video` with hover `tdk-video-dropdown` per `Screenshot 12.42.23`
 
 ---
 

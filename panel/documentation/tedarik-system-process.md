@@ -2,6 +2,13 @@
 
 > **Purpose:** Malzeme Tedarik İş Süreci — SAP creates purchase orders, suppliers (Tedarikçiler) complete them with serials + files, GDZ/ADM (İB) reviews files and closes orders. This is the single source of truth for testing both panels.
 > **Read after:** `logging-mechanics.md`, `file-upload-versioning-mechanics.md`, `form-system-mechanics.md`, `session-and-login-mechanics.md`, `memory/05-order-system-state.md`.
+> **⚠️ 2026-09-07 late14: TEK PARÇA VIDEO — `tekParcaSiparis.mov 21M 1626x946 60fps 86s` → `tekParcaSiparis.mp4 2.0M 1280x744 30fps crf24 medium faststart` `644`, `TedarikHeader.vue:65 openHelpVideo` map `Tek Parça Sevkiyat→tekParca.mp4` else `loginVideo`; `build 5.52s` `app-B85yY5Xw.js 1.3M`.**
+> **⚠️ 2026-09-07 late13: TEDARIK DETAIL FILE INFO HIDE `OForm.vue:1247` `v-if` hidden until `doc_trans_order_transfer_sent`; `build 4.51s` `app-BiKY`.**
+> **⚠️ 2026-09-07 late12: `orders:reset` one-shot `php artisan orders:reset` wipes `op-doc-order-serial`+`document_files`+`storage`+`notification_reads`+`cache` then `sync --fresh`; use always. Late11: TEDARIK HEADER VIDEO MENU — `TedarikHeader.vue:7` beside `🔔` `44px ki-video` `tdk-video-dropdown 300px` `Tedarikçi/Sesli/İş Birimi` `hover+openHelpVideo→Swal video` `app-CZvKvcWE.js 1.3M` (`ki-video` → Heroicons `app-D4OG3S1K.js`).**
+> **⚠️ 2026-09-07 late10: BILDIRIMLER MODAL SYNC — `kbbozat41` plain `•` 2-item (old `app-Czw34RJD.js`) vs `kadir` rich `tdk-notif-popup` orange `460px` `7` badge + `38px` icons were cached old build; `npm run build 4.15s` → `app-5tocnMkW.js 1.3M` unified `TedarikHeader.vue:252` `tdk-notif` for both; hard refresh both.**
+> **⚠️ 2026-09-07 late9: TEDARIK DASHBOARD FIX kbbozat41 0→2 — `ReportServiceProvider.php:814` cache key missing lifnrs → `dashboard:tedarikStats:2:GDZ` poisoned `0` vs live `tedarikStatusBreakdown 2` → cards `0` vs doughnut `2`; fixed key `md5(lifnrs+type_key)` + `854` `totalItems` `implode` on bySys `Array` → `0` → flatten `GDZ+ADM` → `6 items` for `0000300186`; `cache:clear` now `2 total 1 approved`.**
+> **⚠️ 2026-09-07 late8: LOGIN VIDEO ICON NICE — erased thin `28x18 rect+::after` wireframe, new `52x38` white pill `bg #fff 1px #e2e8f0 radius 9px shadow` + Heroicons `22x22 stroke1.7` `M15.75…` hover lift `tedarik #FF4713 coal #154B91`.**
+> **⚠️ 2026-09-07 late7: LOGIN VIDEO BUTTON — `public/coaltheme/demoVideos/loginVideo.mov 1.6M 1538x924 60fps` → `loginVideo.mp4 152K 1280x768 30fps crf24 medium faststart` `ffmpeg`, wired `tedariklogin.blade.php:187 + coallogin.blade.php:43` `video-btn` `Swal 860px <video>` same demo as `OList.vue:433/DList.vue:298 showDemoVideo` makes `tedarik-title-icon` clickable.**
 > **⚠️ 2026-09-07 late6: BÜTÜN FORMLARI İNDİR + HISTORY — both panels `OForm` now `Bütün Formları İndir` ZIP (`downloadAllOrderFiles` incl. rejected `status 0` + `listOrderFiles` with `last_status`) + `Malzeme Kabul/Cinsi` eye now lists **all** `transfer_kabul/cins` files (was only `tedarikExistingKabul` last) via `showFileHistory('kabul'|'cins')` modal (status pill + `fmtDateTime` + parsed `{"note":"SDASD"}`), removed duplicate `Bütün` from tedarik Step 4 `Lütfen gerekli formları indirin.`**
 > **⚠️ 2026-09-07 late5: CLIENT SYSTEM SPLIT — `GDZ-0000300186` vs `ADM-0000300186` same numeric `lifnr` as `GDZ`/`ADM` via `client_system` entity + `grp_code` sync, `SyncOrders lifnr+system`, `LIFNR+SYSTEM` gates in `Documents/Files/ReportServiceProvider`, `CList`+modals+`Bağlı Cariler` Sistem pill, admin sees all `GDZ+ADM` (9).**
 > **⚠️ 2026-09-07 late4: notifications now `last_trans_at` (status change `05:57:15`) not `i.created_at` birth (`04:56:38`) — fixes `3510004400-1` Kalite `04:56` below `05:44/05:56` files; `OrderItemTable 1325` `Yeni Test` now `(!readonly||isTestRejected)` for `files_rejected` locked.**
@@ -81,9 +88,9 @@ Mapping: `LIFNR→spec_code`, `EBELN→order_no+transfer_no`, `EBELP appended MA
 4. Birth `Transactions doc_trans_order_created op_id 0`.
 5. For each row: `Documents type_id=op-doc-order-item parent_id=order.id` + EAV + transaction.
 
-**Current live (`memory/05:7` 2026-09-03):** 8 orders, 21 items (21 rows → 8 EBELN), 8 clients, 7 files, 0 serials, 37 trans `grp_code=GDZ` via `/tmp/sap_fresh_payload.json`.
+**Current live (`memory/05:7` 2026-09-07):** 8 orders, 21 items (21 rows → 8 EBELN), 8 clients, 0 files, 0 serials, 39 trans `grp_code=GDZ` via `/tmp/sap_fresh_payload.json` **use `php artisan orders:reset` always (one-shot wipe + fresh, no manual search)**.
 
-**Idempotency:** check `entity_tag=order_no` with `EBELN`. `--fresh` deletes `op-doc-order` + `op-doc-order-item` docs + EAV + transactions + `op_id=1` file trans + `document_files` + `storage/app/public/documents/*` manually for full clean.
+**Idempotency:** check `entity_tag=order_no` with `EBELN`. **`orders:reset` (2026-09-07) does FULL wipe: serials `op-doc-order-serial` + files `document_files` + `op_id=1` + `table_tag=document_files` entities + `storage/documents|temp` + `notification_reads` + `Cache::flush()` then `orders:sync --fresh` (orders+items); `--fresh` alone only wipes orders+items — always use `reset`.
 
 ---
 

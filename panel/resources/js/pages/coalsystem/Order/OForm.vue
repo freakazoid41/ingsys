@@ -1244,8 +1244,8 @@
                 </div>
             </div>
 
-            <!-- File History — Bütün Formları + entered Malzeme forms history (lists ALL, incl. rejected old versions) -->
-            <div class="tedarik-step-card" v-if="id && loadForm" style="border:1px solid #e2e8f0;">
+            <!-- File History — Bütün Formları + entered Malzeme forms history (lists ALL, incl. rejected old versions) — only after first send for review -->
+            <div class="tedarik-step-card" v-if="id && loadForm && orderStatus && orderStatus !== 'doc_trans_order_created'" style="border:1px solid #e2e8f0;">
                 <div style="display:flex; gap:10px; flex-wrap:wrap; padding:14px;">
                     <button type="button" @click="downloadAllForms" :disabled="downloadingAll" class="tedarik-orange-btn"><i :class="downloadingAll ? 'ki-outline ki-loading' : 'ki-outline ki-file-down'" :style="downloadingAll ? 'animation:spin 1s linear infinite' : ''"></i> {{ downloadingAll ? 'İndiriliyor…' : 'Bütün Formları İndir' }}</button>
                     <button type="button" @click="showFileHistory('kabul')" class="tedarik-orange-btn"><i class="ki-outline ki-eye"></i> Malzeme Kabul Formu</button>

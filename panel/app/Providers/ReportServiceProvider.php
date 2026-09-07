@@ -811,9 +811,10 @@ class ReportServiceProvider extends ServiceProvider
     }
 
     public function tedarikStats(){
-        $cacheKey = 'dashboard:tedarikStats:'.(session('person_id') ?? auth()->id() ?? 'guest').':'.($GLOBALS['SYS_CODE'] ?? 'GDZ');
-        return Cache::remember($cacheKey, 60, function(){
         $lifnrs = $this->getResellerLifnrsBySys();
+        $lifHash = md5(json_encode($lifnrs ?? 'null').'|'.(session('type_key') ?? ''));
+        $cacheKey = 'dashboard:tedarikStats:'.(session('person_id') ?? auth()->id() ?? 'guest').':'.($GLOBALS['SYS_CODE'] ?? 'GDZ').':'.$lifHash;
+        return Cache::remember($cacheKey, 60, function() use ($lifnrs){
         $whereLif = $this->resellerOrderWhere($lifnrs);
 
         $totalOrders = DB::selectOne("SELECT count(*) as cnt FROM documents i
@@ -851,13 +852,21 @@ class ReportServiceProvider extends ServiceProvider
             $whereLif
         ")->cnt ?? 0;
 
-        // totalItems for reseller must filter via parent order's spec_code (items have no spec_code)
+        // totalItems for reseller must filter via parent order's spec_code (items have no spec_code) — handle bySys map
         $whereLifItems = "";
         if($lifnrs === null) $whereLifItems = "";
-        else if(empty($lifnrs)) $whereLifItems = " and 1=0 ";
         else {
-            $lifInItems = "'".implode("','", array_map('noInject', $lifnrs))."'";
-            $whereLifItems = " and exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=d2.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifInItems)) ";
+            $flat = [];
+            if(isset($lifnrs['GDZ']) || isset($lifnrs['ADM'])){
+                $flat = array_merge($lifnrs['GDZ'] ?? [], $lifnrs['ADM'] ?? []);
+            } else {
+                $flat = $lifnrs;
+            }
+            if(empty($flat)) $whereLifItems = " and 1=0 ";
+            else {
+                $lifInItems = "'".implode("','", array_map('noInject', $flat))."'";
+                $whereLifItems = " and exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=d2.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifInItems)) ";
+            }
         }
         $totalItems = DB::selectOne("SELECT count(*) as cnt FROM documents i
             inner join sys_options sp on sp.id=i.type_id

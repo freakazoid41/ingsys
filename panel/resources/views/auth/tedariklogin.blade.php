@@ -185,32 +185,24 @@
         display: flex;
     }
     .video-btn {
-        width: 28px;
-        height: 20px;
-        border: 1.4px solid #b8b8bd;
-        border-radius: 4px;
+        width: 52px;
+        height: 38px;
+        border: 1px solid #e2e8f0;
+        border-radius: 9px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: #9a9aa3;
+        color: #64748b;
         position: relative;
-        background: transparent;
+        background: #fff;
         cursor: pointer;
         text-decoration: none;
+        padding: 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        transition: all .2s ease;
     }
-    .video-btn::after {
-        content: '';
-        position: absolute;
-        right: -7px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 0;
-        height: 0;
-        border-left: 6px solid #b8b8bd;
-        border-top: 4px solid transparent;
-        border-bottom: 4px solid transparent;
-    }
-    .video-btn svg { width: 12px; height: 12px; }
+    .video-btn svg { width: 22px; height: 22px; display:block; }
+    .video-btn:hover { color:#FF4713; border-color:#FF4713; background:#fff7ed; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,71,19,0.15); }
     .alert { margin-top: 10px; font-size: 12.5px; border-radius: 8px; padding: 10px 12px; }
     #kt_sign_in_submit>* { pointer-events: none; }
     /* recaptcha centering tweak */
@@ -294,8 +286,8 @@
             </form>
 
             <div class="video-row">
-                <a href="javascript:;" class="video-btn" title="Tanıtım Videosu" aria-label="Video">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="12" rx="1.5"></rect><path d="M15 9l4-2.5v11L15 15z"></path></svg>
+                <a href="javascript:;" class="video-btn" title="Tanıtım Videosu" aria-label="Tanıtım Videosunu İzle" data-video="/coaltheme/demoVideos/loginVideo.mp4">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z"/></svg>
                 </a>
             </div>
         </div>
@@ -307,6 +299,29 @@
     <script type="module">
         import Page from '<?= $pageScript.'?v='.date('YmdHi') ?>';
         const page = new Page();
+        // Demo video modal — same pattern as system-wide video buttons
+        document.querySelector('.video-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            const src = e.currentTarget.dataset.video || '/coaltheme/demoVideos/loginVideo.mp4';
+            if (window.Swal) {
+                Swal.fire({
+                    title: 'Tanıtım Videosu',
+                    html: `<div style="border-radius:12px;overflow:hidden;background:#000;"><video controls autoplay playsinline style="width:100%;max-height:62vh;display:block;"><source src="${src}" type="video/mp4"><source src="/coaltheme/demoVideos/loginVideo.mov" type="video/quicktime">Tarayıcınız video etiketini desteklemiyor.</video></div><div style="margin-top:10px;font-size:12px;color:#64748b;text-align:center;">Sipariş Platformu tanıtım videosu</div>`,
+                    width: '860px',
+                    padding: '18px 18px 14px',
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                    background: '#fff',
+                    customClass: { popup: 'demo-video-popup' },
+                    didClose: () => {
+                        const v = Swal.getHtmlContainer()?.querySelector('video');
+                        if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+                    }
+                });
+            } else {
+                window.open(src, '_blank');
+            }
+        });
     </script>
 </body>
 </html>

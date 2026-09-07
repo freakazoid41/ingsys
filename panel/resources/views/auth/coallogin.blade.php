@@ -34,6 +34,21 @@
         font-weight: bold;
         font-size: 24px;
     }
+    .video-row{
+        display:flex;
+        margin-top: 12px;
+        padding-top: 14px;
+        border-top: 1px solid #eef2f7;
+    }
+    .video-btn{
+        width:52px; height:38px;
+        border:1px solid #e2e8f0; border-radius:9px;
+        display:inline-flex; align-items:center; justify-content:center;
+        color:#64748b; position:relative; background:#fff; cursor:pointer; text-decoration:none; padding:0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: all .2s ease;
+    }
+    .video-btn svg{ width:22px; height:22px; display:block; }
+    .video-btn:hover{ color:#154B91; border-color:#154B91; background:#eff6ff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(21,75,145,0.15); }
 
 </style>
 
@@ -181,6 +196,11 @@
                         </div>
 
                     </div>
+                    <div class="video-row px-lg-10">
+                        <a href="javascript:;" class="video-btn" title="Tanıtım Videosu" aria-label="Tanıtım Videosunu İzle" data-video="/coaltheme/demoVideos/loginVideo.mp4">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z"/></svg>
+                        </a>
+                    </div>
                 </div>
 
             </div>
@@ -196,6 +216,28 @@
     <script type="module">
         import Page from '<?= $pageScript.'?v='.date('YmdHi') ?>';
         const page  =  new Page();
+        document.querySelector('.video-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            const src = e.currentTarget.dataset.video || '/coaltheme/demoVideos/loginVideo.mp4';
+            if (window.Swal) {
+                Swal.fire({
+                    title: 'Tanıtım Videosu',
+                    html: `<div style="border-radius:12px;overflow:hidden;background:#000;"><video controls autoplay playsinline style="width:100%;max-height:62vh;display:block;"><source src="${src}" type="video/mp4"><source src="/coaltheme/demoVideos/loginVideo.mov" type="video/quicktime">Tarayıcınız video etiketini desteklemiyor.</video></div><div style="margin-top:10px;font-size:12px;color:#64748b;text-align:center;">Tedarik Yönetim Sistemi tanıtım videosu</div>`,
+                    width: '860px',
+                    padding: '18px 18px 14px',
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                    background: '#fff',
+                    customClass: { popup: 'demo-video-popup' },
+                    didClose: () => {
+                        const v = Swal.getHtmlContainer()?.querySelector('video');
+                        if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+                    }
+                });
+            } else {
+                window.open(src, '_blank');
+            }
+        });
     </script>
 </body>
 

@@ -295,6 +295,7 @@
             exportTable(){
                 this.plib.openTab('POST', '/api/v1/export/documents', this.table.currentFilter,'_blank');
             },
+            
             createDetailModalContent(rowData){
                 const makeLine = (labelText, valueNodeOrText) => {
                     const line = document.createElement('div');
@@ -1096,7 +1097,7 @@
         <div class="tedarik-list-top">
             <div class="tedarik-list-title">
                 <span>Doküman Listesi</span>
-                <i class="ki-outline ki-document tedarik-title-icon"></i>
+                
             </div>
             <div class="tedarik-filters">
                 <div class="tedarik-filter-dd-wrap" ref="filtreWrap">
@@ -1560,8 +1561,9 @@
 }
 .tedarik-docs-page .tedarik-title-icon{
     font-size:13px; color:#9ca3af; border:1px solid #e2e8f0; border-radius:5px;
-    width:22px; height:18px; display:inline-flex; align-items:center; justify-content:center; background:#fff;
+    width:22px; height:18px; display:inline-flex; align-items:center; justify-content:center; background:#fff; transition: all .15s; cursor:pointer;
 }
+.tedarik-docs-page .tedarik-title-icon:hover{ border-color:#FF5A1F; color:#FF5A1F; background:#fff7ed; }
 .tedarik-docs-page .tedarik-filters{ display:flex; align-items:center; gap:22px; }
 .tedarik-docs-page .tedarik-filter{
     display:inline-flex; align-items:center; gap:6px; font-size:13.5px; font-weight:500;
