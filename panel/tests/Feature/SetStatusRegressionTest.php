@@ -18,11 +18,11 @@ class SetStatusRegressionTest extends TestCase
     private function seedDocumentAndOptions(): Documents
     {
         $docType = Sys_options::create([
-            'title'     => 'Teklif',
-            'ttitle'    => 'Teklif',
-            'ctitle'    => 'Teklif',
-            'op_key'    => 'op-doc-offer',
-            'group_key' => 'op-doc-forms',
+            'title'     => 'Sipariş',
+            'ttitle'    => 'Sipariş',
+            'ctitle'    => 'Sipariş',
+            'op_key'    => 'op-doc-order',
+            'group_key' => 'op-doc',
             'status'    => 1,
         ]);
 
@@ -36,19 +36,19 @@ class SetStatusRegressionTest extends TestCase
         ]);
 
         Sys_options::create([
-            'title'     => 'Teklif Onaylandı',
-            'ttitle'    => 'Teklif Onaylandı',
-            'ctitle'    => 'Teklif Onaylandı',
-            'op_key'    => 'doc_trans_offer_approved',
-            'group_key' => 'op-trans-op-doc-offer',
+            'title'     => 'Sipariş Onaylandı',
+            'ttitle'    => 'Sipariş Onaylandı',
+            'ctitle'    => 'Sipariş Onaylandı',
+            'op_key'    => 'doc_trans_order_approved',
+            'group_key' => 'op-trans-op-doc-order',
             'status'    => 1,
         ]);
 
         return Documents::create([
             'type_id'   => $docType->id,
             'status'    => 1,
-            'qnid'      => 'test-offer-doc',
-            'title'     => 'Test Teklif',
+            'qnid'      => 'test-order-doc',
+            'title'     => 'Test Sipariş',
             'person_id' => '-',
             'grp_code'  => 'GDZ',
         ]);
@@ -64,7 +64,7 @@ class SetStatusRegressionTest extends TestCase
             'password' => bcrypt('password'),
         ]), ['*']);
 
-        $result = (new DocumentServiceProvider())->setStatus($doc->qnid, 'doc_trans_offer_accepted', 'test');
+        $result = (new DocumentServiceProvider())->setStatus($doc->qnid, 'doc_trans_order_accepted', 'test');
 
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('Bilinmeyen durum kodu', $result['msg']);
@@ -81,7 +81,7 @@ class SetStatusRegressionTest extends TestCase
             'password' => bcrypt('password'),
         ]), ['*']);
 
-        $result = (new DocumentServiceProvider())->setStatus($doc->qnid, 'doc_trans_offer_approved', 'onaylandı');
+        $result = (new DocumentServiceProvider())->setStatus($doc->qnid, 'doc_trans_order_approved', 'onaylandı');
 
         $this->assertTrue($result['success']);
         $this->assertDatabaseCount('transactions', 1);
@@ -102,12 +102,12 @@ class SetStatusRegressionTest extends TestCase
             'person_id' => 5555,
         ]);
 
-        (new PermissionService())->cacheUserPermissions(5555, ['per-05-02']);
+        (new PermissionService())->cacheUserPermissions(5555, ['per-05-03']);
         Sanctum::actingAs($user, ['*']);
 
         $response = $this->postJson('/api/v1/trans/set-status', [
             'id'     => $doc->qnid,
-            'op_key' => 'doc_trans_offer_accepted',
+            'op_key' => 'doc_trans_order_accepted',
             'note'   => 'test',
         ]);
 

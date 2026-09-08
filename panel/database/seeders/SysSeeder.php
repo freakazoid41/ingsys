@@ -233,6 +233,7 @@ class SysSeeder extends Seeder
             ]
         ];
 
+        // NEW system 2026-09-08: offers/requests removed — only orders + files remain (op-trans-op-doc-order + doc_file_* + doc_trans_created)
         $trans = [
             [
                 'parent_id' => 0,                   
@@ -241,76 +242,6 @@ class SysSeeder extends Seeder
                 'ctitle'    => 'type_id',
                 'group_key' => 'op-trans',
                 'op_key'    => 'doc_trans_created',
-            ],[
-                'parent_id' => 0,                   
-                'title'     => 'Teklif Taslak Aşamasında',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-offer',
-                'op_key'    => 'doc_trans_offer_draft',
-            ],[
-                'parent_id' => 0,                 
-                'title'     => 'Teklif Gönderidi',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-op-doc-offer',
-                'op_key'    => 'doc_trans_offer_sended',
-            ],[
-                'parent_id' => 0,                   //main document status
-                'title'     => 'Teklif İnceleniyor',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-op-doc-offer',
-                'op_key'    => 'doc_trans_offer_review',
-            ],[
-                'parent_id' => 0,                   //main document status
-                'title'     => 'Teklif Revizyon Bekleniyor',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-op-doc-offer',
-                'op_key'    => 'doc_trans_offer_revision',
-            ],[
-                'parent_id' => 0,                   //main document status
-                'title'     => 'Teklif Revize Edildi',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-op-doc-offer',
-                'op_key'    => 'doc_trans_offer_revised',
-            ],[
-                'parent_id' => 0,                   //main document status
-                'title'     => 'Teklif Onaylandı',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-op-doc-offer',
-                'op_key'    => 'doc_trans_offer_approved',
-            ],[
-                'parent_id' => 0,                   //main document status
-                'title'     => 'Teklif Reddedildi',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-op-doc-offer',
-                'op_key'    => 'doc_trans_offer_rejected',
-            ],[
-                'parent_id' => 0,                   //main document status
-                'title'     => 'Talep Başladı',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-op-doc-request',
-                'op_key'    => 'doc_trans_request_start',
-            ],[
-                'parent_id' => 0,                   //main document status
-                'title'     => 'Talep Tamamlandı',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-op-doc-request',
-                'op_key'    => 'doc_trans_request_end',
-            ],[
-                'parent_id' => 0,                   //main document status
-                'title'     => 'Talep İptal Edildi',
-                'ttitle'    => 'Transactions',
-                'ctitle'    => 'type_id',
-                'group_key' => 'op-trans-op-doc-request',
-                'op_key'    => 'doc_trans_request_cancelled',
             ],[
                 'parent_id' => 0,                   //main document status
                 'title'     => 'Proje Başladı',
@@ -384,20 +315,6 @@ class SysSeeder extends Seeder
                 'ttitle'    => 'Documents',
                 'ctitle'    => 'type_id',
                 'op_key'    => 'op-doc-main-test',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Talep Formu',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-request-form',
-                'group_key' => 'op-doc-forms',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Teklif Formu',
-                'ttitle'    => 'Documents',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-offer-form',
                 'group_key' => 'op-doc-forms',
             ],[
                 'parent_id' => 0,
@@ -492,22 +409,8 @@ class SysSeeder extends Seeder
             ]
         ]; 
 
-        $documentTypes = [
-            [
-                'parent_id' => 0,
-                'title'     => 'Teklif',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-offer',
-                'group_key' => 'op-doc',
-            ],[
-                'parent_id' => 0,
-                'title'     => 'Talep',
-                'ttitle'    => '-',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-doc-request',
-                'group_key' => 'op-doc',
-            ],[
+        // NEW 2026-09-08: offers/requests removed — new system only clients/orders
+        $documentTypes = [[
                 'parent_id' => 0,
                 'title'     => 'Cari Ana Kart',
                 'ttitle'    => '-',
@@ -571,17 +474,8 @@ class SysSeeder extends Seeder
             ]
         ];
 
+        // NEW 2026-09-08: offer file type removed
         $fileTypes = [
-            [
-                'parent_id' => 0,
-                'title'     => 'Teklif Dosyası',
-                'code'      => '',
-                'ttitle'    => 'document_files',
-                'icon'      => '',
-                'ctitle'    => 'type_id',
-                'op_key'    => 'op-offer_otherdocs_file',
-                'group_key' => 'op-file-types',
-            ],
             [
                 'parent_id' => 0,
                 'title'     => 'Kaşeli-imzalı IBAN bilgi formu',

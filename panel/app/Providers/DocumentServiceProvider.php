@@ -184,10 +184,7 @@ class DocumentServiceProvider extends ServiceProvider
             $stypeIdMain = (Sys_options::where(['ctitle' => 'sub_type_id', 'op_key' => 'form-main'])->first())->id;
             $stypeIdFile = (Sys_options::where(['ctitle' => 'sub_type_id', 'op_key' => 'form-file'])->first())->id;
 
-            if (in_array($typeKey, ['op-doc-request', 'op-doc-offer']) && ! $isUpdate) {
-                // here count documents for counable request number
-                $documentCount = Documents::where('type_id', $document->type_id)->count();
-            }
+            // legacy request/offer counter removed — new system has no op-doc-request / op-doc-offer
             $lastFileEntity = null;
             foreach ($dynamicF as $key => $field) {
                 $id = explode('**', $key)[1];
@@ -222,13 +219,7 @@ class DocumentServiceProvider extends ServiceProvider
                     }
                 }
 
-                if (in_array($typeKey, ['op-doc-request', 'op-doc-offer'])) {
-                    if ($isUpdate) {
-                        $field['entities']['rev_date'] = date('d/m/Y');
-                    } else {
-                        $field['entities']['req_no'] = $documentCount;
-                    }
-                }
+                // legacy request/offer rev_date/req_no removed — new system has no op-doc-request / op-doc-offer
 
                 foreach ($field['entities'] as $ekey => $value) {
                     $entity = new Sys_con_entities;
@@ -246,17 +237,7 @@ class DocumentServiceProvider extends ServiceProvider
 
                     $entity->save();
 
-                    if ($entity->entity_tag == 'target_type' && in_array($typeKey, ['op-doc-request', 'op-doc-offer'])) {
-                        $document->grp_code = mb_strtoupper(strtr($entity->entity_value, [
-                            'ç' => 'c', 'Ç' => 'C',
-                            'ğ' => 'g', 'Ğ' => 'G',
-                            'ı' => 'I', 'İ' => 'I',
-                            'ö' => 'o', 'Ö' => 'O',
-                            'ş' => 's', 'Ş' => 'S',
-                            'ü' => 'u', 'Ü' => 'U',
-                        ]), 'UTF-8');
-                        $document->save();
-                    }
+                    // legacy target_type → grp_code for requests/offers removed — orders use sys_code entity + grp_code sync via client_system
                 }
                 // client system → grp_code sync (composite key GDZ/ADM)
                 if ($typeKey === 'op-doc-client' && isset($field['entities']['client_system'])) {
@@ -535,8 +516,8 @@ class DocumentServiceProvider extends ServiceProvider
                             so.op_key not in ('op-doc-user-permission-form','op-doc-user-contact-form','op-doc-user-client-form') and
                             dco.conn_id = 0 and 
                             dco.status  = 1 and
-                            d.qnid = '".$id."'";
-        $data = DB::select($sql);
+                            d.qnid = ?";
+        $data = DB::select($sql, [$id]);
 
         foreach ($data as $row) {
             if (! isset($dynamicF[$row->op_key])) {
@@ -589,9 +570,9 @@ class DocumentServiceProvider extends ServiceProvider
                             
                             from documents d 
                         inner join sys_options as sp on sp.id = d.type_id
-                        where d.qnid = '".$id."'";
+                        where d.qnid = ?";
 
-        $document = DB::select($document)[0] ?? [];
+        $document = DB::select($document, [$id])[0] ?? [];
 
         return [
             'document' => $document,
@@ -766,8 +747,8 @@ class DocumentServiceProvider extends ServiceProvider
                             inner join persons as p on p.id = sco.main_id
                             inner join users as u on u.person_id = p.id
                         where   sce.entity_tag like '%cliid%'
-                            and sce.entity_value = '$id'";
-            $data = DB::select($sql);
+                            and sce.entity_value = ?";
+            $data = DB::select($sql, [$id]);
 
             foreach ($data as $key => $value) {
                 if (strpos($value->entity_tag, 'userclientgroup') !== false) {
@@ -968,9 +949,10 @@ class DocumentServiceProvider extends ServiceProvider
             }
 
             // Order status guard — like offer's editableStatuses, enforce valid transitions
+            // NEW 2026-09-08: Kalite Onayı (doc_trans_order_approved) is allowed from ANY status per product decision
             if (($documentType->op_key ?? null) === 'op-doc-order') {
                 $allowed = [
-                    'doc_trans_order_created' => ['doc_trans_order_transfer_sent'],
+                    'doc_trans_order_created' => ['doc_trans_order_transfer_sent','doc_trans_order_approved'],
                     'doc_trans_order_transfer_sent' => ['doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected'],
                     'doc_trans_order_ready_for_shipment' => ['doc_trans_order_approved','doc_trans_order_rejected'],
                     'doc_trans_order_files_rejected' => ['doc_trans_order_ready_for_shipment','doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected'],
@@ -984,14 +966,16 @@ class DocumentServiceProvider extends ServiceProvider
                     ->value('so.op_key');
                 // if no history yet, treat as created is allowed to go anywhere in its outgoing list
                 if ($lastOpKey) {
-                    $allowedNext = $allowed[$lastOpKey] ?? null;
-                    // terminal states have no entry or empty array → no outgoing allowed
-                    if ($allowedNext === null || !in_array($statusKey,$allowedNext)) {
-                        // allow idempotent re-set to same status? No, block.
-                        return [
-                            'success' => false,
-                            'msg' => 'Bu durum geçişine izin verilmiyor: '.$lastOpKey.' → '.$statusKey,
-                        ];
+                    // Kalite from any status — bypass guard for this one key
+                    if ($statusKey !== 'doc_trans_order_approved') {
+                        $allowedNext = $allowed[$lastOpKey] ?? null;
+                        // terminal states have no entry or empty array → no outgoing allowed
+                        if ($allowedNext === null || !in_array($statusKey,$allowedNext)) {
+                            return [
+                                'success' => false,
+                                'msg' => 'Bu durum geçişine izin verilmiyor: '.$lastOpKey.' → '.$statusKey,
+                            ];
+                        }
                     }
                 }
             }
@@ -2357,14 +2341,14 @@ class DocumentServiceProvider extends ServiceProvider
                     WHERE 
                         df.relation = 'documents'       
                     and df.status = 1  
-                    and d.qnid = '$documentId'
+                    and d.qnid = ?
                     GROUP BY 
                         df.qnid, 
                         df.description,
                         sf.title,
                         p.name,
                         d.qnid";
-        $data = DB::select($sql);
+        $data = DB::select($sql, [$documentId]);
 
         return [
             'success' => true,
@@ -2377,6 +2361,10 @@ class DocumentServiceProvider extends ServiceProvider
      */
     public function getRejectedClientFiles($list = [])
     {
+        if (empty($list)) {
+            return ['success' => true, 'data' => []];
+        }
+        $placeholders = implode(',', array_fill(0, count($list), '?'));
         $sql = "WITH last_tx AS (
                         SELECT DISTINCT ON (t.target_id)
                             t.target_id AS df_id,
@@ -2404,9 +2392,9 @@ class DocumentServiceProvider extends ServiceProvider
                     LEFT JOIN last_tx lt ON lt.df_id = df.id
                         WHERE   df.relation = 'documents' 
                             AND df.status = 1 
-                            AND d.qnid in ('".implode("','", $list)."')
+                            AND d.qnid in ($placeholders)
                             AND lt.op_key = 'doc_file_rejected'";
-        $data = DB::select($sql);
+        $data = DB::select($sql, array_values($list));
 
         return [
             'success' => true,
@@ -2472,8 +2460,8 @@ class DocumentServiceProvider extends ServiceProvider
                     from sys_con_entities sce
                             inner join sys_con_entities as sce2 on  sce2.conn_id = sce.conn_id
                         where   sce.entity_tag like '%cliid%'
-                            and sce.entity_value = '$documentId'";
-        $data = DB::select($sql);
+                            and sce.entity_value = ?";
+        $data = DB::select($sql, [$documentId]);
 
         foreach ($data as $key => $value) {
             // code...
@@ -2489,5 +2477,306 @@ class DocumentServiceProvider extends ServiceProvider
                 $entity->save();
             }
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Order file helpers — extracted from DocumentController so the
+    // controller stays thin and all SQL lives in the service layer.
+    // Every query here uses bound parameters (no string interpolation).
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Fetch a document row with its type op_key by qnid — parameterized.
+     */
+    public function fetchOrderByQnid(string $qnid): ?object
+    {
+        return DB::selectOne(
+            "SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.qnid = ? LIMIT 1",
+            [$qnid]
+        );
+    }
+
+    /**
+     * Resolve qnid → order. If qnid is an order-item, follow parent_id.
+     * Returns null when no order can be resolved.
+     */
+    public function resolveOrderFromQnid(string $qnid): ?object
+    {
+        $doc = $this->fetchOrderByQnid($qnid);
+        if (!$doc) return null;
+        if ($doc->type_key === 'op-doc-order') return $doc;
+        if ($doc->type_key === 'op-doc-order-item' && (int)$doc->parent_id > 0) {
+            $parent = DB::selectOne(
+                "SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.id = ? LIMIT 1",
+                [(int)$doc->parent_id]
+            );
+            if ($parent && $parent->type_key === 'op-doc-order') return $parent;
+        }
+        return null;
+    }
+
+    /**
+     * Fetch order spec_code + sys_code (BUKRS) via EAV — bound params.
+     * Returns ['spec'=>string,'sys_raw'=>string]
+     */
+    public function fetchOrderSpecAndSys(int $orderId): array
+    {
+        $row = DB::selectOne(
+            "SELECT sce.entity_value as spec, COALESCE(sy.entity_value, 'GDZ') as sys FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id LEFT JOIN sys_con_entities sy ON sy.conn_id=sco.id AND sy.entity_tag='sys_code' WHERE sco.main_id = ? AND sce.entity_tag = 'spec_code' LIMIT 1",
+            [$orderId]
+        );
+        return ['spec' => trim($row->spec ?? ''), 'sys_raw' => $row->sys ?? 'GDZ'];
+    }
+
+    /**
+     * Build normalized GDZ/ADM from any BUKRS/sys_code value.
+     */
+    public function normalizeSystemCode(string $raw): string
+    {
+        $norm = strtoupper(trim($raw));
+        if (in_array($norm, ['ADM','5000','A5000'], true)) return 'ADM';
+        if (strpos($norm, 'ADM') !== false) return 'ADM';
+        return 'GDZ';
+    }
+
+    /**
+     * Fetch reseller lifnrs grouped by GDZ/ADM — parameterized IN.
+     * @param string[] $clientQnids
+     * @return array{GDZ:string[],ADM:string[]}
+     */
+    public function fetchResellerLifnrsBySystem(array $clientQnids): array
+    {
+        if (empty($clientQnids)) return ['GDZ'=>[],'ADM'=>[]];
+        $placeholders = implode(',', array_fill(0, count($clientQnids), '?'));
+        $rows = DB::select(
+            "SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($placeholders) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'",
+            $clientQnids
+        );
+        $bySys = ['GDZ'=>[],'ADM'=>[]];
+        foreach ($rows as $lr) {
+            $sys = strtoupper(trim($lr->sys ?? 'GDZ'));
+            if ($sys === '') $sys = 'GDZ';
+            if (!in_array($sys, ['GDZ','ADM'], true)) $sys = 'GDZ';
+            $v = trim($lr->lifnr ?? '');
+            if ($v !== '') $bySys[$sys][] = $v;
+        }
+        return $bySys;
+    }
+
+    /**
+     * Check whether the current reseller session may access an order.
+     * Returns true for non-reseller (admin) — mirrors Documents::tableList scoping.
+     * Reads session('type_key') / session('currentStatus') internally so the
+     * controller does not duplicate the 20-line LIFNR block.
+     */
+    public function canCurrentResellerAccessOrder(object $order): bool
+    {
+        $typeKey = function_exists('currentPersonTypeKey') ? currentPersonTypeKey() : session('type_key');
+        // Admin / non-reseller sees all — permission already gated via docPermCheck
+        if ($typeKey !== 'op-pert-reseller') return true;
+
+        $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
+        if (empty($clientQnids)) return false;
+
+        $bySys = $this->fetchResellerLifnrsBySystem($clientQnids);
+        // Direct qnid ownership covers composite clients where order qnid == client qnid
+        if (in_array($order->qnid ?? '', $clientQnids, true)) return true;
+
+        $specInfo = $this->fetchOrderSpecAndSys((int)$order->id);
+        $orderSys = $this->normalizeSystemCode($specInfo['sys_raw']);
+        $bucket = $bySys[$orderSys] ?? [];
+        return in_array($specInfo['spec'], $bucket, true);
+    }
+
+    /**
+     * Fetch ALL files for an order (including old versions status 0/1) — for ZIP download.
+     * Uses bound params, no string interpolation.
+     */
+    public function fetchOrderFilesForDownload(int $orderId): array
+    {
+        return DB::select(
+            "SELECT i.qnid as file_qnid, i.id as file_id, i.status as file_status, i.created_at as file_created_at,
+                    i.description as file_desc,
+                    sf.title as file_type, sf.op_key as file_type_key, se.entity_tag,
+                    d.qnid as relation_qnid, dt.op_key as relation_type
+             FROM document_files i
+             JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag = 'document_files'
+             JOIN documents d ON d.id = i.relation_id::int
+             JOIN sys_options dt ON dt.id = d.type_id
+             JOIN sys_options sf ON sf.op_key = 'op-'||split_part(se.entity_tag,'**',1)
+             WHERE ((d.id = ? AND dt.op_key = 'op-doc-order') OR (d.parent_id = ? AND dt.op_key = 'op-doc-order-item'))
+               AND se.entity_tag NOT LIKE '%item_images_file%'
+               AND i.description != ''
+             ORDER BY i.created_at DESC",
+            [$orderId, $orderId]
+        );
+    }
+
+    /**
+     * Fetch files for an order with last_status (for list/detail) — bound params.
+     */
+    public function fetchOrderFilesWithStatus(int $orderId): array
+    {
+        return DB::select(
+            "SELECT i.qnid as file_qnid, i.id as file_id, i.status as file_status, i.created_at as file_created_at,
+                    i.description as file_desc,
+                    sf.title as file_type, sf.op_key as file_type_key, se.entity_tag,
+                    d.qnid as relation_qnid, dt.op_key as relation_type,
+                     (SELECT json_build_object('op_key', sot.op_key, 'title', sot.title, 'name', p.name, 'note', t.description, 'created_at', t.created_at)
+                      FROM transactions t
+                      JOIN sys_options sot ON sot.id = t.type_id
+                      JOIN user_logs ul ON ul.id = t.log_id
+                      JOIN users u ON u.id = ul.user_id
+                      JOIN persons p ON p.id = u.person_id
+                      WHERE t.target_id = i.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) as last_status
+             FROM document_files i
+             JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag = 'document_files'
+             JOIN documents d ON d.id = i.relation_id::int
+             JOIN sys_options dt ON dt.id = d.type_id
+             JOIN sys_options sf ON sf.op_key = 'op-'||split_part(se.entity_tag,'**',1)
+             WHERE ((d.id = ? AND dt.op_key = 'op-doc-order') OR (d.parent_id = ? AND dt.op_key = 'op-doc-order-item'))
+               AND se.entity_tag NOT LIKE '%item_images_file%'
+               AND i.description != ''
+             ORDER BY i.created_at DESC",
+            [$orderId, $orderId]
+        );
+    }
+
+    /**
+     * Fetch fileDetail bundle: order header entities + items + files.
+     * All queries use bound parameters.
+     *
+     * @return array{orderHeader:array, items:array, files:array, order:object, orderId:int}|null
+     */
+    public function fetchFileDetailBundle(string $fileQnid): ?array
+    {
+        $file = DB::selectOne("SELECT * FROM document_files WHERE qnid = ? LIMIT 1", [$fileQnid]);
+        if (!$file) return null;
+
+        $d = DB::selectOne(
+            "SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.id = ? LIMIT 1",
+            [(int)$file->relation_id]
+        );
+        if (!$d) return null;
+
+        // Determine order
+        $order = null;
+        $orderId = null;
+        if ($d->type_key === 'op-doc-order') {
+            $order = $d; $orderId = $d->id;
+        } elseif ($d->type_key === 'op-doc-order-item') {
+            $order = DB::selectOne(
+                "SELECT d2.*, so2.op_key as type_key FROM documents d2 JOIN sys_options so2 ON so2.id=d2.type_id WHERE d2.id = ? LIMIT 1",
+                [(int)$d->parent_id]
+            );
+            $orderId = $order ? $order->id : null;
+        } else {
+            $order = $d; $orderId = $d->id;
+        }
+        if (!$orderId || !$order) return null;
+
+        // LIFNR scope — delegate to canCurrentResellerAccessOrder so controller stays thin
+        if (!$this->canCurrentResellerAccessOrder($order)) {
+            // Mirror controller's 403 shape via exception signal — caller maps to response
+            return ['forbidden'=>true];
+        }
+
+        // Order header via getFormData (kept as-is — EAV hydration is canonical)
+        $orderQnid = $order->qnid;
+        $orderData = $this->getFormData($orderQnid);
+        $orderEntities = [];
+        if (!empty($orderData['formFormat'])) {
+            foreach ($orderData['formFormat'] as $rows) {
+                foreach ($rows as $r) {
+                    foreach (($r['entities'] ?? []) as $k=>$v) $orderEntities[explode('**',$k)[0]] = $v;
+                }
+            }
+        }
+        $orderHeader = [
+            'qnid' => $orderQnid,
+            'order_no' => $orderEntities['order_no'] ?? '',
+            'buying_no' => $orderEntities['buying_no'] ?? '',
+            'ctitle' => $orderEntities['ctitle'] ?? ($orderEntities['clititle'] ?? ''),
+            'spec_code' => $orderEntities['spec_code'] ?? ($orderEntities['lifnr'] ?? ''),
+            'created_at' => $orderEntities['created_at'] ?? '',
+            'lifnr' => $orderEntities['lifnr'] ?? ($orderEntities['spec_code'] ?? ''),
+        ];
+
+        // Order items
+        $items = [];
+        if (($d->type_key === 'op-doc-order' || $d->type_key === 'op-doc-order-item') && $orderId) {
+            $itemOrderTypeId = DB::table('sys_options')->where('op_key','op-doc-order-item')->value('id');
+            $rawItems = DB::select(
+                "SELECT id, qnid FROM documents WHERE parent_id = ? AND type_id = ? AND status = 1 ORDER BY id ASC",
+                [$orderId, $itemOrderTypeId]
+            );
+            foreach ($rawItems as $it) {
+                $ents = DB::select(
+                    "SELECT sce.entity_tag, sce.entity_value FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id = sce.conn_id WHERE sco.main_id = ? AND sco.conn_id = 0",
+                    [$it->id]
+                );
+                $map = [];
+                foreach ($ents as $e) $map[explode('**',$e->entity_tag)[0]] = $e->entity_value;
+                $items[] = [
+                    'qnid' => $it->qnid,
+                    'prod_code' => $map['prod_code'] ?? ($map['MATNR'] ?? ''),
+                    'title' => $map['title'] ?? ($map['TXZ01'] ?? ''),
+                    'unit' => $map['unit'] ?? ($map['MEINS'] ?? ''),
+                    'quantity' => $map['quantity'] ?? ($map['MENGE'] ?? ''),
+                ];
+            }
+        }
+
+        // ALL files for order including old versions — bound params
+        $files = DB::select(
+            "SELECT i.qnid as file_qnid, i.id as file_id, i.status as file_status, i.created_at as file_created_at,
+                    i.description as file_desc,
+                    sf.title as file_type, sf.op_key as file_type_key, se.entity_tag,
+                    d.qnid as relation_qnid, dt.op_key as relation_type,
+                    (SELECT json_build_object('op_key', sot.op_key, 'title', sot.title, 'name', p.name, 'note', t.description, 'created_at', t.created_at)
+                     FROM transactions t
+                     JOIN sys_options sot ON sot.id = t.type_id
+                     JOIN user_logs ul ON ul.id = t.log_id
+                     JOIN users u ON u.id = ul.user_id
+                     JOIN persons p ON p.id = u.person_id
+                     WHERE t.target_id = i.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) as last_status
+             FROM document_files i
+             JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag = 'document_files'
+             JOIN documents d ON d.id = i.relation_id::int
+             JOIN sys_options dt ON dt.id = d.type_id
+             JOIN sys_options sf ON sf.op_key = 'op-'||split_part(se.entity_tag,'**',1)
+             WHERE (d.id = ? OR d.parent_id = ?)
+               AND se.entity_tag NOT LIKE '%item_images_file%'
+               AND i.description != ''
+             ORDER BY i.created_at DESC",
+            [$orderId, $orderId]
+        );
+        foreach ($files as &$f) {
+            if (is_string($f->last_status)) {
+                try { $f->last_status = json_decode($f->last_status, true) ?? json_decode($f->last_status); } catch (\Throwable $e) {}
+            }
+        }
+        unset($f);
+
+        return [
+            'order' => $order,
+            'orderId' => $orderId,
+            'orderHeader' => $orderHeader,
+            'items' => $items,
+            'files' => $files,
+            'file_qnid' => $fileQnid,
+        ];
+    }
+
+    /**
+     * Fetch order_no entity value by order id — bound param, used for ZIP naming.
+     */
+    public function fetchOrderNoById(int $orderId): ?string
+    {
+        $row = DB::selectOne(
+            "SELECT se.entity_value as v FROM sys_con_entities se JOIN sys_con_ops so ON so.id=se.conn_id WHERE so.main_id=? AND se.entity_tag='order_no' LIMIT 1",
+            [$orderId]
+        );
+        return $row->v ?? null;
     }
 }

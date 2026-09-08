@@ -1,5 +1,7 @@
 # Form System Mechanics (Dynamic Form / EAV Engine)
 
+> **NEW system 2026-09-08:** `op-doc-request` / `op-doc-offer` (`per-08`, `doc_trans_request_*`, `doc_trans_offer_*`, `target_type → grp_code`) removed. New system has only `op-doc-client` + `op-doc-order` family (`order/order-item/serial`). This doc is updated; legacy notes are marked *legacy*.
+
 ## 1. Overview
 
 The form system is a **schema-less, EAV-style (Entity-Attribute-Value) engine** on top of PostgreSQL. Every business record (`documents`, `persons`, `transactions`, `document_files`) is a thin relational row; its "form fields" live in two generic tables:
@@ -7,7 +9,7 @@ The form system is a **schema-less, EAV-style (Entity-Attribute-Value) engine** 
 - `sys_con_ops` — one row per **form instance** (a repeatable group/section of fields). Think "one filled-out form block".
 - `sys_con_entities` — one row per **field value** inside a form instance. The `entity_tag` is the field name, `entity_value` is the value.
 
-This is what allows the same `documents` table to hold requests, offers, clients, flats, meetings, etc. — the *shape* of each document type is data, not code.
+This is what allows the same `documents` table to hold clients, orders, order items, serials etc. — the *shape* of each document type is data, not code. Legacy `requests/offers/flats` removed in new system.
 
 **Key files:**
 - `app/Providers/DocumentServiceProvider.php` — backend write/read engine (`registerContent`, `getFormData`)
@@ -16,7 +18,7 @@ This is what allows the same `documents` table to hold requests, offers, clients
 - `app/Models/Documents.php`, `app/Models/Document_files.php`, `app/Models/Sys_con_ops.php`, `app/Models/Sys_con_entities.php` — models + `tableList()` raw SQL listing engines
 - `app/Models/Sys_options.php` — the **dictionary** table that gives everything meaning
 - `resources/js/components/coalparts/Form.vue` — the frontend form renderer that produces the payload
-- `resources/js/pages/coalsystem/**/*Form.vue` — page-level form wrappers (RForm, OForm, CForm, UForm, FlatForm)
+- `resources/js/pages/coalsystem/**/*Form.vue` — page-level form wrappers (OForm, CForm, UForm — legacy RForm/OForm for requests/offers removed)
 
 ---
 
@@ -26,12 +28,12 @@ This is what allows the same `documents` table to hold requests, offers, clients
 
 | group_key | Purpose | Examples |
 |-----------|---------|----------|
-| `op-doc-*` | Document types | `op-doc-request`, `op-doc-offer`, `op-doc-client`, `op-doc-flat` |
-| `op-doc-*-form` | Form template tags (what a document type's form blocks are called) | `op-doc-request-form`, `op-doc-client-form`, `op-doc-offer-form` |
-| `op-trans-*` | Transaction/status types (per document type) | `doc_trans_created`, `doc_file_waiting`, `doc_file_rejected`, `doc_file_accepted` |
-| `op-pert-*` | Person types | `op-pert-admin`, `op-pert-reseller`, `op-pert-buyer` |
-| `per-*` | Permissions (see `permission-system-analysis.md`) | `per-05-01`, `per-08-02` |
-| `log-*` | UserLog event types | `log-login`, `log-tender-update`, `log-file-added` |
+| `op-doc-*` | Document types | `op-doc-client`, `op-doc-order`, `op-doc-order-item`, `op-doc-order-serial` (legacy `op-doc-request`/`op-doc-offer`/`op-doc-flat` removed) |
+| `op-doc-*-form` | Form template tags (what a document type's form blocks are called) | `op-doc-client-form`, `op-doc-order-form`, `op-doc-order-item-form`, `op-doc-order-serial-form` |
+| `op-trans-*` | Transaction/status types (per document type) | `doc_trans_order_created`, `doc_trans_order_transfer_sent`, `doc_file_waiting`, `doc_file_accepted` |
+| `op-pert-*` | Person types | `op-pert-admin`, `op-pert-reseller` |
+| `per-*` | Permissions (see `permission-system-analysis.md`) | `per-05-01` (order), `per-06-02` (client) |
+| `log-*` | UserLog event types | `log-login`, `log-tender-update`, `log-order-update`, `log-file-added` |
 | `form-main`, `form-file` | **Sub-type markers** | used in `sys_con_ops.sub_type_id` |
 
 ### Naming conventions (critical)
@@ -67,7 +69,7 @@ qnid (UUID, generated in model boot), starting_at, ending_at, timestamps
 
 - `qnid` is the **public identifier** sent to the client. All routes use `qnid`; internal joins use `id`.
 - `person_id` is set at creation from `session('person_id')` — owner for reporting/scoping.
-- `status = 0` means "passive/removed" for most types, but **"cancelled" for offers** (`op-doc-offer`).
+- `status = 0` means "passive/removed" (for orders: cancelled/partition removed). Legacy `op-doc-offer` had same but removed in new system.
 
 ### 3.2 `sys_con_ops` (form instance / group)
 
@@ -141,11 +143,11 @@ envelope.append('dynamicFile**...*-*<fieldname>', JSON.stringify(fileReference))
 
 ```json
 {
-  "typeKey": "op-doc-request",
+  "typeKey": "op-doc-order",
   "dynamicF": {
-    "op-doc-request-form**<connId|new-<timestamp>>": {
-      "entities": { "req_no": "...", "target_type": "...", "note": "..." },
-      "tag": "op-doc-request-form"
+    "op-doc-order-form**<connId|new-<timestamp>>": {
+      "entities": { "order_no": "...", "spec_code": "...", "ctitle": "..." },
+      "tag": "op-doc-order-form"
     }
   },
   "files": { "dynamicFile**<fileId>**<connId>*-*<fieldName>": { "reference": { "success": true, "reference_id": 123, "encrypted_name": "...", "original_name": "..." } } },
@@ -165,10 +167,10 @@ envelope.append('dynamicFile**...*-*<fieldname>', JSON.stringify(fileReference))
 {
   "success": true,
   "data": {
-    "document": { "op_key": "op-doc-request", "document_status": "1", "title": "...", "status": [ { "op_key": "doc_trans_created", "op_title": "...", "note": "...", "created_at": "...", "name": "..." } ] },
+    "document": { "op_key": "op-doc-order", "document_status": "1", "title": "...", "status": [ { "op_key": "doc_trans_order_created", "op_title": "...", "note": "...", "created_at": "...", "name": "..." } ] },
     "formFormat": {
-      "op-doc-request-form": {
-        "<connId>": { "entities": { "req_no": "...", "target_type": "..." }, "files": {} }
+      "op-doc-order-form": {
+        "<connId>": { "entities": { "order_no": "...", "spec_code": "..." }, "files": {} }
       }
     }
   }
@@ -197,11 +199,11 @@ Location: `DocumentServiceProvider::registerContent()` — wrapped in a **DB tra
    - Resolve `typeId` from tag via `sys_options`, create/update the `sys_con_ops` row (`conn_id = 0`).
    - **Server-side field authority**: 
      - `op-doc-client`: `clicode` is **forced server-side** (new → `document->qnid`; update → client value ignored entirely). Prevents code forgery.
-     - `op-doc-request` / `op-doc-offer`: `req_no` set on create (document count), `rev_date` set to today on update.
+     - *(legacy `op-doc-request`/`op-doc-offer`: `req_no`/`rev_date` removed in new system)*
    - Upsert each entity: find existing by `conn_id + entity_tag + table_tag='sys_con_ops'`, else insert. `strip_tags()` applied to all values.
-   - **`target_type` special case** (request/offer): writes `grp_code` = uppercased, Turkish-transliterated `target_type` value. This is the multi-system partition key.
+   - *(legacy `target_type → grp_code` for request/offer removed — new uses `client_system → grp_code` for clients)*
 7. **File handling** — see `file-upload-versioning-mechanics.md` §3.
-8. **Commit, then audit log** — `UserLog::create` with `description = { before, after }` (full before/after form data). `before` is omitted intentionally on some flows (offer cancel) — the frontend `RequestLogTimeline` treats absence of `before` as a *status change* entry.
+8. **Commit, then audit log** — `UserLog::create` with `description = { before, after }` (full before/after form data). `before` is omitted intentionally on some status-only flows (e.g. `cancelOrder`) — the frontend timeline treats absence of `before` as a *status change* entry.
 
 ### 5.2 Return contract
 
@@ -232,8 +234,8 @@ The generic list endpoint `POST /api/v1/table/{model}` (`SystemController::table
 
 - `columns` map — each key maps to a SQL fragment (aliased with `as`). `status` is a correlated subquery pulling the latest `op-trans-<type>` transaction; `main_attr` is a `LEFT JOIN LATERAL` that aggregates all entities of the filter form type into JSON.
 - `filter` array from client → `where` clauses via `switch($f['key'])`. Supported keys: `free`/`all` (search across columns), `attr` (entity tag `ilike`), `transactions` (latest status =/is null), `status-not`, `status-null`, `monthly`, `month-period`, `showExpired`, `today-ended`, `is-rodevans`, `form-type`, `with-cancelled`, plus default `{key, value, type: '=' | 'like'}`.
-- **Row-level scoping is baked into the query** for reseller sessions: when `session('currentStatus')['clientQnidList']` is non-empty, offers are filtered to rows whose `cliid` entity is in the client list; clients to own qnids; requests to started/ended ones. A reseller without a client list gets **zero rows** (fails closed).
-- **Multi-tenant filtering**: non-admin sessions see only rows whose `grp_code` matches `GLOBALS['SYS_CODE']` (or "her ikisi" for requests).
+- **Row-level scoping is baked into the query** for reseller sessions: when `session('currentStatus')['clientQnidList']` is non-empty, orders/items are filtered to rows whose `spec_code` (`LIFNR`) + `sys_code` (`BUKRS`→`GDZ/ADM`) match the reseller's bound clients (`LIFNR+SYSTEM` composite, `tedarik-system-process.md:2`). Clients to own qnids. A reseller without a client list gets **zero rows** (fails closed). Legacy `offers/requests` scoping removed.
+- **Multi-tenant filtering**: non-admin sessions see only rows whose `grp_code` matches `GLOBALS['SYS_CODE']` (`GDZ`/`ADM`/`BOTH`). Legacy `her_ikisi` for requests removed.
 - `noInject()` sanitization runs on every client filter value before interpolation — legacy anti-SQL-injection scrubber (in `PermissionHelpers.php` and `DocumentHelpers.php`).
 
 **Reuse tip:** to add a new document type, you mostly add `sys_options` rows + a form definition in `Form.vue` + (optionally) filter cases. The engine, list, permission map and file machinery are agnostic.
@@ -245,19 +247,16 @@ The generic list endpoint `POST /api/v1/table/{model}` (`SystemController::table
 `docPermCheck($type, $job)` in `app/Helpers/PermissionHelpers.php`:
 
 ```php
-'op-doc-request' => ['edit' => 'per-05-02', 'read' => 'per-05-01', 'status' => 'per-05-02'],
-'op-doc-client'  => ['edit' => 'per-06-02', 'read' => 'per-06-01', 'status' => 'per-06-02'],
-'op-doc-offer'   => ['edit' => 'per-08-02', 'read' => 'per-08-01', 'status' => 'per-05-02'],
+// New system: only clients + orders (requests/offers removed)
+'op-doc-client' => ['edit' => 'per-06-02', 'read' => 'per-06-01', 'status' => 'per-06-02'],
+'op-doc-order'  => ['edit' => 'per-05-02', 'read' => 'per-05-01', 'status' => 'per-05-03', 'cancel' => 'per-05-04', 'rename' => 'per-05-05'],
 ```
 
-Enforcement points in `DocumentController::index` (every method):
+Enforcement points in `DocumentController::index` (every method) — NEW system:
 
-1. `docPermCheck($type, read|edit)` → 403.
+1. `docPermCheck($type, read|edit)` → 403 (now only `op-doc-client`/`op-doc-order` family).
 2. **Reseller override** — clients may edit/read their own client document (`op-doc-client` + `op-pert-reseller` + qnid ∈ `currentStatus.clientQnidList`).
-3. **Offer response gate** — `op-doc-offer` requires `currentStatus.canResponse` (files approved).
-4. **Offer ownership** — `offerOwnershipCheck($qnid)`: admins pass; resellers must have the offer's `cliid` in their client list; anything undeterminable fails closed.
-5. **Offer editing state machine** (PUT): cancelled offers (`document_status = 0`) are untouchable for everyone; resellers may only edit offers whose last status is in `['doc_trans_offer_revision','doc_trans_created','doc_trans_offer_draft']`.
-6. **DELETE** on offers is rejected outright ("cancel, don't delete") — use `/v1/trans/cancel-offer`.
+3. **Order LIFNR+SYSTEM** — resellers see only orders where `spec_code`+`sys_code` matches bound `lifnr`+`client_system` (`DocumentServiceProvider.php:2639`). Legacy `offerOwnershipCheck` / `canResponse` gates removed.
 
 Client-side equivalents live in `authStore.permissions.includes(...)` and route guards.
 
@@ -299,7 +298,7 @@ Client-side equivalents live in `authStore.permissions.includes(...)` and route 
 
 ## 11. Frontend rendering contract (`Form.vue`)
 
-- `this.forms[tag]` holds **field definitions** per form tag: array of field objects `{ name, label, type, required, options, hidden, readOnly, mask, ... }` — see `op-doc-request-form`, `op-doc-client-form`, `op-doc-offer-form`, `op-doc-user-form`, `op-doc-flat-form` blocks. This is the closest thing to a form schema.
+- `this.forms[tag]` holds **field definitions** per form tag: array of field objects `{ name, label, type, required, options, hidden, readOnly, mask, ... }` — see `op-doc-client-form`, `op-doc-order-form`, `op-doc-order-item-form`, `op-doc-user-form` blocks (legacy `op-doc-request-form`/`op-doc-offer-form`/`op-doc-flat-form` removed).
 - `buildDynamicFForm(tag, dynamicId, data)` renders one row per `sys_con_ops` id; `data` comes from the GET response (`formFormat[tag][connId]`).
 - On every input, `submitDynamicChanges(el)` writes into `formData.dynamicF[tag+'**'+rowId].entities[name]`; dates are normalized to `Y-m-d`, checkboxes to `1/0`, money masks swap `,`→`.`.
 - **Files**: selecting a file triggers an **immediate** `POST /api/v1/temp-upload` (see file doc). The returned reference JSON is stored in `formData.files[key]` and later appended to the save envelope. Failed uploads are retried once at save time; pending uploads are awaited before submit.
@@ -313,7 +312,7 @@ Client-side equivalents live in `authStore.permissions.includes(...)` and route 
 1. **`ctitle` magic** — `Sys_options::where(['ctitle' => ...])` is a fragile lookup. Keep `ctitle` values (`type_id`, `sub_type_id`) and `op_key` values (`form-main`, `form-file`) consistent when seeding a new system.
 2. **Entity upsert for plain fields** (`table_tag = 'sys_con_ops'`) — updates in place, so plain fields have **no history**. Only files keep versions (via new rows).
 3. **File entity activeness is derived** — `getFormData` filters inactive files out, and removed-data processing ignores inactive rows. Never trust `entity_value` alone; always join the file status.
-4. **No `ORDER BY` in `getFormData`** — `cliid` may sit on any form row; loops that need it must scan (see `offerOwnershipCheck`).
+4. **No `ORDER BY` in `getFormData`** — order `spec_code`/`order_no` may sit on any form row; callers should scan `formFormat` (legacy `cliid` via `offerOwnershipCheck` removed).
 5. **`main_*` whitelist** — new document types can't add generic columns through the form payload; add real columns to `GENERIC_WRITABLE_MAIN_FIELDS` deliberately.
 6. **`before` in audit logs** is used by the UI to distinguish edits from status changes — keep the convention (omit `before` for status-only events).
 7. **SQL injection discipline** — qnid-style params reaching `getFormData`/`tableList` must be UUID-validated; filters go through `noInject()` + `strip_tags()`.
@@ -326,6 +325,6 @@ Client-side equivalents live in `authStore.permissions.includes(...)` and route 
 1. Seed `sys_options`: `op-doc-{type}` (document type), `op-doc-{type}-form` (form tag), `op-trans-op-doc-{type}` statuses (`doc_trans_*`), `op-{fieldfile}` file type keys (`op-...` used for file-type titles).
 2. Add a form definition block in `Form.vue` (`this.forms['op-doc-{type}-form']`).
 3. Add a page pair `{Type}Form.vue` / `{Type}List.vue` (copy `RForm`/`RList` patterns).
-4. Add `docPermCheck` map entries + permission codes (`per-XX-01` read, `per-XX-02` edit) + catalog rows via `php artisan permission:create`.
-5. If the type needs client scoping, add the `switch($formType)` case in `Documents::tableList` and the ownership check in the controller.
+4. Add `docPermCheck` map entries + permission codes (`per-XX-01` read, `per-XX-02` edit, `per-XX-03` status etc.) + catalog rows via `php artisan permission:create`.
+5. If the type needs client scoping (like `op-doc-order` LIFNR+SYSTEM), add the `switch($formType)` case in `Documents::tableList` and the `canCurrentResellerAccessOrder` check in the controller.
 6. If it has files, nothing extra is needed — file machinery is type-agnostic.

@@ -1,4 +1,6 @@
-# Form Engine Deep Dive — `coalparts/Form.vue`
+# Form Engine
+
+> **NEW system 2026-09-08:** `op-doc-request`/`op-doc-offer` removed. Deep Dive — `coalparts/Form.vue`
 
 > **Single file does everything:** `panel/resources/js/components/coalparts/Form.vue:2892` lines, imperative DOM, schema-driven.  
 > **Backend mirror:** `panel/app/Providers/DocumentServiceProvider.php:27-288` (`registerContent`) + `panel/app/Providers/PersonsServiceProvider.php:73-316` (`setPerson`)  
@@ -29,16 +31,19 @@ data() {
     forms: {
       'op-doc-flat-form':    { showRemoveButton, oncreated, fields: [...] },
       'op-doc-user-form':    { ... },
-      'op-doc-request-form': { ... },
+      // legacy 'op-doc-request-form' removed in new system
+      'op-doc-order-form': { ... },
       'op-doc-client-form':  { ... },
-      'op-doc-offer-form':   { ... },
+      // legacy 'op-doc-offer-form' removed
+      'op-doc-order-item-form': { ... },
     }
   }
 }
 ```
 Pages instantiate via prop:
 ```vue
-<Form formtypes="op-doc-request-form" :savecallback="submitForm" savebtntitle="Kaydet" />
+<!-- legacy op-doc-request-form removed -->
+<Form formtypes="op-doc-order-form" :savecallback="submitForm" savebtntitle="Kaydet" />
 <!-- or multiple: formtypes="op-doc-user-form,op-doc-client-form" -->
 ```
 
@@ -127,14 +132,14 @@ Template: one `.area-target[data-tag=ftype]` per form type + `<AppFab>` (visible
 ```php
 // Payload from frontend:
 $requestData = [
-  'typeKey' => 'op-doc-request',
+  'typeKey' => 'op-doc-order', // legacy op-doc-request removed
   'dynamicF' => [
-    'op-doc-request-form**new-12345' => [
-      'tag' => 'op-doc-request-form',
+    'op-doc-order-form**new-12345' => [ // legacy request removed
+      'tag' => 'op-doc-order-form',
       'entities' => [ 'title' => 'Konu', 'target_type' => 'Yatağan', ... ]
     ],
-    'op-doc-request-form**678' => [ // existing row
-      'tag' => 'op-doc-request-form',
+    'op-doc-order-form**678' => [ // existing row
+      'tag' => 'op-doc-order-form',
       'entities' => [ ... ]
     ]
   ],
@@ -151,7 +156,7 @@ Flow (DB transaction):
 4. For each `dynamicF` entry:
    - Decode `id` from `key.split('**')[1]` → `"new-..." ? new Sys_con_ops : find existing`
    - `Sys_con_ops: main_id=document.id, conn_id=0, type_id=sys_options where op_key=tag, sub_type_id=form-main|form-file`
-   - Auto fields: `op-doc-client: clicode = document.qnid` (immutable on update, client cannot override), `op-doc-request/offer: req_no=count` on create, `rev_date=date d/m/Y` on update
+   - Auto fields: `op-doc-client: clicode = document.qnid` (immutable on update) — legacy `op-doc-request/offer: req_no/rev_date` removed
    - For each `entities[key=>value]`: upsert `Sys_con_entities(conn_id, entity_tag, table_tag=sys_con_ops)` → `entity_value = strip_tags(value)`
    - If `entity_tag == 'target_type' && typeKey in [request,offer]` → `documents.grp_code = upper(TR-normalized value)` (Yatağan→YATAGAN, ÇATES→CATES)
    - For each `dynamicFile` matching `id`: if `is_string && is_json` → `finalizeTempFile(reference_id)` else `addFileToDb(file,...)` → creates `Document_files(status=1)` + `Transactions doc_file_waiting` + encrypted filename in `description` → upsert `Sys_con_entities(table_tag=document_files, entity_value=fileId)`
@@ -198,7 +203,7 @@ Grouped into:
 {
   document: { id, qnid, op_key, title, grp_code, document_status, status: JSON[], ... },
   formFormat: {
-    'op-doc-request-form': {
+    'op-doc-order-form': { // legacy request removed
       '123': { entities: { title: '...', target_type: 'YATAGAN', ... }, files: {} },
       '124': { entities: { ... } }
     }
@@ -225,7 +230,7 @@ Frontend loads via: `GET /v1/document/{qnid}` → `DocumentController@index:77-8
 Example `RForm.vue:85-118` submit:
 ```js
 async submitForm(formData) {
-  formData.typeKey = 'op-doc-request';
+  formData.typeKey = 'op-doc-order'; // legacy request removed
   const check = this.plib.checkForm('.form-item'); // validates required visible fields
   if (!check.valid) { toast('Eksik Alanları Doldurmalısınız'); return }
   const envelope = new FormData();
@@ -243,7 +248,7 @@ async submitForm(formData) {
 }
 ```
 - `PUT` multipart is broken on Apache — `bootstrap/app.php:ParsePutMultipart` is buggy (missing imports), fallback `parsePut()` helper in `DocumentController:141`
-- `DocumentController:index` guards: `docPermCheck(typeKey, read|edit)` (map: `op-doc-request→per-05-*, client→per-06-*, offer→per-08-*`) + supplier `offerOwnershipCheck` + `canResponse`
+- `DocumentController:index` guards: `docPermCheck(typeKey, read|edit)` (new: `op-doc-client→per-06-*`, `op-doc-order→per-05-*`) + reseller own-client override + `LIFNR+SYSTEM` for orders (legacy `offerOwnershipCheck`/`canResponse` removed)
 - `Offer` PUT extra guard: cancelled `document_status==0` → 422; supplier only editable if last `transactions` op_key in `[revision, created, draft]`
 
 ---

@@ -60,8 +60,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     Route::get('/v1/trans/prepare-payment',            [DocumentController::class, 'preparePayment']);
     Route::post('/v1/trans/set-payment',               [DocumentController::class, 'setPayment']);
     Route::post('/v1/trans/set-status',                [DocumentController::class, 'setStatus']);
-    Route::post('/v1/trans/cancel-offer',              [DocumentController::class, 'cancelOffer']);
-    Route::post('/v1/trans/reopen-offer',              [DocumentController::class, 'reopenOffer']);
+    // legacy offers removed in new system — stubs remain in controller (410)
+    // Route::post('/v1/trans/cancel-offer',              [DocumentController::class, 'cancelOffer']);
+    // Route::post('/v1/trans/reopen-offer',              [DocumentController::class, 'reopenOffer']);
     Route::post('/v1/trans/set-file-status',           [DocumentController::class, 'setFileStatus']);
     Route::post('/v1/trans/set-file-status-all',       [DocumentController::class, 'setFileStatusAll']);
     Route::post('/v1/trans/disable-document',          [DocumentController::class, 'disableDocument']);

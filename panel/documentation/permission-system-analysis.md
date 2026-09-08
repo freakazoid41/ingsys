@@ -1,5 +1,7 @@
 # CoalApp Permission System Analysis
 
+> **NEW system 2026-09-08:** `op-doc-request` / `op-doc-offer` + `per-08` removed. New system: `per-05` = **orders** (01-05), `per-06` = **clients** (01-02), `per-07` = **documents/files** (01-02), `per-04` = users/roles. This doc updated; legacy notes marked.
+
 ## 1. Overview
 
 The CoalApp permission system is a custom, session-driven role-and-permission implementation layered on top of Laravel and Vue. It is not using Laravel Gates/Policies in a standard way; instead, it uses:
@@ -205,9 +207,12 @@ per-04 (Kontrol Paneli - Control Panel)
 ├── per-04-02 (Kullanıcı Oluşturma/Düzenleme - User Create/Edit)
 ├── per-04-03 (Rol ve Yetki Yönetimi - Role & Permission Management)
 
-per-05 (Talep Yönetimi - Request Management)
-├── per-05-01 (Talep Listeleme - Request Listing)
-├── per-05-02 (Talep Oluşturma/Düzenleme - Request Create/Edit)
+per-05 (Sipariş Yönetimi - Order Management)
+├── per-05-01 (Sipariş Listeleme)
+├── per-05-02 (Sipariş Oluşturma/Düzenleme)
+├── per-05-03 (Durum / Transfer)
+├── per-05-04 (İptal / Parça Sil)
+├── per-05-05 (Numara Düzenle)
 
 per-06 (Firma Yönetimi - Company Management)
 ├── per-06-01 (Firma Listeleme - Company Listing)
@@ -217,9 +222,7 @@ per-07 (Dökümanlar - Documents)
 ├── per-07-01 (Döküman Listeleme - Document Listing)
 ├── per-07-02 (Döküman Düzenleme - Document Edit)
 
-per-08 (Teklifler - Offers)
-├── per-08-01 (Teklif Listeleme - Offer Listing)
-├── per-08-02 (Düzenleme - Edit)
+*(legacy per-08 Offers removed — new system has no op-doc-offer)*
 ```
 
 #### 4.2.3 `sys_notification_types` TABLE
@@ -467,8 +470,8 @@ private function getPermissionChildren($parentCode, $allPerms): array {
    - Ready for use
 
 **Data Integrity:**
-- ✅ All 18 permissions migrated with proper hierarchies
-- ✅ All 5 role templates migrated with permission assignments
+- ✅ 27 permissions (new: `per-05-01..05`, `per-041`, `per-061` etc.) with proper hierarchies — legacy `per-08` purged
+- ✅ 4 role templates (`immutable-admin`/`reseller`/`rapor-personeli`/`satınalma-keyuser`) migrated with permission assignments
 - ✅ All 4 notification types migrated
 - ✅ Metadata preserved (parent codes, group keys, titles)
 

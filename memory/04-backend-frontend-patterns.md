@@ -67,9 +67,10 @@ Global middleware (`bootstrap/app.php:19-27`): `ParsePutMultipart` (broken, fall
 
 `panel/app/Helpers/PermissionHelpers.php:215`:
 ```php
-'op-doc-request' => ['read'=>'per-05-01', 'edit'=>'per-05-02', 'status'=>'per-05-02'],
+// legacy 'op-doc-request' removed
+'op-doc-client' => ['read'=>'per-06-01','edit'=>'per-06-02','status'=>'per-06-02'],
 'op-doc-client'  => ['read'=>'per-06-01', 'edit'=>'per-06-02'],
-'op-doc-offer'   => ['read'=>'per-08-01', 'edit'=>'per-08-02', 'status'=>'per-05-02'],
+// legacy 'op-doc-offer' removed
 'op-doc-user'    => ['read'=>'per-04-01', 'edit'=>'per-04-02'] // via checkPerm directly
 // Order System: reuse coal perms (NOT split) — op-doc-transfer PURGED 2026-09-02
 'op-doc-order'/'op-doc-order-item' => ['read'=>'per-05-01', 'edit'=>'per-05-02', 'status'=>'per-05-02'],

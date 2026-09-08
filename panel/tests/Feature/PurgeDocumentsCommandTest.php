@@ -62,8 +62,8 @@ class PurgeDocumentsCommandTest extends TestCase
 
     public function test_dry_run_reports_but_deletes_nothing(): void
     {
-        $this->seedDocument('op-doc-request');
-        $this->seedDocument('op-doc-offer');
+        $this->seedDocument('op-doc-order');
+        $this->seedDocument('op-doc-order');
 
         $this->artisan('documents:purge --dry-run')
             ->expectsOutputToContain('KURU CALISMA')
@@ -77,8 +77,8 @@ class PurgeDocumentsCommandTest extends TestCase
 
     public function test_purge_removes_documents_and_every_related_row(): void
     {
-        $this->seedDocument('op-doc-request');
-        $this->seedDocument('op-doc-offer');
+        $this->seedDocument('op-doc-order');
+        $this->seedDocument('op-doc-order');
 
         $this->artisan('documents:purge --force')->assertSuccessful();
 
@@ -92,7 +92,7 @@ class PurgeDocumentsCommandTest extends TestCase
     public function test_clients_are_never_touched(): void
     {
         $client = $this->seedDocument('op-doc-client');
-        $this->seedDocument('op-doc-offer');
+        $this->seedDocument('op-doc-order');
 
         $this->artisan('documents:purge --force')->assertSuccessful();
 
@@ -105,10 +105,10 @@ class PurgeDocumentsCommandTest extends TestCase
 
     public function test_type_option_narrows_the_scope(): void
     {
-        $request = $this->seedDocument('op-doc-request');
-        $this->seedDocument('op-doc-offer');
+        $request = $this->seedDocument('op-doc-client');
+        $this->seedDocument('op-doc-order');
 
-        $this->artisan('documents:purge --type=offer --force')->assertSuccessful();
+        $this->artisan('documents:purge --type=order --force')->assertSuccessful();
 
         $this->assertDatabaseHas('documents', ['id' => $request->id]);
         $this->assertDatabaseCount('documents', 1);
@@ -116,7 +116,7 @@ class PurgeDocumentsCommandTest extends TestCase
 
     public function test_unknown_type_is_rejected_without_deleting(): void
     {
-        $this->seedDocument('op-doc-offer');
+        $this->seedDocument('op-doc-order');
 
         $this->artisan('documents:purge --type=firma --force')->assertFailed();
 

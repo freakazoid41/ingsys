@@ -1,4 +1,6 @@
-# App Factory Guide — How To Create Different Apps From This Core
+# App Factory Guide
+
+> **NEW system 2026-09-08:** `op-doc-request`/`op-doc-offer` removed. — How To Create Different Apps From This Core
 
 > **Core thesis:** This is NOT a coal app. It's a **generic EAV document engine** wearing coal clothes.  
 > **Reuse vector:** Duplicate the pattern `Document Type + Form Schema + Pages + Permissions + Status Machine` to make any doc-centric app.
@@ -15,7 +17,7 @@
 | **Notifications** | `EmailServiceProvider`, `MailService`, `SmsService`, `notification_logs`, Jobs | ✅ generic | recipient = `notif-*` groups |
 | **Dashboard/Export** | `ReportServiceProvider`, `ExportService`+`ExportController` | ⚠️ semi-generic | Queries are coal-specific, pattern reusable |
 | **Frontend Shell** | `pickle.js`, `stores/*`, `layouts/CoalPanel`, `router`, `Form.vue` (engine), `AppFab`, `Sidebar`, `Header` | ✅ generic | Skin/theme is swappable |
-| **Coal Specific** | `Form.vue` schemas (`op-doc-request/offer/client`), `RSummary`/`OfferSummary`, `coal_specs`, `calory_settings`, `TCMB/Currencies` | ❌ replace | This is what you swap |
+| **Coal Specific** | `Form.vue` schemas (`op-doc-client`/`order`) | ❌ replaced — legacy `op-doc-request/offer` removed | This is what you swap |
 
 **Bottom line:** Keep rows 1+2+3+4+6. Replace row 5+7.
 
@@ -36,7 +38,7 @@ All 5 are **config + Form.vue + Vue pages** — no new tables.
 |---------|----------------|--------------|
 | **HR Leave Management** | `op-doc-leave-request`, `op-doc-leave-approval` | Form: employee, dates, type; Status: requested→approved/rejected |
 | **Maintenance Tickets** | `op-doc-ticket`, `op-doc-workorder` | Form: asset, priority, description + files; Status: open→in_progress→done |
-| **Real Estate CRM** | `op-doc-property`, `op-doc-visit`, `op-doc-offer` | Reuse offer flow but for houses |
+| **Real Estate CRM** | `op-doc-property`, `op-doc-visit` | Reuse order flow for houses (legacy `op-doc-offer` removed) |
 | **School Admissions** | `op-doc-application`, `op-doc-evaluation` | Form: student, grades, docs; Status: applied→review→accepted/waitlist |
 | **Inventory** | `op-doc-purchase-order`, `op-doc-goods-receipt` | Form: items (multiple), supplier, amounts |
 

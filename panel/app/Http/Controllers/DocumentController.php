@@ -2,986 +2,527 @@
 
 namespace App\Http\Controllers;
 
-use App\Providers\ReportServiceProvider;
 use App\Providers\DocumentServiceProvider;
 use App\Providers\PersonsServiceProvider;
-use Illuminate\Http\Request;
 use App\Providers\EmailServiceProvider;
 use App\Services\PermissionService;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use App\Upload;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-
+use Illuminate\Support\Facades\Log;
 
 class DocumentController extends Controller
 {
-    public function index(Request $request){
-        $logModel = 'documents';
-        $method   = strtoupper($request->method());
-        /*if(!checkPermRoute($logModel,$request->method())) return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],401);*/
-        
-        /*if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],403);*/
-        //here get document type for permissions
-        $key = null;
-        if($method == 'POST'){
-            $req = $request->all();
-            $req = json_decode($req['data'],true);
-            $key = $req['typeKey'] ?? null;
-        }else{
-            $key = (new DocumentServiceProvider())->getFormData($request->id);
-            $key = $key['document']->op_key;
-        }
-        if(!docPermCheck($key,($method == 'GET' ? 'read' : 'edit'))){
-             
-            //here clients must be edit their own client informations so check that logic
-            //also its only for PUT and GET methods
-            if($key == 'op-doc-client' && session('type_key') == 'op-pert-reseller' && in_array($request->id, session('currentStatus')['clientQnidList'] ?? []) && in_array($method,['GET','PUT'])){
-               //do nothing..
-            }else{
-                return response()->json([
-                    'success' => false,
-                    'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
-                ],403);
+    /**
+     * Order / client only — offers are legacy (old system). New system has:
+     * clients, orders, order items, order serials, transactions.
+     */
+    public const TEDARIK_ORDER_APPROVED_STATUSES = ['doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected'];
+    public const TEDARIK_FILE_STATUSES = ['doc_file_accepted','doc_file_rejected'];
+
+    private const UUID_REGEX = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+
+    protected DocumentServiceProvider $docs;
+    protected EmailServiceProvider $emails;
+    protected PermissionService $perms;
+
+    public function __construct(
+        DocumentServiceProvider $documentService = null,
+        EmailServiceProvider $emailService = null,
+        PermissionService $permissionService = null
+    ) {
+        $this->docs  = $documentService ?: new DocumentServiceProvider();
+        $this->emails = $emailService ?: new EmailServiceProvider();
+        $this->perms = $permissionService ?: new PermissionService();
+    }
+
+    private function isValidUuid(?string $v): bool
+    {
+        return is_string($v) && preg_match(self::UUID_REGEX, $v) === 1;
+    }
+
+    private function decodeDataField(?string $raw): ?array
+    {
+        if ($raw === null || $raw === '') return null;
+        $decoded = json_decode($raw, true);
+        if (json_last_error() !== JSON_ERROR_NONE) return null;
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function mergeTempUploadReferences(array $source, array &$files): void
+    {
+        foreach ($source as $fkey => $value) {
+            if (strpos($fkey, 'dynamicFile') !== false && is_string($value)) {
+                $files[$fkey] = $value;
             }
-            
+        }
+    }
+
+    private function resolveDocumentKey(Request $request, string $method, ?array $decodedData = null): ?string
+    {
+        if ($method === 'POST') {
+            return $decodedData['typeKey'] ?? null;
+        }
+        $form = $this->docs->getFormData($request->id);
+        return $form['document']->op_key ?? null;
+    }
+
+    private function buildOrderNotifPayload(string $orderQnid, array $extra = []): array
+    {
+        try {
+            $detail = $this->docs->getFormData($orderQnid);
+            $entities = [];
+            foreach (($detail['formFormat']['op-doc-order-form'] ?? []) as $cr) {
+                foreach (($cr['entities'] ?? []) as $k => $v) if (!isset($entities[$k])) $entities[$k] = $v;
+            }
+            $sys = $entities['sys_code'] ?? ($detail['document']->grp_code ?? ($GLOBALS['SYS_CODE'] ?? 'GDZ'));
+            return array_merge([
+                'order_no' => $entities['order_no'] ?? $orderQnid,
+                'spec_code' => $entities['spec_code'] ?? '',
+                'sys_code' => $sys,
+                'bukrs' => $sys,
+                'BUKRS' => $sys,
+                'ctitle' => $entities['ctitle'] ?? '',
+                'qnid' => $orderQnid,
+                'order_qnid' => $orderQnid,
+                'order_spec' => $entities['spec_code'] ?? '',
+                'order_sys_code' => $sys,
+            ], $extra);
+        } catch (\Throwable $e) {
+            return array_merge(['qnid'=>$orderQnid,'order_qnid'=>$orderQnid,'sys_code'=>'GDZ','bukrs'=>'GDZ'], $extra);
+        }
+    }
+
+    public function index(Request $request)
+    {
+        $method = strtoupper($request->method());
+
+        if (in_array($method, ['GET','PUT','DELETE'], true) && !empty($request->id) && !$this->isValidUuid($request->id)) {
+            return response()->json(['success'=>false,'msg'=>'Geçersiz belge kimliği (uuid bekleniyor)'],422);
         }
 
-        //here check if invalid user is trying to give offer
-        if($key == 'op-doc-offer' && !session('currentStatus')['canResponse']){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
-            ],403);
+        $decodedData = null;
+        if ($method === 'POST') {
+            $decodedData = $this->decodeDataField($request->input('data'));
+            if ($decodedData === null) {
+                return response()->json(['success'=>false,'msg'=>'Geçersiz data JSON'],422);
+            }
+        } elseif ($method === 'PUT') {
+            $rawAll = $request->all();
+            if (empty($rawAll)) {
+                $rawAll = function_exists('parsePut') ? parsePut() : [];
+            }
+            $decodedData = $this->decodeDataField($rawAll['data'] ?? null);
+            $request->attributes->set('_put_raw', $rawAll);
+            $request->attributes->set('_put_decoded', $decodedData);
         }
 
-        //suppliers may only reach offers belonging to the companies bound to their session.
-        //POST is excluded: the document does not exist yet at creation time.
-        if($key == 'op-doc-offer' && in_array($method,['GET','PUT']) && !offerOwnershipCheck($request->id)){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
-            ],403);
+        $key = $this->resolveDocumentKey($request, $method, $decodedData);
+
+        if (!docPermCheck($key, ($method === 'GET' ? 'read' : 'edit'))) {
+            if (!($key === 'op-doc-client' && session('type_key') === 'op-pert-reseller' && in_array($request->id, session('currentStatus')['clientQnidList'] ?? [], true) && in_array($method, ['GET','PUT'], true))) {
+                return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır...'],403);
+            }
         }
 
-        
-        //$model = 'App\\Models\\Documents';
-        switch($method){
-            case "GET":
-                //$req = $request->all();
-                $res = (new DocumentServiceProvider())->getFormData($request->id);
-                $response = [
-                    'success' => !empty($res),
-                    'data' => $res,
-                ];
-                
-                break;
-            case "POST":
-                $req = $request->all();
-                $req = json_decode($req['data'],true);
-                // temp-upload references arrive as plain multipart string fields, not as file
-                // uploads — they never appear in $request->files. Merge them back so
-                // registerContent() can finalize the pending temp files.
-                $files = $request->files->all();
-                foreach ($request->all() as $fkey => $value) {
-                    if (strpos($fkey, 'dynamicFile') !== false && is_string($value)) {
-                        $files[$fkey] = $value;
-                    }
-                }
-                $res = (new DocumentServiceProvider())->registerContent(0,$req,$files);
-                
-                //here check if its offer , if it is and created successfully send informaiton mails to system users who permitted
-                if($key == 'op-doc-offer' && $res['id'] > 0){
-                    $offerData = $res;
-                    $offerData['client'] = session('currentStatus')['clientTitle'];
-                   
-                    (new EmailServiceProvider())->sendOfferGiven($offerData);
-                }
+        return match($method) {
+            'GET'    => $this->handleShow($request),
+            'POST'   => $this->handleStore($request, $decodedData, $key),
+            'PUT'    => $this->handleUpdate($request, $key),
+            'DELETE' => $this->handleDestroy($request, $key),
+            default  => response()->json(['success'=>false,'msg'=>'Desteklenmeyen metod'],405),
+        };
+    }
 
+    private function handleShow(Request $request)
+    {
+        $res = $this->docs->getFormData($request->id);
+        return response()->json(['success'=>!empty($res), 'data'=>$res]);
+    }
 
-                $response = [
-                    'success' => $res['id'] > 0,
-                    'data' => $res,
-                ];
-                break;
-            case "PUT":
-                if($key == 'op-doc-offer'){
-                    $currentDoc = (new DocumentServiceProvider())->getFormData($request->id);
+    private function handleStore(Request $request, ?array $decoded, ?string $key)
+    {
+        $files = $request->files->all();
+        $this->mergeTempUploadReferences($request->all(), $files);
+        $res = $this->docs->registerContent(0, $decoded, $files);
+        return response()->json(['success'=>($res['id'] ?? 0) > 0, 'data'=>$res]);
+    }
 
-                    //a cancelled offer is terminal for everyone, suppliers and admins alike
-                    if((int)($currentDoc['document']->document_status ?? 1) === 0){
-                        return response()->json([
-                            'success' => false,
-                            'msg'     => 'İptal edilmiş teklif üzerinde düzenleme yapılamaz.',
-                        ], 422);
-                    }
-
-                    // Suppliers may only edit offers in editable states
-                    if(session('type_key') == 'op-pert-reseller'){
-                        $statusHistory = json_decode($currentDoc['document']->status ?? '[]', true) ?? [];
-                        $lastStatus = end($statusHistory)['op_key'] ?? 'doc_trans_created';
-                        $editableStatuses = ['doc_trans_offer_revision','doc_trans_created','doc_trans_offer_draft'];
-                        if(!in_array($lastStatus, $editableStatuses)){
-                            return response()->json([
-                                'success' => false,
-                                'msg'     => 'Teklifin mevcut durumunda düzenleme yapılamaz.',
-                            ], 403);
-                        }
-                    }
-                }
-
-                //normally we have a middleware to parse PUT multipart data but in case it fails we fallback here with custom helper
-                $data = $request->all();
-                if(empty($data)){
-                    //not working on apache server
-                    $data = parsePut();
-                }
-
-                $files = $request->files->all();
-                if(empty($files)){
-                    //not working on apache server
-                    $files = $_FILES;
-                }
-
-                // temp-upload references arrive as plain multipart string fields; merge them
-                // into $files so registerContent() can finalize the pending temp files.
-                // NB: do NOT reuse $key as the loop variable — $key holds the resolved document
-                // type (op-doc-order / op-doc-offer / ...) and is needed below for the transfer
-                // and offer-revision logic. Overwriting it silently kills those branches.
-                foreach ($data as $fkey => $value) {
-                    if (strpos($fkey, 'dynamicFile') !== false && is_string($value)) {
-                        $files[$fkey] = $value;
-                    }
-                }
-
-                $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$files);
-
-                // Order System: sending a transfer happens on the same order-detail save.
-                // The client picks transfer mode (at_once | partial) in the form; on save we
-                // either send the order itself (at-once) or clone it as EBELN-X (partial).
-                $decoded = json_decode($data['data'] ?? '{}', true);
-                $transferMode = $decoded['transfer_mode'] ?? null;
-                if ($key == 'op-doc-order' && in_array($transferMode, ['at_once', 'partial'])) {
-                    $selectedItems = $decoded['selected_items'] ?? [];
-                    $itemSerials = $decoded['item_serials'] ?? [];
-                    $transferRes = (new DocumentServiceProvider())->processOrderTransfer($request->id, $transferMode, $selectedItems, $itemSerials);
-                    if (! empty($transferRes['transfer_no'])) {
-                        $res['transfer_no'] = $transferRes['transfer_no'];
-                        $res['clone_qnid'] = $transferRes['clone_qnid'] ?? null;
-                    }
-                    $res['transfer_msg'] = $transferRes['msg'] ?? null;
-                    // ── NOTIFICATION tedarik-02 + tedarik-03: same moment (Onaya Gönderildi + Dosyalar Bekliyor)
-                    if(($transferRes['success'] ?? false) === true){
-                        try{
-                            $orderQnidForNotif = $transferRes['clone_qnid'] ?? $request->id;
-                            // resolve order's sys_code / bukrs from EAV
-                            $notifDetail = (new DocumentServiceProvider())->getFormData($orderQnidForNotif);
-                            $entitiesNotif = [];
-                            foreach(($notifDetail['formFormat']['op-doc-order-form'] ?? []) as $cr){
-                                foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($entitiesNotif[$k])) $entitiesNotif[$k]=$v;
-                            }
-                            $bukrsNotif = $entitiesNotif['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? 'GDZ';
-                            $payloadNotif = [
-                                'order_no' => $entitiesNotif['order_no'] ?? $transferRes['transfer_no'] ?? $orderQnidForNotif,
-                                'transfer_no' => $transferRes['transfer_no'] ?? $entitiesNotif['order_no'] ?? $orderQnidForNotif,
-                                'transfer_mode' => $transferMode,
-                                'sys_code' => $bukrsNotif,
-                                'bukrs' => $bukrsNotif,
-                                'BUKRS' => $bukrsNotif,
-                                'ctitle' => $entitiesNotif['ctitle'] ?? '',
-                                'spec_code' => $entitiesNotif['spec_code'] ?? '',
-                                'qnid' => $orderQnidForNotif,
-                                'order_qnid' => $orderQnidForNotif,
-                                'order_sys_code' => $bukrsNotif,
-                                'fileTitle' => 'Transfer dosyaları',
-                            ];
-                            (new \App\Providers\EmailServiceProvider())->sendTedarikOrderSent($payloadNotif);
-                            // same trigger for inspectors — separate group (tedarik-03) but same BUKRS gate
-                            (new \App\Providers\EmailServiceProvider())->sendTedarikFileWaiting($payloadNotif);
-                        }catch(\Throwable $e){
-                            \Illuminate\Support\Facades\Log::warning('tedarik-02/03 dispatch failed', ['msg'=>$e->getMessage(), 'qnid'=>$request->id]);
-                        }
-                    }
-                }
-
-                // here check if is an offer , and its last status is 'requested revision' if it is and updated make its status 'revisited'
-                if($key == 'op-doc-offer'){
-                    //null when the offer has no transaction in the op-trans-op-doc-offer group yet
-                    $status = json_decode($res['detail']['document']->status ?? '[]', true) ?? [];
-                    $lastStatus = !empty($status) ? (end($status)['op_key'] ?? null) : null;
-                    if($lastStatus == 'doc_trans_offer_revision'){
-                        (new DocumentServiceProvider())->setStatus($request->id, 'doc_trans_offer_revised','Müşteri Teklif Bilgilerini Revize Etti');
-
-                        //here send mail to system users about offer revision
-                        $res['type'] = 'offerRevision';
-                        (new EmailServiceProvider())->sendOfferGiven($res);
-                    }
-                }
-
-
-
-                //here supdate client specific information to session
-                if($key == 'op-doc-client' && session('type_key') == 'op-pert-reseller'){
-                    session(['currentStatus' => (new PersonsServiceProvider())->clientPermInfo(session('person_id'),session('type_key'))]);
-                }
-
-                //here we need to send all changes to clients if document is client information form and its updated by reseller or system user because clients need to refresh their data if they want to continue using system without any problem
-                if($key == 'op-doc-client' ){
-                    $clientInfo      = array_values($res['detail']['formFormat']['op-doc-client-form'])[0]['entities'];
-                    $clientContacts  = array_filter($clientInfo, fn($key) => (str_starts_with($key, 'cont_email') || str_starts_with($key, 'cont_phone')), ARRAY_FILTER_USE_KEY);
-                    //if client info is updated by system user or reseller we will send this log to both channel because its important for them
-                    (new EmailServiceProvider())->sendClientChanged($clientContacts,$clientInfo);
-
-                    //also here if client is updated we need to update person connections also for new client name and code
-                    (new DocumentServiceProvider())->updatePersonClients($request->id,$clientInfo);
-                }
-
-
-                $response = [
-                    'success' => $res['id'] > 0,
-                    'data' => $res,
-                ];
-			    break;
-			case "DELETE":
-                //offers are never removed; they are cancelled through /v1/trans/cancel-offer,
-                //which carries the ownership and terminal-state guards.
-                if($key == 'op-doc-offer'){
-                    return response()->json([
-                        'success' => false,
-                        'msg'     => 'Teklifler silinemez, yalnızca iptal edilebilir.',
-                    ],403);
-                }
-                // Order System: generic DELETE must respect per-05-04 (İptal / Parça Sil) — strict, no fallback to per-05-02
-                if($key == 'op-doc-order' && !docPermCheck('op-doc-order','cancel')){
-                    return response()->json([
-                        'success' => false,
-                        'msg'     => 'İşlem için yetkiniz bulunmamaktadır (per-05-04 İptal / Parça Sil)...',
-                    ],403);
-                }
-
-                $res =  (new DocumentServiceProvider())->removeContent($request->id);
-                $response = [
-                    'success' => $res['success'],
-                ];
-                break;
+    private function handleUpdate(Request $request, ?string $key)
+    {
+        $data = $request->attributes->get('_put_raw') ?? $request->all();
+        if (empty($data) && function_exists('parsePut')) {
+            $data = parsePut();
+        }
+        $decoded = $request->attributes->get('_put_decoded');
+        if ($decoded === null) {
+            $decoded = $this->decodeDataField($data['data'] ?? null);
+            if ($decoded === null) {
+                return response()->json(['success'=>false,'msg'=>'Geçersiz data JSON'],422);
+            }
         }
 
-        
+        $files = $request->files->all();
+        $this->mergeTempUploadReferences($data, $files);
 
-        return response()->json($response);
-	}
+        $res = $this->docs->registerContent($request->id, $decoded, $files);
+
+        $transferMode = $decoded['transfer_mode'] ?? null;
+        if ($key === 'op-doc-order' && in_array($transferMode, ['at_once','partial'], true)) {
+            $selectedItems = $decoded['selected_items'] ?? [];
+            $itemSerials   = $decoded['item_serials'] ?? [];
+            $transferRes = $this->docs->processOrderTransfer($request->id, $transferMode, $selectedItems, $itemSerials);
+            if (!empty($transferRes['transfer_no'])) {
+                $res['transfer_no'] = $transferRes['transfer_no'];
+                $res['clone_qnid']  = $transferRes['clone_qnid'] ?? null;
+            }
+            $res['transfer_msg'] = $transferRes['msg'] ?? null;
+
+            if (($transferRes['success'] ?? false) === true) {
+                try {
+                    $orderQnidForNotif = $transferRes['clone_qnid'] ?? $request->id;
+                    $payloadNotif = $this->buildOrderNotifPayload($orderQnidForNotif, [
+                        'transfer_no'   => $transferRes['transfer_no'] ?? $orderQnidForNotif,
+                        'transfer_mode' => $transferMode,
+                        'fileTitle'     => 'Transfer dosyaları',
+                    ]);
+                    $this->emails->sendTedarikOrderSent($payloadNotif);
+                    $this->emails->sendTedarikFileWaiting($payloadNotif);
+                } catch (\Throwable $e) {
+                    Log::warning('tedarik-02/03 dispatch failed', ['msg'=>$e->getMessage(), 'qnid'=>$request->id]);
+                }
+            }
+        }
+
+        if ($key === 'op-doc-client' && session('type_key') === 'op-pert-reseller') {
+            session(['currentStatus' => (new PersonsServiceProvider())->clientPermInfo(session('person_id'), session('type_key'))]);
+        }
+
+        if ($key === 'op-doc-client') {
+            $clientInfo = array_values($res['detail']['formFormat']['op-doc-client-form'])[0]['entities'] ?? [];
+            $clientContacts = array_filter($clientInfo, fn($k) => str_starts_with($k, 'cont_email') || str_starts_with($k, 'cont_phone'), ARRAY_FILTER_USE_KEY);
+            $this->emails->sendClientChanged($clientContacts, $clientInfo);
+            $this->docs->updatePersonClients($request->id, $clientInfo);
+        }
+
+        return response()->json(['success'=>($res['id'] ?? 0) > 0, 'data'=>$res]);
+    }
+
+    private function handleDestroy(Request $request, ?string $key)
+    {
+        if ($key === 'op-doc-order' && !docPermCheck('op-doc-order','cancel')) {
+            return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır (per-05-04 İptal / Parça Sil)...'],403);
+        }
+        $res = $this->docs->removeContent($request->id);
+        return response()->json(['success'=>$res['success'] ?? false]);
+    }
 
     public function transaction(Request $request){
-        $logModel = 'trasnactions';
-        
-        /*if(!checkPermRoute($logModel,$request->method())) return response()->json([
-            'success' => false,
-            'msg'     => 'not valid for system user...',
-        ],401);*/
-        
         if(session('type_key') != 'op-pert-admin' && strtoupper($request->method()) != 'GET') return response()->json([
             'success' => false,
             'msg'     => 'not valid for system user...',
         ],403);
        
-        //$model = 'App\\Models\\Documents';
         switch(strtoupper($request->method())){
             case "PUT":
-                /*$data = parsePut();
-                
-                $res = (new DocumentServiceProvider())->registerContent($request->id,json_decode($data['data'],true),$_FILES);
-
-                $response = [
-                    'success' => $res['id'] > 0,
-                    'data' => $res,
-                ];*/
-			    break;
-			case "DELETE":
-                $res =  (new DocumentServiceProvider())->removeTransaction($request->id);
-                $response = [
-                    'success' => $res['success'],
-                ];
                 break;
+            case "DELETE":
+                $res =  $this->docs->removeTransaction($request->id);
+                return response()->json(['success' => $res['success']]);
         }
-
-        
-
-        return response()->json($response);
-	}
+        return response()->json(['success'=>false,'msg'=>'Desteklenmeyen metod'],405);
+    }
 
     public function setStatus(Request $request){
         $validateUser = Validator::make($request->all(),[
-            'id'       => 'required',
+            'id'       => 'required|uuid',
             'op_key'   => 'required',
         ]);
-               
-        $key = (new DocumentServiceProvider())->getFormData($request->id);
-        $key = $key['document']->op_key;
-
-
-        $validated = docPermCheck($key,'status');
-        if(!$validated){
-            //here clients must be send their offer to system
-            if($key == 'op-doc-offer' && session('type_key') == 'op-pert-reseller' && $request->op_key == 'doc_trans_offer_sended'){
-               $validated = true;
-            }
-            
+                
+        if (!$this->isValidUuid($request->id)) {
+            return response()->json(['success'=>false,'msg'=>'Geçersiz qnid'],422);
         }
 
+        $formTmp = $this->docs->getFormData($request->id);
+        $docOpKey = $formTmp['document']->op_key ?? null;
+        if (!$docOpKey) {
+            return response()->json(['success'=>false,'msg'=>'Belge bulunamadı'],404);
+        }
+
+        $validated = docPermCheck($docOpKey,'status');
         if($validateUser->fails() || !$validated){
             return response()->json([
                 'success' => false,
                 'message' => 'Missing Parameters',
                 'error'   => $validateUser->errors()
-            ],401);
-        }else{
-            $response = (new DocumentServiceProvider())->setStatus($request->id,$request->op_key,$request->note);
-            if(!($response['success'] ?? false)){
-                return response()->json($response, 422);
-            }
-            if(($response['detail']['document']->op_key ?? null) == 'op-doc-offer'){
-                (new EmailServiceProvider())->sendOfferStatus($response);
-            }
-            // ── NOTIFICATION tedarik-06 / tedarik-07: Kalite Onayı / Reddedildi (BUKRS + LIFNR for reseller)
-            if(($response['detail']['document']->op_key ?? null) == 'op-doc-order' && in_array($request->op_key, ['doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected'], true)){
-                try{
-                    $detail = $response['detail'] ?? (new \App\Providers\DocumentServiceProvider())->getFormData($request->id);
-                    $ents = [];
-                    foreach(($detail['formFormat']['op-doc-order-form'] ?? []) as $cr){
-                        foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
-                    }
-                    $payloadNotif = [
-                        'order_no' => $ents['order_no'] ?? $request->id,
-                        'spec_code' => $ents['spec_code'] ?? '',
-                        'sys_code' => $ents['sys_code'] ?? ($detail['document']->grp_code ?? 'GDZ'),
-                        'bukrs' => $ents['sys_code'] ?? ($detail['document']->grp_code ?? 'GDZ'),
-                        'BUKRS' => $ents['sys_code'] ?? '',
-                        'ctitle' => $ents['ctitle'] ?? '',
-                        'note' => $request->note ?? '',
-                        'qnid' => $request->id,
-                        'order_qnid' => $request->id,
-                        'order_spec' => $ents['spec_code'] ?? '',
-                        'order_sys_code' => $ents['sys_code'] ?? '',
-                    ];
-                    if(in_array($request->op_key, ['doc_trans_order_rejected','doc_trans_order_files_rejected'], true)){
-                        (new \App\Providers\EmailServiceProvider())->sendTedarikOrderRejected($payloadNotif);
-                    } else {
-                        (new \App\Providers\EmailServiceProvider())->sendTedarikOrderApproved($payloadNotif);
-                    }
-                }catch(\Throwable $e){
-                    \Illuminate\Support\Facades\Log::warning('tedarik-06/07 dispatch failed', ['msg'=>$e->getMessage(), 'id'=>$request->id]);
+            ],422);
+        }
+
+        $response = $this->docs->setStatus($request->id,$request->op_key,$request->note);
+        if(!($response['success'] ?? false)){
+            return response()->json($response, 422);
+        }
+        if(($response['detail']['document']->op_key ?? null) == 'op-doc-order' && in_array($request->op_key, self::TEDARIK_ORDER_APPROVED_STATUSES, true)){
+            try{
+                $detail = $response['detail'] ?? $this->docs->getFormData($request->id);
+                $payloadNotif = $this->buildOrderNotifPayload($request->id, [
+                    'order_no'  => $this->extractOrderNo($detail) ?? $request->id,
+                    'note'      => $request->note ?? '',
+                ]);
+                if(in_array($request->op_key, ['doc_trans_order_rejected','doc_trans_order_files_rejected'], true)){
+                    $this->emails->sendTedarikOrderRejected($payloadNotif);
+                } else {
+                    $this->emails->sendTedarikOrderApproved($payloadNotif);
                 }
+            }catch(\Throwable $e){
+                Log::warning('tedarik-06/07 dispatch failed', ['msg'=>$e->getMessage(), 'id'=>$request->id]);
             }
-            return $response;
         }
+        return $response;
     }
 
-    /**
-     * Cancels an offer. Deliberately a dedicated endpoint rather than a branch of the generic
-     * DELETE handler: cancelling is a controlled state change, not a removal, and it needs its own
-     * ownership and terminal-state guards.
-     */
-    public function cancelOffer(Request $request){
-        //uuid is enforced here because the id reaches getFormData's raw SQL below
-        $validateUser = Validator::make($request->all(),[
-            'id' => 'required|uuid',
-        ]);
-
-        if($validateUser->fails()){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'Missing Parameters',
-                'error'   => $validateUser->errors(),
-            ],422);
+    private function extractOrderNo(array $detail): ?string
+    {
+        $ents = [];
+        foreach(($detail['formFormat']['op-doc-order-form'] ?? []) as $cr){
+            foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
         }
-
-        //permission first, so an unauthorised caller cannot probe which qnids are offers
-        if(!docPermCheck('op-doc-offer','edit') || !offerOwnershipCheck($request->id)){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
-            ],403);
-        }
-
-        $form     = (new DocumentServiceProvider())->getFormData($request->id);
-        $document = $form['document'] ?? null;
-
-        if(!is_object($document) || ($document->op_key ?? null) !== 'op-doc-offer'){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'Teklif bulunamadı veya bu belge tipi iptal edilemez.',
-            ],422);
-        }
-
-        $response = (new DocumentServiceProvider())->cancelOffer($request->id,$request->note);
-
-        return response()->json($response, ($response['success'] ?? false) ? 200 : 422);
+        return $ents['order_no'] ?? null;
     }
 
-    /**
-     * Yanlislikla iptal edilmis teklifi geri acar (#16). Durum degistirmez; teklif
-     * iptalden onceki durumuna doner. Yetki cancelOffer ile ayni: per-05-02 + sahiplik,
-     * yani tedarikci kendi firmasinin teklifini geri acabilir (eski per-08-02).
-     */
-    public function reopenOffer(Request $request){
-        $validateUser = Validator::make($request->all(),[
-            'id' => 'required|uuid',
-        ]);
+    // Legacy offers — removed in new system (clients/orders/items only).
+    // Stub keeps old routes from 500-ing; new code must not call these.
+    public function cancelOffer(Request $request){ return response()->json(['success'=>false,'msg'=>'Offers removed in new system'],410); }
+    public function reopenOffer(Request $request){ return response()->json(['success'=>false,'msg'=>'Offers removed in new system'],410); }
 
-        if($validateUser->fails()){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'Missing Parameters',
-                'error'   => $validateUser->errors(),
-            ],422);
-        }
-
-        if(!docPermCheck('op-doc-offer','edit') || !offerOwnershipCheck($request->id)){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'İşlem için yetkiniz bulunmamaktadır...',
-            ],403);
-        }
-
-        $response = (new DocumentServiceProvider())->reopenOffer($request->id,$request->note);
-
-        return response()->json($response, ($response['success'] ?? false) ? 200 : 422);
-    }
-
-    /**
-     * Order System: reject & cancel a whole order (from order detail or list).
-     */
     public function cancelOrder(Request $request){
-        $validateUser = Validator::make($request->all(),[
-            'id' => 'required|uuid',
-        ]);
-
+        $validateUser = Validator::make($request->all(),['id' => 'required|uuid']);
         if($validateUser->fails()){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'Missing Parameters',
-                'error'   => $validateUser->errors(),
-            ],422);
+            return response()->json(['success'=>false,'msg'=>'Missing Parameters','error'=>$validateUser->errors()],422);
         }
-
-        // strict per-05-04 — no fallback to per-05-02 (reseller has 05-02 but must NOT cancel)
         if(!docPermCheck('op-doc-order','cancel')){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'İşlem için yetkiniz bulunmamaktadır (per-05-04 İptal / Parça Sil)...',
-            ],403);
+            return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır (per-05-04 İptal / Parça Sil)...'],403);
         }
-
-        $form     = (new DocumentServiceProvider())->getFormData($request->id);
+        $form = $this->docs->getFormData($request->id);
         $document = $form['document'] ?? null;
         if(!is_object($document) || ($document->op_key ?? null) !== 'op-doc-order'){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'Sipariş bulunamadı veya bu belge tipi iptal edilemez.',
-            ],422);
+            return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı veya bu belge tipi iptal edilemez.'],422);
         }
-
-        $response = (new DocumentServiceProvider())->cancelOrder($request->id,$request->note);
-
+        $response = $this->docs->cancelOrder($request->id,$request->note);
         return response()->json($response, ($response['success'] ?? false) ? 200 : 422);
     }
 
-    /**
-     * Tedarik Aksiyonlar: Sipariş Numarasını Düzenle (only partitioned EBELN-X).
-     */
     public function renameOrder(Request $request){
-        $validate = Validator::make($request->all(),[
-            'id' => 'required|uuid',
-            'order_no' => 'required|string|max:64',
-        ]);
+        $validate = Validator::make($request->all(),['id' => 'required|uuid','order_no' => 'required|string|max:64']);
         if($validate->fails()){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'Missing Parameters',
-                'error'   => $validate->errors(),
-            ],422);
+            return response()->json(['success'=>false,'msg'=>'Missing Parameters','error'=>$validate->errors()],422);
         }
         if(!docPermCheck('op-doc-order','rename')){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'İşlem için yetkiniz bulunmamaktadır (per-05-05 Numara Düzenle)...',
-            ],403);
+            return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır (per-05-05 Numara Düzenle)...'],403);
         }
-        $form = (new DocumentServiceProvider())->getFormData($request->id);
+        $form = $this->docs->getFormData($request->id);
         $document = $form['document'] ?? null;
         if(!is_object($document) || ($document->op_key ?? null) !== 'op-doc-order'){
-            return response()->json([
-                'success' => false,
-                'msg'     => 'Sipariş bulunamadı veya bu belge tipi düzenlenemez.',
-            ],422);
+            return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı veya bu belge tipi düzenlenemez.'],422);
         }
-        $response = (new DocumentServiceProvider())->renameOrder($request->id, $request->order_no);
+        $response = $this->docs->renameOrder($request->id, $request->order_no);
         return response()->json($response, ($response['success'] ?? false) ? 200 : 422);
     }
 
     public function setFileStatus(Request $request){
-        $permissionService = new PermissionService();
         $authUser = auth('sanctum')->user() ?? auth()->user();
-        $validateUser = Validator::make($request->all(),[
-            'id'       => 'required',
-            'op_key'   => 'required',
-        ]);
-
-        if($validateUser->fails() || !$permissionService->has($authUser, 'per-07-02')){
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing Parameters',
-                'error'   => $validateUser->errors()
-            ],401);
-        }else{
-            $result = (new DocumentServiceProvider())->documentFileStatus($request->id,$request->op_key,$request->note);
-
-            //here refresh user session for all logged in users after file status change
-            if($result['success']){
-                refreshAllUserPermissions();
-            }
-
-            //here send information to clients about their file status
-            if($result['success']){
-                $payload = [
-                    'type'      => 'cliFileStatus',
-                    'contacts'  => [],
-                    'status'    => $result['data'],
-                    'fileTitle' => $result['fileTitle'],
-                    'note'      => $result['note'] ?? '',
-                ];
-
-                foreach ($result['connections'] as $row) {
-                    if(strpos($row->entity_tag, 'cont_email') !== false || strpos($row->entity_tag, 'cont_phone') !== false){
-                        $payload['contacts'][$row->entity_tag] = $row->entity_value;
-                    }
-                    if(strpos($row->entity_tag, 'title') !== false || strpos($row->entity_tag, 'clicode') !== false ){
-                        $payload[$row->entity_tag]= $row->entity_value;
-                    }
+        $validateUser = Validator::make($request->all(),['id'=>'required','op_key'=>'required']);
+        if($validateUser->fails() || !$this->perms->has($authUser, 'per-07-02')){
+            return response()->json(['success'=>false,'message'=>'Missing Parameters','error'=>$validateUser->errors()],422);
+        }
+        $result = $this->docs->documentFileStatus($request->id,$request->op_key,$request->note);
+        if($result['success']){
+            refreshAllUserPermissions();
+        }
+        if($result['success']){
+            $payload = ['type'=>'cliFileStatus','contacts'=>[],'status'=>$result['data'],'fileTitle'=>$result['fileTitle'],'note'=>$result['note'] ?? ''];
+            foreach ($result['connections'] as $row) {
+                if(strpos($row->entity_tag, 'cont_email') !== false || strpos($row->entity_tag, 'cont_phone') !== false){
+                    $payload['contacts'][$row->entity_tag] = $row->entity_value;
                 }
-
-                (new EmailServiceProvider())->sendClientFileStatus($payload);
-
+                if(strpos($row->entity_tag, 'title') !== false || strpos($row->entity_tag, 'clicode') !== false ){
+                    $payload[$row->entity_tag]= $row->entity_value;
+                }
             }
-            // ── NOTIFICATION tedarik-04 / tedarik-05: Dosya Onaylandı / Yeniden Talep (BUKRS + LIFNR for reseller)
-            if($result['success'] && in_array($request->op_key, ['doc_file_accepted','doc_file_rejected'], true)){
-                try{
-                    $fileQnid = $request->id;
-                    $fileRow = \App\Models\Document_files::where('qnid', $fileQnid)->first();
-                    if($fileRow){
-                        $relId = (int)$fileRow->relation_id;
-                        $relDoc = \App\Models\Documents::find($relId);
-                        if($relDoc){
-                            $orderDoc = $relDoc;
-                            if((int)$relDoc->parent_id !== 0){
-                                $maybeOrder = \App\Models\Documents::find($relDoc->parent_id);
-                                if($maybeOrder) $orderDoc = $maybeOrder;
-                            }
-                            $orderType = \App\Models\Sys_options::find($orderDoc->type_id);
-                            if(($orderType->op_key ?? null) === 'op-doc-order'){
-                                $detail = (new \App\Providers\DocumentServiceProvider())->getFormData($orderDoc->qnid);
-                                $ents = [];
-                                foreach(($detail['formFormat']['op-doc-order-form'] ?? []) as $cr){
-                                    foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
-                                }
-                                $payloadNotif = [
-                                    'order_no' => $ents['order_no'] ?? $orderDoc->qnid,
-                                    'spec_code' => $ents['spec_code'] ?? '',
-                                    'sys_code' => $ents['sys_code'] ?? $orderDoc->grp_code ?? 'GDZ',
-                                    'bukrs' => $ents['sys_code'] ?? $orderDoc->grp_code ?? 'GDZ',
-                                    'BUKRS' => $ents['sys_code'] ?? '',
-                                    'ctitle' => $ents['ctitle'] ?? '',
-                                    'fileTitle' => $result['fileTitle'] ?? 'Dosya',
-                                    'note' => $result['note'] ?? '',
-                                    'qnid' => $orderDoc->qnid,
-                                    'order_qnid' => $orderDoc->qnid,
-                                    'order_spec' => $ents['spec_code'] ?? '',
-                                    'order_sys_code' => $ents['sys_code'] ?? '',
-                                ];
-                                if($request->op_key === 'doc_file_accepted'){
-                                    (new \App\Providers\EmailServiceProvider())->sendTedarikFileApproved($payloadNotif);
-                                } else {
-                                    (new \App\Providers\EmailServiceProvider())->sendTedarikFileRejected($payloadNotif);
-                                }
+            $this->emails->sendClientFileStatus($payload);
+        }
+        if($result['success'] && in_array($request->op_key, self::TEDARIK_FILE_STATUSES, true)){
+            try{
+                $fileRow = \App\Models\Document_files::where('qnid', $request->id)->first();
+                if($fileRow){
+                    $relDoc = \App\Models\Documents::find((int)$fileRow->relation_id);
+                    if($relDoc){
+                        $orderDoc = $relDoc;
+                        if((int)$relDoc->parent_id !== 0){
+                            $maybeOrder = \App\Models\Documents::find($relDoc->parent_id);
+                            if($maybeOrder) $orderDoc = $maybeOrder;
+                        }
+                        $orderType = \App\Models\Sys_options::find($orderDoc->type_id);
+                        if(($orderType->op_key ?? null) === 'op-doc-order'){
+                            $payloadNotif = $this->buildOrderNotifPayload($orderDoc->qnid, [
+                                'fileTitle' => $result['fileTitle'] ?? 'Dosya',
+                                'note'      => $result['note'] ?? '',
+                            ]);
+                            if($request->op_key === 'doc_file_accepted'){
+                                $this->emails->sendTedarikFileApproved($payloadNotif);
+                            } else {
+                                $this->emails->sendTedarikFileRejected($payloadNotif);
                             }
                         }
                     }
-                }catch(\Throwable $e){
-                    \Illuminate\Support\Facades\Log::warning('tedarik-04/05 dispatch failed', ['msg'=>$e->getMessage(), 'file'=>$request->id]);
                 }
+            }catch(\Throwable $e){
+                Log::warning('tedarik-04/05 dispatch failed', ['msg'=>$e->getMessage(), 'file'=>$request->id]);
             }
-            return $result;
         }
+        return $result;
     }
     
     
-    /**
-     * Handles immediate temp file upload. Called when user selects a file in the form.
-     * Returns a reference_id that can be sent with the form later.
-     */
     public function tempUpload(Request $request){
         if(!$request->hasFile('file')){
-            return response()->json([
-                'success' => false,
-                'msg' => 'Dosya bulunamadı'
-            ], 422);
+            return response()->json(['success'=>false,'msg'=>'Dosya bulunamadı'],422);
         }
-
         $file = $request->file('file');
         $result = tempUploadFile($file);
-
         return response()->json($result, $result['success'] ? 200 : 422);
     }
 
     public function setFileStatusAll(Request $request){
-        $permissionService = new PermissionService();
         $authUser = auth('sanctum')->user() ?? auth()->user();
-        $validateUser = Validator::make($request->all(),[
-            'id'       => 'required',
-            'op_key'   => 'required',
-        ]);
-
-        if($validateUser->fails() || !$permissionService->has($authUser, 'per-07-02')){
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing Parameters',
-                'error'   => $validateUser->errors()
-            ],401);
-        }else{
-            //here get all files for given document
-            $files = (new DocumentServiceProvider())->getDocumentFiles($request->id);
-            $result = ['success' => false];
-            $anySuccess = false;
-            $tedarikPending = []; // order_qnid => payloadNotif + fileTitles[]
-            if($files['success']){
-                foreach($files['data'] as $file){
-                    $result = (new DocumentServiceProvider())->documentFileStatus($file->qnid,$request->op_key,$request->note);
-                    
-                    //here send information to clients about their file status
-                    if($result['success']){
-                        $anySuccess = true;
-                        $payload = [
-                            'type'      => 'cliFileStatus',
-                            'contacts'  => [],
-                            'status'    => $result['data'],
-                            'fileTitle' => $result['fileTitle'],
-                            'note'      => $result['note'] ?? '',
-                        ];
-
-                        foreach ($result['connections'] as $row) {
-                            if(strpos($row->entity_tag, 'cont_email') !== false || strpos($row->entity_tag, 'cont_phone') !== false){
-                                $payload['contacts'][$row->entity_tag] = $row->entity_value;
-                            }
-                            if(strpos($row->entity_tag, 'title') !== false || strpos($row->entity_tag, 'clicode') !== false ){
-                                $payload[$row->entity_tag]= $row->entity_value;
-                            }
+        $validateUser = Validator::make($request->all(),['id'=>'required','op_key'=>'required']);
+        if($validateUser->fails() || !$this->perms->has($authUser, 'per-07-02')){
+            return response()->json(['success'=>false,'message'=>'Missing Parameters','error'=>$validateUser->errors()],422);
+        }
+        $files = $this->docs->getDocumentFiles($request->id);
+        $result = ['success' => false];
+        $anySuccess = false;
+        $tedarikPending = [];
+        if($files['success']){
+            foreach($files['data'] as $file){
+                $result = $this->docs->documentFileStatus($file->qnid,$request->op_key,$request->note);
+                if($result['success']){
+                    $anySuccess = true;
+                    $payload = ['type'=>'cliFileStatus','contacts'=>[],'status'=>$result['data'],'fileTitle'=>$result['fileTitle'],'note'=>$result['note'] ?? ''];
+                    foreach ($result['connections'] as $row) {
+                        if(strpos($row->entity_tag, 'cont_email') !== false || strpos($row->entity_tag, 'cont_phone') !== false){
+                            $payload['contacts'][$row->entity_tag] = $row->entity_value;
                         }
+                        if(strpos($row->entity_tag, 'title') !== false || strpos($row->entity_tag, 'clicode') !== false ){
+                            $payload[$row->entity_tag]= $row->entity_value;
+                        }
+                    }
+                    $this->emails->sendClientFileStatus($payload);
 
-                        (new EmailServiceProvider())->sendClientFileStatus($payload);
-
-                        // ── bulk tedarik-04/05: collect per-order payload, dedup to 1 mail per order (avoid 5x spam)
-                        if(in_array($request->op_key, ['doc_file_accepted','doc_file_rejected'], true)){
-                            try{
-                                $fileRow = \App\Models\Document_files::where('qnid', $file->qnid)->first();
-                                if($fileRow){
-                                    $relId = (int)$fileRow->relation_id;
-                                    $relDoc = \App\Models\Documents::find($relId);
-                                    if($relDoc){
-                                        $orderDoc = $relDoc;
-                                        if((int)$relDoc->parent_id !== 0){
-                                            $maybeOrder = \App\Models\Documents::find($relDoc->parent_id);
-                                            if($maybeOrder) $orderDoc = $maybeOrder;
+                    if(in_array($request->op_key, self::TEDARIK_FILE_STATUSES, true)){
+                        try{
+                            $fileRow = \App\Models\Document_files::where('qnid', $file->qnid)->first();
+                            if($fileRow){
+                                $relDoc = \App\Models\Documents::find((int)$fileRow->relation_id);
+                                if($relDoc){
+                                    $orderDoc = $relDoc;
+                                    if((int)$relDoc->parent_id !== 0){
+                                        $maybeOrder = \App\Models\Documents::find($relDoc->parent_id);
+                                        if($maybeOrder) $orderDoc = $maybeOrder;
+                                    }
+                                    $orderType = \App\Models\Sys_options::find($orderDoc->type_id);
+                                    if(($orderType->op_key ?? null) === 'op-doc-order'){
+                                        $payloadTmp = $this->buildOrderNotifPayload($orderDoc->qnid, [
+                                            'note' => $request->note ?? '',
+                                            'fileTitle' => $result['fileTitle'] ?? 'Dosya',
+                                        ]);
+                                        $qnidKey = $orderDoc->qnid;
+                                        if(!isset($tedarikPending[$qnidKey])){
+                                            $tedarikPending[$qnidKey] = array_merge($payloadTmp, ['fileTitles'=>[]]);
                                         }
-                                        $orderType = \App\Models\Sys_options::find($orderDoc->type_id);
-                                        if(($orderType->op_key ?? null) === 'op-doc-order'){
-                                            $detail = (new \App\Providers\DocumentServiceProvider())->getFormData($orderDoc->qnid);
-                                            $ents = [];
-                                            foreach(($detail['formFormat']['op-doc-order-form'] ?? []) as $cr){
-                                                foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
-                                            }
-                                            $qnidKey = $orderDoc->qnid;
-                                            if(!isset($tedarikPending[$qnidKey])){
-                                                $tedarikPending[$qnidKey] = [
-                                                    'order_no' => $ents['order_no'] ?? $orderDoc->qnid,
-                                                    'spec_code' => $ents['spec_code'] ?? '',
-                                                    'sys_code' => $ents['sys_code'] ?? $orderDoc->grp_code ?? 'GDZ',
-                                                    'bukrs' => $ents['sys_code'] ?? $orderDoc->grp_code ?? 'GDZ',
-                                                    'BUKRS' => $ents['sys_code'] ?? '',
-                                                    'ctitle' => $ents['ctitle'] ?? '',
-                                                    'qnid' => $orderDoc->qnid,
-                                                    'order_qnid' => $orderDoc->qnid,
-                                                    'order_spec' => $ents['spec_code'] ?? '',
-                                                    'order_sys_code' => $ents['sys_code'] ?? '',
-                                                    'note' => $request->note ?? '',
-                                                    'fileTitles' => [],
-                                                ];
-                                            }
-                                            $tedarikPending[$qnidKey]['fileTitles'][] = $result['fileTitle'] ?? 'Dosya';
-                                        }
+                                        $tedarikPending[$qnidKey]['fileTitles'][] = $result['fileTitle'] ?? 'Dosya';
                                     }
                                 }
-                            }catch(\Throwable $e){
-                                \Illuminate\Support\Facades\Log::warning('bulk tedarik-04/05 collect failed', ['msg'=>$e->getMessage(), 'file'=>$file->qnid]);
-                            }
-                        }
-                    }
-                }
-
-                // dispatch tedarik mails once per order (bulk: 1 mail per order, not per file)
-                if(!empty($tedarikPending)){
-                    foreach($tedarikPending as $payloadNotif){
-                        $titles = array_values(array_unique(array_filter($payloadNotif['fileTitles'])));
-                        $payloadNotif['fileTitle'] = count($titles) > 1 ? count($titles).' dosya: '.implode(', ', array_slice($titles,0,3)).(count($titles)>3?' …':'') : ($titles[0] ?? 'Dosya');
-                        // keep array for job but remove helper key
-                        unset($payloadNotif['fileTitles']);
-                        try{
-                            if($request->op_key === 'doc_file_accepted'){
-                                (new \App\Providers\EmailServiceProvider())->sendTedarikFileApproved($payloadNotif);
-                            } else {
-                                (new \App\Providers\EmailServiceProvider())->sendTedarikFileRejected($payloadNotif);
                             }
                         }catch(\Throwable $e){
-                            \Illuminate\Support\Facades\Log::warning('bulk tedarik-04/05 dispatch failed', ['msg'=>$e->getMessage()]);
+                            Log::warning('bulk tedarik-04/05 collect failed', ['msg'=>$e->getMessage(), 'file'=>$file->qnid]);
                         }
                     }
                 }
-
-                //here refresh user session for all logged in users after file status change (once, not per file)
-                if($anySuccess){
-                    refreshAllUserPermissions();
+            }
+            if(!empty($tedarikPending)){
+                foreach($tedarikPending as $payloadNotif){
+                    $titles = array_values(array_unique(array_filter($payloadNotif['fileTitles'])));
+                    $payloadNotif['fileTitle'] = count($titles) > 1 ? count($titles).' dosya: '.implode(', ', array_slice($titles,0,3)).(count($titles)>3?' …':'') : ($titles[0] ?? 'Dosya');
+                    unset($payloadNotif['fileTitles']);
+                    try{
+                        if($request->op_key === 'doc_file_accepted'){
+                            $this->emails->sendTedarikFileApproved($payloadNotif);
+                        } else {
+                            $this->emails->sendTedarikFileRejected($payloadNotif);
+                        }
+                    }catch(\Throwable $e){
+                        Log::warning('bulk tedarik-04/05 dispatch failed', ['msg'=>$e->getMessage()]);
+                    }
                 }
             }
-            return $result;
+            if($anySuccess){
+                refreshAllUserPermissions();
+            }
         }
+        return $result;
     }
 
     public function disableDocument(Request $request){
-        $permissionService = new PermissionService();
         $authUser = auth('sanctum')->user() ?? auth()->user();
-        $validateUser = Validator::make($request->all(),[
-            'id'       => 'required',
-        ]);
-
-        if($validateUser->fails() || !$permissionService->has($authUser, 'per-07')){
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing Parameters',
-                'error'   => $validateUser->errors()
-            ],401);
+        $validateUser = Validator::make($request->all(),['id'=>'required']);
+        if($validateUser->fails() || !$this->perms->has($authUser, 'per-07')){
+            return response()->json(['success'=>false,'message'=>'Missing Parameters','error'=>$validateUser->errors()],422);
         }
-
-        $result = (new DocumentServiceProvider())->disableDocument($request->id);
+        $result = $this->docs->disableDocument($request->id);
         return response()->json($result, $result['success'] ? 200 : 404);
     }
 
     public function fileDetail(Request $request){
         $fileQnid = $request->id;
         if(empty($fileQnid)) return response()->json(['success'=>false,'msg'=>'Missing id'],422);
-        // resolve file -> order (or client) with lifnr scope check
-        $file = \Illuminate\Support\Facades\DB::selectOne("SELECT * FROM document_files WHERE qnid = ? LIMIT 1", [$fileQnid]);
-        if(!$file) return response()->json(['success'=>false,'msg'=>'Belge bulunamadı'],404);
-        $d = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.id = ? LIMIT 1", [(int)$file->relation_id]);
-        if(!$d) return response()->json(['success'=>false,'msg'=>'İlişki bulunamadı'],404);
+        if(!$this->isValidUuid($fileQnid)) return response()->json(['success'=>false,'msg'=>'Geçersiz qnid'],422);
 
-        // determine order
-        $order = null;
-        $orderId = null;
-        if($d->type_key === 'op-doc-order'){
-            $order = $d;
-            $orderId = $d->id;
-        } elseif($d->type_key === 'op-doc-order-item'){
-            $order = \Illuminate\Support\Facades\DB::selectOne("SELECT d2.*, so2.op_key as type_key FROM documents d2 JOIN sys_options so2 ON so2.id=d2.type_id WHERE d2.id = ? LIMIT 1", [(int)$d->parent_id]);
-            $orderId = $order ? $order->id : null;
-        } else {
-            // client or other — treat as is (no order)
-            $order = $d;
-            $orderId = $d->id;
-        }
-        if(!$orderId) return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
-
-        // LIFNR scope for reseller
-        if(session('type_key') === 'op-pert-reseller'){
-            $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
-            if(empty($clientQnids)){
-                return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
-            }
-            $qnidIn = "'" . implode("','", array_map('noInject', $clientQnids)) . "'";
-            $lifRows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as lifnr FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
-            $lifnrs = array_values(array_filter(array_map(fn($r)=> trim($r->lifnr ?? ''), $lifRows), fn($v)=> $v !== ''));
-            // fetch order spec_code
-            $specRow = \Illuminate\Support\Facades\DB::selectOne("SELECT sce.entity_value as spec FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id WHERE sco.main_id = ? AND sce.entity_tag = 'spec_code' LIMIT 1", [$orderId]);
-            $spec = trim($specRow->spec ?? '');
-            $allowed = false;
-            if(in_array($order->qnid ?? '', $clientQnids, true)) $allowed = true;
-            if(!empty($lifnrs) && in_array($spec, $lifnrs, true)) $allowed = true;
-            // also check if file's group_key matches lifnr? keep simple
-            if(!$allowed) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
-        }
-
-        // fetch order header via getFormData for easy entities
-        $orderQnid = $order->qnid;
-        $orderData = (new \App\Providers\DocumentServiceProvider())->getFormData($orderQnid);
-        $orderEntities = [];
-        if(!empty($orderData['formFormat'])){
-            foreach($orderData['formFormat'] as $formKey => $rows){
-                foreach($rows as $r){
-                    foreach(($r['entities'] ?? []) as $k=>$v) $orderEntities[explode('**',$k)[0]] = $v;
-                }
-            }
-        }
-        // fallback from raw table if getFormData empty (e.g. client)
-        $orderHeader = [
-            'qnid' => $orderQnid,
-            'order_no' => $orderEntities['order_no'] ?? '',
-            'buying_no' => $orderEntities['buying_no'] ?? '',
-            'ctitle' => $orderEntities['ctitle'] ?? ($orderEntities['clititle'] ?? ''),
-            'spec_code' => $orderEntities['spec_code'] ?? ($orderEntities['lifnr'] ?? ''),
-            'created_at' => $orderEntities['created_at'] ?? '',
-            'lifnr' => $orderEntities['lifnr'] ?? ($orderEntities['spec_code'] ?? ''),
-        ];
-
-        // fetch order items (only for op-doc-order)
-        $items = [];
-        if(($d->type_key === 'op-doc-order' || $d->type_key === 'op-doc-order-item') && $orderId){
-            $itemOrderTypeId = \Illuminate\Support\Facades\DB::table('sys_options')->where('op_key','op-doc-order-item')->value('id');
-            $rawItems = \Illuminate\Support\Facades\DB::select("SELECT id, qnid FROM documents WHERE parent_id = ? AND type_id = ? AND status = 1 ORDER BY id ASC", [$orderId, $itemOrderTypeId]);
-            foreach($rawItems as $it){
-                $ents = \Illuminate\Support\Facades\DB::select("SELECT sce.entity_tag, sce.entity_value FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id = sce.conn_id WHERE sco.main_id = ? AND sco.conn_id = 0", [$it->id]);
-                $map = [];
-                foreach($ents as $e) $map[explode('**',$e->entity_tag)[0]] = $e->entity_value;
-                $items[] = [
-                    'qnid' => $it->qnid,
-                    'prod_code' => $map['prod_code'] ?? ($map['MATNR'] ?? ''),
-                    'title' => $map['title'] ?? ($map['TXZ01'] ?? ''),
-                    'unit' => $map['unit'] ?? ($map['MEINS'] ?? ''),
-                    'quantity' => $map['quantity'] ?? ($map['MENGE'] ?? ''),
-                ];
-            }
-        }
-
-        // fetch ALL files for order (including old versions status 0/1, single query)
-        $files = \Illuminate\Support\Facades\DB::select("
-            SELECT i.qnid as file_qnid, i.id as file_id, i.status as file_status, i.created_at as file_created_at,
-                   i.description as file_desc,
-                   sf.title as file_type, sf.op_key as file_type_key, se.entity_tag,
-                   d.qnid as relation_qnid, dt.op_key as relation_type,
-                   (SELECT json_build_object('op_key', sot.op_key, 'title', sot.title, 'name', p.name, 'note', t.description, 'created_at', t.created_at)
-                    FROM transactions t
-                    JOIN sys_options sot ON sot.id = t.type_id
-                    JOIN user_logs ul ON ul.id = t.log_id
-                    JOIN users u ON u.id = ul.user_id
-                    JOIN persons p ON p.id = u.person_id
-                    WHERE t.target_id = i.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) as last_status
-            FROM document_files i
-            JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag = 'document_files'
-            JOIN documents d ON d.id = i.relation_id::int
-            JOIN sys_options dt ON dt.id = d.type_id
-            JOIN sys_options sf ON sf.op_key = 'op-'||split_part(se.entity_tag,'**',1)
-            WHERE (d.id = ? OR d.parent_id = ?)
-              AND se.entity_tag NOT LIKE '%item_images_file%'
-              AND i.description != ''
-            ORDER BY i.created_at DESC
-        ", [$orderId, $orderId]);
-
-        // parse last_status json strings
-        foreach($files as &$f){
-            if(is_string($f->last_status)) { try{ $f->last_status = json_decode($f->last_status, true) ?? json_decode($f->last_status); }catch(\Throwable $e){} }
-        }
+        $bundle = $this->docs->fetchFileDetailBundle($fileQnid);
+        if(!$bundle) return response()->json(['success'=>false,'msg'=>'Belge bulunamadı'],404);
+        if(isset($bundle['forbidden']) && $bundle['forbidden'] === true) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
 
         return response()->json([
             'success'=>true,
             'data'=>[
-                'file_qnid' => $fileQnid,
-                'order' => $orderHeader,
-                'items' => $items,
-                'files' => $files,
+                'file_qnid' => $bundle['file_qnid'],
+                'order' => $bundle['orderHeader'],
+                'items' => $bundle['items'],
+                'files' => $bundle['files'],
             ]
         ]);
     }
 
-    /**
-     * Bulk download all entered files for an order (including rejected old versions) as ZIP.
-     * GET /v1/order/{qnid}/download-all  or  POST /v1/order/download-all {qnid}
-     * Shared for both panels (isTedarik agnostic) — uses same LIFNR+SYSTEM scope as fileDetail.
-     */
     public function downloadAllOrderFiles(Request $request, $qnid = null){
         $orderQnid = $qnid ?? $request->input('qnid') ?? $request->input('id') ?? $request->route('qnid');
         if(empty($orderQnid)) return response()->json(['success'=>false,'msg'=>'Sipariş qnid gerekli'],422);
-        // normalize uuid
-        if(!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $orderQnid)){
+        if(!$this->isValidUuid($orderQnid)){
             return response()->json(['success'=>false,'msg'=>'Geçersiz qnid'],422);
         }
-        $order = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.qnid = ? LIMIT 1", [$orderQnid]);
-        if(!$order) return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
-        if($order->type_key !== 'op-doc-order'){
-            // allow item qnid → resolve to parent order
-            if($order->type_key === 'op-doc-order-item'){
-                $parent = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.id = ? LIMIT 1", [(int)$order->parent_id]);
-                if($parent) $order = $parent;
-            }
+        $order = $this->docs->resolveOrderFromQnid($orderQnid);
+        if(!$order || ($order->type_key ?? null) !== 'op-doc-order') return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
+
+        if(!$this->docs->canCurrentResellerAccessOrder($order)){
+            return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
         }
-        if(!$order || $order->type_key !== 'op-doc-order') return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
+
         $orderId = $order->id;
-
-        // permission: admin or owner reseller (LIFNR+SYSTEM)
-        $permOk = false;
-        if(\App\Services\PermissionService::class && method_exists(\App\Services\PermissionService::class, 'has')){
-            // use PermissionService if needed, but simple: admin sees all, reseller needs LIFNR+SYSTEM match
-        }
-        if(session('type_key') === 'op-pert-reseller'){
-            $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
-            if(empty($clientQnids)) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
-            $qnidIn = "'".implode("','", array_map('noInject', $clientQnids))."'";
-            $lifRows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
-            $bySys = ['GDZ'=>[],'ADM'=>[]];
-            foreach($lifRows as $lr){ $sys=strtoupper(trim($lr->sys??'GDZ')); if($sys==='') $sys='GDZ'; if(!in_array($sys,['GDZ','ADM'])) $sys='GDZ'; $v=trim($lr->lifnr??''); if($v!=='') $bySys[$sys][]=$v; }
-            $specRow = \Illuminate\Support\Facades\DB::selectOne("SELECT sce.entity_value as spec, COALESCE(sy.entity_value, 'GDZ') as sys FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id LEFT JOIN sys_con_entities sy ON sy.conn_id=sco.id AND sy.entity_tag='sys_code' WHERE sco.main_id = ? AND sce.entity_tag = 'spec_code' LIMIT 1", [$orderId]);
-            $spec = trim($specRow->spec ?? '');
-            $orderSysRaw = $specRow->sys ?? 'GDZ';
-            // normalize BUKRS → GDZ/ADM
-            $norm = strtoupper(trim($orderSysRaw));
-            $orderSys = 'GDZ';
-            if(in_array($norm,['ADM','5000','A5000'])) $orderSys='ADM';
-            else if(strpos($norm,'ADM')!==false) $orderSys='ADM';
-            $allowed = false;
-            if(in_array($order->qnid ?? '', $clientQnids, true)) $allowed = true;
-            $bucket = $bySys[$orderSys] ?? [];
-            if(in_array($spec, $bucket, true)) $allowed = true;
-            if(!$allowed) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
-        }
-
-        // fetch ALL files for order including rejected old versions (i.status 0/1, no status filter)
-        // FIX: do NOT leak clone order's files when viewing base order. d is the file's host document (order or item).
-        // For order-level files d is order (dt=op-doc-order) → only d.id = orderId. For item files d is item (dt=op-doc-order-item) → d.parent_id = orderId.
-        $files = \Illuminate\Support\Facades\DB::select("
-            SELECT i.qnid as file_qnid, i.id as file_id, i.status as file_status, i.created_at as file_created_at,
-                   i.description as file_desc,
-                   sf.title as file_type, sf.op_key as file_type_key, se.entity_tag,
-                   d.qnid as relation_qnid, dt.op_key as relation_type
-            FROM document_files i
-            JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag = 'document_files'
-            JOIN documents d ON d.id = i.relation_id::int
-            JOIN sys_options dt ON dt.id = d.type_id
-            JOIN sys_options sf ON sf.op_key = 'op-'||split_part(se.entity_tag,'**',1)
-            WHERE ((d.id = ? AND dt.op_key = 'op-doc-order') OR (d.parent_id = ? AND dt.op_key = 'op-doc-order-item'))
-              AND se.entity_tag NOT LIKE '%item_images_file%'
-              AND i.description != ''
-            ORDER BY i.created_at DESC
-        ", [$orderId, $orderId]);
-
+        $files = $this->docs->fetchOrderFilesForDownload($orderId);
         if(empty($files)){
             return response()->json(['success'=>false,'msg'=>'İndirilecek form bulunamadı'],404);
         }
 
-        // order_no for zip name
-        $orderNo = \Illuminate\Support\Facades\DB::selectOne("SELECT se.entity_value as v FROM sys_con_entities se JOIN sys_con_ops so ON so.id=se.conn_id WHERE so.main_id=? AND se.entity_tag='order_no' LIMIT 1", [$orderId]);
-        $zipBase = preg_replace('/[^A-Za-z0-9_\-]/','-', $orderNo->v ?? $orderQnid);
+        $orderNo = $this->docs->fetchOrderNoById($orderId);
+        $zipBase = preg_replace('/[^A-Za-z0-9_\-]/','-', $orderNo ?? $orderQnid);
         $zipName = 'order-'.$zipBase.'-tum-formlar.zip';
         $zipPath = sys_get_temp_dir().'/'.$zipName.'-'.uniqid().'.zip';
         $zip = new \ZipArchive();
@@ -992,116 +533,73 @@ class DocumentController extends Controller
         $used = [];
         $added = 0;
         $skipped = 0;
-        foreach($files as $f){
-            try{
-                $plain = $enc->decrypt($f->file_desc);
-            }catch(\Throwable $e){
-                $skipped++; continue;
+        try {
+            foreach($files as $f){
+                try{
+                    $plain = $enc->decrypt($f->file_desc);
+                }catch(\Throwable $e){
+                    $skipped++; continue;
+                }
+                $path = storage_path('app/public/documents/'.$plain);
+                if(!file_exists($path)){
+                    $alt = storage_path('app/public/temp/'.$plain);
+                    if(file_exists($alt)) $path = $alt;
+                    else { $skipped++; continue; }
+                }
+                $ext = pathinfo($plain, PATHINFO_EXTENSION);
+                if(!$ext) $ext = 'pdf';
+                $typeSlug = preg_replace('/[^A-Za-z0-9_\-]/','-', $f->file_type ?? 'form');
+                $typeSlug = trim($typeSlug,'-');
+                if($typeSlug==='') $typeSlug='form';
+                $base = $typeSlug.'-'.substr($f->file_qnid,0,8).'.'.$ext;
+                $name = $base; $c=1;
+                while(isset($used[$name])){
+                    $name = pathinfo($base, PATHINFO_FILENAME).'-'.$c++.'.'.$ext;
+                }
+                $used[$name]=true;
+                $zip->addFile($path, $name);
+                $added++;
             }
-            $path = storage_path('app/public/documents/'.$plain);
-            if(!file_exists($path)){
-                // try temp location fallback
-                $alt = storage_path('app/public/temp/'.$plain);
-                if(file_exists($alt)) $path = $alt;
-                else { $skipped++; continue; }
+            $zip->close();
+            if($added===0){
+                @unlink($zipPath);
+                return response()->json(['success'=>false,'msg'=>'Dosyalar diskte bulunamadı'],404);
             }
-            $ext = pathinfo($plain, PATHINFO_EXTENSION);
-            if(!$ext) $ext = 'pdf';
-            // file_type may contain spaces — slugify
-            $typeSlug = preg_replace('/[^A-Za-z0-9_\-]/','-', $f->file_type ?? 'form');
-            $typeSlug = trim($typeSlug,'-');
-            if($typeSlug==='') $typeSlug='form';
-            $base = $typeSlug.'-'.substr($f->file_qnid,0,8).'.'.$ext;
-            $name = $base; $c=1;
-            while(isset($used[$name])){
-                $name = pathinfo($base, PATHINFO_FILENAME).'-'.$c++.'.'.$ext;
-            }
-            $used[$name]=true;
-            $zip->addFile($path, $name);
-            $added++;
-        }
-        $zip->close();
-        if($added===0){
+            Log::info('downloadAllOrderFiles', ['order_qnid'=>$orderQnid,'order_no'=>$orderNo ?? '', 'added'=>$added,'skipped'=>$skipped]);
+            return response()->download($zipPath, 'order-'.$zipBase.'-tum-formlar.zip')->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            $zip->close();
             @unlink($zipPath);
-            return response()->json(['success'=>false,'msg'=>'Dosyalar diskte bulunamadı'],404);
+            throw $e;
         }
-        \Illuminate\Support\Facades\Log::info('downloadAllOrderFiles', ['order_qnid'=>$orderQnid,'order_no'=>$orderNo->v ?? '', 'added'=>$added,'skipped'=>$skipped]);
-        return response()->download($zipPath, 'order-'.$zipBase.'-tum-formlar.zip')->deleteFileAfterSend(true);
     }
 
-    /**
-     * List all entered files for an order (including rejected old versions) with status + inspector.
-     * GET /v1/order/{qnid}/files
-     */
     public function listOrderFiles(Request $request, $qnid = null){
         $orderQnid = $qnid ?? $request->input('qnid') ?? $request->input('id') ?? $request->route('qnid');
         if(empty($orderQnid)) return response()->json(['success'=>false,'msg'=>'Sipariş qnid gerekli'],422);
-        if(!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $orderQnid)){
+        if(!$this->isValidUuid($orderQnid)){
             return response()->json(['success'=>false,'msg'=>'Geçersiz qnid'],422);
         }
-        $order = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.qnid = ? LIMIT 1", [$orderQnid]);
-        if(!$order) return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
-        if($order->type_key !== 'op-doc-order'){
-            if($order->type_key === 'op-doc-order-item'){
-                $parent = \Illuminate\Support\Facades\DB::selectOne("SELECT d.*, so.op_key as type_key FROM documents d JOIN sys_options so ON so.id=d.type_id WHERE d.id = ? LIMIT 1", [(int)$order->parent_id]);
-                if($parent) $order = $parent;
-            }
+        $order = $this->docs->resolveOrderFromQnid($orderQnid);
+        if(!$order || ($order->type_key ?? null) !== 'op-doc-order') return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
+
+        if(!$this->docs->canCurrentResellerAccessOrder($order)){
+            return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
         }
-        if(!$order || $order->type_key !== 'op-doc-order') return response()->json(['success'=>false,'msg'=>'Sipariş bulunamadı'],404);
+
         $orderId = $order->id;
-        if(session('type_key') === 'op-pert-reseller'){
-            $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
-            if(empty($clientQnids)) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
-            $qnidIn = "'".implode("','", array_map('noInject', $clientQnids))."'";
-            $lifRows = \Illuminate\Support\Facades\DB::select("SELECT se.entity_value as lifnr, COALESCE(cs.entity_value, d2.grp_code, 'GDZ') as sys FROM sys_con_entities se INNER JOIN sys_con_ops so ON so.id = se.conn_id INNER JOIN documents d2 ON d2.id = so.main_id LEFT JOIN sys_con_entities cs ON cs.conn_id = so.id AND cs.entity_tag='client_system' AND cs.table_tag='sys_con_ops' WHERE d2.qnid IN ($qnidIn) AND se.entity_tag = 'lifnr' AND se.table_tag = 'sys_con_ops'");
-            $bySys = ['GDZ'=>[],'ADM'=>[]];
-            foreach($lifRows as $lr){ $sys=strtoupper(trim($lr->sys??'GDZ')); if($sys==='') $sys='GDZ'; if(!in_array($sys,['GDZ','ADM'])) $sys='GDZ'; $v=trim($lr->lifnr??''); if($v!=='') $bySys[$sys][]=$v; }
-            $specRow = \Illuminate\Support\Facades\DB::selectOne("SELECT sce.entity_value as spec, COALESCE(sy.entity_value, 'GDZ') as sys FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id LEFT JOIN sys_con_entities sy ON sy.conn_id=sco.id AND sy.entity_tag='sys_code' WHERE sco.main_id = ? AND sce.entity_tag = 'spec_code' LIMIT 1", [$orderId]);
-            $spec = trim($specRow->spec ?? '');
-            $orderSysRaw = $specRow->sys ?? 'GDZ';
-            $norm = strtoupper(trim($orderSysRaw));
-            $orderSys = 'GDZ';
-            if(in_array($norm,['ADM','5000','A5000'])) $orderSys='ADM';
-            else if(strpos($norm,'ADM')!==false) $orderSys='ADM';
-            $allowed = false;
-            if(in_array($order->qnid ?? '', $clientQnids, true)) $allowed = true;
-            $bucket = $bySys[$orderSys] ?? [];
-            if(in_array($spec, $bucket, true)) $allowed = true;
-            if(!$allowed) return response()->json(['success'=>false,'msg'=>'Yetki yok'],403);
-        }
-        $files = \Illuminate\Support\Facades\DB::select("
-            SELECT i.qnid as file_qnid, i.id as file_id, i.status as file_status, i.created_at as file_created_at,
-                   i.description as file_desc,
-                   sf.title as file_type, sf.op_key as file_type_key, se.entity_tag,
-                   d.qnid as relation_qnid, dt.op_key as relation_type,
-                    (SELECT json_build_object('op_key', sot.op_key, 'title', sot.title, 'name', p.name, 'note', t.description, 'created_at', t.created_at)
-                     FROM transactions t
-                     JOIN sys_options sot ON sot.id = t.type_id
-                     JOIN user_logs ul ON ul.id = t.log_id
-                     JOIN users u ON u.id = ul.user_id
-                     JOIN persons p ON p.id = u.person_id
-                     WHERE t.target_id = i.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) as last_status
-            FROM document_files i
-            JOIN sys_con_entities se ON se.entity_value = i.id::text AND se.table_tag = 'document_files'
-            JOIN documents d ON d.id = i.relation_id::int
-            JOIN sys_options dt ON dt.id = d.type_id
-            JOIN sys_options sf ON sf.op_key = 'op-'||split_part(se.entity_tag,'**',1)
-            WHERE ((d.id = ? AND dt.op_key = 'op-doc-order') OR (d.parent_id = ? AND dt.op_key = 'op-doc-order-item'))
-              AND se.entity_tag NOT LIKE '%item_images_file%'
-              AND i.description != ''
-            ORDER BY i.created_at DESC
-        ", [$orderId, $orderId]);
+        $files = $this->docs->fetchOrderFilesWithStatus($orderId);
         foreach($files as &$f){
             if(is_string($f->last_status)){
                 try{ $f->last_status = json_decode($f->last_status, true) ?? json_decode($f->last_status); }catch(\Throwable $e){}
             }
-            // decrypt display name for UI
             try{
                 $enc = new \App\Providers\EncryptionProvider();
                 $plain = $enc->decrypt($f->file_desc);
                 $f->display_name = $plain;
             }catch(\Throwable $e){ $f->display_name = $f->file_qnid; }
         }
+        unset($f);
         return response()->json(['success'=>true,'data'=>['files'=>$files]]);
     }
 

@@ -13,8 +13,8 @@ Every enumerated value in the system is a row here. No enums in code.
 | Column | Meaning |
 |--------|---------|
 | `id` | PK, referenced as `type_id` everywhere |
-| `op_key` | machine key, e.g. `op-doc-request`, `doc_trans_offer_approved`, `per-05-01`, `log-tender-update` |
-| `group_key` | bucket, e.g. `op-doc`, `op-doc-forms`, `op-trans-op-doc-offer`, `op-per-types`, `op-pert`, `trans`, `op-logs` |
+| `op_key` | machine key, e.g. `op-doc-order`, `doc_trans_order_approved`, `per-05-01`, `log-tender-update` (legacy `op-doc-request`/`offer` removed) |
+| `group_key` | bucket, e.g. `op-doc`, `op-doc-forms`, `op-trans-op-doc-order`, `op-per-types`, `op-pert`, `trans`, `op-logs` (legacy `op-trans-op-doc-offer` removed) |
 | `title` | human label (TR) |
 | `ctitle` | which column it classifies (`type_id`, `sub_type_id`, `group_key` etc) |
 | `ttitle` | which table it belongs to (`documents`, `persons`) |
@@ -24,13 +24,13 @@ Every enumerated value in the system is a row here. No enums in code.
 
 | group_key | Contents | Used as |
 |-----------|----------|---------|
-| `op-doc` | document types: `op-doc-request|offer|client|flat` + `op-doc-client-main` **+ NOW `op-doc-order|order-item|order-serial` (`OrderSystemSeeder.php:06`, `op-doc-transfer` **PURGED 2026-09-02**)** | `documents.type_id` |
-| `op-doc-forms` | form definitions: `op-doc-request-form|offer-form|client-form|user-form|flat-form|user-contact-form|user-client-form|user-permission-form|user-notification-form` **+ `op-doc-order-form|order-item-form|order-serial-form` (`op-doc-transfer-form` **PURGED**)** | `sys_con_ops.type_id` |
+| `op-doc` | document types: `op-doc-client`, `op-doc-order`, `op-doc-order-item`, `op-doc-order-serial` (legacy `op-doc-request|offer|flat` + `op-doc-transfer` **PURGED**; new system only these 4) | `documents.type_id` |
+| `op-doc-forms` | form definitions: `op-doc-client-form`, `op-doc-order-form`, `op-doc-order-item-form`, `op-doc-order-serial-form`, `op-doc-user-*` (legacy `op-doc-request-form`/`offer-form`/`flat-form` removed, `op-doc-transfer-form` **PURGED**) | `sys_con_ops.type_id` |
 | `op-per-types` / `op-apt-types` | old flat/apt types (legacy) | — |
 | `op-pert` | person types: `op-pert-admin|reseller` | `persons.type_id` |
 | `op-file-types` | file categories: 5 entries | `sys_options title for file UI` |
 | `trans` | generic trans types (19) | `transactions.type_id` when `op_id=0` |
-| `op-trans-op-doc-request` / `op-trans-op-doc-offer` | status machines per doc type | `transactions.type_id` (dynamic group `op-trans-{docOpKey}`) |
+| `op-trans-op-doc-order` | status machine for orders (`doc_trans_order_*` + `doc_file_*`) | `transactions.type_id` (dynamic group `op-trans-{docOpKey}`) — legacy `op-trans-op-doc-request`/`offer` removed |
 | `op-trans-op-doc-order` | **NEW** Sipariş status: `doc_trans_order_created/transfer_sent/ready_for_shipment/approved/rejected/files_rejected` (`files_rejected` = "Reddedilen Dosyalar Mevcut", auto-set by `syncOrderStatusFromFiles` when any order/item file is rejected) — `op-trans-op-doc-transfer` + `doc_trans_transfer_*` **PURGED 2026-09-02** (was 4 keys, 0 transactions ever) | `transactions.type_id` |
 | `op-file-types` extended | **+ `op-transfer_kabul_file` (Malzeme Kabul), `op-transfer_cins_file` (Cins-Miktar), `op-item_test_file`, `op-item_images_file`** | `sys_options title for file UI` |
 | `op-logs` | log kinds: 25 `log-*` (`log-user-logout` added 2026-09-04 late+1 `SysSeeder.php:86` `Kullanıcı Zorla Çıkış` id 102) | `user_logs.type_id` |
@@ -81,13 +81,13 @@ One row = one form instance attached to one entity.
 id           bigserial PK
 main_id      bigint → documents.id OR persons.id
 conn_id      bigint default 0 — parent ops id (hierarchical, but always 0 in this app)
-type_id      bigint → sys_options.id where op_key = form key (e.g. op-doc-request-form)
+type_id      bigint → sys_options.id where op_key = form key (e.g. op-doc-order-form)
 sub_type_id  bigint → sys_options.id where op_key = form-main (documents) or personnel-main (persons)
 status       int default 1
 created_at / updated_at
 ```
 
-- `type_id` is the form discriminator (`op-doc-request-form` vs `op-doc-client-form`)
+- `type_id` is the form discriminator (`op-doc-order-form` vs `op-doc-client-form`) (legacy `op-doc-request-form` removed)
 - `sub_type_id` is `form-main` for EAV values, `form-file` for file containers (but file EAV still uses `form-main` conn + `table_tag=document_files` — confusing)
 - `main_id + type_id + sub_type_id` should be unique per entity, but not enforced (DB allows multiples, code `updateOrCreate` handles dup)
 - `conn_id=0` always — tree was designed but never used

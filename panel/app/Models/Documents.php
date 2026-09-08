@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+// NEW 2026-09-08: op-doc-request/offer removed — new system only op-doc-client + op-doc-order family
 class Documents extends Model
 {
     use HasFactory;
@@ -104,7 +105,8 @@ class Documents extends Model
         //i.parent_type_id for free documents, if parent_type_id is 0, it means this document is not connected to any other table so it is a main document. if parent_type_id is not 0, it means this document is connected to another table like users or persons, so it is a sub document. we only want to list main documents in the table list, so we will add this condition to the where clause.
         //cancelled offers (documents.status = 0) are revealed only when the caller explicitly opts in, so
         //dashboards, notification badges and every other document type keep their active-only behaviour.
-        $statusPredicate = ($withCancelled && $formType === 'op-doc-offer') ? "i.status in ('0','1')" : "i.status = '1'";
+        // NEW: offers removed — withCancelled only for orders now (if needed)
+        $statusPredicate = "i.status = '1'"; // legacy offer (0,1) removed
         $where = " where ".$statusPredicate." and i.parent_type_id = 0";
        
 
@@ -116,13 +118,13 @@ class Documents extends Model
             //this is custom filters for client accounts
             if(session('type_key') == 'op-pert-reseller') {
                 switch($formType){
-                    case 'op-doc-request':
+                    case 'legacy-op-doc-request': // removed
                         $where .= " and (select  so.op_key 
                                 from transactions as t
                                     inner join sys_options so on so.id = t.type_id
                                 where target_id = i.id and so.group_key = 'op-trans-".$formType."' order by t.id desc limit 1) in ('doc_trans_request_start','doc_trans_request_end')";
                     break;
-                    case 'op-doc-offer':
+                    case 'legacy-op-doc-offer': // removed
                         //$where .= " and i.person_id = '".session('person_id')."'";
                         //check for clients offers
                         $where .= " and (

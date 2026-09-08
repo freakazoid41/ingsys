@@ -688,13 +688,15 @@
                                 btn.onclick=()=>{
                                     const current = String(row.status||'').split('**')[0]||'doc_trans_order_created';
                                     const allowed = {
-                                        'doc_trans_order_created': ['doc_trans_order_transfer_sent'],
+                                        'doc_trans_order_created': ['doc_trans_order_transfer_sent','doc_trans_order_approved'],
                                         'doc_trans_order_transfer_sent': ['doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_ready_for_shipment'],
                                         'doc_trans_order_files_rejected': ['doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_ready_for_shipment'],
                                         'doc_trans_order_ready_for_shipment': ['doc_trans_order_approved','doc_trans_order_rejected'],
                                     };
                                     const isAllowed = (target) => {
                                         if(['doc_trans_order_approved','doc_trans_order_rejected'].includes(current)) return false;
+                                        // NEW 2026-09-08: Kalite Onayı allowed from ANY status
+                                        if(target === 'doc_trans_order_approved') return true;
                                         const list = allowed[current] || [];
                                         return list.includes(target);
                                     };
@@ -837,27 +839,29 @@
                                                         cancelButtonColor: '#64748b'
                                                     });
                                                     if(!conf.isConfirmed) return;
-                                                    kaliteBtn.disabled = true;
-                                                    kaliteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> İşleniyor...';
+                                                    Swal.fire({
+                                                        title: 'Onaylanıyor...',
+                                                        html: '<div style="display:flex;justify-content:center;padding:12px"><i class="ki-outline ki-loading" style="font-size:24px;animation:spin 1s linear infinite;color:#22c55e"></i></div><div style="font-size:12px;color:#64748b;">Lütfen bekleyin</div>',
+                                                        allowOutsideClick: false,
+                                                        showConfirmButton: false,
+                                                        didOpen: () => Swal.showLoading()
+                                                    });
                                                     try{
                                                         const fd=new FormData();
                                                         fd.append('id', row.id);
                                                         fd.append('op_key', 'doc_trans_order_approved');
                                                         fd.append('note', 'Kalite onayı verildi ve kapatıldı');
                                                         const rsp=await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
+                                                        Swal.close();
                                                         if(rsp && rsp.success){
                                                             this.table.updateRow(row.id, {status:'doc_trans_order_approved**Kalite Onayı Verildi'});
-                                                            Swal.close();
                                                             this.plib.toast(Swal,'success','Kalite onayı verildi — tüm dosyalar kabul edildi');
                                                         }else{
-                                                            Swal.showValidationMessage(rsp?.msg || rsp?.message || 'İşlem başarısız');
-                                                            kaliteBtn.disabled=false;
-                                                            kaliteBtn.innerHTML='<i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat';
+                                                            Swal.fire({icon:'error', title:'Olmadı', text: rsp?.msg || rsp?.message || 'İşlem başarısız', confirmButtonText:'Tamam'});
                                                         }
                                                     }catch(err){
-                                                        Swal.showValidationMessage(err?.msg || 'Hata oluştu');
-                                                        kaliteBtn.disabled=false;
-                                                        kaliteBtn.innerHTML='<i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat';
+                                                        Swal.close();
+                                                        Swal.fire({icon:'error', title:'Hata', text: err?.msg || err?.message || 'Beklenmeyen hata', confirmButtonText:'Tamam'});
                                                     }
                                                 });
                                                 }

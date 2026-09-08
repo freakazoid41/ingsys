@@ -30,23 +30,12 @@ if(!function_exists('checkPerm')){
 
     function docPermCheck($type,$job){
         $map = [
-            'op-doc-request' => [
-                'edit' => 'per-05-02',
-                'read' => 'per-05-01',
-                'status' => 'per-05-02',
-            ],
+            // New system: only clients + orders (requests/offers are legacy Komur — removed)
             'op-doc-client' => [
                 'edit' => 'per-06-02',
                 'read' => 'per-06-01',
                 'status' => 'per-06-02',
             ],
-            'op-doc-offer' => [
-                // per-08 removed (old Teklif) — map to order perms per-05
-                'edit'   => 'per-05-02',
-                'read'   => 'per-05-01',
-                'status' => 'per-05-03',
-            ],
-            // Order Management System — granular per-05
             'op-doc-order' => [
                 'edit' => 'per-05-02',
                 'read' => 'per-05-01',

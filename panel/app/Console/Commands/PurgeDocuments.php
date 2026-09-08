@@ -7,7 +7,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Talep ve teklif belgelerini bagli tum kayitlariyla birlikte kalici olarak siler.
+ * Sipariş belgelerini (orders + items + serials) bagli tum kayitlariyla birlikte kalici olarak siler.
+ * NEW 2026-09-08: legacy request/offer purged — new system only orders.
  *
  * Firma (op-doc-client) belgelerine ve kullanicilara dokunmaz.
  *
@@ -17,15 +18,17 @@ use Illuminate\Support\Facades\DB;
 class PurgeDocuments extends Command
 {
     protected $signature = 'documents:purge
-                            {--type=all : Silinecek tip: request, offer veya all}
+                            {--type=all : Silinecek tip: order veya all (legacy request/offer → order alias)}
                             {--dry-run : Hicbir sey silme, yalnizca ne silinecegini raporla}
                             {--force : Onay sorma (etkilesimsiz calistirma icin)}';
 
-    protected $description = 'Talep ve teklif belgelerini bagli kayitlariyla birlikte siler';
+    protected $description = 'Sipariş belgelerini bagli kayitlariyla birlikte siler';
 
     private const TYPES = [
-        'request' => 'op-doc-request',
-        'offer' => 'op-doc-offer',
+        'order' => 'op-doc-order',
+        // legacy aliases — map old CLI --type=offer/request to order for backward compat
+        'request' => 'op-doc-order',
+        'offer' => 'op-doc-order',
     ];
 
     public function handle(): int
@@ -95,6 +98,27 @@ class PurgeDocuments extends Command
             ->get();
 
         $documentIds = $documents->pluck('id')->all();
+
+        // NEW 2026-09-08: for orders, also collect child items + serials (parent_id chain)
+        if (!empty($documentIds) && in_array('op-doc-order', $opKeys, true)) {
+            $itemTypeId = DB::table('sys_options')->where('op_key','op-doc-order-item')->value('id');
+            $serialTypeId = DB::table('sys_options')->where('op_key','op-doc-order-serial')->value('id');
+            $itemIds = $itemTypeId ? DB::table('documents')->whereIn('parent_id', $documentIds)->where('type_id',$itemTypeId)->pluck('id')->all() : [];
+            $serialIds = [];
+            if (!empty($itemIds) && $serialTypeId) {
+                $serialIds = DB::table('documents')->whereIn('parent_id', $itemIds)->where('type_id',$serialTypeId)->pluck('id')->all();
+            }
+            $documentIds = array_values(array_unique(array_merge($documentIds, $itemIds, $serialIds)));
+            // also include child docs in report collection
+            if (!empty($itemIds)) {
+                $itemDocs = DB::table('documents as d')->join('sys_options as s','s.id','=','d.type_id')->whereIn('d.id',$itemIds)->select('d.id','d.qnid','s.op_key')->get();
+                $documents = $documents->merge($itemDocs);
+            }
+            if (!empty($serialIds)) {
+                $serialDocs = DB::table('documents as d')->join('sys_options as s','s.id','=','d.type_id')->whereIn('d.id',$serialIds)->select('d.id','d.qnid','s.op_key')->get();
+                $documents = $documents->merge($serialDocs);
+            }
+        }
 
         $connIds = $documentIds
             ? DB::table('sys_con_ops')->whereIn('main_id', $documentIds)->pluck('id')->all()

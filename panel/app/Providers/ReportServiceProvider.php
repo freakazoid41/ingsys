@@ -9,6 +9,8 @@ use App\Providers\DocumentServiceProvider;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 
+// NEW 2026-09-08: requests/offers removed — new system only tedarik orders/files
+// Legacy methods getOffers/dashboardMonthlyOffers/dashboardTopInfo etc remain for old coal panel but are DEAD in new system.
 class ReportServiceProvider extends ServiceProvider
 {
     public function __construct() {
@@ -342,12 +344,11 @@ class ReportServiceProvider extends ServiceProvider
             case 'topstats':
                 return $this->dashboardTopInfo();
             break;
+            // legacy offers/requests — removed in new system
             case 'monthlyoffers':
-                return $this->dashboardMonthlyOffers($addional ?? true);
-            break;
+                abort(410, 'Offers removed');
             case 'monthlydistribution':
-                return $this->dashboardMonthlyDistribution();
-            break;
+                abort(410, 'Requests/Offers removed');
             case 'importantinfo':
                 return $this->dashboardImportantInfo();
             break;
