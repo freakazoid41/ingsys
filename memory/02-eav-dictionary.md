@@ -31,7 +31,7 @@ Every enumerated value in the system is a row here. No enums in code.
 | `op-file-types` | file categories: 5 entries | `sys_options title for file UI` |
 | `trans` | generic trans types (19) | `transactions.type_id` when `op_id=0` |
 | `op-trans-op-doc-order` | status machine for orders (`doc_trans_order_*` + `doc_file_*`) | `transactions.type_id` (dynamic group `op-trans-{docOpKey}`) — legacy `op-trans-op-doc-request`/`offer` removed |
-| `op-trans-op-doc-order` | **NEW** Sipariş status: `doc_trans_order_created/transfer_sent/ready_for_shipment/approved/rejected/files_rejected` (`files_rejected` = "Reddedilen Dosyalar Mevcut", auto-set by `syncOrderStatusFromFiles` when any order/item file is rejected) — `op-trans-op-doc-transfer` + `doc_trans_transfer_*` **PURGED 2026-09-02** (was 4 keys, 0 transactions ever) | `transactions.type_id` |
+| `op-trans-op-doc-order` | **NEW 2026-09-08 Kalite-any** Sipariş status: `doc_trans_order_created/transfer_sent/ready_for_shipment/approved/rejected/files_rejected` (`files_rejected` = "Reddedilen Dosyalar Mevcut", auto-set by `syncOrderStatusFromFiles` when any order/item file is rejected) — `op-trans-op-doc-transfer` + `doc_trans_transfer_*` **PURGED 2026-09-02** (was 4 keys, 0 transactions ever) | `transactions.type_id` |
 | `op-file-types` extended | **+ `op-transfer_kabul_file` (Malzeme Kabul), `op-transfer_cins_file` (Cins-Miktar), `op-item_test_file`, `op-item_images_file`** | `sys_options title for file UI` |
 | `op-logs` | log kinds: 25 `log-*` (`log-user-logout` added 2026-09-04 late+1 `SysSeeder.php:86` `Kullanıcı Zorla Çıkış` id 102) | `user_logs.type_id` |
 | `op-cur-types` | currencies TRY/USD/EUR/GBP | `currencies` |

@@ -61,7 +61,7 @@ sys_con_entities  — field value: conn_id→sys_con_ops, entity_tag = field**gr
 ## 6. Document Types & State Machines
 `sys_options group op-doc`: `op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, parent_id=order), `op-doc-order-serial` (Seri, parent_id=item), `op-doc-client` (Cari). `op-doc-transfer` **PURGED 2026-09-02** (was seeded but never used — clones are `op-doc-order` with `transfer_no=EBELN-X`; 6 `sys_options` rows deleted, `OrderSystemSeeder.php` + `DocumentServiceProvider` + `Form.vue` + `PermissionHelpers` cleaned).
 
-- **Order:** `doc_trans_order_created → transfer_sent → ready_for_shipment → approved/rejected` + `files_rejected`
+- **Order:** `doc_trans_order_created → transfer_sent → ready_for_shipment → approved/rejected` + `files_rejected` — **NEW 2026-09-08:** `doc_trans_order_approved` (Kalite) from **ANY** status
 - **File:** `doc_file_waiting → accepted | rejected → refreshed`
 - **Serial:** `op-doc-order-serial` docs parented to items. Entities: `serial_no`, `production_date` (YYYY-MM-01), `quantity`, `unit`
 

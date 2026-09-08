@@ -54,6 +54,7 @@ Strict guards 2026-09-04: `cancelOrder → per-05-04 ONLY`, `renameOrder → per
 3. **Serials = `op-doc-order-serial` docs** `parent_id = item.id`. Entities `serial_no`, `production_date (YYYY-MM-01)`, `quantity`, `unit`. Parent item flag `has_serials=1`.
 4. **Forms:** `op-doc-order-form` (order_no/buying_no(SUBMI)/spec_code/sys_code/ctitle(MCOD1)/created_at(BEDAT d/m/Y) readOnly + `order_desc` textarea rows3 + `imalatci_firma_adi` + `transfer_kabul` `transfer_kabul_file` single `hideAdd:true` + `transfer_cins` `transfer_cins_file` single `hideAdd:true`), `op-doc-order-item-form` (prod_code/title/quantity/unit readOnly + `item_test_docs` `item_test_file` single + `item_images` `item_images_file` multi `**img-{id}`), `op-doc-order-serial-form`, `op-doc-client-form + lifnr + client_system (GDZ/ADM select, grp_code sync)`.
 5. **Status `op-trans-op-doc-order`:** `doc_trans_order_created → doc_trans_order_transfer_sent (Dosyalar Kontrol Ediliyor) → doc_trans_order_ready_for_shipment (Sevke Hazır) → doc_trans_order_approved (Kalite Onayı Verildi) / doc_trans_order_rejected` + `doc_trans_order_files_rejected (Reddedilen Dosyalar Mevcut, auto)`. `documents.status` binary (1 active, 0 cancelled), rich history in `transactions` `op_id 0/1`.
+> **NEW 2026-09-08:** `doc_trans_order_approved` (Kalite) is now allowed **from ANY status** (including `doc_trans_order_created → approved` directly) — backend `DocumentServiceProvider.php:967` bypasses guard for this key, frontend `OList.vue:696` `isAllowed` returns true for Kalite from any non-terminal.
 6. **Files:** `op-transfer_kabul_file`, `op-transfer_cins_file`, `op-item_test_file`, `op-item_images_file` in `op-file-types`. Files linked via `sys_con_entities table_tag=document_files entity_value=fileId`. Versioning = new `sys_con_entities` row per upload + `document_files status=1` active, `replaced_id` backward chain.
 
 ---
@@ -272,7 +273,7 @@ Called from `DocumentController.php` after `registerContent` with `transfer_mode
 - If `hasRejected && order last != files_rejected` → `applyOrderStatus:1398` `fromTitle via AuditService::optionTitle cached` + `rejectedNote unwraps transactions.note {"note":"real"} → Dosya reddedildi: real` → `log-order-update {actor,document,from,to,desc Sipariş Durumu Güncellendi,note rejectedNote}` + `Transactions op0`.
 - If `!hasRejected && last == files_rejected` → back `transfer_sent` (or `ready`).
 
-**Manual order status `POST /v1/trans/set-status` `DSP:972 setStatus`:** `doc_trans_order_created→transfer_sent`, `transfer_sent→approved/rejected`, `files_rejected→transfer_sent|approved|rejected`, terminal blocked. Also fires `UserLog log-document-status-update`.
+**Manual order status `POST /v1/trans/set-status` `DSP:972 setStatus`:** `doc_trans_order_created→transfer_sent` (+ `created→approved` for Kalite, NEW 2026-09-08), `transfer_sent→approved/rejected`, `files_rejected→transfer_sent|approved|rejected`, terminal blocked. **Kalite (`doc_trans_order_approved`) from ANY status** — `DocumentServiceProvider.php:967` bypass. Also fires `UserLog log-document-status-update`.
 
 **Other logs `logging-mechanics.md:4`:** `cancelOrder:2046 log-order-update Sipariş İptal Edildi`, `renameOrder:2110 old→new`, `removeContent:751 log-tender-update before/after`, file uploads `addFileToDb:805 / finalizeTempFile:554 log-file-added file+actor+note`.
 

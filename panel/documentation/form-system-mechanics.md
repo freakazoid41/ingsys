@@ -254,6 +254,7 @@ The generic list endpoint `POST /api/v1/table/{model}` (`SystemController::table
 
 Enforcement points in `DocumentController::index` (every method) — NEW system:
 
+> **2026-09-08:** `doc_trans_order_approved` allowed from **ANY** status (frontend `OList.vue:696` + backend `DocumentServiceProvider.php:967`).
 1. `docPermCheck($type, read|edit)` → 403 (now only `op-doc-client`/`op-doc-order` family).
 2. **Reseller override** — clients may edit/read their own client document (`op-doc-client` + `op-pert-reseller` + qnid ∈ `currentStatus.clientQnidList`).
 3. **Order LIFNR+SYSTEM** — resellers see only orders where `spec_code`+`sys_code` matches bound `lifnr`+`client_system` (`DocumentServiceProvider.php:2639`). Legacy `offerOwnershipCheck` / `canResponse` gates removed.
