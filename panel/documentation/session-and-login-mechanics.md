@@ -261,6 +261,18 @@ The `/v1/getpermissions` endpoint is explicitly allowed to run a soft refresh (i
 
 ---
 
+## 12. Email deep-link gateway `?next=` (2026-09-09)
+
+Notification mails link to SPA records, but SPA routes 403 when logged out. Links go through the public login page which preserves the target across 2FA:
+
+1. Mail CTA = `{APP_URL}/tedarik?next=/tedarikpanel/orders/form/{qnid}` (or `/documents/{fileQnid}`), built by `TedarikMailHelper::gateway()`.
+2. `tedariklogin(?next)` validates `^/(tedarikpanel|coalpanel)` → `session('post_login_next')`; blade renders hidden `next` input.
+3. `loginUser` re-stores it after `session()->flush()` (reads request first).
+4. `checkCode` promotes it to `session('target_module')` — beats single/multi-module auto-routing (deep link wins even for multi-module users).
+5. `tedariklogin/page.js` post-token priority: hidden `postLoginNext` > `localStorage post_login_next` (stored pre-POST from query string) > `targetModule` > module API. Consumes (clears) the stored value on use.
+
+---
+
 ## 11. Reuse checklist for a new system
 
 - [ ] `active_sessions` + `CheckPermissionVersion` middleware on both web and API route groups.

@@ -192,15 +192,62 @@ Important env values:
 
 ## 8. File summary
 
-- `panel/app/Services/MailService.php`
+- `panel/app/Services/MailService.php` — `sendMail()` + `renderHtmlMessage()` (passes `pillText/pillColor/pillBg/accent/logoUrl/preheader/cta*` to layout; send-time CID logo embed, see §9.3)
+- `panel/app/Services/TedarikMailHelper.php` — **NEW 2026-09-09:** `appBase/sysCode/normalizeSys/logoBytes/logoMime/logoUrl/orderUrl/fileUrl/gateway/detailTable/noteBox/metaFor` (single BUKRS→system mapping, deep links, card builders)
 - `panel/app/Services/SmsService.php`
-- `panel/app/Jobs/SendNotificationMailJob.php`
-- `panel/app/Jobs/SendResetMailJob.php`
-- `panel/app/Jobs/SendInfoMailJob.php`
+- `panel/app/Jobs/SendNotificationMailJob.php` — `tedarikCard()/orderLink()/fileLink()` helpers, all 7 TEDARIK + legacy via cards
+- `panel/app/Jobs/SendResetMailJob.php` — reset mail now card-styled with `Giriş Yap` CTA via `TedarikMailHelper::gateway('/tedarikpanel')`
+- `panel/app/Jobs/SendInfoMailJob.php` — info mail with logo
 - `panel/app/Models/NotificationLog.php`
 - `panel/app/Models/NotificationRead.php` — read tracking (user_id, op_key, target_qnid)
 - `panel/app/Console/Commands/RetryNotificationSend.php`
 - `panel/app/Console/Commands/RetryNotificationSendJob.php`
 - `panel/app/Http/Controllers/SystemController.php`
+- `panel/app/Http/Controllers/DocumentController.php` — `buildOrderNotifPayload()` + `resolveFileOrderDoc()` (connection-based, see §9.4); `setFileStatus`/`setFileStatusAll` attach `file_qnid`
 - `panel/resources/js/pages/coalsystem/NotificationLogs/NList.vue`
 - `panel/database/migrations/2026_04_15_000000_create_notification_logs_table.php`
+- `panel/resources/views/emails/layout.blade.php` — tedarik theme (§9.1), centered logo, no system pill
+- `panel/resources/views/emails/verify-email.blade.php` — `Hesabınız Aktif` card + gateway CTA
+- `panel/public/coaltheme/GDZ.svg` — attrs aligned to viewBox aspect (raster-safe, art untouched)
+- `panel/public/coaltheme/adm-logo.svg` — real ADM mark (from `yts.admelektrik.com.tr`), used for ADM tenant UI + mails
+- `panel/public/coaltheme/mail-gdz.png` / `mail-adm.png` — 480px rsvg rasterizations for inbox embedding (≈13KB)
+
+## 9. 2026-09-09 Email Redesign (Turkish-only card mails + deep links + real logos)
+
+### 9.1 Layout (`emails/layout.blade.php`)
+
+Tedarik-panel theme: `#f2f2f3` bg, 4px orange gradient bar, 620px card 16px radius, centered logo (160px), status pill under H1, zebra detail table, orange `#FF4713` CTA + login hint (`Bağlantı giriş gerektirir...`), `preheader` support. **No `GDZ/ADM SİSTEM` pill** (removed per Master — tenant never named in mails).
+
+### 9.2 Deep links + `?next` login gateway
+
+- `TedarikMailHelper::orderUrl($qnid)` → `{APP_URL}/tedarik?next=/tedarikpanel/orders/form/{qnid}`; `fileUrl()` → `.../documents/{fileQnid}` (bulk falls back to order link).
+- Order mails CTA `Siparişi Aç/İncele/Gör`, file mails `Dosyayı İncele/Gör/Yükle`.
+- Gateway chain: `tedariklogin(?next)` validates `^/(tedarikpanel|coalpanel)` → `session('post_login_next')` (survives `loginUser` flush via hidden `next` input) → `checkCode` promotes it to `target_module` (beats module auto-route) → `tedariklogin/page.js` redirects post-token (hidden `postLoginNext` > stored `localStorage` > `targetModule`). See `session-and-login-mechanics.md:12`.
+
+### 9.3 Logos (inbox-proof)
+
+- SVG is stripped by Gmail/Outlook — never sent raw. Vector sources (`GDZ.svg` local, `adm-logo.svg` downloaded) rasterized via `rsvg-convert -w 480` to `mail-*.png`.
+- `logoBytes()` → raw bytes; `logoUrl()` → data URI (stored bodies, admin previews — browsers render it).
+- Gmail strips data URIs too → `MailService::sendMail()` closure re-embeds the same bytes via `embedData()` (CID) and rewrites the first `data:image/*` img src to the CID (callback runs after `addContent`, so overwrite wins). Stored log keeps data URI.
+- **Single mapping** `normalizeSys()`: `4000/GDZ→GDZ`, `5000/ADM→ADM`, `BOTH→GDZ` fallback. Fixed 2026-09-09 bug where raw `5000` fell through to GDZ at embed time (all ADM mails wore GDZ).
+- **Never crop viewBoxes blindly:** 2026-09-09 lesson — rsvg honors `width/height` attrs over viewBox when they mismatch aspect (letterboxes), which poisoned ink measurements and a tight crop shaved the Gdz triangle tip (verified mean-diff 0.18 vs original, reverted). Fix was attrs→viewBox aspect alignment only. Optical size equality is done in CSS per tenant (`logo-adm` height shave), not in files.
+
+### 9.4 File→order resolution (`resolveFileOrderDoc`, `DocumentController`)
+
+- Replaces the old blind one-level `parent_id` hop (mailed the ORIGINAL's number for clone order files: real `3510004400-1`, mail said `3510004400`).
+- Connection-first, no overshoot: file's own `sys_con_entities` row (`table_tag=document_files`, latest by id) → conn → `main_id`; order → return as-is; item/serial slot → its parent order; fallback `relation_id` taken as-is iff order. Verified live: clone order file → doc 349, item file → 349.
+- `setFileStatus` attaches `file_qnid` (file-detail CTA); bulk aggregates per order (`3 dosya: A,B…`) with order CTA.
+
+### 9.5 UI logos (tenant-aware, same session)
+
+- Auth blades (`tedariklogin/loginSms/moduleSelect`) were hardcoded `GDZ.svg` → now `$GLOBALS['SYS_CODE']` switch (`adm-logo.svg` for ADM) + per-tenant `logo-adm` height compensation (GDZ carries ~7% inner padding, ADM full-bleed: login 100→94, sms 84→79, select 72→68, sidebar 68→64).
+- `TedarikPanel.vue` sidebar: `tenantLogo` computed (`adm-logo.svg` for ADM, not placeholder `ADM.svg`) + `logo-adm` class.
+- Login title restyled elegant: letterspaced uppercase `SİPARİŞ PLATFORMU` (proper İ via `lang="tr"`) with hairline rules.
+
+### 9.6 DList status-modal JSON leak (same session)
+
+- `DList.vue` file-status Swal did `JSON.parse(note)?.note ?? note` + unconditional `showValidationMessage` → `{"actor":"Admin Kontent","note":null}` leaked raw when note null. Fixed to shared `noteOf({last_status})` (null→`''`) + show box only when non-empty. Build clean.
+
+### 9.7 Test sends
+
+- `QUEUE_CONNECTION=sync`, Gmail live. kadir (`BOTH`, in all 7 groups) received full 7×GDZ + 7×ADM sets for order `3510004400-1` (DB has no ADM orders — ADM set reuses the order with ADM context for branding compare). All `notification_logs` `sent`, 1 attempt.
