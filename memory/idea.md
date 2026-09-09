@@ -4,8 +4,8 @@
 
 ** optimizasyon ve kontrol **
 
-** bildirim sistemleri için çok query atıyor bunlar queue içinde bağımsız olmalı 
-** document controller code improvement
+
+
 ** optimizasyon ve kontrol **
 
 
