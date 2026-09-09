@@ -1,15 +1,21 @@
 @php
-    $content = '<p>Merhaba ,</p>' .
-        '<p>Kömür Tedarik Sistemi hesap aktivasyonunuz tamamlandı. Giriş bilgilerinizi kullanarak sisteme erişim sağlayabilirsiniz.</p>';
+    $sys = strtoupper(trim($sysCode ?? 'GDZ'));
+    if (!in_array($sys, ['GDZ', 'ADM'], true)) $sys = 'GDZ';
+    $content = '<p>Merhaba ' . e($name ?? 'Müşteri') . ',</p>' .
+        '<p>Tedarik Yönetim Sistemi hesabınız aktif edildi. Giriş bilgilerinizle panele erişebilirsiniz.</p>';
 @endphp
 @include('emails.layout', [
-    'sysCode' => $sysCode ?? '',
+    'sysCode' => $sys,
+    'logoUrl' => \App\Services\TedarikMailHelper::logoUrl($sys),
     'title' => 'Hesap Aktivasyonu',
-    'header' => 'Hesap Aktivasyonu',
-    'intro' => 'Hesabınızı etkinleştirmek için aşağıdaki butona tıklayınız.',
+    'header' => 'Hesabınız Aktif',
+    'intro' => 'Hesabınız etkinleştirildi. Aşağıdaki butonla giriş yapın.',
     'content' => $content,
-    'ctaUrl' => $ctaUrl ?? config('app.url'),
+    'ctaUrl' => $ctaUrl ?? \App\Services\TedarikMailHelper::gateway('/tedarikpanel'),
     'ctaText' => 'Giriş Yap',
-    'subtext' => 'Eğer bu e-postayı siz talep etmediyseniz, lütfen bu mesajı göz ardı ediniz.',
-    'footerText' => 'Kömür Tedarik Portalı tarafından gönderildi.',
+    'pillText' => 'Aktivasyon',
+    'pillColor' => '#15803d',
+    'pillBg' => '#dcfce7',
+    'subtext' => 'Bu e-postayı siz talep etmediyseniz lütfen göz ardı edin.',
+    'footerText' => 'Tedarik Yönetim Sistemi tarafından gönderildi.',
 ])

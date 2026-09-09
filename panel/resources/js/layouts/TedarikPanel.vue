@@ -104,6 +104,7 @@ export default {
         if(inner) inner.style.transform = '';
     },
     computed: {
+        tenantLogo() { return (String(this.sysCode || '').toUpperCase() === 'ADM') ? '/coaltheme/adm-logo.svg' : '/coaltheme/GDZ.svg'; },
         userName() { return this.authStore.userName || this.authStore.currentStatus?.main_name || ''; },
         isOrdersActive() { return this.$route.path.includes('/orders'); },
         isDokumanActive() { return this.$route.path.includes('/document'); },
@@ -208,7 +209,7 @@ export default {
             <!-- Sidebar -->
             <aside class="tedarik-sidebar">
                 <div class="tedarik-logo">
-                    <img :src="`/coaltheme/${sysCode}.svg`" :alt="sysCode" @error="(e)=> e.target.style.display='none'" />
+                    <img :src="tenantLogo" :alt="sysCode" :class="{ 'logo-adm': String(sysCode || '').toUpperCase() === 'ADM' }" @error="(e)=> e.target.style.display='none'" />
                     <div class="tedarik-logo-label">Malzeme Tedarik İş Süreci</div>
                 </div>
 
@@ -353,11 +354,13 @@ export default {
     gap: 8px;
 }
 .tedarik-logo img {
-    height: 82px;
+    height: 68px;
     width: auto;
+    max-width: 100%;
     display: block;
     object-fit: contain;
 }
+.tedarik-logo img.logo-adm { height: 64px; }
 .tedarik-logo-label {
     font-size: 11.5px;
     font-weight: 600;

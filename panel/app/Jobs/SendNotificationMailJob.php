@@ -138,35 +138,93 @@ class SendNotificationMailJob implements ShouldQueue
         ], $options));
     }
 
+    /** Rich tedarik-panel card mail with detail table + deep-link CTA. Turkish only. */
+    protected function tedarikCard(string $type, string $subject, array $rows, ?string $ctaUrl, string $ctaText, ?string $note = null, array $extra = []): string
+    {
+        $H = \App\Services\TedarikMailHelper::class;
+        $meta = $H::metaFor($type);
+        $sysCode = $H::sysCode(array_merge($this->payload, $extra));
+        $content = $H::detailTable($rows) . $H::noteBox($note);
+        $preheader = $meta['pill'] . ' — ' . strip_tags($rows[0][1] ?? $subject);
+        return $this->renderEmailHtml($subject, $content, array_merge([
+            'intro' => $extra['intro'] ?? $meta['intro'],
+            'ctaUrl' => $ctaUrl,
+            'ctaText' => $ctaText,
+            'pillText' => $meta['pill'],
+            'pillColor' => $meta['color'],
+            'pillBg' => $meta['bg'],
+            'sysCode' => $sysCode,
+            'logoUrl' => $H::logoUrl($sysCode),
+            'preheader' => $preheader,
+            'footerText' => 'Tedarik Yönetim Sistemi tarafından gönderildi.',
+        ], $extra));
+    }
+
+    protected function orderLink(array $payload): ?string
+    {
+        $H = \App\Services\TedarikMailHelper::class;
+        $qnid = $payload['order_qnid'] ?? $payload['qnid'] ?? null;
+        return $H::orderUrl($qnid);
+    }
+
+    protected function fileLink(array $payload): ?string
+    {
+        $H = \App\Services\TedarikMailHelper::class;
+        $qnid = $payload['file_qnid'] ?? $payload['fileQnid'] ?? null;
+        if ($qnid) return $H::fileUrl($qnid);
+        // bulk / fallback: point at the order when no single file qnid exists
+        return $this->orderLink($payload);
+    }
+
     //here we are finding the users who have permission for receving the client register notification and send mail to them
     // LEGACY: notif-00 removed → now tedarik-01 (Sipariş Sisteme Geldi SAP) — keep for backward, new flow uses tedarikOrderImported
     public function clientRegister(array $payload)
     {
         $this->log('info', 'Client Register Triggered', $this->payload);
-        $subject = 'Yeni Müşteri Kaydı';
-        $html = $this->renderEmailHtml($subject, '<p>Yeni bir müşteri kaydı gerçekleşti.</p><p><strong>Müşteri Mail:</strong> ' . e($payload['email'] ?? '-') . '</p><p><strong>Müşteri Telefon:</strong> ' . e($payload['phone'] ?? '-') . '</p>');
+        $subject = 'Yeni Tedarikçi Kaydı';
+        $H = \App\Services\TedarikMailHelper::class;
+        $html = $this->tedarikCard('register', $subject, [
+            ['E-posta', e($payload['email'] ?? '-')],
+            ['Telefon', e($payload['phone'] ?? '-')],
+            ['Sistem', e($H::sysCode($this->payload))],
+        ], null, '', null, ['intro' => 'Yeni bir tedarikçi kaydı alındı. Onay için kullanıcı listesini kontrol edin.', 'pillText' => 'Yeni Kayıt', 'pillColor' => '#154B91', 'pillBg' => '#eff6ff']);
         //after that we need to inform system users who permitted
         $this->informSystemUsers($subject, $html, 'tedarik-01');
-        
+
         $this->log('info', 'SendNotificationMailJob completed');
     }
 
-    //here we are finding the users who have permission for receving the client offer given notification and send mail to them
+    // LEGACY offer flow (op-doc-offer removed). Kept guarded so old queue payloads never 500.
     public function clientOfferGive(array $payload,$isUpdate = false)
     {
-        
+        $offer = [];
+        try {
+            $offer = array_values($payload['detail']['formFormat']['op-doc-offer-form'] ?? [])[0]['entities'] ?? [];
+        } catch (\Throwable $e) { $offer = []; }
 
-        $offer = array_values($payload['detail']['formFormat']['op-doc-offer-form'])[0]['entities'] ?? [];
-        
-        $offer['offer_type'] = explode('**',$offer["offer_type"])[1];
-        $this->log('info', 'Client Offer Given Triggered', $this->payload);   
+        if (isset($offer['offer_type']) && str_contains((string) $offer['offer_type'], '**')) {
+            $parts = explode('**', (string) $offer['offer_type']);
+            $offer['offer_type'] = $parts[1] ?? $parts[0];
+        }
+        $this->log('info', 'Client Offer Given Triggered', $this->payload);
         $subject = 'Yeni Teklif Verildi';
         $offer['req_no'] = $offer['req_no'] ?? '-';
-        $html = $this->renderEmailHtml($subject, '<p>Yeni bir teklif verilmiştir.</p><p><strong>Müşteri:</strong> ' . e($offer['clititle'] ?? '-') . '</p><p><strong>Talep kodu:</strong> ' . e($offer['request_id'] ?? '-') . '</p><p><strong>Teklif kodu:</strong> ' . e($offer['req_no'] ?? '-') . '</p><p><strong>Teklif Türü:</strong> ' . e($offer['offer_type'] ?? '-') . '</p>');
+        $html = $this->tedarikCard('offerGiven', $subject, [
+            ['Müşteri', e($offer['clititle'] ?? '-')],
+            ['Talep Kodu', e($offer['request_id'] ?? '-')],
+            ['Teklif Kodu', e($offer['req_no'] ?? '-')],
+            ['Teklif Türü', e($offer['offer_type'] ?? '-')],
+        ], null, '', null, ['intro' => 'Yeni bir teklif alındı.', 'pillText' => 'Teklif', 'pillColor' => '#154B91', 'pillBg' => '#eff6ff']);
 
         if($isUpdate){
             $subject = 'Teklif Revize Edildi';
-            $html = $this->renderEmailHtml($subject, '<p>Bir teklif revize edilmiştir.</p><p><strong>Müşteri:</strong> ' . e($offer['clititle'] ?? '-') . '</p><p><strong>Talep kodu:</strong> ' . e($offer['request_id'] ?? '-') . '</p><p><strong>Teklif kodu:</strong> ' . e($offer['qnid'] ?? '-') . '</p><p><strong>Teklif Türü:</strong> ' . e($offer['offer_type'] ?? '-') . '</p><h2>Revize Edilen Alanlar:</h2>' . $this->buildOfferRevisionHtml($payload));
+            $html = $this->tedarikCard('offerGiven', $subject, [
+                ['Müşteri', e($offer['clititle'] ?? '-')],
+                ['Talep Kodu', e($offer['request_id'] ?? '-')],
+                ['Teklif Kodu', e($offer['qnid'] ?? '-')],
+                ['Teklif Türü', e($offer['offer_type'] ?? '-')],
+            ], null, '', null, ['intro' => 'Bir teklif revize edildi. Değişen alanlar sistem kaydında.', 'pillText' => 'Revize', 'pillColor' => '#b45309', 'pillBg' => '#fef3c7'])
+                . $this->buildOfferRevisionHtml($payload);
         }
 
         //here also add addional files about offer if exist in payload
@@ -351,8 +409,13 @@ class SendNotificationMailJob implements ShouldQueue
     public function clientChanged(array $payload)
     {
         $this->log('info', 'Client Changed Triggered', $this->payload);
-        $subject = 'Müşteri Bilgi Güncellemesi';
-        $html = $this->renderEmailHtml($subject, '<p>Müşteri bilgilerinde bir güncelleme gerçekleşti.</p><p><strong>Müşteri Ünvan:</strong> ' . e($payload['client']['title'] ?? '-') . '</p><p><strong>Müşteri Kod:</strong> ' . e($payload['client']['clicode'] ?? '-') . '</p>');
+        $subject = 'Firma Bilgisi Güncellendi';
+        $clientQnid = $payload['client']['qnid'] ?? $payload['client_qnid'] ?? null;
+        $cta = $clientQnid ? \App\Services\TedarikMailHelper::gateway('/coalpanel/client/form/' . $clientQnid) : null;
+        $html = $this->tedarikCard('clientUpdate', $subject, [
+            ['Firma Ünvanı', e($payload['client']['title'] ?? '-')],
+            ['Firma Kodu', e($payload['client']['clicode'] ?? '-')],
+        ], $cta, 'Firma Kartını Aç', null, ['intro' => 'Firma bilgilerinde güncelleme yapıldı.', 'pillText' => 'Firma', 'pillColor' => '#475569', 'pillBg' => '#f1f5f9']);
 
         //first send mail to client contacts
         foreach ($payload['contacts'] as $key => $value) {
@@ -396,10 +459,15 @@ class SendNotificationMailJob implements ShouldQueue
     // ── TEDARIK notification handlers ──
     public function tedarikOrderImported(array $payload){
         $orderNo = $payload['order_no'] ?? $payload['transfer_no'] ?? '-';
-        $subject = 'Sipariş Sisteme Geldi (SAP Üzerinden)';
+        $subject = 'Yeni Sipariş Geldi: ' . $orderNo;
         $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? '';
         $bukrsSys = $this->bukrsToSystem($bukrs);
-        $html = $this->renderEmailHtml($subject, '<p>Yeni sipariş SAP üzerinden sisteme eklendi.</p><p><strong>Sipariş No:</strong> '.e($orderNo).'</p><p><strong>Sistem:</strong> '.e($bukrsSys).' ('.e($bukrs).')</p><p><strong>Tedarikçi:</strong> '.e($payload['ctitle'] ?? '-').' ('.e($payload['spec_code'] ?? '-').')</p>');
+        $html = $this->tedarikCard('tedarikOrderImported', $subject, [
+            ['Sipariş No', e($orderNo)],
+            ['Tedarikçi', e(($payload['ctitle'] ?? '-') . ' (' . ($payload['spec_code'] ?? '-') . ')')],
+            ['Sistem', e($bukrsSys . ($bukrs && $bukrs !== $bukrsSys ? ' (' . $bukrs . ')' : ''))],
+            ['Alım Kodu', e($payload['buying_no'] ?? '-')],
+        ], $this->orderLink($payload), 'Siparişi Aç');
         // BUKRS-aware dispatch: only users whose grp_code is BOTH or == bukrsSys
         $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-01');
         if(empty($permittedUsers['tedarik-01'])){
@@ -454,8 +522,14 @@ class SendNotificationMailJob implements ShouldQueue
         $mode = $payload['transfer_mode'] ?? '-';
         $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? $payload['order_sys_code'] ?? '';
         $bukrsSys = $this->bukrsToSystem($bukrs);
-        $subject = 'Sipariş Onaya Gönderildi';
-        $html = $this->renderEmailHtml($subject, '<p>Tedarikçi siparişi onaya gönderdi.</p><p><strong>Sipariş No:</strong> '.e($orderNo).'</p><p><strong>Mod:</strong> '.e($mode).'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Tedarikçi:</strong> '.e($payload['ctitle'] ?? '-').'</p>');
+        $subject = 'Onaya Gönderildi: ' . $orderNo;
+        $modeLabel = $mode === 'partial' ? 'Parçalı Sevkiyat' : ($mode === 'at_once' ? 'Tek Parça Sevkiyat' : $mode);
+        $html = $this->tedarikCard('tedarikOrderSent', $subject, [
+            ['Sipariş No', e($orderNo)],
+            ['Sevkiyat Tipi', e($modeLabel)],
+            ['Tedarikçi', e(($payload['ctitle'] ?? '-') . ' (' . ($payload['spec_code'] ?? '-') . ')')],
+            ['Sistem', e($bukrsSys . ($bukrs && $bukrs !== $bukrsSys ? ' (' . $bukrs . ')' : ''))],
+        ], $this->orderLink($payload), 'Siparişi İncele');
         // BUKRS-aware dispatch: only users whose grp_code is BOTH or == order sys_code
         $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-02');
         if(empty($permittedUsers['tedarik-02'])){
@@ -506,8 +580,14 @@ class SendNotificationMailJob implements ShouldQueue
     public function tedarikFileWaiting(array $payload){
         $bukrs = $payload['bukrs'] ?? $payload['sys_code'] ?? $payload['BUKRS'] ?? $payload['order_sys_code'] ?? '';
         $bukrsSys = $this->bukrsToSystem($bukrs);
-        $subject = 'İnceleme Bekleyen Dosyalar Mevcut';
-        $html = $this->renderEmailHtml($subject, '<p>Sipariş ile birlikte inceleme bekleyen dosyalar eklendi.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Dosya:</strong> '.e($payload['fileTitle'] ?? '-').'</p>');
+        $orderNo = $payload['order_no'] ?? $payload['transfer_no'] ?? '-';
+        $subject = 'İnceleme Bekliyor: ' . $orderNo;
+        $html = $this->tedarikCard('tedarikFileWaiting', $subject, [
+            ['Sipariş No', e($orderNo)],
+            ['Dosya', e($payload['fileTitle'] ?? 'Transfer dosyaları')],
+            ['Tedarikçi', e(($payload['ctitle'] ?? '-') . ' (' . ($payload['spec_code'] ?? '-') . ')')],
+            ['Sistem', e($bukrsSys)],
+        ], $this->fileLink($payload) ?? $this->orderLink($payload), 'Dosyayı İncele');
         // BUKRS-aware: same gate as tedarik-02 (triggers together)
         $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-03');
         if(empty($permittedUsers['tedarik-03'])){
@@ -571,8 +651,12 @@ class SendNotificationMailJob implements ShouldQueue
                 }
             }catch(\Throwable $e){}
         }
-        $subject = 'Sipariş Dosyası Onaylandı';
-        $html = $this->renderEmailHtml($subject, '<p>Sipariş dosyası onaylandı.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Dosya:</strong> '.e($payload['fileTitle'] ?? '-').'</p><p><strong>Not:</strong> '.e($payload['note'] ?? '-').'</p>');
+        $subject = 'Dosya Onaylandı: ' . ($payload['order_no'] ?? '-');
+        $html = $this->tedarikCard('tedarikFileApproved', $subject, [
+            ['Sipariş No', e($payload['order_no'] ?? '-')],
+            ['Dosya', e($payload['fileTitle'] ?? '-')],
+            ['Sistem', e($bukrsSys)],
+        ], $this->fileLink($payload) ?? $this->orderLink($payload), 'Dosyayı Gör', $payload['note'] ?? null);
         // ── Recipients: (A) assigned non-tedarik BUKRS-gated + (B) matching resellers by LIFNR+BUKRS even if not assigned
         $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-04');
         $assigned = $permittedUsers['tedarik-04'] ?? [];
@@ -666,8 +750,12 @@ class SendNotificationMailJob implements ShouldQueue
                 }
             }catch(\Throwable $e){}
         }
-        $subject = 'Sipariş Dosyası Yeniden Talep Edildi';
-        $html = $this->renderEmailHtml($subject, '<p>Sipariş dosyası reddedildi — yeniden talep edildi.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Dosya:</strong> '.e($payload['fileTitle'] ?? '-').'</p><p><strong>Ret Notu:</strong> '.e($payload['note'] ?? '-').'</p>');
+        $subject = 'Düzeltme İstendi: ' . ($payload['order_no'] ?? '-');
+        $html = $this->tedarikCard('tedarikFileRejected', $subject, [
+            ['Sipariş No', e($payload['order_no'] ?? '-')],
+            ['Dosya', e($payload['fileTitle'] ?? '-')],
+            ['Sistem', e($bukrsSys)],
+        ], $this->fileLink($payload) ?? $this->orderLink($payload), 'Dosyayı Yükle', $payload['note'] ?? null);
         $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-05');
         $assigned = $permittedUsers['tedarik-05'] ?? [];
         $filteredAssigned = [];
@@ -750,8 +838,12 @@ class SendNotificationMailJob implements ShouldQueue
                 }
             }catch(\Throwable $e){}
         }
-        $subject = 'Sipariş Kalite Onayı Verildi';
-        $html = $this->renderEmailHtml($subject, '<p>Sipariş kalite onayı verildi ve kapatıldı.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Tedarikçi:</strong> '.e($payload['ctitle'] ?? '-').'</p>');
+        $subject = 'Kalite Onayı: ' . ($payload['order_no'] ?? '-');
+        $html = $this->tedarikCard('tedarikOrderApproved', $subject, [
+            ['Sipariş No', e($payload['order_no'] ?? '-')],
+            ['Tedarikçi', e(($payload['ctitle'] ?? '-') . ' (' . ($payload['spec_code'] ?? $payload['order_spec'] ?? '-') . ')')],
+            ['Sistem', e($bukrsSys)],
+        ], $this->orderLink($payload), 'Siparişi Gör');
         $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-06');
         $assigned = $permittedUsers['tedarik-06'] ?? [];
         $filteredAssigned = [];
@@ -834,8 +926,11 @@ class SendNotificationMailJob implements ShouldQueue
                 }
             }catch(\Throwable $e){}
         }
-        $subject = 'Sipariş Reddedildi';
-        $html = $this->renderEmailHtml($subject, '<p>Sipariş reddedildi.</p><p><strong>Sipariş No:</strong> '.e($payload['order_no'] ?? '-').'</p><p><strong>Sistem:</strong> '.e($bukrsSys).($bukrs ? ' ('.e($bukrs).')' : '').'</p><p><strong>Not:</strong> '.e($payload['note'] ?? '-').'</p>');
+        $subject = 'Sipariş Reddedildi: ' . ($payload['order_no'] ?? '-');
+        $html = $this->tedarikCard('tedarikOrderRejected', $subject, [
+            ['Sipariş No', e($payload['order_no'] ?? '-')],
+            ['Sistem', e($bukrsSys)],
+        ], $this->orderLink($payload), 'Siparişi Gör', $payload['note'] ?? null);
         $permittedUsers = $this->personProvider->getNotificationUsers('tedarik-07');
         $assigned = $permittedUsers['tedarik-07'] ?? [];
         $filteredAssigned = [];
@@ -957,8 +1052,12 @@ class SendNotificationMailJob implements ShouldQueue
     public function clientFileStatus(array $payload)
     {
         $this->log('info', 'Client File Status Triggered', $this->payload);
-        $subject = 'Müşteri Dosya Durum Güncellemesi';
-        $html = $this->renderEmailHtml($subject, '<p>Müşteri dosya durumlarında güncelleme gerçekleşti.</p><p><strong>Müşteri Ünvan:</strong> ' . e($payload['title'] ?? '-') . '</p><p><strong>Müşteri Kod:</strong> ' . e($payload['clicode'] ?? '-') . '</p><p><strong>Dosya:</strong> ' . e($payload['fileTitle'] ?? '-') . '</p><p><strong>Yeni Durum:</strong> ' . e($payload['status'] ?? '-') . '</p><p><strong>Not:</strong> ' . e($payload['note'] ?? '-') . '</p>');
+        $subject = 'Dosya Durumu: ' . ($payload['fileTitle'] ?? 'Güncelleme');
+        $html = $this->tedarikCard('cliFileStatus', $subject, [
+            ['Firma', e(($payload['title'] ?? '-') . ' (' . ($payload['clicode'] ?? '-') . ')')],
+            ['Dosya', e($payload['fileTitle'] ?? '-')],
+            ['Yeni Durum', e(is_array($payload['status'] ?? null) ? json_encode($payload['status'], JSON_UNESCAPED_UNICODE) : ($payload['status'] ?? '-'))],
+        ], null, '', $payload['note'] ?? null, ['intro' => 'Dosya durumunda güncelleme yapıldı.', 'pillText' => 'Dosya', 'pillColor' => '#475569', 'pillBg' => '#f1f5f9']);
 
         //first send mail to client contacts
         foreach ($payload['contacts'] as $key => $value) {
@@ -989,9 +1088,12 @@ class SendNotificationMailJob implements ShouldQueue
     public function clientOfferStatus(array $payload)
     {
 
-        //here we are sending information to clients about status of the offer
-        $status = $payload['data'];
-        $offer =  array_values($payload['detail']['formFormat']['op-doc-offer-form'])[0]['entities'] ?? [];
+        // LEGACY offer flow — guarded, new system has no op-doc-offer
+        $status = $payload['data'] ?? '-';
+        $offer = [];
+        try {
+            $offer = array_values($payload['detail']['formFormat']['op-doc-offer-form'] ?? [])[0]['entities'] ?? [];
+        } catch (\Throwable $e) { $offer = []; }
         
         
         
@@ -1021,8 +1123,14 @@ class SendNotificationMailJob implements ShouldQueue
 
 
         $this->log('info', 'Client Offer Status Triggered', $this->payload);
-        $subject = 'Teklif Durum Değişikliği';
-        $html = $this->renderEmailHtml($subject, '<p>Teklifinizin durumunda değişiklik yapılmıştır.</p><p><strong>Müşteri:</strong> ' . e($payload['clititle'] ?? '-') . '</p><p><strong>Talep kodu:</strong> ' . e($payload['request_id'] ?? '-') . '</p><p><strong>Teklif kodu:</strong> ' . e($payload['qnid'] ?? '-') . '</p><p><strong>Teklif Türü:</strong> ' . e($payload['offer_type'] ?? '-') . '</p><p><strong>Teklif Durumu:</strong> ' . e($payload['offer_status'] ?? '-') . '</p>');
+        $subject = 'Teklif Durumu: ' . (is_string($payload['offer_status'] ?? null) ? $payload['offer_status'] : 'Güncelleme');
+        $html = $this->tedarikCard('offerStatus', $subject, [
+            ['Müşteri', e($payload['clititle'] ?? '-')],
+            ['Talep Kodu', e($payload['request_id'] ?? '-')],
+            ['Teklif Kodu', e($payload['qnid'] ?? '-')],
+            ['Teklif Türü', e($payload['offer_type'] ?? '-')],
+            ['Teklif Durumu', e(is_string($payload['offer_status'] ?? null) ? $payload['offer_status'] : '-')],
+        ], null, '', null, ['intro' => 'Teklif durumunda değişiklik yapıldı.', 'pillText' => 'Teklif', 'pillColor' => '#154B91', 'pillBg' => '#eff6ff']);
 
         //first send mail to client contacts
         foreach ($payload['contacts'] as $key => $value) {

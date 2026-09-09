@@ -60,9 +60,10 @@ It uses `SendNotificationMailJob` to carry the payload and perform actual email 
 `panel/app/Jobs/SendNotificationMailJob.php`:
 
 - inspects payload `type` (`tedarikOrderImported|tedarikOrderSent|tedarikFileWaiting|tedarikFileApproved|tedarikFileRejected|tedarikOrderApproved|tedarikOrderRejected` + legacy)
-- routes to TEDARIK handler `tedarikOrderImported()` etc. → `informSystemUsers(subject, html, 'tedarik-0X')` (**`tedarik-01:397`, `tedarik-02:452`, `tedarik-03:506`, `tedarik-04:558`, `tedarik-05:654`, `tedarik-06:741`, `tedarik-07:848` bypass it with BUKRS/LIFNR-filtered manual `MailService::sendMail` loops; others use unfiltered `informSystemUsers:710`**)
+- routes to TEDARIK handler `tedarikOrderImported()` etc. → `informSystemUsers(subject, html, 'tedarik-0X')` (BUKRS/LIFNR-filtered handlers bypass it with manual `MailService::sendMail` loops; legacy use unfiltered `informSystemUsers`)
+- **2026-09-09:** all 7 TEDARIK handlers + legacy (`clientRegister/OfferGive/Changed/FileStatus/OfferStatus`) build content via `tedarikCard()` helper → `TedarikMailHelper::detailTable()` rows + `noteBox()` + status pill (`metaFor()`) + deep-link CTA (`orderLink()`/`fileLink()` → `/tedarik?next=/tedarikpanel/...` gateway). Subjects carry the order no (`Yeni Sipariş Geldi: 3510004400-1`). Legacy offer handlers guarded (no `op-doc-offer-form` → fallback, never 500).
 - builds email content and recipients via `MailService`
-- logs job execution progress and failures; `informSystemUsers` now guards `empty($permittedUsers[$opKey])` return; BUKRS handlers log `Skipped user due BUKRS mismatch` + `Filtered ... by BUKRS`; `tedarik-02`/`tedarik-03` triggered together (`DocumentController:179` sends both with same `bukrs/sys_code`), `tedarik-04`/`05` dual (assigned non-tedarik + lifnr-matching reseller via `clientQnid→lifnr==spec_code` + `BOTH/==sys_code`)
+- logs job execution progress and failures; `informSystemUsers` now guards `empty($permittedUsers[$opKey])` return; BUKRS handlers log `Skipped user due BUKRS mismatch` + `Filtered ... by BUKRS`; `tedarik-02`/`tedarik-03` triggered together (same-moment send with same `bukrs/sys_code`), `tedarik-04`/`05` dual (assigned non-tedarik + lifnr-matching reseller via `clientQnid→lifnr==spec_code` + `BOTH/==sys_code`)
 
 ### 3.3 Password reset / info email jobs
 

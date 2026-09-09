@@ -10,6 +10,7 @@
     import flatpickr from 'flatpickr';
     import { Turkish } from 'flatpickr/dist/l10n/tr.js';
     import 'flatpickr/dist/flatpickr.min.css';
+    import { noteOf } from '@/lib/statusUtils';
     flatpickr.localize(Turkish);
 
     const ESCAPE_RE = /[&<>"']/g;
@@ -847,14 +848,9 @@
                                                     <button class="btn btn-danger mb-5 doc-status"  data-key="doc_file_rejected"  type="button">Reddet</button>
                                                 </div>`,
                                         willOpen : async () => {
-                                            let noteText = (() => {
-                                                try {
-                                                    return JSON.parse(statusData?.note ?? '{}')?.note ?? statusData?.note ?? '';
-                                                } catch (e) {
-                                                    return statusData?.note ?? '';
-                                                }
-                                            })();
-                                            Swal.showValidationMessage(noteText);
+                                            // Unwrap {"actor":..,"note":..} safely — null/empty never shows raw JSON
+                                            const noteText = noteOf({ last_status: statusData });
+                                            if (noteText) Swal.showValidationMessage(escapeHtml(noteText));
                                             const container = (typeof Swal.getHtmlContainer==='function' ? Swal.getHtmlContainer() : document) || document;
                                             container.querySelectorAll('.doc-status').forEach(btn => {
                                                 btn.addEventListener('click', e => {

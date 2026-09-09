@@ -39,11 +39,15 @@ class SendInfoMailJob implements ShouldQueue
 
             $subject = $this->header;
             $mailService = new MailService();
+            $sys = strtoupper(trim((string) ($this->sysCode ?? 'GDZ')));
+            if (!in_array($sys, ['GDZ', 'ADM'], true)) $sys = 'GDZ';
             $html = $mailService->renderHtmlMessage([
                 'title' => $subject,
                 'header' => $subject,
                 'content' => $this->body,
                 'intro' => null,
+                'sysCode' => $sys,
+                'logoUrl' => \App\Services\TedarikMailHelper::logoUrl($sys),
             ]);
 
             $result = $mailService->sendMail([

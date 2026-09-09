@@ -166,6 +166,26 @@ class MailService
                 $message->subject($data['subject']);
                 $message->from($fromAddress, $fromName);
 
+                // Gmail strips data-URI images: re-embed our logo bytes as a CID
+                // attachment and point the first data-URI img at it. Body already
+                // set by ->html() (callback runs after), so overwrite it fixed.
+                if (!empty($data['html']) && str_contains($data['html'], 'data:image/')) {
+                    try {
+                        $logoSys = strtoupper(trim((string) ($data['sys_code'] ?? $data['sysCode'] ?? $GLOBALS['SYS_CODE'] ?? 'GDZ')));
+                        $logoBin = \App\Services\TedarikMailHelper::logoBytes($logoSys);
+                        if ($logoBin !== null) {
+                            $logoMime = \App\Services\TedarikMailHelper::logoMime();
+                            $cid = $message->embedData($logoBin, 'mail-logo.png', $logoMime);
+                            $fixed = preg_replace('/src="data:image\/[^"]+"/', 'src="' . $cid . '"', $data['html'], 1);
+                            if (is_string($fixed) && $fixed !== '') {
+                                $message->getSymfonyMessage()->html($fixed);
+                            }
+                        }
+                    } catch (\Throwable $ex) {
+                        Log::warning('mail.logo.embed.failed', ['err' => $ex->getMessage()]);
+                    }
+                }
+
                 foreach ($attachFiles as $attachment) {
                     if (is_string($attachment) && file_exists($attachment)) {
                         $message->attach($attachment, [
@@ -265,14 +285,21 @@ class MailService
             'intro' => $data['intro'] ?? null,
             'content' => $data['content'] ?? '',
             'ctaUrl' => $data['ctaUrl'] ?? null,
-            'ctaText' => $data['ctaText'] ?? (!empty($data['ctaUrl'] ?? null) ? 'Devam Et' : null),
+            'ctaText' => $data['ctaText'] ?? (!empty($data['ctaUrl'] ?? null) ? 'Tedarik Panelinde Aç' : null),
             'subtext' => $data['subtext'] ?? null,
             'footerText' => $data['footerText'] ?? null,
+            'preheader' => $data['preheader'] ?? null,
+            'pillText' => $data['pillText'] ?? null,
+            'pillColor' => $data['pillColor'] ?? null,
+            'pillBg' => $data['pillBg'] ?? null,
+            'accent' => $data['accent'] ?? '#FF4713',
+            'logoUrl' => $data['logoUrl'] ?? null,
         ], $data);
 
         if (!isset($message['sysCode'])) {
             $message['sysCode'] = $message['sys_code'] ?? $message['sysCode'] ?? $GLOBALS['SYS_CODE'] ?? '';
         }
+        $message['sysCode'] = \App\Services\TedarikMailHelper::normalizeSys($message['sysCode'] ?? '');
 
         return view('emails.layout', $message)->render();
     }

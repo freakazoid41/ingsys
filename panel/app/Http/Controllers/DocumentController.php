@@ -92,6 +92,42 @@ class DocumentController extends Controller
         }
     }
 
+    /**
+     * Resolve the REAL order behind a file through its own entity connection —
+     * no parent climbing. The file's sys_con_entities row (table_tag =
+     * 'document_files', entity_value = file id) points at the conn whose
+     * main_id is the owning document; for order files that IS the order
+     * (base or EBELN-X clone). Never hops past it to the original.
+     */
+    private function resolveFileOrderDoc(string $fileQnid): ?\App\Models\Documents
+    {
+        try {
+            $fileRow = \App\Models\Document_files::where('qnid', $fileQnid)->first();
+            if (!$fileRow) return null;
+            $isOrder = fn ($doc) => $doc && ((\App\Models\Sys_options::find($doc->type_id)->op_key ?? null) === 'op-doc-order');
+            // 1) the file's own connection — direct owner
+            $ent = \App\Models\Sys_con_entities::where('table_tag', 'document_files')
+                ->where('entity_value', (string) $fileRow->id)
+                ->orderByDesc('id')->first();
+            if ($ent) {
+                $conn = \App\Models\Sys_con_ops::find((int) $ent->conn_id);
+                $main = $conn ? \App\Models\Documents::find((int) $conn->main_id) : null;
+                if ($isOrder($main)) return $main;
+                // item/serial slot: the slot owner's parent is its order
+                if ($main && (int) $main->parent_id !== 0) {
+                    $order = \App\Models\Documents::find((int) $main->parent_id);
+                    if ($isOrder($order)) return $order;
+                }
+            }
+            // 2) fallback: relation pointer, taken as-is when it is an order
+            $rel = \App\Models\Documents::find((int) $fileRow->relation_id);
+            if ($isOrder($rel)) return $rel;
+        } catch (\Throwable $e) {
+            return null;
+        }
+        return null;
+    }
+
     public function index(Request $request)
     {
         $method = strtoupper($request->method());
@@ -352,27 +388,17 @@ class DocumentController extends Controller
         }
         if($result['success'] && in_array($request->op_key, self::TEDARIK_FILE_STATUSES, true)){
             try{
-                $fileRow = \App\Models\Document_files::where('qnid', $request->id)->first();
-                if($fileRow){
-                    $relDoc = \App\Models\Documents::find((int)$fileRow->relation_id);
-                    if($relDoc){
-                        $orderDoc = $relDoc;
-                        if((int)$relDoc->parent_id !== 0){
-                            $maybeOrder = \App\Models\Documents::find($relDoc->parent_id);
-                            if($maybeOrder) $orderDoc = $maybeOrder;
-                        }
-                        $orderType = \App\Models\Sys_options::find($orderDoc->type_id);
-                        if(($orderType->op_key ?? null) === 'op-doc-order'){
-                            $payloadNotif = $this->buildOrderNotifPayload($orderDoc->qnid, [
-                                'fileTitle' => $result['fileTitle'] ?? 'Dosya',
-                                'note'      => $result['note'] ?? '',
-                            ]);
-                            if($request->op_key === 'doc_file_accepted'){
-                                $this->emails->sendTedarikFileApproved($payloadNotif);
-                            } else {
-                                $this->emails->sendTedarikFileRejected($payloadNotif);
-                            }
-                        }
+                $orderDoc = $this->resolveFileOrderDoc($request->id);
+                if($orderDoc){
+                    $payloadNotif = $this->buildOrderNotifPayload($orderDoc->qnid, [
+                        'fileTitle' => $result['fileTitle'] ?? 'Dosya',
+                        'note'      => $result['note'] ?? '',
+                        'file_qnid' => $request->id,
+                    ]);
+                    if($request->op_key === 'doc_file_accepted'){
+                        $this->emails->sendTedarikFileApproved($payloadNotif);
+                    } else {
+                        $this->emails->sendTedarikFileRejected($payloadNotif);
                     }
                 }
             }catch(\Throwable $e){
@@ -420,28 +446,17 @@ class DocumentController extends Controller
 
                     if(in_array($request->op_key, self::TEDARIK_FILE_STATUSES, true)){
                         try{
-                            $fileRow = \App\Models\Document_files::where('qnid', $file->qnid)->first();
-                            if($fileRow){
-                                $relDoc = \App\Models\Documents::find((int)$fileRow->relation_id);
-                                if($relDoc){
-                                    $orderDoc = $relDoc;
-                                    if((int)$relDoc->parent_id !== 0){
-                                        $maybeOrder = \App\Models\Documents::find($relDoc->parent_id);
-                                        if($maybeOrder) $orderDoc = $maybeOrder;
-                                    }
-                                    $orderType = \App\Models\Sys_options::find($orderDoc->type_id);
-                                    if(($orderType->op_key ?? null) === 'op-doc-order'){
-                                        $payloadTmp = $this->buildOrderNotifPayload($orderDoc->qnid, [
-                                            'note' => $request->note ?? '',
-                                            'fileTitle' => $result['fileTitle'] ?? 'Dosya',
-                                        ]);
-                                        $qnidKey = $orderDoc->qnid;
-                                        if(!isset($tedarikPending[$qnidKey])){
-                                            $tedarikPending[$qnidKey] = array_merge($payloadTmp, ['fileTitles'=>[]]);
-                                        }
-                                        $tedarikPending[$qnidKey]['fileTitles'][] = $result['fileTitle'] ?? 'Dosya';
-                                    }
+                            $orderDoc = $this->resolveFileOrderDoc($file->qnid);
+                            if($orderDoc){
+                                $payloadTmp = $this->buildOrderNotifPayload($orderDoc->qnid, [
+                                    'note' => $request->note ?? '',
+                                    'fileTitle' => $result['fileTitle'] ?? 'Dosya',
+                                ]);
+                                $qnidKey = $orderDoc->qnid;
+                                if(!isset($tedarikPending[$qnidKey])){
+                                    $tedarikPending[$qnidKey] = array_merge($payloadTmp, ['fileTitles'=>[]]);
                                 }
+                                $tedarikPending[$qnidKey]['fileTitles'][] = $result['fileTitle'] ?? 'Dosya';
                             }
                         }catch(\Throwable $e){
                             Log::warning('bulk tedarik-04/05 collect failed', ['msg'=>$e->getMessage(), 'file'=>$file->qnid]);

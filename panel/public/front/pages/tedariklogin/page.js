@@ -12,7 +12,17 @@ export default class Page {
                 }, 400);
                 return;
             }
-            // Single login: honor target_module if server set it (single-module auto-redirect)
+            const isSafeNext = (v) => typeof v === 'string' && /^\/(tedarikpanel|coalpanel)(\/|$)/.test(v);
+            // Email deep-link wins: explicit post-login target from server or stored ?next
+            const nextInput = document.querySelector('input[name="postLoginNext"]');
+            const storedNext = (() => { try { return localStorage.getItem('post_login_next'); } catch(e) { return null; } })();
+            const nextVal = (nextInput && nextInput.value.trim()) || storedNext;
+            if(nextVal && isSafeNext(nextVal)){
+                try { localStorage.removeItem('post_login_next'); } catch(e) {}
+                setTimeout(() => { window.location.href = nextVal; }, 400);
+                return;
+            }
+            // Single login: honor target_module if server set it (may be deep link or panel root)
             const targetInput = document.querySelector('input[name="targetModule"]');
             if(targetInput && targetInput.value.trim()){
                 setTimeout(() => { window.location.href = targetInput.value.trim(); }, 400);
@@ -21,6 +31,19 @@ export default class Page {
             // Fallback: ask backend which modules are allowed (covers edge where we landed on login but have multi)
             this.routeByModules();
         }else{
+            // Preserve email ?next across the credential POST (server also reads hidden input)
+            try {
+                const q = new URLSearchParams(window.location.search).get('next');
+                if(q && /^\/(tedarikpanel|coalpanel)(\/|$)/.test(q)){
+                    localStorage.setItem('post_login_next', q);
+                    const form = document.querySelector('#login-form');
+                    if(form && !form.querySelector('input[name="next"]')){
+                        const h = document.createElement('input');
+                        h.type = 'hidden'; h.name = 'next'; h.value = q;
+                        form.appendChild(h);
+                    }
+                }
+            } catch(e) {}
             this.pageEvents();
             if(document.cookie.includes('email')){
                 const em = this.getCookie('email');

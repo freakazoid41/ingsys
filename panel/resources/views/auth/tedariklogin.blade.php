@@ -44,19 +44,38 @@
         justify-content: center;
         align-items: center;
         margin-top: 0;
+        height: 104px;
     }
     .logo img {
-        height: 140px;
+        height: 100px;
         width: auto;
+        max-width: 100%;
         display: block;
+        object-fit: contain;
     }
+    /* ADM mark bleeds full-bleed while GDZ carries ~7% inner padding —
+       shave ADM so both wordmarks sit at identical optical height */
+    .logo-adm img { height: 94px; }
     .title {
-        text-align: center;
-        margin-top: 36px;
-        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 30px;
+        font-size: 13px;
         font-weight: 600;
-        color: #2b2b2e;
-        letter-spacing: -0.1px;
+        color: #9a9aa3;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .title::before,
+    .title::after {
+        content: '';
+        height: 1px;
+        width: 46px;
+        background: #e7e7e9;
     }
     .form-area {
         margin-top: 72px;
@@ -211,8 +230,8 @@
 <body>
     <div class="wrap">
         <div class="card">
-            <div class="logo">
-                <img src="/coaltheme/GDZ.svg" alt="Gdz" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+            <div class="logo{{ (($GLOBALS['SYS_CODE'] ?? 'GDZ') === 'ADM') ? ' logo-adm' : '' }}">
+                <img src="{{ (($GLOBALS['SYS_CODE'] ?? 'GDZ') === 'ADM') ? '/coaltheme/adm-logo.svg' : '/coaltheme/GDZ.svg' }}" alt="Gdz" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
                 <!-- fallback if SVG missing -->
                 <svg style="display:none" width="84" height="28" viewBox="0 0 110 38" fill="none"><text x="0" y="28" font-family="Inter,sans-serif" font-size="30" font-weight="800" fill="#FF4713">Gdz</text><g transform="translate(68,2)"><path d="M6 4 L22 0 L22 8 L6 12 Z" fill="#FF4713"/><path d="M6 14 L22 10 L22 18 L6 22 Z" fill="#FF4713"/><path d="M24 4 L38 12 L24 20 Z" fill="#FF4713"/></g></svg>
             </div>
@@ -221,6 +240,9 @@
             <form id="login-form" class="form-area" method="POST" action="{{ route('login-user','tedarik', false) }}" novalidate>
                 @csrf
                 <input type="hidden" name="auth_panel" value="tedarik" />
+                @if(!empty($postLoginNext ?? request()->query('next')))
+                    <input type="hidden" name="next" value="{{ $postLoginNext ?? request()->query('next') }}" />
+                @endif
 
                 <div class="field">
                     <input required type="text" id="email" name="email" autocomplete="off" placeholder=" " class="input login-item" />
@@ -264,6 +286,9 @@
                     <input name="apiKey" hidden readonly value="{{\Session::get('sms-success')}}">
                     @if(!empty($targetModule))
                         <input name="targetModule" hidden readonly value="{{$targetModule}}">
+                    @endif
+                    @if(!empty($postLoginNext ?? null))
+                        <input name="postLoginNext" hidden readonly value="{{$postLoginNext}}">
                     @endif
                 @else
                     <button type="button" id="submit-button" class="btn-main">

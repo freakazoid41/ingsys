@@ -45,6 +45,8 @@ class SendResetMailJob implements ShouldQueue
             $content .= '<p>Lütfen giriş yaptıktan sonra şifrenizi değiştirin.</p>';
 
             $mailService = new MailService();
+            $sys = strtoupper(trim((string) ($this->sysCode ?? 'GDZ')));
+            if (!in_array($sys, ['GDZ', 'ADM'], true)) $sys = 'GDZ';
             $result = $mailService->sendMail([
                 'to' => $this->email,
                 'subject' => $subject,
@@ -53,6 +55,13 @@ class SendResetMailJob implements ShouldQueue
                     'header' => $subject,
                     'content' => $content,
                     'intro' => 'Şifre sıfırlama işleminiz tamamlanmıştır.',
+                    'sysCode' => $sys,
+                    'logoUrl' => \App\Services\TedarikMailHelper::logoUrl($sys),
+                    'ctaUrl' => \App\Services\TedarikMailHelper::gateway('/tedarikpanel'),
+                    'ctaText' => 'Giriş Yap',
+                    'pillText' => 'Güvenlik',
+                    'pillColor' => '#154B91',
+                    'pillBg' => '#eff6ff',
                 ]),
                 'sys_code' => $this->sysCode,
             ]);

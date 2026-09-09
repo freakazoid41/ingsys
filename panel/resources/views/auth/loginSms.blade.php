@@ -36,7 +36,9 @@
         border: 1px solid rgba(0,0,0,0.04);
     }
     .logo { display: flex; justify-content: center; align-items: center; }
-    .logo img { height: 110px; width: auto; display: block; }
+    .logo { display: flex; justify-content: center; align-items: center; height: 88px; }
+    .logo img { height: 84px; width: auto; max-width: 100%; display: block; object-fit: contain; }
+    .logo-adm img { height: 79px; }
     .title {
         text-align: center;
         margin-top: 18px;
@@ -130,8 +132,8 @@
 <body>
     <div class="wrap">
         <div class="card">
-            <div class="logo">
-                <img src="/coaltheme/GDZ.svg" alt="Gdz">
+            <div class="logo{{ (($GLOBALS['SYS_CODE'] ?? 'GDZ') === 'ADM') ? ' logo-adm' : '' }}">
+                <img src="{{ (($GLOBALS['SYS_CODE'] ?? 'GDZ') === 'ADM') ? '/coaltheme/adm-logo.svg' : '/coaltheme/GDZ.svg' }}" alt="Gdz">
             </div>
             <div class="title">Doğrulama Kodu</div>
             <div class="subtitle">Sistemde kayıtlı e-posta adresinize<br>doğrulama kodu gönderildi.</div>

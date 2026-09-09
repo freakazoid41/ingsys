@@ -22,7 +22,7 @@
 ** süreci iki paneldende full test et 
 ** veri aktarımı
 ** eski sistemi kurallar için kontrol et
-** mail templateleri üzerinde çalış
+
 
 
 

@@ -49,13 +49,20 @@ class AuthController extends Controller
         return redirect()->route('tedarik-login');
     }
 
-    public function tedariklogin(){
+    public function tedariklogin(\Illuminate\Http\Request $request){
+        // Email deep-link gateway: /tedarik?next=/tedarikpanel/orders/form/{qnid}
+        // Persist validated next across the 2FA flow so post-login JS can redirect.
+        $next = $request->query('next', $request->input('next'));
+        if (is_string($next) && preg_match('#^/(tedarikpanel|coalpanel)(/|$)#', $next)) {
+            session(['post_login_next' => $next]);
+        }
         // expose target_module if single-module auto-redirect was prepared
         return view('auth.tedariklogin', [
             'scripts' => [],
             'styles'  => [],
             'pageScript' => '/front/pages/tedariklogin/page.js',
             'targetModule' => session('target_module'),
+            'postLoginNext' => session('post_login_next'),
         ]);
     }
 
@@ -254,10 +261,14 @@ class AuthController extends Controller
         try {
             $origin = $request->input('auth_panel') ?? $request->route('type') ?? null;
             $isTedarik = ($origin === 'tedarik');
+            // preserve email deep-link target across flush (?next=/tedarikpanel/...)
+            $postNext = $request->input('next', $request->query('next'));
+            if (!is_string($postNext) || !preg_match('#^/(tedarikpanel|coalpanel)(/|$)#', $postNext)) $postNext = null;
             // flush but preserve origin for 2FA flow
             $request->session()->flush();
             if ($isTedarik) session(['auth_panel' => 'tedarik']);
             else session(['auth_panel' => 'admin']);
+            if ($postNext) session(['post_login_next' => $postNext]);
             //validate request sended parameters
             $validateUser = Validator::make($request->all(),[
                 'email'    => 'required',
@@ -534,6 +545,13 @@ class AuthController extends Controller
                 //check is is first login (user needs to change its password then)
                 if($firstLogin) return redirect()->route($loginRoute)->with('sms-firstlogin', $token);
 
+                // Email deep-link wins: /tedarik?next=/tedarikpanel/... → straight to record
+                $postNext = session('post_login_next');
+                if (is_string($postNext) && preg_match('#^/(tedarikpanel|coalpanel)(/|$)#', $postNext)) {
+                    session(['target_module' => $postNext]);
+                    session()->forget('post_login_next');
+                    return redirect()->route($loginRoute)->with('sms-success', $token);
+                }
                 // Module routing: single -> auto, multi -> selection screen
                 $modules = $this->getAvailableModules($user);
                 if(empty($modules)){

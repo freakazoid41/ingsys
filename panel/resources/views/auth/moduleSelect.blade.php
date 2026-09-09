@@ -34,7 +34,9 @@
         border: 1px solid rgba(0,0,0,0.04);
     }
     .logo { display: flex; justify-content: center; align-items: center; }
-    .logo img { height: 84px; width: auto; display: block; }
+    .logo { display: flex; justify-content: center; align-items: center; height: 76px; }
+    .logo img { height: 72px; width: auto; max-width: 100%; display: block; object-fit: contain; }
+    .logo-adm img { height: 68px; }
     .title { text-align: center; margin-top: 16px; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px; }
     .subtitle { text-align: center; margin-top: 8px; font-size: 13.5px; color: #64748b; line-height: 1.6; }
     .grid {
@@ -92,8 +94,8 @@
 <body>
     <div class="wrap">
         <div class="card">
-            <div class="logo">
-                <img src="/coaltheme/GDZ.svg" alt="Gdz" onerror="this.style.display='none'">
+            <div class="logo{{ (($GLOBALS['SYS_CODE'] ?? 'GDZ') === 'ADM') ? ' logo-adm' : '' }}">
+                <img src="{{ (($GLOBALS['SYS_CODE'] ?? 'GDZ') === 'ADM') ? '/coaltheme/adm-logo.svg' : '/coaltheme/GDZ.svg' }}" alt="Gdz" onerror="this.style.display='none'">
             </div>
             <div class="title">Modül Seçin</div>
             <div class="subtitle">Yetkinize açık modüller aşağıda listelendi.<br>Devam etmek için birine tıklayın.</div>
