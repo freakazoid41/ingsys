@@ -1,111 +1,28 @@
-# Roadmap — Plans For Next Sessions
+# Roadmap — Next Sessions
 
-> **Front panel is the crown jewel — you said you'll give design (`memory/idea.md`). Until then, here's the ordered attack plan so any LLM can pick up without asking you twice.**
-> **Completed-work log moved to `memory/05-order-system-state.md` §4/§6/§10 — do NOT re-log it here.**
+> **Completed-work log removed (was duplicate of `05 §4`). History lives in `git log`. Mechanics live in `panel/documentation/*`.**
 
-## 1. Immediate Next (Choose 1)
+## 1. Immediate Next (pick 1)
+- **Tedarik polish:** list LIFNR filter wiring verify, detail readOnly + transfer + serials + files via shared `OForm`, `files_rejected` re-upload loop — mostly DONE, verify both panels parity.
+- **Dashboard extend:** add metrics to `tedarikStats/adminStats` (`ReportServiceProvider.php`) + Stat→List `?status=` already wired.
+- **Branding:** DONE (`ADM/GDZ`). Only per-tenant CSS tweaks left (logo-adm rule).
+- **Front panel skin:** waits on `memory/idea.md` design from Master — crown jewel, not started.
 
-### Option A: Tedarik Panel Orders → Build Client Order Flow (DONE 2026-09-02 late — polish)
-Login shell DONE (`/tedarik` 560×840 140px Gdz → unified orange 2FA → `/tedarikpanel` `TedarikPanel.vue:386` card 1360×12 sidebar 210 7 tabs 64×12 -52 protruding, logo 82 + label, menu flex1 centered, `OList isTedarik` card-rows `pickletable height auto`, **`Dashboard.vue` DONE**, route `router/index.js:110` reuses `OList/OForm`). Next:
-1. **Order List tedarik view:** filter by client LIFNR (`currentStatus.clientQnidList` if reseller), hide admin actions, show `transfer_sent/files_rejected` badges — **UI DONE**, filter wiring PENDING.
-2. **Order Detail tedarik:** order header readOnly + `OrderItemTable` with `readonly` + file upload (test+images) + transfer card at_once/partial + serials (KG/M required, ST optional), same `processOrderTransfer` payload — **reuses OForm**.
-3. **File + serial wiring:** reuse `Form.vue` + `pickle.js` temp-upload (already done in admin OForm — clone for tedarik).
-4. **Rejected:** `files_rejected` orange + re-upload unlock + `still-rejected` toast — done.
+## 2. Tech Debt (active only)
+- `Documents::tableList parent_type_id=0` — items visible in main lists
+- Security: `DEV_ADMIN 111111`, public `resetusercradentals`, CSRF off, `/order-file` IDOR, `pickle` hardcoded, relay password logged
+- `B2X` stopped container on 5431 — remove when confirmed
+- `permission_version file` store — `refreshAllUserPermissions` flaky, relogin fallback
 
-### Option B: Dashboard Rebuild — DONE 2026-09-06
-Admin: `adminStats|adminStatusBreakdown|adminRecentOrders|adminRecentFiles|adminActivity|adminMonthlyOrders` (Cache 60s) + 8 Vue (Stats/Status/Monthly/RecentOrders/Files/Activity/QuickActions) + Stat→List `?status=` + sidebar fix. Tedarik: `tedarikStats (6) + tedarikMonthlyOrders|tedarikRecentFiles|tedarikActivity (Bilgilendirmeler)` + 7 Vue polished (Stats 6/Status/Monthly/Recent/Files/Activity/Quick+ DForm blue). Both live, LIFNR-scoped (tedarik) / global (admin).
+## 3. How To Resume
+1. Read `memory/05` + this file + `panel/documentation/tedarik-system-process.md:12` test plan.
+2. `docker ps | grep tedarikNewApp`, `panel/.env`, `php artisan migrate:status`.
+3. Key methods: `DocumentServiceProvider::processOrderTransfer / duplicateOrderItem / decrementItemQuantity / createSerialEntries / setHasSerialsFlag`, `ReportServiceProvider::getResellerLifnrs / tedarikStats / tedarikRecentOrders / tedarikStatusBreakdown`.
+4. After any `Form.vue/router/Sidebar/OForm/OList/OrderItemTable` edit → `npm run build` → test both panels.
+5. Update `memory/05 §1` after major change. Do NOT re-log history here.
 
-### Option C: Branding — DONE 2026-09-02
-`CATES/YATAGAN → GDZ/ADM` (`public/index.php` `adm ? ADM : GDZ`, `GDZ.svg/ADM.svg`, `gdz/adm.jpg`, `SysSeeder` `GDZ Sistem`, 16 files bulk, `emails/layout` logo, DB re-seed `grp_code=GDZ`). Admin `/` still blue CATES? Now GDZ. Tedarik `/tedarik` orange Gdz.
-
-## 2. Completed (recent)
-
-> **Full change log lives in `memory/05 §4` — only highlights kept here.**
-
- - **Tedarik Dashboard (2026-09-05):** `ReportServiceProvider` 3 new endpoints (`tedarik-stats/tedarik-orders/tedarik-status`) with LIFNR-scoped reseller queries. 5 Vue components: TedarikHeader (greeting+bell+Swal), TedarikStats (4 cards), TedarikStatusChart (chart.js doughnut lazy-loaded), TedarikRecentOrders (10-row table with pre-parsed attrs + sticky header scroll), TedarikQuickActions (Siparişler+Döküman links). 2-column responsive grid layout. Sidebar updated: 7 tabs with icons + arrows, active tab animation (grow 70px, gradient, scale 1.04, cubic-bezier spring transition).
- - **Admin Dashboard REBUILT + Tedarik POLISHED (2026-09-06):** Admin: `adminStats (8) + adminStatusBreakdown(doughnut) + adminRecentOrders(10) + adminRecentFiles(10) + adminActivity(12) + adminMonthlyOrders(6×Sep10)` Cache 60s + 8 Vue (Stats/Status/Monthly/Recent/Files/Activity/QuickActions) + `Admin.vue` flex fix `aside:relative` scoped `admin-dashboard-active` + `OList ?status=` + `DForm admin-theme blue`. Tedarik: `tedarikStats 6 (totalItems fix parent d2) + tedarikMonthlyOrders + tedarikRecentFiles(8) + tedarikActivity→Bilgilendirmeler (only doc_trans/file) + TedarikStats 4→6 + MonthlyChart bar 22 + QuickActions 4` + 7 Vue polished. `Dashboard.vue` gap 1.25rem + `Header` 18px.
- - **File-versioning-system.md merged (2026-09-05):** `file-versioning-system.md` + `file-upload-versioning-mechanics.md` → single 14-section merged doc. 18 discrepancies fixed against source code (40→42MB, finalizeTempFile 5 params, entity copy source, single-slot LIKE pattern, addFileToDb typo, Transactions target inconsistency, entity_tag reuse, permission gating location, getFormData exclusions, item_images_file exclusion, --type flag).
-
-- **Serial system:** KG/M required, ST<300 optional, Excel upload, collapse UI, auto date
-- **Split/partition:** quantity types, clone `EBELN-X`, partition lock, quantity restore
-- **Malzeme Kabul/Cins-Miktar PDF** + reprint; file replacement v2 + `syncOrderStatusFromFiles`
-- **Tedarik public panel** `/tedarik` → `/tedarikpanel` + `GDZ/ADM` rename, typewriter paper-feed, Module Switcher, detailed search, OList/OForm shared via `isTedarik`
-- **Tedarik Doküman** `/tedarikpanel/documents` live — `DList isTedarik` flat list, LIFNR-scoped, row = OList CardRow (tr white/radius14/shadow, td borderless), `75vh`, `Kullanıcılar` tab removed
-- **File-Detail OLD-APP replica** `GET /api/v1/file-detail` + `DForm` with old-version/decidable locks
-- **Permission system rebuild (2026-09-04):** 27 perms, 4 role templates (`immutable-admin/reseller/rapor-personeli/satınalma-keyuser`), `per-08`+`per-04-05` removed, `SysRoleTemplateSeeder` op_key unique + auto-cleanup
-- **Single login + module selection (2026-09-04):** `GET /` or `GET /tedarik` → `tedariklogin` orange, post-2FA module picker (`/module-select` blade), `coalAuth`/`tedarikAuth` module guards, `GET /v1/modules` API
-- **Strict permission enforcement (2026-09-04):** `cancelOrder→per-05-04`, `renameOrder→per-05-05`, `Kalite→per-05-03` only, `SystemController per-07-01 && per-07` fix
-- **`canProceed` removed (2026-09-04):** `PersonsServiceProvider` always true, `app.js` no redirect, `CForm.vue` warning removed
-- **Reseller LIFNR filter (2026-09-04):** `Documents::tableList` `op-doc-order/item/serial` case resolves lifnrs from `clientQnidList`
-- **OList tedarik pagination fix (2026-09-04):** `.divTable height:90%` inline + CSS, matches working DList layout
-- **DList tedarik Filtreler (normal, 2026-09-04 late):** `Filtreler` dropdown 8 radios + `Şirkete Göre Arama` modal (no Detailed), `seri_no/tarihe_gore/tarih_araligi/siparis_kodu/file_status/sirket` backend `Document_files.php`, double-table fix (removed hidden PickleTable), ` - `→`|` date-range fix + Swal text-color fix
-- **Logging enriched + `log-user-logout` + LList side-panel (2026-09-04 late+1):** 25th `log-*` seeded (id 102), `DocumentServiceProvider actorSnapshot/orderSnapshot/fileSnapshot` + `DocumentHelpers actorSnapshotHelper` frozen, 7 triggers enriched (register/status/auto/cancel/rename/passivate/file-status/bulk/file-upload/temp), `file_note` wiring, `transactions 300` truncate, `LList.vue side 340px` İşlemi Yapan/Sipariş/Dosya/Geçiş/Not cards
-- **Form builder dynamic multi + DForm/LList fixes (2026-09-04 late+2):** `isMultiFile(fileName)` `**` count `2→single`/`3→multi` (original `073b8de` exact for multi, `4ac9262` prefix for single `new-→83`), `DForm noteOf` JSON unwrap `null→''`, `applyOrderStatus from.title` + `sync rejectedNote` `Dosya reddedildi: real reason` + `LList orderLabelMap` for old logs
-- **AuditService + perf (2026-09-04 late+3):** `AuditService` cached actor/order/file, `sync N+1→1` batch, 8 indexes in base migrations + `2026_09_04_000005` patch, `logging-mechanics.md:8` perf chapter, 420ms→90ms
- - **File-detail smooth + scrollbar hide + admin table unified (2026-09-04 late+4):** `DForm selectFile history.replaceState` no bounce, `custom.css html overflow:scroll + ::-webkit-scrollbar width:0` zero-shift + cache purge `custom-B-2NHpEV→Bfm33Fr6`, `ADMIN TABLE UNIFIED` + `CList` scoped fix → all admin lists match DList light header
-  - **OList/DList bad-code purge + shared (2026-09-05):** `OList/DList` `setup()` trim, `id mainSearch → refs`, `flatpickrRange` leak `destroy`, `rowFormatter _mainAttrCache`, `STATUS_LABEL_MAP` hoist, `Set` toggle, `rAF` height, `hardFallback` 8 → backend-only `loadingClients` 5-min cache, `uretim Y/m` monthSelect `Y-m alt Y/m`, `DList useAuthStore()` fix `TypeError`, `OList` `monthSelectPlugin` + `composables/useClientModal|useTedarikDropdown|useTedarikHeight|useTableSearch` + `lib/pipe|statusMaps|escape` shared for next listings (`panel/documentation/optimize-suggestions.md`)
-  - **SAP fresh (2026-09-05):** `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` 21 rows → 8/21/8/0/37 `GDZ` (`wiped 39` + `serials 8 + files 28` + `storage/*` cleared)
-  - **Seeder + auth (2026-09-05):** `UserSeeder` kbbozat41 `op-pert-reseller` `immutable-reseller` `0000300186 YILDIZ` `cliid/clicode/clititle`, live `setPerson` added `2**userclientgroup**` `b2fa3eb0`, `AuthController IS_TEST` bypass `111111` even if `MailService 535 BadCredentials`, `DList useAuthStore()` 403 fix for `kbbozat41@hotmail.com` `per-041-02`
-   - **Admin REBUILT + Tedarik POLISHED (2026-09-06):** `ReportServiceProvider` 6 admin + 3 tedarik new endpoints (`tedarik-monthly/files/activity` + `admin-monthly/files/activity` + `totalItems` parent `d2` fix + `null→global` for admin on tedarik), `Admin.vue` flex fix `admin-dashboard-active` + `OList ?status=` + `TedarikStats 4→6` + `Monthly bar 28→22` + `Files/Activity` + `QuickActions 4` + `DForm admin-theme blue` / `Tedarik Bilgilendirmeler` only `doc_trans/file`.
-   - **First-step required + LIFNR items + Aksiyonlar hide + Durum loading + wrapper leak (2026-09-06 late):** `OForm.vue:460` `canSend` → both `transfer_kabul/cins` required (files_rejected → only rejected), visual `*`; `Documents.php:134` `op-doc-order-item` was `main_id=i.id spec_code` (0) → `d2.id=i.parent_id` (YILDIZ 165 → 4 kalem, other's 173 → 0); `OList.vue:711` tedarik `hasAny=per-05-03||04||05` → hide `Aksiyonlar` completely, `Detaylar` stays, no `Yetkiniz Yok`; `OList.vue:670` Durum now `allowed` map + spinner `Kaydediliyor...` + `updateRow` (was no loading, no refresh); `Dashboard.vue:75` scoped `.wrapper{padding-left:0}` leaked to global `app-*.css` → all pages went under `aside-fixed 280px` — deleted.
-   - **Logging Belge Tipi + timeline + serial enriched (2026-09-06 night):** `UserLog.php:54` `form_type` `COALESCE(after.document.op_key/document.op_key/file.order_qnid)` → file logs now `Sipariş` → `Sipariş Dökümanı` (`title || ' Dökümanı'`), `doc_qnid` filter `OR file.order_qnid`; `DocumentServiceProvider:1811` `createSerialEntries` `Hilal id3` `{"desc":"Seri..."}` → `actorSnapshot()` + `document serial + note` → `Seri Numarası`; verified `tinker` `8cc36f...` 4 rows now.
-   - **Depleted lock 0-qty (2026-09-06 night):** `OrderItemTable.vue` `isDepleted(row)` `0 KG/ST → oic-row--depleted` `opacity 0.62 + lock ki-lock-2 + Tükendi pill fee2e2`, `toggleCard` blocked + toast, `getItemQuantityForTransfer()` + `processOrderTransfer` guard `curQty<=0` abort; file uploads `triggerTestUpload/triggerImageUpload/on*Selected` blocked + buttons `!isDepleted` else red `Kalem tükendi — dosya eklenemez`; backend `DocumentServiceProvider:1473` pre-flight. Tested `#170` `70.5.1.002 2100→0 KG` locked.
-   - **Fresh sync night (2026-09-06):** `cat > /tmp/sap_fresh_payload.json 21 rows 8 EBELN (3510004200×1,4300×2,4400×4×YILDIZ,4500×2,4600×3,1793×2,2100×3,3500×4)` + `wipe serial 12/files 42/trans 61/logs 144/storage/*` + `php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` `Wiped 49` `8/21/0/37` + `DELETE orphan user_logs 271 → 103` → `8/21/8/0/0 37 trans` clean.
- - **Notif late3/late4 (2026-09-07):** `order by id desc` + status-time `last_trans_at` (order `558 05:57` tops files `557 05:57`), modals `tdk/adm-notif-*` 460px redesign `margin-bottom` `border-left`, `Bilgilendirmeler` `bind` fix, `TedarikDForm` redirect, bulk `setFileStatusAll` per-order `tedarik-04/05`, `tedarik-07` no `files_rejected` fallback, `tedarik-03` `waiting,refreshed`, Gmail `smtp.gmail.com` `kadir@` (fix 554), `OrderItemTable 1325` `(!readonly||isTestRejected)` for `files_rejected` locked `af59e4e6`.
-
-## 3. Pending — Malzeme Cins-Miktar Kabul Formu Content
-
-- ✅ **Mechanics DONE (2026-09-01):** blade template, controller method, route, Vue method, 2 purple buttons, CSS — all cloned from Malzeme Kabul
-- ✅ **Content DONE (2026-09-01):** Blade rewritten — title "SEVK EDİLECEK MALZEMENİN CİNSİ VE MİKTARI", header 4-row vertical table (label | ":" | value), items flattened by serials (Seri/Parti column), signature grid. Controller adds `ctitle` as `company`. Frontend flattens items by serials.
-- ✅ **Serial fix DONE (2026-09-01):** `printMalzemeCinsMiktar` reads frontend serial state (`itemTable.serials`) instead of DB-only (`item.serials`) — works for new partitions where serials aren't saved yet.
-
-## 3b. Item File Uploads — DONE (2026-09-01)
-
-- ✅ Collapsible "Dosyalar" section per item in OrderItemTable
-- ✅ Test Dökümanı: single file, rejectable/acceptable (`item_test_docs` group)
-- ✅ Ürün Görselleri: multi-file, no accept/reject (`item_images` group)
-- ✅ Existing files fetched from DB on load, shown with status badges
-- ✅ New uploads via temp-upload, saved via separate item PUT after main order save
-- ✅ Uses existing connId from SAP sync (avoids duplicate sys_con_ops rows)
-- ✅ **FIX product image removal (2026-09-01 late):** `fetchItemFiles` stores `entity_tag`/`connId`, `removeExistingImageFile` tracks `_removedExistingFiles` with key, `OForm.saveItemFiles` generic `removedData` — images now deactivate correctly
-- ✅ **Preview for item docs (2026-09-01 late):** `previewExistingFile` iframe modal (encrypted name `salt:iv:ct` broke old `\.pdf$` check) + `previewLocalImage` pdf→iframe/xls→download; chips clickable + eye button `oic-item-file-preview`
-- ✅ **Thumbnail grid + gallery (2026-09-01 late):** `oic-image-grid` 84×84 `src="/order-file/{qnid}"` + `URL.createObjectURL` + `onThumbError` + `gallery:{visible,items,index}` `getGalleryItems` `openGallery` `teleport` `oic-gallery-overlay` `prev/next 48px` `Esc/←/→`
-- ✅ **Split overlay icons (2026-09-01 late):** `oic-split` 50/50 `eye 22px` `cross-circle 22px` `rgba(79,70,229,0.82)` / `rgba(225,29,72,0.84)` `blur(3px)` — was pill `Önizle/Sil` bar
-- ✅ **Lock for images (2026-09-01 late):** `readonly` prop (`OForm :readonly="isLocked"`), guards + `v-if="!readonly"` for `Görsel Ekle`/`Sil` + `left.full` preview-only when locked
-- ✅ **Test doc non-removable (2026-09-01 late):** Existing `accepted/pending` no X; rejected `Yeni Test Dökümanı Yükle` always visible (even when `isLocked`) — insert on save, replace only when `doc_file_rejected` via `existingId`
-- ✅ **Loader for Kabul/Cins (2026-09-01 late):** `OForm printingKabul/printingCins` + `Swal PDF oluşturuluyor... ki-loading spin` + `disabled Oluşturuluyor...` covering clone suffix + export fetch, `@keyframes spin`
-
-## 4. Tech Debt (kept out of `05 §10`)
-
-- **Parent link:** `Documents::tableList` still `where parent_type_id=0` — items visible in main lists
-- **Security:** `DEV_ADMIN 111111`, `resetusercradentals` public, `CSRF off`, `decryptFile IDOR`, `pickle hardcoded`, files served in webroot
-- **Old containers:** `B2X` still exists stopped on `5431`
-- **`permission_version` cache store `file`** — `refreshAllUserPermissions` buggy; users must relogin if heartbeat fails
-
-## 5. How Future LLM Should Resume
-
-1. Read `memory/05-order-system-state.md` (current snapshot) + this file + `01-form-engine.md`.
-2. Check `docker ps -a | grep tedarikNewApp`, `panel/.env: DB_DATABASE`, `php artisan migrate:status`.
-3. Key methods in `DocumentServiceProvider.php`:
-   - `processOrderTransfer($qnid, $mode, $selectedItems, $itemSerials)` — handles both partial clone + at_once serials
-   - `duplicateOrderItem($itemQnid, $newParentId, $splitAmount)` — clone with qty override
-   - `decrementItemQuantity($itemQnid, $splitAmount)` — reduce original qty
-   - `createSerialEntries($itemId, $serials)` — create serial docs
-   - `setHasSerialsFlag($itemId)` — mark item has serials
-4. Key methods in `ReportServiceProvider.php`:
-   - `getResellerLifnrs()` — resolves LIFNR list from reseller's bound clients
-   - `resellerOrderWhere($lifnrs)` — builds LIFNR-based WHERE clause
-   - `tedarikStats()` — dashboard stat cards (LIFNR-scoped)
-   - `tedarikRecentOrders()` — 10 recent orders with parsed main_attr
-   - `tedarikStatusBreakdown()` — doughnut chart data
-4. After any `Form.vue`/`router`/`Sidebar`/`OForm`/`OList`/`OrderItemTable.vue` edit → `npm run build` in `panel/` → test.
-5. Always update `memory/05` after major change.
-
-## 6. Decision Tree For Master
-
-- **"Front design ready" → build client front-panel skin**
-- **"Dashboard stats" → extend `tedarikStats` with more metrics**
-- **"Dashboard polish" → add animations, real-time updates, more chart types**
-- **"Dashboard" → rebuild ReportServiceProvider order stats**
-- **"Skin it" → rebrand coal → tedarik**
-- **"New doc type" → follow `memory/03-app-factory-guide.md` pattern (sys_options + Form.vue + pages + permissions)**
+## 4. Decision Tree
+- "Front design ready" → build client front-panel skin
+- "Dashboard stats" → extend `tedarikStats`
+- "Dashboard polish" → animations / realtime / chart types
+- "New doc type" → `memory/03-app-factory-guide.md` (sys_options + Form.vue + pages + perms)

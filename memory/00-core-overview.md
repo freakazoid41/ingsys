@@ -1,120 +1,103 @@
 # INGSYS Core Overview
 
-> **NEW system 2026-09-08:** `op-doc-request`/`op-doc-offer` removed — new has only `op-doc-client` + `op-doc-order` family. Docs below still mention legacy coal `requests/offers` for reference; treat as legacy. — For Future Sessions
-**⚠️ 2026-09-07 late14: TEK PARÇA VIDEO — `tekParcaSiparis.mov 21M 1626x946 60fps 86s` → `tekParcaSiparis.mp4 2.0M 1280x744 30fps crf24 medium faststart` `ffmpeg` `644`, `TedarikHeader.vue:65 openHelpVideo` map `Tek Parça Sevkiyat→tekParca.mp4` else `loginVideo`, `build 5.52s` `app-B85yY5Xw.js 1.3M`. Late13: TEDARIK DETAIL FILE INFO HIDE `OForm.vue:1247` `v-if="id&&loadForm"`→`&&orderStatus&&!==created` hidden until `Gönder` `app-BiKY`. Late12: `orders:reset` one-shot; Late11: VIDEO MENU `app-CZvKvcWE.js`; Late10: BILDIRIMLER SYNC `app-5tocnMkW.js`; Late9: DASHBOARD FIX; Late8: LOGIN ICON NICE; Late7: LOGIN VIDEO `mov1.6M→mp4 152K`. On start of every session first read the panel/documantation/* for system mechanics
-
-> **⚠️ CURRENT STATE 2026-09-07 late6: BÜTÜN FORMLARI İNDİR + HISTORY FIX — both panels `Order/OForm` now `Bütün Formları İndir` ZIP (`downloadAllOrderFiles` incl. rejected `status 0` + `listOrderFiles` with `last_status` inspector) + `Malzeme Kabul/Cinsi` eye now lists **all** `transfer_kabul/cins` files filtered by `entity_tag` (was only `tedarikExistingKabul` last). Fixed `showFileHistory` note JSON `{"note":"SDASD"}` → `SDASD` only + date `formatDate` → `fmtDateTime` `07.09.2026 05:51` + missing `fmtDateTime` expose (`this.fmtDateTime is not a function` fix), removed duplicate `Bütün` from tedarik Step 4 `Lütfen gerekli formları indirin.` (now only history card `1230` + admin `1311` keep 3-button `Bütün + Kabul/Cinsi` eye). Prev late5: CLIENT SYSTEM SPLIT `GDZ-0000300186` vs `ADM-0000300186` (`client_system` GDZ/ADM), `SyncOrders lifnr+system`, `LIFNR+SYSTEM` gates, `CList`+modals+`Bağlı Cariler` Sistem pill + composite, admin sees all `GDZ+ADM` (9). Prev late4: NOTIF `last_trans_at` (status time `05:57` tops, not birth `04:56`), `tedarik-03` `waiting,refreshed`, `tedarik-07` no `files_rejected` fallback, bulk `setFileStatusAll` per-order `tedarik-04/05`, `Test Dökümanı` locked fix, Gmail `kadir@`, modals `460px`, `bind` fix. Prev 2026-09-06 night: 8/21/8/0/37 `tedarikNewApp:5431` `GDZ` clean `/tmp/sap_fresh_payload.json` 21 rows → 8 EBELN. LOGGING FIX `Sipariş Dökümanı` + `doc_qnid` file timeline + serial enriched `Hilal→actor` + `0-qty` depleted lock `Tükendi` + file lock for `0` qty `Test/Görsel Ekle` hidden. OForm first-step Kabul/Cins, LIFNR fix, Aksiyonlar hide, Durum loading, dashboards polished.** DB `tedarikNewApp` :5431. `EBELN-X` clones, `op-doc-transfer` PURGED. `LIFNR+SYSTEM` composite link, `GDZ/ADM`. `/tedarik` → `/tedarikpanel` 1360px 12px 210px **7 tabs**. **Shared `OList/OForm/DList/DForm` via `isTedarik`**, Module Switcher, Detailed search, `group_key`. **`GET /api/v1/file-detail/:qnid` OLD-APP replica** + `GET /v1/order/{qnid}/files` + `download-all` ZIP + `LList` side-panel (`form_type` `Sipariş` vs `Sipariş Dökümanı` for files). `optimize-suggestions.md` has shared composables. **Admin Dashboard:** `adminStats|adminStatusBreakdown|adminRecentOrders|adminRecentFiles|adminActivity|adminMonthlyOrders` Cache 60s + 8 Vue + flex fix + `OList ?status=` . **Tedarik Dashboard:** `tedarikStats 6 (totalItems fix) + tedarikMonthly|tedarikRecentFiles|tedarikActivity Bilgilendirmeler` + 7 Vue + `DForm admin-theme blue`.
-
-> **👉 READ FIRST: `memory/05-order-system-state.md` (LIVE), then `06-roadmap-next.md`. This file = architecture reference.**
-
-> **Source:** `panel/` is the real app. `memory/` is empty baseline, `panel/docs/` has 11 mapping docs (2026-08-01) — coal docs are now STALE, see `memory/05`. This file is the 30-second brain dump. Read first: `panel/docs/01-mimari-genel-bakis.md`, `panel/docs/TEKNIK_DOKUMANTASYON.md` then `memory/05`.
+> **CURRENT 2026-09-09: both panels live. See `memory/05-order-system-state.md` (LIVE snapshot) then `memory/06-roadmap-next.md`. Mechanics live in `panel/documentation/*` — that is the core, do not duplicate here.**
+> **Read order for new sessions: `00` → `05` → `06` → mechanic bibles as needed. `panel/docs/*` is STALE coal mapping (2026-08-01), reference only.**
 
 ## 1. What This App Is
 Tedarik Yönetim Sistemi — Order Management System (converted from KomurTedarik coal ERP). Generic EAV document engine wearing order-management skin. 4 role templates, one DB:
-- **Admin** `immutable-admin` (27 perms) — manages orders, clients, file approvals, users, roles, reports
-- **Supplier** `immutable-reseller` (per-041-02,03 + per-05-01,02 + per-06) — fills firm form + uploads files, bound to client(s)
-- **Rapor Personeli** `immutable-rapor-personeli` (per-041-01 + per-05-02 + per-061-01) — İB sees only orders (no edit)
-- **Satınalma Keyuser** `immutable-satınalma-keyuser` (per-041-01,03 + per-05 01-05 + per-06-01 + per-07-01) — İB full control
+- **Admin** `immutable-admin` (27 perms) — orders, clients, file approvals, users, roles, reports
+- **Supplier** `immutable-reseller` (per-041-02,03 + per-05-01,02 + per-06) — firm form + uploads, bound to client(s)
+- **Rapor Personeli** `immutable-rapor-personeli` (per-041-01 + per-05-02 + per-061-01) — read-only orders
+- **Satınalma Keyuser** `immutable-satınalma-keyuser` (per-041-01,03 + per-05 01-05 + per-06-01 + per-07-01) — full IB control
 
-Multi-tenant via `panel/public/index.php:11-15` → `Host contains adm ? ADM : GDZ` (ex `yatagantermik ? YATAGAN : CATES`) → `$GLOBALS['SYS_CODE']` → `documents.grp_code`, `user_logs.sys_code`. **Users split 2026-09-06:** `users.grp_code` + `persons.grp_code` = `GDZ`/`ADM`/`BOTH` (İki Sistemde Mevcut) — `Form.vue:323` `user_grp_code` select (`GDZ/ADM/BOTH`), `UList.vue:115` `Sistem` pill + tri-filter `Tüm/GDZ/ADM/BOTH` (`User.php:145` exact), `PersonsServiceProvider.php:192` syncs both tables, `User/Persons.php:49` boot respects provided `BOTH`, `AuthController.php:280` login split (`BOTH` passes both hosts, `GDZ` only GDZ, `ADM` only ADM) — **user list shows all (exact tri-filter), login enforces split.**
+Multi-tenant via `panel/public/index.php:11-15` → `Host contains adm ? ADM : GDZ` → `$GLOBALS['SYS_CODE']` → `documents.grp_code`, `user_logs.sys_code`. Users split `GDZ/ADM/BOTH` — `Form.vue:323` select, `UList.vue:115` pill + tri-filter, `AuthController.php:280` login split (list shows all, login enforces).
 
 ## 2. Stack
-Laravel 12 / PHP 8.2 / PostgreSQL (port 5431) / Sanctum 4 (token+session)  
-Vue 3 SPA @ `/coalpanel` (admin) + `/tedarikpanel` (public Tedarik, `TedarikPanel.vue`) — Vite 6, Pinia 2, vue-router 4, Tailwind 3  
-Mail: SMTP Gmail or `intmail.aydemenerji.com.tr:25` via `MAIL_USE_RELAY` (`MailService.php:52`)  
-SMS: İletişim Makinesi `UserGatewayWS`/`SMSGatewayWS` (`SmsService.php`)  
-PDF/Excel: dompdf/mpdf + PhpSpreadsheet  
+Laravel 12 / PHP 8.2 / PostgreSQL (port 5431) / Sanctum 4 (token+session)
+Vue 3 SPA @ `/coalpanel` (admin) + `/tedarikpanel` (public Tedarik, `TedarikPanel.vue`) — Vite 6, Pinia 2, vue-router 4, Tailwind 3
+Mail: SMTP Gmail or `intmail.aydemenerji.com.tr:25` via `MAIL_USE_RELAY` (`MailService.php:52`)
+SMS: İletişim Makinesi `UserGatewayWS`/`SMSGatewayWS` (`SmsService.php`)
+PDF/Excel: dompdf/mpdf + PhpSpreadsheet
 Queue/Cache/Session: `database` driver; permission cache: `file` store
 
 ## 3. Entry Points
 - **HTTP:** `panel/public/index.php` → `panel/bootstrap/app.php:9-32` (routes `web.php`/`api.php`, middleware `ParsePutMultipart`+`CspMiddleware`, `trustProxies('*')`, `validateCsrfTokens except ['*']` → CSRF OFF)
 - **SPA shells:** `GET /coalpanel/{any}` → `coalapp.blade.php` + `GET /tedarikpanel/{any}` → `tedarikapp.blade.php` closures in `web.php:30-60` (checks `session type_key+2f_success`)
 - **SPA bootstrap:** `resources/js/app.js:1-71` → `authStore.getPermissions()` → parallel `permissionDataStore.fetchRoleTemplates/items()` → `authStore.startHeartbeat()` 30s `GET /api/v1/getpermissions` → mount (serves both panels)
-- **Auth blades:** `resources/views/auth/tedariklogin|loginSms|register|passwordReset.blade.php` + `tedarikapp.blade.php` + `moduleSelect.blade.php` + compiled `public/front/pages/*/page.js` (`tedariklogin` orange 560×840 140px Gdz, `loginSms` unified orange 560×720, `moduleSelect` orange 560×400)
+- **Auth blades:** `tedariklogin|loginSms|register|passwordReset` + `tedarikapp` + `moduleSelect` + compiled `public/front/pages/*/page.js`
 
 ## 4. The Big Lie: Providers Are Not Providers
 `panel/app/Providers/` — only `AppServiceProvider` is real. The rest are **domain services called via `new`**:
 | Class | Real Role | File |
 |-------|-----------|------|
-| `DocumentServiceProvider` | EAV CRUD, status, files | `app/Providers/DocumentServiceProvider.php:1096` |
-| `PersonsServiceProvider` | persons/users/permissions/clientPermInfo | `app/Providers/PersonsServiceProvider.php:696` |
-| `ReportServiceProvider` | dashboard aggregates | `app/Providers/ReportServiceProvider.php:479` |
-| `EmailServiceProvider` | mail dispatch wrapper → Jobs | `app/Providers/EmailServiceProvider.php:112` |
-| `EncryptionProvider` | AES-128-CBC + PBKDF2 (`pickle` key) | `app/Providers/EncryptionProvider.php:119` |
+| `DocumentServiceProvider` | EAV CRUD, status, files | `app/Providers/DocumentServiceProvider.php` |
+| `PersonsServiceProvider` | persons/users/permissions/clientPermInfo | `app/Providers/PersonsServiceProvider.php` |
+| `ReportServiceProvider` | dashboard aggregates | `app/Providers/ReportServiceProvider.php` |
+| `EmailServiceProvider` | mail dispatch wrapper → Jobs | `app/Providers/EmailServiceProvider.php` |
+| `EncryptionProvider` | AES-128-CBC + PBKDF2 (`pickle` key) | `app/Providers/EncryptionProvider.php` |
 
-Proper Services: `MailService`, `SmsService`, `PermissionService`, `ExportService`, `RoleTemplateService`, `AuditService` (cached `actor/order/file` + `optionTitle`, 2026-09-04) in `app/Services/`.
+Proper Services: `MailService`, `SmsService`, `PermissionService`, `ExportService`, `RoleTemplateService`, `AuditService` (cached `actor/order/file` + `optionTitle`) in `app/Services/`.
 
 ## 5. Data Architecture — EAV + Universal Dictionary
 **Core 4 tables:**
 ```
-sys_options       — dictionary: op_key/group_key/ttitle/ctitle (every type lives here)
+sys_options       — dictionary: op_key/group_key/ttitle/ctitle
 documents         — main entity: type_id→sys_options, qnid (UUID), grp_code, person_id (text!), status
-sys_con_ops       — form section instance: main_id→documents/persons, type_id→form type, conn_id, sub_type_id
-sys_con_entities  — field value: conn_id→sys_con_ops, entity_tag = field**group**key, entity_value, table_tag
+sys_con_ops       — form section instance: main_id→documents/persons, type_id→form type
+sys_con_entities  — field value: conn_id→sys_con_ops, entity_tag = field**group**key, table_tag
 ```
-
-- `entity_tag` format: `{field}**{group}**{key}` e.g. `contphone**userfacilitygroup**main-0`
-- File fields: `table_tag='document_files'` and `entity_value = file id`
-- Persons mirror: `persons` + `sys_con_ops` (`user-contact/client/permission/notification`) + `sys_con_entities` (permissions = JSON array in `op-doc-user-permission-form`)
+- `entity_tag`: `{field}**{group}**{key}`. File fields: `table_tag='document_files'`, `entity_value = file id`
+- Persons mirror: `persons` + `sys_con_ops` + `sys_con_entities` (permissions = JSON array in `op-doc-user-permission-form`)
 - No FKs, soft delete (`status=0`), raw SQL everywhere.
+- Detail: `memory/02-eav-dictionary.md` + `panel/documentation/form-system-mechanics.md`
 
 ## 6. Document Types & State Machines
-`sys_options group op-doc`: `op-doc-order` (Sipariş header), `op-doc-order-item` (Kalem, parent_id=order), `op-doc-order-serial` (Seri, parent_id=item), `op-doc-client` (Cari). `op-doc-transfer` **PURGED 2026-09-02** (was seeded but never used — clones are `op-doc-order` with `transfer_no=EBELN-X`; 6 `sys_options` rows deleted, `OrderSystemSeeder.php` + `DocumentServiceProvider` + `Form.vue` + `PermissionHelpers` cleaned).
+`sys_options group op-doc`: `op-doc-order` (header), `op-doc-order-item` (parent_id=order), `op-doc-order-serial` (parent_id=item), `op-doc-client` (Cari). `op-doc-transfer` + `op-doc-request/offer` **PURGED** — clones are `op-doc-order` with `transfer_no=EBELN-X`.
 
-- **Order:** `doc_trans_order_created → transfer_sent → ready_for_shipment → approved/rejected` + `files_rejected` — **NEW 2026-09-08:** `doc_trans_order_approved` (Kalite) from **ANY** status
-- **File:** `doc_file_waiting → accepted | rejected → refreshed`
-- **Serial:** `op-doc-order-serial` docs parented to items. Entities: `serial_no`, `production_date` (YYYY-MM-01), `quantity`, `unit`
+- **Order:** `created → transfer_sent → ready_for_shipment → approved/rejected` + `files_rejected`. Kalite `approved` from **ANY** status.
+- **File:** `waiting → accepted | rejected → refreshed`
+- **Serial:** `op-doc-order-serial` parented to items. Entities: `serial_no`, `production_date` (YYYY-MM-01), `quantity`, `unit`
 
 ## 7. Routing — 11 web + ~31 api
-**Web** `routes/web.php:69`: `/` + `/tedarik` (single orange login `tedariklogin`), `/register`, `/logout`, `/smscallback` (2FA), `/module-select` (post-2FA module picker), `/auth/passwordreset/{code}`, `POST /auth/passchange`, `/coalpanel{any}` (`coalAuth` → `per-041-01`), `/tedarikpanel{any}` (`tedarikAuth` → `per-041-02`), `/order-file/{doc}`, `POST /export/offer`, `GET /export/{model}/{type?}`  
-**API** `routes/api.php:69`: `POST auth/checkcode|sendmail|resend-code`, `POST /v1/auth/login/{type?}` (`admin`|`tedarik` → `session auth_panel`), `POST /v1/auth/register`, `POST /v1/auth/resetusercradentals` (PUBLIC!), `GET /v1/me`, `GET /v1/modules` (available modules for current user), `ANY /v1/document/{id?}`, `ANY /v1/transaction`, `POST /v1/temp-upload`, `POST /v1/table/{model}`, `POST /v1/export/malzeme-kabul|malzeme-cins-miktar-kabul`, `POST /v1/export/{model}`, `ANY /v1/users|persons`, `GET /v1/notifications`, `POST /v1/notificationlog/{id}/retrigger`, `GET/POST/DELETE /v1/roles/templates`, `GET /v1/roles/items`, `POST /v1/trans/set-status|set-file-status*|disable-document|orders/cancel|orders/rename|export/malzeme-kabul|malzeme-cins-miktar-kabul`, `ANY /v1/dashboard/{type}/{period?}`, `GET /v1/getpermissions` (heartbeat)
+**Web** `routes/web.php`: `/`, `/tedarik`, `/register`, `/logout`, `/smscallback`, `/module-select`, `/auth/passwordreset/{code}`, `POST /auth/passchange`, `/coalpanel{any}` (`coalAuth` → `per-041-01`), `/tedarikpanel{any}` (`tedarikAuth` → `per-041-02`), `/order-file/{doc}`, `POST /export/*`, `GET /export/{model}/{type?}`
+**API** `routes/api.php`: `auth/checkcode|sendmail|resend-code`, `POST /v1/auth/login/{type?}`, `POST /v1/auth/register`, `POST /v1/auth/resetusercradentals` (PUBLIC!), `GET /v1/me`, `GET /v1/modules`, `ANY /v1/document/{id?}`, `ANY /v1/transaction`, `POST /v1/temp-upload`, `POST /v1/table/{model}`, `POST /v1/export/malzeme-kabul|malzeme-cins-miktar-kabul` (before wildcard), `POST /v1/export/{model}`, `ANY /v1/users|persons`, `GET /v1/notifications`, `POST /v1/trans/set-status|set-file-status*|disable-document|orders/cancel|orders/rename`, `ANY /v1/dashboard/{type}/{period?}`, `GET /v1/getpermissions`
 
 ## 8. Auth & Session
-**Single login:** `GET /` or `GET /tedarik` → `tedariklogin` blade (orange, `560×840`). `POST /v1/auth/login/tedarik` → `AuthController.php` flow: reCAPTCHA + `Cache login:attempts 5×15min` → `Auth::attempt` → `generateAndSendTwoFactorCode` → 6-digit to `storage/app/{token}-{personId}-login.txt` + Mail/SMS → redirect `GET /smscallback` (orange 2FA card). `POST auth/checkcode` (120s TTL) → if user has both `per-041-01` AND `per-041-02` → redirect `/module-select`; single module → auto-redirect via `session('target_module')` + hidden input in tedariklogin blade. Multi-module: `/module-select` blade shows available modules, user picks → `/coalpanel` or `/tedarikpanel`.
-
-Middleware `coalAuth` requires `per-041-01`, `tedarikAuth` requires `per-041-02`, both allow `has('all')` DEV_ADMIN.
-
-`public/front/pages/tedariklogin/page.js` sets `localStorage token` → routes by modules; `loginSms/page.js` unified.
-
-Middleware `CheckPermissionVersion.php:91` on every protected request: if `force_logout` → 401, else if `permission_version` mismatch → `loadPermissionsToSession` + bump.
-
-Frontend `stores/auth.js:43` heartbeat 30s + `pickle.js:105-154` 401 handlers (`permission_changed` → retry, `force_logout` → `/`).
+Single orange login `GET /` or `GET /tedarik` → `tedariklogin` → `POST /v1/auth/login/tedarik` (reCAPTCHA + 5×15min lock → `Auth::attempt` → 6-digit to `storage/app/*.txt` + Mail/SMS → `GET /smscallback` → `POST auth/checkcode` 120s TTL). Post-2FA: both perms → `/module-select`, else auto-redirect.
+Middleware `coalAuth` (`per-041-01`), `tedarikAuth` (`per-041-02`), `CheckPermissionVersion.php:91` (force_logout / version refresh). Frontend `stores/auth.js:43` heartbeat 30s + `pickle.js` 401 handlers.
+Detail: `panel/documentation/session-and-login-mechanics.md` + `single-session-enforcement-system.md`
 
 ## 9. Permission System
-`sys_permission_catalogs` (27 entries, `per-XX-YY` codes) → `sys_role_templates` (4 immutable roles in `storage/entities/coal_roles_templates.json` + custom) → `sys_notification_types` (`tedarik-01..07` **2026-09-06** replaces `notif-00..03`) → `sys_role_template_audit`. **Notifications 2026-09-06:** 7 TEDARIK `tedarik-01` SAP Giriş → `tedarik-07` Reddedildi, `notification_details.json:1` 7, `SysRoleTemplateSeeder.php:164` purges old, `ReportServiceProvider.php:18` `getTedarikOrders/FilesByStatus` (LIFNR-scoped), `SystemController.php:78` `blink`, `Header.vue:50` + 5 dashboards poll 7, `NSettings.vue:1` admin-style dark header + equal-height `align-items:stretch` cards + unsaved `isDirty` amber pulse+banner + table fix `#div_table.innerHTML=''` before `PickleTable` (no `destroy()`) + **read tracking** (`notification_reads` table, `GET /v1/notifications` `{data,total}` limit 10 unread + `unreadTotal`, `POST /v1/notifications/read` mark-as-read, bell badge `unreadTotal`+`tdk-badge-pulse`, Bilgilendirmeler marks read on click+`goDetail` order_no detail) + `PersonsServiceProvider:667` numeric/qnid fix (`p.id` OR `p.qnid`) + `TedarikActivity` `log-order-update` filter fix (admin 8 / supplier 1, was 0) + `TedarikHeader` SVG bell + click→`markRead`+`router.push TedarikOrderForm` + `SystemController:128` FormData fallback (`input` OR `all`) + `tedarik-02`/`tedarik-03` BUKRS gate (`ReportServiceProvider:96,101` `filterOrders/FilesByBukrs` `COALESCE` + `SendNotificationMailJob:452,506` + `DocumentController:179` same-moment) + `tedarik-04`/`05`/`06`/`07` dual BUKRS/LIFNR (`ReportServiceProvider:118` reseller bypass (`04`/`05` files + `06` orders via `getResellerLifnrs` + `main_attr spec_code`) + `filterFiles/OrdersByBukrs` + `SendNotificationMailJob:558,654,741,848` assigned non-tedarik `BOTH/==sys_code` + lifnr-matching reseller `clientQnid→lifnr==spec_code` + `DocumentController:498` `doc_file_accepted/rejected` + `318` `approved/rejected/files_rejected` dispatch), no FAB. **Users 2026-09-06:** split `GDZ/ADM/BOTH` (see §1).
-
-**Permission tree:** `per-00` (Bildirim), `per-041` (Modüller 01→04), `per-04` (Kontrol 01→04), `per-05` (Siparişler 01→05 granular), `per-06` (Firma 01→02), `per-07` (Dökümanlar 01→02), `per-061` (Raporlar 01→02). **`per-08` and `per-04-05` are dead/removed.**
-
-**4 role templates:** `immutable-admin` (Admin, 27 perms), `immutable-reseller` (Tedarikçi, per-041-02,03 + per-05-01,02 + per-06), `immutable-rapor-personeli` (İB Görüntüleme, per-041-01 + per-05-02 + per-061-01), `immutable-satınalma-keyuser` (İş Birimi, per-041-01,03 + per-05 01-05 + per-06-01 + per-07-01). Old `immutable-super-admin`, `immutable-satınalma-personeli` DELETED.
-
-Per-person JSON array in EAV `op-doc-user-permission-form`. Runtime via `PermissionService::has()` → `DEV_ADMIN backdoor` → `session sper-{code}` → `file cache permissions.user.{id}` (30d, `microtime*1e6` version). Helpers: `checkPerm()`, `docPermCheck(typeKey, read|edit|status)` in `PermissionHelpers.php:215`. Frontend `GET /v1/getpermissions` drives menu/button visibility. `updateUserPermissions()` fans out role changes + `bumpUserPermissionVersion`. `SysRoleTemplateSeeder.php` uses `op_key` as unique identifier, auto-removes obsolete roles/perms.
+`sys_permission_catalogs` (27 entries) → `sys_role_templates` (4 immutable) → `sys_notification_types` (`tedarik-01..07`) → audit. Read tracking via `notification_reads`.
+Tree: `per-00`, `per-041` (01-04), `per-04` (01-04), `per-05` (01-05), `per-06` (01-02), `per-07` (01-02), `per-061` (01-02). `per-08`, `per-04-05` dead.
+Roles: `immutable-admin` (27), `immutable-reseller` (041-02,03 + 05-01,02 + 06), `immutable-rapor-personeli`, `immutable-satınalma-keyuser`. Old super-admin/satınalma-personeli DELETED.
+Runtime: `PermissionService::has()` → session `sper-*` → file cache. Helpers `checkPerm()`, `docPermCheck()` in `PermissionHelpers.php:215`.
+Detail: `panel/documentation/permission-system-analysis.md`
 
 ## 10. Frontend Skeleton
-`router/index.js:110` (routes under `/coalpanel` + `/tedarikpanel`, NO auth guard) → `layouts/App.vue:35` → `layouts/CoalPanel.vue:82` (admin Sidebar+Header) + `layouts/TedarikPanel.vue:551` (Tedarik **typewriter** `f2f2f3` bg `fixed inset:0 overflow:hidden` root `22px 18px 18px 48px`, frame `1360px 12px height:calc(100vh-40px) overflow:visible` holder-fixed, sidebar `210px 100%` pinned, `main:overflow:visible bg:#fff` + `main-inner:height:auto bg:#fff will-change:transform translateY(-scrollY)` paper-feed + `ResizeObserver` + `body height:scrollHeight+40` window drives only main, hidden at browser viewport, `OForm tedarik-detail bg:#fff` so step gaps not grey, logo 82px + label 11.5px, menu `flex1 center 64px 12px -52` protruding 38px, bottom 64px same, PickleTable card-rows) → pages in `resources/js/pages/coalsystem/` (Orders/OList+OForm **SHARED** via `isTedarik` (`$route.path.startsWith('/tedarikpanel')`) — same file serves `/coalpanel/orders` + `/tedarikpanel/orders`, decision **keep shared 2026-09-02** (see `memory/05 §7`); detailed search `OList.vue:940` 3×3 + `Filtreler` `teleport fixed z9999` `modalClients` backend-only `loadingClients` `flatpickr range` `Y/m` monthSelect `uretim Y/m`, Module Switcher `Sidebar.vue:393`/`TedarikPanel.vue:64`, Documents/DList `isTedarik` flat, Users/*, Roles/*, Logs/LList) → `composables/useClientModal|useTedarikDropdown|useTedarikHeight|useTableSearch` + `lib/pipe|statusMaps|escape` shared for next listings (see `panel/documentation/optimize-suggestions.md`)
+`router/index.js:110` → `CoalPanel.vue` + `TedarikPanel.vue:551` (typewriter paper-feed, 1360px frame, 210px sidebar) → `pages/coalsystem/` (`OList/OForm/DList/DForm` **SHARED** via `isTedarik`, decision keep shared). Module Switcher, detailed search, `group_key`.
+5 Pinia stores: `auth`, `permissiondata`, `navigation`, `events` (legacy), `formdata`. Central client `lib/pickle.js:824`.
+Shared libs: `statusUtils`, `dateUtils`, `statusMaps`, `pipe`, `escape`, `pdf` + composables `useClientModal|useTedarikDropdown|useTedarikHeight|useTableSearch`.
+Detail: `panel/documentation/optimize-suggestions.md`
 
-5 Pinia stores: `auth`, `permissiondata`, `navigation` (breadcrumbs+notifications+sys_code DOM read), `events` (legacy), `formdata` (list→form carrier, typo `addional`)
+## 11. Critical Gotchas
+- EAV is the abstraction — no migrations for new fields
+- `Form.vue` monolith (~2892 lines, imperative) — see `memory/01-form-engine.md`
+- `Documents::tableList:398` is the complex query (tenant + `LIFNR+SYSTEM` + `main_attr`)
+- Schedule: `request:autoclose 01:00` (first-record bug), `active-sessions:clean 02:00`
+- Security debt: SQLi concat, `DEV_ADMIN=111111`, public reset, plaintext 2FA txt, CSRF off, `/order-file` IDOR, `pickle` key, relay password logged
+- `vendor/` + `node_modules/` committed, `prjBuildLive` wipes documents — never on prod
+- Detached `v-model="tedarik*"` invisible to `getFieldValue()` — always prefer `(tedarikX?.trim())||getFieldValue()||orderEntities`. See `tedarik-system-process.md:164`
+- Route ordering: export PDFs before `{model}` wildcard
 
-Central client `lib/pickle.js:824` — fetch wrapper (CSRF meta + Bearer localStorage) + form toolkit (`checkForm`, `clearElements`, `validatePassword`) + UI (`toast`, `formatMoney`, `compressImage`, `crypFunc` base64).
-
-Shared libs `resources/js/lib/`: `statusUtils.js` (parseStatus/statusLabel/statusCls/personName/noteOf), `dateUtils.js` (fmtDate/fmtDateTime/formatDate), `statusMaps.js` (ORDER_STATUS_LABEL_MAP/FILE_STATUS_ICONS), `pipe.js` (toPipe), `escape.js` (escapeHtml), `pickle.js` (Plib client).
-
-## 11. Critical Gotchas For New Apps
-- **EAV is the abstraction** — no migrations for new fields, just new `sys_options` + `Form.vue` schema
-- **Form.vue is monolith** (~2892 lines, imperative `document.createElement`, not Vue template) — see `memory/01-form-engine.md`
-- **16 models** in `app/Models/` — `Documents::tableList:398` is most complex raw SQL (tenant + supplier `clientQnidList` + `her_ikisi` + `main_attr` JSON)
-- **Schedule:** `Kernel.php` → `request:autoclose 01:00` (bug: only first record), `active-sessions:clean 02:00`
-- **Security debt:** SQLi 9 spots raw concat, `DEV_ADMIN=111111` backdoor, public `resetusercradentals`, plaintext `storage/app/*.txt` 2FA, `.env.example` has live secrets, CSRF off, `/order-file` IDOR, `pickle` hardcoded key, `mail relay_password` logged unmasked
-- **Vendor committed:** `panel/vendor/` + `node_modules/` in git (`.gitignore` missing), `prjBuildLive` does `migrate:fresh` + wipes documents — never run on prod
-
-## 12. Doc Map
-- `panel/docs/01-mimari-genel-bakis.md` — overview
-- `panel/docs/TEKNIK_DOKUMANTASYON.md:411` — full guide
-- `panel/docs/mapping/*.md` (11 files) — file-by-file maps
-- `panel/docs/mapping/10-models.md` — start here for DB
-- `panel/docs/mapping/15-frontend-core.md` + `17-frontend-components.md` — start here for Form.vue
-- `panel/documentation/logging-mechanics.md` — **enriched audit system** (actor+order+file frozen, 7 triggers, LList side-panel, AuditService perf)
-- `panel/documentation/file-upload-versioning-mechanics.md` — file versioning (`replaced_id` chain, `isMultiFile` `**` count)
-- `panel/documentation/form-system-mechanics.md` — EAV engine
-- `panel/documentation/optimize-suggestions.md` — **shared composables + reuse for next listings** (`useClientModal` etc., `statusMaps`, `pipe`, `escape`)
-- `memory/05-order-system-state.md` — LIVE order system state (read after `00`)
-- `memory/06-roadmap-next.md` — next steps + decision tree
+## 12. Doc Map (core = panel/documentation)
+- `form-system-mechanics.md` — EAV engine (canonical, memory/01 is intro)
+- `file-versioning-system.md` — versioning (canonical)
+- `logging-mechanics.md` — enriched audit + side-panel + AuditService
+- `notification-receiving-system.md` — bell + Bilgilendirmeler + read tracking
+- `notification-sending-system.md` + `TedarikMailHelper` — BUKRS/LIFNR gates, email cards, `?next=` gateway
+- `tedarik-system-process.md` — end-to-end order lifecycle + test plan (canonical for §5 flow)
+- `session-and-login-mechanics.md` + `single-session-enforcement-system.md`
+- `optimize-suggestions.md` — shared composables/libs for next listings
+- `export-system.md` — Excel pipeline
+- `memory/05` — LIVE snapshot, `memory/06` — next steps, `memory/07` — SAP sync command
