@@ -615,7 +615,7 @@
                         title: 'Durum',
                         key: 'status',
                         order: true,
-                        width: _isTedarik ? '175px' : '220px',
+                        width: _isTedarik ? '205px' : '220px',
                         type: 'string',
                         columnFormatter: (elm,row)=>{
                             const parts = String(row.status||'').split('**');
@@ -766,13 +766,15 @@
                         title: '',
                         key: 'id',
                         order:false,
-                        width: _isTedarik ? '160px' : '190px',
+                        width: _isTedarik ? '195px' : '190px',
                         type:'string',
                         columnFormatter:(elm,row)=>{
                             const wrap=document.createElement('div');
                             wrap.style.display='flex';
                             wrap.style.justifyContent='flex-end';
+                            wrap.style.alignItems='center';
                             wrap.style.gap='6px';
+                            wrap.style.flexWrap='wrap';
                             if(this.isTedarik){
                                 const _perms = this.authStore.permissions || [];
                                 const canKalite = _perms.includes('per-05-03');
@@ -793,6 +795,9 @@
                                     aks.style.fontSize='0.78rem';
                                     aks.style.fontWeight='600';
                                     aks.style.cursor='pointer';
+                                    aks.style.flex='0 0 auto';
+                                    aks.style.whiteSpace='nowrap';
+                                    aks.style.minHeight='32px';
                                     aks.onmouseenter=()=> aks.style.background='#7f7f84';
                                     aks.onmouseleave=()=> aks.style.background='#8e8e93';
                                     aks.onclick=(e)=>{
@@ -938,6 +943,9 @@
                                 det.style.fontSize='0.78rem';
                                 det.style.fontWeight='600';
                                 det.style.cursor='pointer';
+                                det.style.flex='0 0 auto';
+                                det.style.whiteSpace='nowrap';
+                                det.style.minHeight='32px';
                                 det.onmouseenter=()=> det.style.background='#0c7e90';
                                 det.onmouseleave=()=> det.style.background='#0e8ea4';
                                 det.onclick=()=>{
