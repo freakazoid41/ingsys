@@ -74,7 +74,7 @@
         data() {
             const usersClientClick = (e,element) => {
                 Swal.fire({
-                    title: 'Cari Seçiniz',
+                    title: 'Cari / Müdürlük Seçiniz',
                     showCloseButton: true,
                     showConfirmButton: false,
                     html: ` <style>
@@ -3381,6 +3381,21 @@
                         key   : 'clicode',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                    },{
+                        title : 'Müdürlük No',
+                        key   : 'lifnr',
+                        order : true,
+                        type  : 'string',
+                        columnFormatter : (elm,rowData,col) => {
+                            const v = String(col || rowData.lifnr || '').trim();
+                            if (!v || v === '-') return document.createTextNode('-');
+                            const isMudur = /^90\d+/.test(v);
+                            const pill = document.createElement('span');
+                            pill.textContent = v;
+                            pill.style.cssText = 'display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid '+(isMudur?'#bbf7d0;background:#f0fdf4;color:#15803d':'#e2e8f0;background:#f8fafc;color:#64748b');
+                            if (isMudur) pill.title = 'Müdürlük';
+                            return pill;
+                        }
                     },{
                         title : 'Sistem',
                         key   : 'client_system',

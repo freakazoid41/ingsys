@@ -31,7 +31,6 @@ export default {
             excelBusy: false,
             docStatus: null,
             statusBusy: false,
-            isSubmitting: false,
             mudurlukler: [],
             selectedMudur: '',
             excelFiles: [],
@@ -310,12 +309,59 @@ export default {
             return UNIT_MAP[k] || '';
         },
         downloadExcelTemplate() {
+            // Talep matrix template is intentionally identical to İhtiyaç's Kalemleri İndir export
+            // so the file downloaded from İhtiyaç can be uploaded directly into Talep without conversion.
+            // If the Talep already has months (from the linked İhtiyaç), we mirror that matrix;
+            // otherwise we fall back to the base 5-col template used by İhtiyaç's Şablon.
+            try {
+                const rows = this.itemRows ? this.itemRows() : [];
+                const val = (row, prefix) => {
+                    const inp = row.querySelector(`[name^="${prefix}**"]`);
+                    return inp ? String(inp.value || '').trim() : '';
+                };
+                const monthsSet = new Set();
+                rows.forEach(r => {
+                    const ay = val(r, 'ay');
+                    if (/^\d{2}\/\d{4}$/.test(ay)) {
+                        const p = ay.split('/');
+                        monthsSet.add(p[1] + '-' + p[0]);
+                    }
+                });
+                const months = Array.from(monthsSet).sort();
+                const exportAOA = [['Mal Grubu', 'İhale Grubu', 'Malzeme Kodu', 'Malzeme kısa metni', 'Ölçü Birimi'].concat(months)];
+                // group rows by prod_code to avoid duplicate lines when each month is a separate card row
+                const byCode = new Map();
+                rows.forEach(r => {
+                    const kod = val(r, 'prod_code'), ad = val(r, 'title');
+                    if (!kod && !ad) return;
+                    const key = kod + '|' + ad;
+                    if (!byCode.has(key)) byCode.set(key, { mal: val(r, 'mal_grubu'), ihale: val(r, 'ihale_grubu'), kod, ad, unit: val(r, 'unit'), qtyByMonth: {} });
+                    const ay = val(r, 'ay');
+                    if (ay && /^\d{2}\/\d{4}$/.test(ay)) {
+                        const p = ay.split('/'); const mlabel = p[1] + '-' + p[0];
+                        if (months.includes(mlabel)) byCode.get(key).qtyByMonth[mlabel] = val(r, 'quantity');
+                    }
+                });
+                if (months.length && byCode.size) {
+                    byCode.forEach(v => {
+                        const line = [v.mal, v.ihale, v.kod, v.ad, v.unit];
+                        months.forEach(m => line.push(v.qtyByMonth[m] || ''));
+                        exportAOA.push(line);
+                    });
+                    const ws2 = XLSX.utils.aoa_to_sheet(exportAOA);
+                    ws2['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 14 }].concat(months.map(() => ({ wch: 12 })));
+                    const wb2 = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb2, ws2, 'Kalemler');
+                    XLSX.writeFile(wb2, 'talep-kalem-sablon.xlsx');
+                    return;
+                }
+            } catch (e) { /* fall through to base template */ }
             const aoa = [
-                ['Mal Grubu', 'İhale Grubu', 'Malzeme Kodu', 'Malzeme kısa metni', 'Ölçü Birimi', 'Ay (AA/YYYY)', 'Miktar'],
-                ['PREFABRİK BİNA', 'PREFABRİK BİNA', '122.5.5.053.IA', 'PREFABRİK BİNA-EK-1C,A=12M,B=2.6M', 'ADT', '01/2026', '8'],
+                ['Mal Grubu', 'İhale Grubu', 'Malzeme Kodu', 'Malzeme kısa metni', 'Ölçü Birimi'],
+                ['PREFABRİK BİNA', 'PREFABRİK BİNA', '122.5.5.053.IA', 'PREFABRİK BİNA-EK-1C,A=12M,B=2.6M', 'ADT'],
             ];
             const ws = XLSX.utils.aoa_to_sheet(aoa);
-            ws['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+            ws['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 14 }];
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Kalemler');
             XLSX.writeFile(wb, 'talep-kalem-sablon.xlsx');
@@ -450,8 +496,6 @@ export default {
         },
         async submitForm(formData) {
             if (!this.canSave) { this.plib.toast(Swal, 'info', 'Bu aşamada kayıt değiştirilemez'); return; }
-            this.isSubmitting = true;
-            try {
             formData.typeKey = 'op-doc-requestf';
             // stamp which müdürlük files this talep (user picks when bound to several)
             if (!this.id) {
@@ -492,9 +536,6 @@ export default {
                 return;
             }
             this.plib.toast(Swal, 'success', 'İşlem Tamamlandı', () => this.$router.push({ name: this.listRoute() }));
-            } finally {
-                this.isSubmitting = false;
-            }
         }
     }
 };
@@ -568,7 +609,6 @@ export default {
                     </div>
                 </div>
                 <Form v-if="loadForm" formtypes="op-doc-requestf-form,op-doc-requestf-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" :showsave="canSave" />
-                <div v-if="isSubmitting" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:9999;display:inline-flex;align-items:center;gap:10px;background:#0f172a;color:#fff;font-size:13px;font-weight:700;padding:10px 18px;border-radius:999px;">Kaydediliyor — dosyalar işleniyor...</div>
             </div>
         </div>
     </div>
@@ -627,7 +667,6 @@ export default {
             </div>
         </div>
         <Form v-if="loadForm" formtypes="op-doc-requestf-form,op-doc-requestf-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" :showsave="canSave" />
-        <div v-if="isSubmitting" class="planlama-saving"><span class="spin"></span> Kaydediliyor — dosyalar işleniyor...</div>
     </div>
 </template>
 
@@ -741,6 +780,4 @@ export default {
 .tedarik-step-body :deep(.form-control) { min-height:44px; border-radius:12px; font-size:13.5px; border:1.5px solid #e2e8f0; background:#fff; }
 .tedarik-step-body :deep(.form-control:focus) { border-color:#FF5A1F; box-shadow:0 0 0 4px rgba(255,90,31,.12); outline:none; }
 .tedarik-step-body :deep(textarea.form-control) { min-height:96px; }
-.planlama-saving { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 9999; display: inline-flex; align-items: center; gap: 10px; background: #0f172a; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: 999px; box-shadow: 0 12px 32px rgba(15,23,42,.35); }
-.planlama-saving .spin { width: 16px; height: 16px; border-radius: 999px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: planlama-spin .7s linear infinite; display: inline-block; }
 </style>

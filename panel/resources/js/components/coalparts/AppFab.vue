@@ -150,6 +150,40 @@
     }
 }
 
+/* busy state: buttons hide, loading pill shows — nothing clickable mid-save */
+.fab-btns-wrapper .fab-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #334155;
+    padding: 10px 24px;
+    white-space: nowrap;
+}
+.fab-btns-wrapper .fab-spinner {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 2.5px solid #cbd5e1;
+    border-top-color: #154b91;
+    animation: fab-spin .7s linear infinite;
+}
+.fab-btns-wrapper.fab-front .fab-loading {
+    color: #9a3412;
+}
+.fab-btns-wrapper.fab-front .fab-spinner {
+    border-color: #fed7aa;
+    border-top-color: #FF5A1F;
+}
+.fab-btns-wrapper.is-busy {
+    cursor: wait;
+}
+@keyframes fab-spin {
+    to { transform: rotate(360deg); }
+}
+
 @media(max-width:991px) {
     .fab-btns-wrapper{
         width: 100%;
@@ -379,6 +413,9 @@ export default {
     computed: {
         isPlanlamaFront() {
             return typeof this.$route?.path === 'string' && this.$route.path.startsWith('/planlamapanel');
+        },
+        isBusy() {
+            return this.status === 'loading';
         }
     },
     mounted() {
@@ -435,7 +472,7 @@ export default {
             }
         },
         executeCancel() {
-            if (this.cancelcallback) this.cancelcallback();
+            if (this.cancelcallback && this.status != 'loading') this.cancelcallback();
         },
         async executeAccept() {
             // ... do something here
@@ -464,13 +501,16 @@ export default {
 <template>
 
     <Teleport to="body" :disabled="!isPlanlamaFront">
-        <div class="row fab-btns-wrapper" :class="{ 'fab-front': isPlanlamaFront, 'is-bar-hover': barHover }" @mouseenter="barHover = true" @mouseleave="barHover = false; btnHover = ''" v-if="this.fab == 'bar'">
-            <button v-if="cancelcallback" class="btn btn-cancel" :class="{ 'is-btn-hover': btnHover === 'cancel' }" @mouseenter="btnHover = 'cancel'" @mouseleave="btnHover = ''" @click="executeCancel"><i class="ki-outline ki-arrow-left fs-2x"></i> İptal</button>
-            <button class="btn btn-danger" :class="{ 'is-btn-hover': btnHover === 'save' }" @mouseenter="btnHover = 'save'" @mouseleave="btnHover = ''" @click="execute"><i class="ki-outline ki-archive-tick fs-2x"></i> {{ savebtntitle }}</button>
-            <button class="btn btn-success" :class="{ 'is-btn-hover': btnHover === 'accept' }" v-if="type === 'options'" @mouseenter="btnHover = 'accept'" @mouseleave="btnHover = ''" @click="executeAccept"><i
-                    class="ki-outline ki-double-check fs-2x"></i> Bütün Belgeleri Onayla</button>
-            <button class="btn btn-warning" :class="{ 'is-btn-hover': btnHover === 'reject' }" v-if="type === 'options'" @mouseenter="btnHover = 'reject'" @mouseleave="btnHover = ''" @click="executeReject"><i
-                    class="ki-outline ki-cross fs-2x"></i> Bütün Belgeleri Reddet</button>
+        <div class="row fab-btns-wrapper" :class="{ 'fab-front': isPlanlamaFront, 'is-bar-hover': barHover, 'is-busy': isBusy }" @mouseenter="barHover = true" @mouseleave="barHover = false; btnHover = ''" v-if="this.fab == 'bar'">
+            <template v-if="!isBusy">
+                <button v-if="cancelcallback" class="btn btn-cancel" :class="{ 'is-btn-hover': btnHover === 'cancel' }" @mouseenter="btnHover = 'cancel'" @mouseleave="btnHover = ''" @click="executeCancel"><i class="ki-outline ki-arrow-left fs-2x"></i> İptal</button>
+                <button class="btn btn-danger" :class="{ 'is-btn-hover': btnHover === 'save' }" @mouseenter="btnHover = 'save'" @mouseleave="btnHover = ''" @click="execute"><i class="ki-outline ki-archive-tick fs-2x"></i> {{ savebtntitle }}</button>
+                <button class="btn btn-success" :class="{ 'is-btn-hover': btnHover === 'accept' }" v-if="type === 'options'" @mouseenter="btnHover = 'accept'" @mouseleave="btnHover = ''" @click="executeAccept"><i
+                        class="ki-outline ki-double-check fs-2x"></i> Bütün Belgeleri Onayla</button>
+                <button class="btn btn-warning" :class="{ 'is-btn-hover': btnHover === 'reject' }" v-if="type === 'options'" @mouseenter="btnHover = 'reject'" @mouseleave="btnHover = ''" @click="executeReject"><i
+                        class="ki-outline ki-cross fs-2x"></i> Bütün Belgeleri Reddet</button>
+            </template>
+            <div v-else class="fab-loading"><span class="fab-spinner"></span> Kaydediliyor...</div>
         </div>
     </Teleport>
     <div class="fab-wrapper" v-if="this.fab == 'leftIcon'">
