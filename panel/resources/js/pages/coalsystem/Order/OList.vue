@@ -615,7 +615,7 @@
                         title: 'Durum',
                         key: 'status',
                         order: true,
-                        width: _isTedarik ? '205px' : '220px',
+                        width: _isTedarik ? '225px' : '220px',
                         type: 'string',
                         columnFormatter: (elm,row)=>{
                             const parts = String(row.status||'').split('**');
@@ -631,7 +631,12 @@
                             btn.style.borderRadius=this.isTedarik ? '6px' : '8px';
                             btn.style.fontSize=this.isTedarik ? '11.5px' : '0.82rem';
                             btn.style.fontWeight='600';
-                            btn.style.whiteSpace='nowrap';
+                            btn.style.whiteSpace='normal';
+                            btn.style.lineHeight='1.25';
+                            btn.style.textAlign='center';
+                            btn.style.maxWidth='100%';
+                            btn.style.overflow='visible';
+                            btn.style.textOverflow='clip';
                             btn.style.cursor='pointer';
                             btn.style.border='1px solid transparent';
                             btn.style.gap='6px';
