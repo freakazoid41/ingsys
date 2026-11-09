@@ -1601,13 +1601,16 @@
 }
 .tedarik-docs-page :deep(.pickletable table){
     border-collapse:separate !important; border-spacing:0 7px !important;
-    width:100% !important; table-layout:auto !important; border:none !important;
+    width:100% !important; table-layout:fixed !important; border:none !important;
+}
+.tedarik-docs-page :deep(.pickletable thead){
+    position:sticky !important; top:0 !important; z-index:5 !important; background:#fff !important;
 }
 .tedarik-docs-page :deep(.pickletable thead th){
-    background:transparent !important; color:#b0b0b5 !important;
+    background:#fff !important; color:#b0b0b5 !important;
     font-size:13px !important; font-weight:500 !important; text-transform:none !important;
-    letter-spacing:0 !important; padding:0 14px 10px !important; border:none !important; border-bottom:none !important;
-    white-space:nowrap; text-align:left !important; vertical-align:middle !important; line-height:1.4 !important; box-shadow:none !important; position:relative !important; top:auto !important;
+    letter-spacing:0 !important; padding:10px 14px !important; border:none !important; border-bottom:none !important;
+    white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; text-align:left !important; vertical-align:middle !important; line-height:1.4 !important; box-shadow:none !important; position:sticky !important; top:0 !important; z-index:5 !important;
 }
 .tedarik-docs-page :deep(.pickletable thead th:last-child){ text-align:right !important; }
 .tedarik-docs-page :deep(.pickletable thead th i), .tedarik-docs-page :deep(.pickletable thead th svg){ vertical-align:middle !important; }

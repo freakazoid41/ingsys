@@ -633,7 +633,7 @@ html::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: no
     position: sticky !important;
     top: 0 !important;
     z-index: 5 !important;
-    padding: 0 14px 10px !important;
+    padding: 10px 14px !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
     white-space: nowrap !important;

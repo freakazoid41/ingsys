@@ -1534,7 +1534,7 @@
     font-weight: 500 !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
-    padding: 0 14px 10px !important;
+    padding: 10px 14px !important;
     border: none !important;
     border-bottom: none !important;
     white-space: nowrap !important;
@@ -1836,7 +1836,7 @@
     box-shadow: none !important;
     position: relative !important;
     top: auto !important;
-    padding: 0 14px 10px !important;
+    padding: 10px 14px !important;
 }
 .tedarik-card .pickletable td {
     background: transparent !important;
