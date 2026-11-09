@@ -567,7 +567,7 @@ export default {
                         <button type="button" class="tedarik-btn-light" @click="downloadExcel(f)">İndir</button>
                     </div>
                 </div>
-                <Form v-if="loadForm" formtypes="op-doc-requestf-form,op-doc-requestf-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" />
+                <Form v-if="loadForm" formtypes="op-doc-requestf-form,op-doc-requestf-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" :showsave="canSave" />
                 <div v-if="isSubmitting" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:9999;display:inline-flex;align-items:center;gap:10px;background:#0f172a;color:#fff;font-size:13px;font-weight:700;padding:10px 18px;border-radius:999px;">Kaydediliyor — dosyalar işleniyor...</div>
             </div>
         </div>
@@ -626,7 +626,7 @@ export default {
                 <button type="button" class="planlama-rform__btn" @click="downloadExcel(f)">İndir</button>
             </div>
         </div>
-        <Form v-if="loadForm" formtypes="op-doc-requestf-form,op-doc-requestf-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" />
+        <Form v-if="loadForm" formtypes="op-doc-requestf-form,op-doc-requestf-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" :showsave="canSave" />
         <div v-if="isSubmitting" class="planlama-saving"><span class="spin"></span> Kaydediliyor — dosyalar işleniyor...</div>
     </div>
 </template>

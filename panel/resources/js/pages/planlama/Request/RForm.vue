@@ -268,7 +268,7 @@ export default {
                     <button v-if="canEdit" type="button" class="tedarik-btn-light" :disabled="excelBusy || !loadForm" @click="triggerExcelUpload">{{ excelBusy ? 'Aktarılıyor...' : "Excel'den Yükle" }}</button>
                     <input ref="excelInput" type="file" accept=".xls,.xlsx" style="display:none" @change="onExcelSelected" />
                 </div>
-                <Form v-if="loadForm" formtypes="op-doc-request-form,op-doc-request-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" />
+                <Form v-if="loadForm" formtypes="op-doc-request-form,op-doc-request-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" :showsave="canEdit" />
             </div>
         </div>
     </div>
@@ -284,7 +284,7 @@ export default {
             </button>
             <input ref="excelInput" type="file" accept=".xls,.xlsx" style="display:none" @change="onExcelSelected" />
         </div>
-        <Form v-if="loadForm" formtypes="op-doc-request-form,op-doc-request-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" />
+        <Form v-if="loadForm" formtypes="op-doc-request-form,op-doc-request-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" :showsave="canEdit" />
     </div>
 </template>
 
