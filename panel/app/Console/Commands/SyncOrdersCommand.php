@@ -560,19 +560,8 @@ class SyncOrdersCommand extends Command
                     ->first();
             }
 
-            // Fallback: if title match failed, find any active client doc with lifnr
-            if (!$correctClient) {
-                $correctClient = DB::table('sys_con_entities as se')
-                    ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
-                    ->join('documents as d', 'd.id', '=', 'so.main_id')
-                    ->where('se.entity_tag', 'lifnr')
-                    ->where('se.table_tag', 'sys_con_ops')
-                    ->where('d.type_id', $clientTypeId)
-                    ->where('d.status', 1)
-                    ->select('d.qnid', 'd.id')
-                    ->first();
-            }
-
+            // No arbitrary fallback: picking "any active client" would mis-bind reseller to wrong LIFNR/company.
+            // If title match failed we cannot safely determine lifnr+system — skip for manual fix.
             if (!$correctClient || $correctClient->qnid === $row->cliid_qnid) {
                 $skipped++;
                 continue;

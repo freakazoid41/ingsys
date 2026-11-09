@@ -104,10 +104,9 @@ class Documents extends Model
         
        
         //i.parent_type_id for free documents, if parent_type_id is 0, it means this document is not connected to any other table so it is a main document. if parent_type_id is not 0, it means this document is connected to another table like users or persons, so it is a sub document. we only want to list main documents in the table list, so we will add this condition to the where clause.
-        //cancelled offers (documents.status = 0) are revealed only when the caller explicitly opts in, so
-        //dashboards, notification badges and every other document type keep their active-only behaviour.
-        // NEW: offers removed — withCancelled only for orders now (if needed)
-        $statusPredicate = "i.status = '1'"; // legacy offer (0,1) removed
+        //cancelled orders (documents.status = 0 via cancelOrder) are revealed only when the caller explicitly opts in
+        //with with-cancelled=1, so lists/dashboards keep active-only behaviour but tedarik-07 can include cancelled.
+        $statusPredicate = $withCancelled ? "i.status IN ('0','1')" : "i.status = '1'";
         $where = " where ".$statusPredicate." and i.parent_type_id = 0";
        
 

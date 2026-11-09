@@ -376,6 +376,16 @@ class DocumentController extends Controller
             if (!checkPerm($need)) {
                 return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır ('.$need.')...'],403);
             }
+        } else if ($docOpKey === 'op-doc-order' && in_array($request->op_key, ['doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected'], true)) {
+            // Kalite / Red requires admin file approver — supplier send (transfer_sent/ready) stays per-05-03 via generic map.
+            // Frontend OForm::canKalite already gates per-07-02; backend enforces same so reseller cannot self-approve via API.
+            if ($validateUser->fails()) {
+                return response()->json(['success'=>false,'message'=>'Missing Parameters','error'=>$validateUser->errors()],422);
+            }
+            $authUser = auth('sanctum')->user() ?? auth()->user();
+            if (!$this->perms->has($authUser, 'per-07-02')) {
+                return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır (per-07-02 Kalite Onayı)...'],403);
+            }
         } else {
             $validated = docPermCheck($docOpKey,'status');
             if($validateUser->fails() || !$validated){

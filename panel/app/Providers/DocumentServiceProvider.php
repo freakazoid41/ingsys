@@ -130,6 +130,29 @@ class DocumentServiceProvider extends ServiceProvider
                     }
                 }
 
+                // Tedarik order header lock: after first send desc/imalatci are frozen (mirrors OForm isLocked).
+                // Files may still be re-uploaded when rejected, so we never block the whole save —
+                // we strip header edits and keep file slots. Preserves resend mechanic.
+                if ($document && ($typeKey ?? null) === 'op-doc-order') {
+                    $docOpForOrderGuard = Sys_options::where('id', $document->type_id)->value('op_key');
+                    if ($docOpForOrderGuard === 'op-doc-order') {
+                        $lastOrderGuard = DB::table('transactions as t')
+                            ->join('sys_options as so','so.id','=','t.type_id')
+                            ->where('t.target_id',$document->id)
+                            ->where('so.group_key','op-trans-op-doc-order')
+                            ->orderBy('t.id','desc')
+                            ->value('so.op_key');
+                        if ($lastOrderGuard && $lastOrderGuard !== 'doc_trans_order_created') {
+                            foreach ($dynamicF as $dfKey => $dfVal) {
+                                if (str_starts_with($dfKey, 'op-doc-order-form**')) {
+                                    if (isset($dynamicF[$dfKey]['entities']['order_desc'])) unset($dynamicF[$dfKey]['entities']['order_desc']);
+                                    if (isset($dynamicF[$dfKey]['entities']['imalatci_firma_adi'])) unset($dynamicF[$dfKey]['entities']['imalatci_firma_adi']);
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // here get all data for before data logging
 
                 $logData['description'] = [
@@ -1612,22 +1635,34 @@ class DocumentServiceProvider extends ServiceProvider
             }
             $transferNo = $baseNo.'-'.$x;
 
-            // Guard: lock 0-quantity items — never send a depleted kalem to another partition
-            if (!empty($selectedItems)) {
-                foreach ($selectedItems as $chk) {
-                    $chkQnid = is_array($chk) ? ($chk['qnid'] ?? '') : $chk;
-                    $chkAmt = is_array($chk) ? (float) ($chk['amount'] ?? 0) : 0;
-                    if (empty($chkQnid) || $chkAmt <= 0) continue;
-                    $chkDoc = Documents::where('qnid', $chkQnid)->first();
-                    if (!$chkDoc) continue;
-                    $curQty = $this->getItemQuantityForTransfer((int) $chkDoc->id);
-                    if ($curQty <= 0) {
-                        return ['success' => false, 'msg' => 'Kalem tükendi (stok 0) — başka partisyona gönderilemez: ' . $chkQnid];
-                    }
-                    if ($chkAmt > $curQty) {
-                        return ['success' => false, 'msg' => 'Kalem için bölme miktarı stoktan fazla: ' . $chkQnid . ' (' . $chkAmt . ' > ' . $curQty . ')'];
+            // Guard: lock 0-quantity items — never send a depleted kalem to another partition.
+            // Pessimistic lock (FOR UPDATE) inside a transaction so concurrent partials cannot oversell.
+            // Inner registerContent/setStatus use nested savepoints, outer commit keeps clone+decrements atomic.
+            DB::beginTransaction();
+            try {
+                // Lock base order row for the duration of the split
+                Documents::where('id', $order->id)->lockForUpdate()->first();
+                if (!empty($selectedItems)) {
+                    foreach ($selectedItems as $chk) {
+                        $chkQnid = is_array($chk) ? ($chk['qnid'] ?? '') : $chk;
+                        $chkAmt = is_array($chk) ? (float) ($chk['amount'] ?? 0) : 0;
+                        if (empty($chkQnid) || $chkAmt <= 0) continue;
+                        $chkDoc = Documents::where('qnid', $chkQnid)->lockForUpdate()->first();
+                        if (!$chkDoc) continue;
+                        $curQty = $this->getItemQuantityForTransfer((int) $chkDoc->id);
+                        if ($curQty <= 0) {
+                            DB::rollBack();
+                            return ['success' => false, 'msg' => 'Kalem tükendi (stok 0) — başka partisyona gönderilemez: ' . $chkQnid];
+                        }
+                        if ($chkAmt > $curQty) {
+                            DB::rollBack();
+                            return ['success' => false, 'msg' => 'Kalem için bölme miktarı stoktan fazla: ' . $chkQnid . ' (' . $chkAmt . ' > ' . $curQty . ')'];
+                        }
                     }
                 }
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                return ['success' => false, 'msg' => 'Stok kilidi alınamadı: '.$e->getMessage()];
             }
 
             // Build the clone payload (header + desc + imalatci carried from the order).
@@ -1654,6 +1689,7 @@ class DocumentServiceProvider extends ServiceProvider
             ];
             $cloneRes = $this->registerContent(0, $clonePayload, []);
             if (empty($cloneRes['id'])) {
+                DB::rollBack();
                 return ['success' => false, 'msg' => 'Klon sipariş oluşturulamadı: '.($cloneRes['message'] ?? '')];
             }
             $clone = Documents::where('qnid', $cloneRes['qnid'])->first();
@@ -1698,19 +1734,21 @@ class DocumentServiceProvider extends ServiceProvider
             // The clone is the thing being sent for review.
             $st = $this->setStatus($clone->qnid, 'doc_trans_order_transfer_sent', 'Transfer gönderildi (parçalı): '.$transferNo);
             if (! ($st['success'] ?? false)) {
-            return ['success' => false, 'msg' => 'Klon durumu güncellenemedi: '.($st['msg'] ?? '')];
-        }
+                DB::rollBack();
+                return ['success' => false, 'msg' => 'Klon durumu güncellenemedi: '.($st['msg'] ?? '')];
+            }
 
-        // Store transfer_mode as EAV entity so frontend can display it read-only after first send.
-        $this->saveTransferModeEntity($order, $mode);
-        $this->saveTransferModeEntity($clone, $mode);
+            // Store transfer_mode as EAV entity so frontend can display it read-only after first send.
+            $this->saveTransferModeEntity($order, $mode);
+            $this->saveTransferModeEntity($clone, $mode);
 
-        return [
-            'success' => true,
-            'transfer_no' => $transferNo,
-            'clone_qnid' => $clone->qnid,
-            'msg' => 'Parçalı transfer oluşturuldu: '.$transferNo,
-        ];
+            DB::commit();
+            return [
+                'success' => true,
+                'transfer_no' => $transferNo,
+                'clone_qnid' => $clone->qnid,
+                'msg' => 'Parçalı transfer oluşturuldu: '.$transferNo,
+            ];
         }
 
         // At-once: the order itself is the transfer being sent.

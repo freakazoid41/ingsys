@@ -16,6 +16,9 @@ class Recaptcha implements Rule
      */
     public function passes($attribute, $value)
     {
+        if (env('IS_TEST') === true || env('IS_TEST') === 'true' || env('IS_TEST') === 1 || env('IS_TEST') === '1') {
+            return true;
+        }
         $verifyUrl = env('RECAPTCHA_VERIFY_URL', 'https://www.google.com/recaptcha/api/siteverify');
         $secret = env('RECAPTCHA_SECRET_KEY', config('services.recaptcha.secret'));
 

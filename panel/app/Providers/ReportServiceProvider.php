@@ -323,11 +323,14 @@ class ReportServiceProvider extends ServiceProvider
 
     // ── TEDARIK helpers ──
     public function getTedarikOrders($statusKey){
+        // with-cancelled=1 so cancelOrder (status=0 + rejected txn) still appears in tedarik-06/07 bells.
+        // OList does not pass this flag, so lists stay active-only.
         $data = \App\Models\Documents::tableList([
             'filter' => [
                 ['key' => 'transactions', 'type' => '=','value' => $statusKey],
                 ['key' => 'type', 'type' => '=','value' => 'op-doc-order'],
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-order-form'],
+                ['key' => 'with-cancelled', 'type' => '=','value' => '1'],
             ],
             'order' => ['key' => 'main_id', 'style' => 'desc'],
         ]);
@@ -1031,19 +1034,22 @@ class ReportServiceProvider extends ServiceProvider
     }
 
     public function tedarikRecentFiles(){
-        $lifnrs = $this->getResellerLifnrsBySys();
-        $whereLif = $this->resellerOrderWhere($lifnrs);
+        $lifnrsBySys = $this->getResellerLifnrsBySys();
+        $whereLif = $this->resellerOrderWhere($lifnrsBySys);
         // For files we need to filter via the related document's order
-        // Reuse resellerOrderWhere but adapted for document_files join (d = order or item's parent order)
+        // NOTE: $lifnrsBySys is a GDZ/ADM map — flatten to plain lifnrs (was IN ('Array','Array') bug).
         $fileWhere = "";
-        if($lifnrs === null) $fileWhere = "";
-        else if(empty($lifnrs)) $fileWhere = " and 1=0 ";
+        if($lifnrsBySys === null) $fileWhere = "";
         else {
-            $lifIn = "'".implode("','", array_map('noInject', $lifnrs))."'";
-            $fileWhere = " and (
-                exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=d.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn))
-                or exists (select 1 from documents pd join sys_con_ops soP on soP.main_id=pd.id join sys_con_entities seP on seP.conn_id=soP.id where pd.id=d.parent_id and seP.entity_tag='spec_code' and seP.entity_value in ($lifIn))
-            ) ";
+            $flat = $this->getResellerLifnrs();
+            if(empty($flat)) $fileWhere = " and 1=0 ";
+            else {
+                $lifIn = "'".implode("','", array_map('noInject', $flat))."'";
+                $fileWhere = " and (
+                    exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=d.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn))
+                    or exists (select 1 from documents pd join sys_con_ops soP on soP.main_id=pd.id join sys_con_entities seP on seP.conn_id=soP.id where pd.id=d.parent_id and seP.entity_tag='spec_code' and seP.entity_value in ($lifIn))
+                ) ";
+            }
         }
         $rows = DB::select("SELECT i.qnid as id, i.qnid as qnid, i.created_at, i.description as file,
             se.entity_tag, d.qnid as relation_qnid, d.id as relation_id,

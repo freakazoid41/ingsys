@@ -454,6 +454,14 @@ class ExportController extends Controller
         }
 
         $provider = new DocumentServiceProvider();
+        // IDOR guard: reseller may only export own LIFNR+SYSTEM orders (mirrors downloadAllOrderFiles).
+        $orderRef = $provider->resolveOrderFromQnid($req['qnid']);
+        if (!$orderRef || ($orderRef->type_key ?? null) !== 'op-doc-order') {
+            return response()->json(['success' => false, 'msg' => 'Sipariş bulunamadı.'], 404);
+        }
+        if (!$provider->canCurrentResellerAccessOrder($orderRef)) {
+            return response()->json(['success' => false, 'msg' => 'Yetki yok'], 403);
+        }
         $formData = $provider->getFormData($req['qnid']);
         if (!$formData || empty($formData['document'])) {
             return response()->json(['success' => false, 'msg' => 'Sipariş bulunamadı.']);
@@ -499,6 +507,14 @@ class ExportController extends Controller
         }
 
         $provider = new DocumentServiceProvider();
+        // IDOR guard: reseller may only export own LIFNR+SYSTEM orders (mirrors downloadAllOrderFiles).
+        $orderRef = $provider->resolveOrderFromQnid($req['qnid']);
+        if (!$orderRef || ($orderRef->type_key ?? null) !== 'op-doc-order') {
+            return response()->json(['success' => false, 'msg' => 'Sipariş bulunamadı.'], 404);
+        }
+        if (!$provider->canCurrentResellerAccessOrder($orderRef)) {
+            return response()->json(['success' => false, 'msg' => 'Yetki yok'], 403);
+        }
         $formData = $provider->getFormData($req['qnid']);
         if (!$formData || empty($formData['document'])) {
             return response()->json(['success' => false, 'msg' => 'Sipariş bulunamadı.']);
