@@ -83,7 +83,7 @@
     margin: 0 !important;
     padding: 10px 24px;
     border-radius: 12px;
-    border: 1px solid #FF5A1F;
+    border: 1px solid #FF5A1F !important;
     background: linear-gradient(135deg, #FF5A1F 0%, #ff7a3a 100%) !important;
     color: #fff !important;
     font-size: 14px;
@@ -92,7 +92,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    box-shadow: 0 6px 16px rgba(255, 90, 31, .25);
+    box-shadow: 0 6px 16px rgba(255, 90, 31, .25) !important;
     cursor: pointer;
     transition: all .18s ease;
 }
@@ -106,24 +106,24 @@
 
 .fab-btns-wrapper.fab-front .btn:hover {
     background: linear-gradient(135deg, #ea4a0f 0%, #ff6a1f 100%) !important;
-    border-color: #ea4a0f;
+    border-color: #ea4a0f !important;
     color: #fff !important;
     transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(255, 90, 31, .35);
+    box-shadow: 0 10px 24px rgba(255, 90, 31, .35) !important;
 }
 
 .fab-btns-wrapper.fab-front .btn-cancel {
     background: #fff !important;
     border: 1.5px solid #e2e8f0 !important;
     color: #334155 !important;
-    box-shadow: none;
+    box-shadow: none !important;
 }
 
 .fab-btns-wrapper.fab-front .btn-cancel:hover {
     background: #fff7ed !important;
     border-color: #FF5A1F !important;
     color: #9a3412 !important;
-    box-shadow: 0 4px 12px rgba(255, 90, 31, .15);
+    box-shadow: 0 4px 12px rgba(255, 90, 31, .15) !important;
 }
 
 @media(max-width:991px) {
