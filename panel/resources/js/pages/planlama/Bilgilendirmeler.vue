@@ -68,11 +68,11 @@ import { buildNotificationRows, isPlanlamaCat } from '@/lib/notificationHelpers'
 import { PLANLAMA_CATS } from '@/lib/notificationHelpers';
 
 const TABLE_HEIGHT = '60vh';
-const TABLE_MIN_WIDTH = '920px';
+const TABLE_MIN_WIDTH = '880px';
 const HEADERS = [
   { title: ' ', key: 'document_card', order: false, type: 'string', columnFormatter: () => document.createTextNode('') },
   {
-    title: 'Belge Başlık', key: 'file_type', order: true, width: '185px', type: 'string',
+    title: 'Belge Başlık', key: 'file_type', order: true, width: '205px', type: 'string',
     columnFormatter: (elm, rowData, col) => {
       const wrap = document.createElement('div'); wrap.className = 'bili-cell bili-cell--title';
       const box = document.createElement('div'); box.className = `bili-icon bili-icon--${rowData.cat}`;
@@ -83,7 +83,7 @@ const HEADERS = [
     }
   },
   {
-    title: 'Sipariş / İlişki', key: 'group_key', order: true, width: '265px', type: 'string',
+    title: 'Sipariş / İlişki', key: 'group_key', order: true, width: '285px', type: 'string',
     columnFormatter: (elm, rowData, col) => {
       const orderCode = rowData.group_key || col || '';
       const iliski = rowData.ctitle || '';
@@ -332,11 +332,12 @@ export default {
 :deep(.bili-icon--tedarik-05){ background:#fee2e2; color:#991b1b; border-color:#fecaca; }
 :deep(.bili-icon--tedarik-06){ background:#d1fae5; color:#064e3b; border-color:#6ee7b7; }
 :deep(.bili-icon--tedarik-07){ background:#fee2e2; color:#7f1d1d; border-color:#fca5a5; }
-:deep(.bili-title){ font-weight:700; color:#0f172a; font-size:12.5px; display:inline-block; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
-:deep(.bili-merged){ display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden; }
-:deep(.bili-pill){ display:inline-flex; align-items:center; padding:5px 10px; border-radius:999px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex-shrink:0; border:1px solid transparent; }
-:deep(.bili-pill--order){ font-weight:800; background:#fff7ed; color:#7c2d12; border-color:#fed7aa; max-width:102px; }
-:deep(.bili-pill--company){ font-weight:700; background:#f1f5f9; color:#334155; border-color:#e2e8f0; max-width:138px; flex-shrink:1; }
+:deep(.bili-cell){ min-width:0; flex:1 1 auto; }
+:deep(.bili-title){ font-weight:700; color:#0f172a; font-size:12.5px; display:inline-block; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; min-width:0; flex:1 1 auto; }
+:deep(.bili-merged){ display:flex; align-items:center; gap:6px; flex-wrap:wrap; overflow:visible; }
+:deep(.bili-pill){ display:inline-flex; align-items:center; padding:5px 10px; border-radius:999px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 0 auto; border:1px solid transparent; max-width:100%; }
+:deep(.bili-pill--order){ font-weight:800; background:#fff7ed; color:#7c2d12; border-color:#fed7aa; max-width:135px; }
+:deep(.bili-pill--company){ font-weight:700; background:#f1f5f9; color:#334155; border-color:#e2e8f0; max-width:155px; }
 :deep(.bili-single){ color:#334155; display:inline-block; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; font-weight:600; font-size:13px; }
 :deep(.bili-date){ color:#334155; white-space:nowrap; font-size:12.5px; font-weight:600; }
 :deep(.bili-status){ display:inline-flex; align-items:center; justify-content:center; padding:5px 10px; border-radius:6px; font-size:11.5px; font-weight:600; white-space:nowrap; border:1px solid transparent; gap:6px; }
