@@ -534,7 +534,9 @@ class Documents extends Model
                     case 'is_system':
                     case 'system_only':
                         $v = trim((string)$f['value']);
-                        if ($v === '1' || strtolower($v) === 'true') {
+                        if (strtolower($v) === 'all' || $v === '' ) {
+                            // 'all' means show both system (Müdürlük) and normal Firma together — no extra where
+                        } else if ($v === '1' || strtolower($v) === 'true') {
                             $where .= " and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='is_system' and se3.entity_value='1') ";
                         } else {
                             $where .= " and not exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='is_system' and se3.entity_value='1') ";

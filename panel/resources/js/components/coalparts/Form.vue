@@ -3441,6 +3441,10 @@
                             key   : 'type',
                             type  : '=',
                             value : 'op-doc-client'
+                        },{
+                            key   : 'system_only',
+                            type  : '=',
+                            value : 'all'
                         }
                     ],
                     nextPageIcon : '<i class="ki-outline ki-arrow-right "></i>',
