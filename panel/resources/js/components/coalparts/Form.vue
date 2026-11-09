@@ -3388,7 +3388,7 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                     },{
-                        title : 'Müdürlük No',
+                        title : 'Cari Kodu',
                         key   : 'lifnr',
                         order : true,
                         type  : 'string',
