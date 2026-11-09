@@ -1540,14 +1540,14 @@
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    text-align: left !important;
+    text-align: center !important;
     box-shadow: none !important;
     position: sticky !important;
     top: 0 !important;
     z-index: 5 !important;
 }
 .tedarik-card :deep(.pickletable thead th:last-child){
-    text-align: right !important;
+    text-align: center !important;
 }
 .tedarik-card :deep(.pickletable tbody tr){
     background: #fff !important;
