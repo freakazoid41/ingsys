@@ -24,6 +24,7 @@ export default {
         };
     },
     computed: {
+        isFront() { return this.$route.path.startsWith('/planlamapanel'); },
         formRoute() { return this.$route.path.startsWith('/planlamapanel') ? 'PlanlamaRForm' : 'PlanlamaRFormAdmin'; },
         fFormRoute() { return this.$route.path.startsWith('/planlamapanel') ? 'PlanlamaFForm' : 'PlanlamaFFormAdmin'; },
         canCreate() { return (this.authStore.permissions || []).includes('per-041-05-02'); },
@@ -35,10 +36,13 @@ export default {
     },
     methods: {
         searchTable() {
-            this.table.setFilter([{ key: 'all', type: '=', value: document.getElementById('mainSearch').value.trim() }]);
+            const inp = this.$refs.frontSearch || document.getElementById('mainSearch');
+            const v = (inp?.value || '').trim();
+            this.table.setFilter(v ? [{ key: 'all', type: '=', value: v }] : []);
         },
         resetSearch() {
-            document.getElementById('mainSearch').value = '';
+            const inp = this.$refs.frontSearch || document.getElementById('mainSearch');
+            if (inp) inp.value = '';
             this.table.setFilter([]);
         },
         goForm(id) {
@@ -88,47 +92,64 @@ export default {
             }
         },
         buildTable() {
+            const isFront = this.$route.path.startsWith('/planlamapanel');
             this.table = new PickleTable({
                 container: '#div_table',
                 headers: [
-                    { title: 'Başlık', key: 'title', order: true, type: 'string' },
-                    { title: 'Dönem', key: 'donem_bas', order: true, type: 'string',
+                    { title: 'Başlık', key: 'title', order: true, type: 'string', width: isFront ? '220px' : undefined,
+                      columnFormatter: (elm, rowData, col) => {
+                          const s = document.createElement('span');
+                          s.textContent = col || rowData.title || '—';
+                          s.title = s.textContent;
+                          s.style.cssText = 'font-weight:700;color:#0f172a;font-size:' + (isFront ? '13px' : '14px') + ';display:inline-block;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;cursor:pointer;';
+                          s.onclick = () => this.$router.push({ name: this.formRoute, params: { id: rowData.id } });
+                          return s;
+                      } },
+                    { title: 'Dönem', key: 'donem_bas', order: true, type: 'string', width: isFront ? '170px' : undefined,
                       columnFormatter: (elm, rowData, col) => {
                           const b = col || rowData.donem_bas || '';
                           const e = rowData.donem_bit || '';
                           const span = document.createElement('span');
                           span.textContent = b && e ? (b === e ? b : b + ' - ' + e) : (b || e || '-');
+                          span.style.color = '#334155';
                           return span;
                       } },
-                    { title: 'Oluşturulma', key: 'created_at', order: true, type: 'string' },
-                    { title: '', key: 'id', order: false, type: 'string',
+                    { title: 'Oluşturulma', key: 'created_at', order: true, type: 'string', width: isFront ? '150px' : undefined,
+                      columnFormatter: (elm, rowData, col) => {
+                          const s = document.createElement('span'); s.textContent = col || rowData.created_at || '—'; s.style.color = '#334155'; return s;
+                      } },
+                    { title: '', key: 'id', order: false, type: 'string', width: isFront ? '260px' : undefined,
                       columnFormatter: (elm, rowData, columnData) => {
-                          const span = document.createElement('span');
-                          span.classList.add('d-flex','align-items-center','justify-content-center','gap-1');
-                          const btn = document.createElement('button');
-                          btn.classList.add('btn','btn-secondary');
-                          btn.textContent = 'Detay';
+                          const wrap = document.createElement('div');
+                          wrap.style.display = 'flex';
+                          wrap.style.justifyContent = isFront ? 'flex-end' : 'center';
+                          wrap.style.alignItems = 'center';
+                          wrap.style.gap = '6px';
+                          const mk = (label, bg, color, border) => {
+                              const b = document.createElement('button');
+                              b.textContent = label;
+                              b.className = 'btn';
+                              b.style.cssText = `background:${bg};color:${color};border:1px solid ${border};border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;`;
+                              return b;
+                          };
+                          const btn = mk('Detay', '#0e8ea4', '#ffffff', '#0e8ea4');
                           btn.onclick = () => this.$router.push({ name: this.formRoute, params: { id: columnData } });
-                          span.appendChild(btn);
+                          wrap.appendChild(btn);
                           if (this.authStore.permissions?.includes('per-041-05-03')) {
-                              const fbtn = document.createElement('button');
-                              fbtn.classList.add('btn','btn-secondary');
-                              fbtn.textContent = 'Talep Oluştur';
+                              const fbtn = mk('Talep Oluştur', '#f1f5f9', '#334155', '#e2e8f0');
                               fbtn.title = 'Bu ihtiyaçtan bağlı Talep Dökümanı oluştur';
                               fbtn.onclick = () => this.$router.push({ name: this.fFormRoute, query: { from: columnData } });
-                              span.appendChild(fbtn);
+                              wrap.appendChild(fbtn);
                           }
-                          const xbtn = document.createElement('button');
-                          xbtn.classList.add('btn','btn-secondary');
-                          xbtn.textContent = 'Excel';
+                          const xbtn = mk('Excel', '#f1f5f9', '#334155', '#e2e8f0');
                           xbtn.title = 'Kalemleri Excel olarak indir';
                           xbtn.onclick = () => this.downloadRowExcel(columnData);
-                          span.appendChild(xbtn);
-                          return span;
+                          wrap.appendChild(xbtn);
+                          return wrap;
                       } },
                 ],
                 pageLimit: 10,
-                height: '70vh',
+                height: isFront ? '75vh' : '70vh',
                 type: 'ajax',
                 columnSearch: false,
                 paginationType: 'number',
@@ -152,29 +173,56 @@ export default {
 </script>
 
 <template>
-    <div class="card rlist-card">
-        <div class="card-header rlist-header">
-            <div class="rlist-search-group">
-                <div class="rlist-search-wrap">
-                    <i class="ki-duotone ki-magnifier fs-4 rlist-search-icon">
-                        <span class="path1"></span><span class="path2"></span>
-                    </i>
-                    <input type="text" id="mainSearch" class="rlist-search-input" placeholder="İhtiyaç ara...">
+    <div :class="['order-list-card', { 'tedarik-card': isFront }]">
+        <!-- Admin header -->
+        <div v-if="!isFront" class="card rlist-card">
+            <div class="card-header rlist-header">
+                <div class="rlist-search-group">
+                    <div class="rlist-search-wrap">
+                        <i class="ki-duotone ki-magnifier fs-4 rlist-search-icon">
+                            <span class="path1"></span><span class="path2"></span>
+                        </i>
+                        <input type="text" id="mainSearch" class="rlist-search-input" placeholder="İhtiyaç ara...">
+                    </div>
+                    <button type="button" class="rlist-btn rlist-btn-primary" @click="searchTable">
+                        <i class="ki-outline ki-magnifier fs-5"></i> Ara
+                    </button>
+                    <button type="button" class="rlist-btn rlist-btn-ghost" @click="resetSearch">Sıfırla</button>
                 </div>
-                <button type="button" class="rlist-btn rlist-btn-primary" @click="searchTable">
-                    <i class="ki-outline ki-magnifier fs-5"></i> Ara
-                </button>
-                <button type="button" class="rlist-btn rlist-btn-ghost" @click="resetSearch">Sıfırla</button>
+                <div v-if="canCreate" class="rlist-toolbar">
+                    <button type="button" class="rlist-btn rlist-btn-create" @click="goForm()">
+                        <i class="ki-outline ki-plus fs-5"></i> İhtiyaç Listesi Oluştur
+                    </button>
+                </div>
             </div>
-            <div v-if="canCreate" class="rlist-toolbar">
-                <button type="button" class="rlist-btn rlist-btn-create" @click="goForm()">
-                    <i class="ki-outline ki-plus fs-5"></i> İhtiyaç Listesi Oluştur
-                </button>
+            <div class="card-body p-0">
+                <div id="div_table"></div>
             </div>
         </div>
-        <div class="card-body p-0">
-            <div id="div_table"></div>
-        </div>
+        <!-- Front (planlamapanel) header 1:1 tedarik order table -->
+        <template v-else>
+            <div class="tedarik-list-top">
+                <div class="tedarik-list-title"><span>İhtiyaç Listesi</span></div>
+                <div class="tedarik-filters">
+                    <a v-if="canCreate" href="javascript:;" class="tedarik-filter" @click="goForm()"><i class="ki-outline ki-plus"></i> İhtiyaç Oluştur</a>
+                </div>
+            </div>
+            <div class="tedarik-docs-searchrow" style="margin: 0 0 14px;">
+                <div class="tedarik-docs-searchbox">
+                    <i class="ki-outline ki-magnifier tedarik-docs-search-icon"></i>
+                    <input type="text" ref="frontSearch" class="tedarik-docs-search-input" placeholder="İhtiyaç ara — başlık, dönem..." @keydown.enter="searchTable">
+                </div>
+                <button type="button" class="tedarik-btn-light tedarik-docs-btn" @click="searchTable">Ara</button>
+                <button type="button" class="tedarik-btn-light tedarik-docs-btn tedarik-docs-btn--ghost" @click="resetSearch">Sıfırla</button>
+            </div>
+            <div class="order-list-body">
+                <div id="div_table"></div>
+            </div>
+            <div class="tedarik-bottom-note">
+                <i class="ki-outline ki-information-5 me-5"></i>
+                <span>Bir satıra tıklayarak detayına gidebilir, bağlı talep oluşturabilirsiniz.</span>
+            </div>
+        </template>
     </div>
 </template>
 
@@ -191,4 +239,33 @@ export default {
 .rlist-btn-ghost { background: #f1f5f9; color: #334155; border-color: #e2e8f0; }
 .rlist-btn-create { background: #0e7490 !important; color: white !important; border-color: #0e7490; }
 #div_table { width: 100%; overflow-x: auto; }
+/* ===== TEDARIK 1:1 (front) — same as OList tedarik-card ===== */
+.tedarik-card { border: none !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
+.tedarik-list-top { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 18px; gap: 12px; flex-wrap: wrap; border-bottom: none; }
+.tedarik-list-title { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 700; color: #1e293b; letter-spacing: -0.02em; line-height: 1; }
+.tedarik-filters { display: flex; align-items: center; gap: 22px; }
+.tedarik-filter { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 500; color: #8a8a8e; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.tedarik-filter i { font-size: 13px; color: #a1a1a6; }
+.tedarik-filter:hover { color: #4b5563; }
+.tedarik-docs-searchrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tedarik-docs-searchbox { position: relative; display: flex; align-items: center; flex: 1; min-width: 220px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0 12px; height: 42px; }
+.tedarik-docs-searchbox:focus-within { background: #fff; border-color: #cbd5e1; box-shadow: 0 0 0 4px rgba(255,90,31,.10); }
+.tedarik-docs-search-icon { position: absolute; left: 12px; font-size: 18px; color: #94a3b8; }
+.tedarik-docs-search-input { border: none; outline: none; background: transparent; height: 100%; width: 100%; padding-left: 30px; font-size: 13.5px; color: #0f172a; }
+.tedarik-docs-search-input::placeholder { color: #94a3b8; }
+.tedarik-btn-light { height: 42px; padding: 0 18px; border-radius: 10px; background: #fff; border: 1.5px solid #e2e8f0; color: #334155; font-size: 13px; font-weight: 700; cursor: pointer; }
+.tedarik-btn-light:hover { background: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
+.tedarik-docs-btn--ghost { background: #f1f5f9; }
+.tedarik-bottom-note { margin-top: 10px; display: flex; align-items: flex-start; gap: 6px; font-size: 11.5px; color: #8a8a8e; line-height: 1.6; }
+.tedarik-bottom-note i { color: #0e9cb8; font-size: 13px; margin-top: 2px; flex-shrink: 0; }
+.tedarik-card :deep(.pickletable) { height: auto !important; border: none !important; }
+.tedarik-card :deep(.pickletable .divTable) { height: auto !important; overflow: visible !important; border-bottom: none !important; }
+.tedarik-card :deep(.pickletable table) { border-collapse: separate !important; border-spacing: 0 7px !important; table-layout: auto !important; border: none !important; width: 100% !important; }
+.tedarik-card :deep(.pickletable thead th) { background: transparent !important; color: #b0b0b5 !important; font-size: 13px !important; font-weight: 500 !important; border: none !important; box-shadow: none !important; padding: 0 14px 10px !important; text-transform: none !important; letter-spacing: 0 !important; }
+.tedarik-card :deep(.pickletable tbody td) { background: #fff !important; border: 1px solid #e8e8ea !important; font-size: 13.5px !important; padding: 13px 14px !important; vertical-align: middle !important; }
+.tedarik-card :deep(.pickletable tbody td:first-child) { border-top-left-radius: 8px !important; border-bottom-left-radius: 8px !important; }
+.tedarik-card :deep(.pickletable tbody td:last-child) { border-top-right-radius: 8px !important; border-bottom-right-radius: 8px !important; }
+.tedarik-card :deep(.pickletable .divPagination) { border-top: none !important; display: flex !important; justify-content: flex-end !important; align-items: center !important; padding: 12px 0 0 !important; }
+.tedarik-card :deep(.pickletable .divPagination button), .tedarik-card :deep(.pickletable .divPagination .page-link) { border: 1px solid #e5e7eb !important; background: #fff !important; color: #8a8a8e !important; border-radius: 6px !important; padding: 5px 10px !important; font-size: 12px !important; font-weight: 500 !important; min-width: 32px; height: 30px; }
+.tedarik-card :deep(.pickletable .divPagination .active button), .tedarik-card :deep(.pickletable .divPagination .active .page-link) { background: #fff !important; color: #FF5A1F !important; border-color: #FF5A1F !important; font-weight: 700 !important; }
 </style>
