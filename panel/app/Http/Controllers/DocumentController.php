@@ -224,20 +224,48 @@ class DocumentController extends Controller
 
         $res = $this->docs->registerContent($request->id, $decoded, $files);
 
+        // Talep Dökümanı update hardening: firma_adi is display text derived from the
+        // bound müdürlük (mudur_qnid) — never trust it from the payload on edits.
         // Rejected Talep re-saved (revised) → back to awaiting (re-queue for approval) + notify 05-01 again
         if ($key === 'op-doc-requestf' && (($res['id'] ?? 0) > 0)) {
             try {
                 $detail = $res['detail'] ?? $this->docs->getFormData($request->id);
+                $ents = [];
+                foreach (($detail['formFormat']['op-doc-requestf-form'] ?? []) as $cr) {
+                    foreach (($cr['entities'] ?? []) as $k => $v) if (!isset($ents[$k])) $ents[$k] = $v;
+                }
+                if (!empty($ents['mudur_qnid'])) {
+                    try {
+                        $cliDetail = $this->docs->getFormData($ents['mudur_qnid']);
+                        $cents = [];
+                        foreach (($cliDetail['formFormat']['op-doc-client-form'] ?? []) as $cr) {
+                            foreach (($cr['entities'] ?? []) as $k => $v) if (!isset($cents[$k])) $cents[$k] = $v;
+                        }
+                        if (!empty($cents['lifnr'])) {
+                            $canonical = strtoupper(trim($cents['client_system'] ?? 'GDZ')) . '-' . trim($cents['lifnr']) . ' ' . trim($cents['title'] ?? '');
+                            if ($canonical !== '' && ($ents['firma_adi'] ?? '') !== $canonical) {
+                                $fconnIds = \Illuminate\Support\Facades\DB::table('sys_con_ops')->where('main_id', $res['id'])->pluck('id');
+                                if ($fconnIds->isNotEmpty()) {
+                                    \Illuminate\Support\Facades\DB::table('sys_con_entities')
+                                        ->whereIn('conn_id', $fconnIds)
+                                        ->where('entity_tag', 'firma_adi')
+                                        ->where('table_tag', 'sys_con_ops')
+                                        ->update(['entity_value' => $canonical, 'updated_at' => now()]);
+                                }
+                                $ents['firma_adi'] = $canonical;
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('planlama firma_adi re-assert failed', ['msg' => $e->getMessage()]);
+                    }
+                }
                 $st = $detail['document']->status ?? null;
                 $arr = is_string($st) ? (json_decode($st, true) ?: []) : (array)$st;
                 $last = end($arr);
                 if (($last['op_key'] ?? null) === 'tr-request-man-rejected') {
                     $back = $this->docs->setStatus($request->id, 'tr-request-man-awaiting', 'Revize edildi — yeniden onaya gönderildi');
                     if ($back['success'] ?? false) {
-                        $ents = [];
-                        foreach (($detail['formFormat']['op-doc-requestf-form'] ?? []) as $cr) {
-                            foreach (($cr['entities'] ?? []) as $k => $v) if (!isset($ents[$k])) $ents[$k] = $v;
-                        }
+                        $res['detail'] = $back['detail'] ?? $this->docs->getFormData($request->id);
                         $me = auth()->user();
                         $this->emails->sendPlanlamaTalepSent([
                             'qnid' => $request->id,

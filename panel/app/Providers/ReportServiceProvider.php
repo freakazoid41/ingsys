@@ -211,7 +211,9 @@ class ReportServiceProvider extends ServiceProvider
             case 'planlama-02': // Talep Reddedildi — tr-request-man-rejected, owner-scoped (uploader sees own)
                 $data = $this->getPlanlamaRequests('tr-request-man-rejected');
                 $myPid = session('person_id');
-                if($myPid !== null && $myPid !== ''){
+                if ($myPid === null || $myPid === '' || $myPid === 0 || $myPid === '0') {
+                    $data = []; // fail closed without a session identity
+                } else {
                     $data = array_values(array_filter($data, function($o) use ($myPid){
                         return (string)($o->person_id ?? '') === (string)$myPid;
                     }));

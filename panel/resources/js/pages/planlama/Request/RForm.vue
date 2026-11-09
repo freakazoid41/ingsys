@@ -6,6 +6,7 @@ import { useRoute } from 'vue-router';
 import { useNavigationStore } from '@/stores/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { useFormDataStore } from '@/stores/formdata';
+import { expandMonths, fillItemRow, findMatchingRow, findEmptyRow, itemRowsIn } from '@/lib/talepRows';
 import Form from '@/components/coalparts/Form.vue';
 
 const UNIT_MAP = { 'ADT': 'ST', 'ADET': 'ST', 'ST': 'ST', 'KG': 'KG', 'KILOGRAM': 'KG', 'M': 'M', 'MT': 'M', 'METRE': 'M' };
@@ -55,8 +56,7 @@ export default {
             return document.querySelector('.area-target[data-tag="op-doc-request-item-form"]');
         },
         itemRows() {
-            const area = this.itemArea();
-            return area ? Array.from(area.querySelectorAll('.multiple-item-row')) : [];
+            return itemRowsIn(this.itemArea());
         },
         addRow() {
             const icon = document.querySelector('i[id*="request_items-subadd"]');
@@ -70,24 +70,7 @@ export default {
             return this.itemRows().length >= n;
         },
         fillRow(row, item) {
-            const set = (prefix, val) => {
-                if (val === undefined || val === null || val === '') return;
-                const inp = row.querySelector(`[name^="${prefix}**"]`);
-                if (!inp) return;
-                inp.value = String(val);
-                inp.dispatchEvent(new Event('input', { bubbles: true }));
-            };
-            set('mal_grubu', item.mal_grubu);
-            set('ihale_grubu', item.ihale_grubu);
-            set('prod_code', item.prod_code);
-            set('title', item.title);
-            if (item.unit) {
-                const sel = row.querySelector('select[name^="unit**"]');
-                if (sel) {
-                    sel.value = item.unit;
-                    sel.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }
+            fillItemRow(row, item);
         },
         mapUnit(v) {
             const k = String(v || '').toLocaleUpperCase('tr').trim();
@@ -115,22 +98,6 @@ export default {
             } catch(e) {}
             return out;
         },
-        expandMonths(bas, bit) {
-            const p = s => {
-                const m = String(s || '').trim().match(/^(\d{1,2})\/(\d{4})$/);
-                if (!m) return null;
-                return { m: parseInt(m[1], 10), y: parseInt(m[2], 10) };
-            };
-            const b = p(bas), e = p(bit);
-            if (!b || !e || b.m < 1 || b.m > 12 || e.m < 1 || e.m > 12) return [];
-            const out = [];
-            let m = b.m, y = b.y, guard = 0;
-            while ((y < e.y || (y === e.y && m <= e.m)) && guard++ < 36) {
-                out.push(String(m).padStart(2, '0') + '/' + y);
-                if (++m > 12) { m = 1; y++; }
-            }
-            return out;
-        },
         downloadExcelTemplate() {
             const aoa = [
                 ['Mal Grubu', 'İhale Grubu', 'Malzeme Kodu', 'Malzeme kısa metni', 'Ölçü Birimi'],
@@ -150,7 +117,7 @@ export default {
             };
             const aoa = [['Mal Grubu', 'İhale Grubu', 'Malzeme Kodu', 'Malzeme İsmi', 'Ölçü Birimi']];
             const head = this.requestHead();
-            const months = this.expandMonths(head.donem_bas || '', head.donem_bit || '');
+            const months = expandMonths(head.donem_bas || '', head.donem_bit || '');
             const mlabels = months.map(m => {
                 const p = m.split('/');
                 return p[1] + '-' + p[0];
@@ -216,15 +183,8 @@ export default {
                 let done = 0;
                 for (const item of items) {
                     // 1) same material row 2) empty row 3) new row
-                    let target = this.itemRows().find(r => {
-                        const p = r.querySelector('[name^="prod_code**"]');
-                        return p && item.prod_code && p.value.trim() === item.prod_code;
-                    });
-                    if (!target) target = this.itemRows().find(r => {
-                        const p = r.querySelector('[name^="prod_code**"]');
-                        const t = r.querySelector('[name^="title**"]');
-                        return p && t && !p.value && !t.value;
-                    });
+                    let target = findMatchingRow(this.itemRows(), item);
+                    if (!target) target = findEmptyRow(this.itemRows());
                     if (!target) {
                         const before = this.itemRows().length;
                         this.addRow();

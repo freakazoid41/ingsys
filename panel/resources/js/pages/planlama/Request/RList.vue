@@ -5,6 +5,7 @@ import Plib from '@/lib/pickle';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import { useAuthStore } from '@/stores/auth';
+import { expandMonths } from '@/lib/talepRows';
 import { useNavigationStore } from '@/stores/navigation';
 
 export default {
@@ -43,22 +44,6 @@ export default {
         goForm(id) {
             this.$router.push({ name: this.formRoute, params: id ? { id } : {} });
         },
-        expandMonths(bas, bit) {
-            const p = s => {
-                const m = String(s || '').trim().match(/^(\d{1,2})\/(\d{4})$/);
-                if (!m) return null;
-                return { m: parseInt(m[1], 10), y: parseInt(m[2], 10) };
-            };
-            const b = p(bas), e = p(bit);
-            if (!b || !e || b.m < 1 || b.m > 12 || e.m < 1 || e.m > 12) return [];
-            const out = [];
-            let m = b.m, y = b.y, guard = 0;
-            while ((y < e.y || (y === e.y && m <= e.m)) && guard++ < 36) {
-                out.push(String(m).padStart(2, '0') + '/' + y);
-                if (++m > 12) { m = 1; y++; }
-            }
-            return out;
-        },
         async downloadRowExcel(qnid) {
             try {
                 const rsp = await this.plib.request({ url: '/api/v1/document/' + qnid, method: 'GET' }, null);
@@ -71,7 +56,7 @@ export default {
                         if (head[k] === undefined) head[k] = ents[k];
                     }
                 }
-                const months = this.expandMonths(head.donem_bas || '', head.donem_bit || '');
+                const months = expandMonths(head.donem_bas || '', head.donem_bit || '');
                 const mlabels = months.map(m => { const p = m.split('/'); return p[1] + '-' + p[0]; });
                 const aoa = [['Mal Grubu', 'İhale Grubu', 'Malzeme Kodu', 'Malzeme İsmi', 'Ölçü Birimi'].concat(mlabels)];
                 const iff = rsp?.data?.formFormat?.['op-doc-request-item-form'] || {};

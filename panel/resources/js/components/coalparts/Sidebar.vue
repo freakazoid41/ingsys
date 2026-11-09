@@ -74,12 +74,11 @@ export default {
                 {
                     key: 'planlama',
                     title: 'Malzeme Planlama',
-                    desc: 'Malzeme planlama — Yakında',
+                    desc: 'Sipariş talepleri ve onay süreçleri',
                     icon: 'ki-outline ki-clipboard',
                     path: '/planlamapanel',
                     color: '#0e7490',
                     perm: 'per-041-05',
-                    disabled: true,
                 },
             ],
         };

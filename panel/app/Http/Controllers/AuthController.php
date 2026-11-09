@@ -91,7 +91,7 @@ class AuthController extends Controller
             'per-041-02' => ['code'=>'per-041-02','title'=>'Tedarik','route'=>'/tedarikpanel','color'=>'#FF4713','desc'=>'Sipariş & Döküman','icon'=>'truck'],
             'per-041-03' => ['code'=>'per-041-03','title'=>'İhale','route'=>'/coalpanel','color'=>'#059669','desc'=>'Yakında','icon'=>'gavel','disabled'=>true],
             'per-041-04' => ['code'=>'per-041-04','title'=>'Fabrika Kabul','route'=>'/coalpanel','color'=>'#7c3aed','desc'=>'Yakında','icon'=>'factory','disabled'=>true],
-            'per-041-05' => ['code'=>'per-041-05','title'=>'Malzeme Planlama','route'=>'/planlamapanel','color'=>'#0e7490','desc'=>'Yakında','icon'=>'clipboard','disabled'=>true],
+            'per-041-05' => ['code'=>'per-041-05','title'=>'Malzeme Planlama','route'=>'/planlamapanel','color'=>'#0e7490','desc'=>'Talep & Onay','icon'=>'clipboard'],
         ];
         $service = new \App\Services\PermissionService();
         $out = [];

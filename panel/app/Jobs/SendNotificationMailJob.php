@@ -1020,6 +1020,37 @@ class SendNotificationMailJob implements ShouldQueue
         return $H::gateway('/planlamapanel/talep-dokumanlari/form/' . $qnid);
     }
 
+    // Fallback when nobody is assigned to the notification group: mail every
+    // user whose stored permission set contains the code (loud, not silent).
+    protected function sendPlanlamaToPermHolders(string $subject, string $html, string $permCode): int
+    {
+        $sent = 0;
+        try {
+            $rows = \Illuminate\Support\Facades\DB::table('sys_con_entities as se')
+                ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                ->join('sys_options as sp', 'sp.id', '=', 'so.type_id')
+                ->where('sp.op_key', 'op-doc-user-permission-form')
+                ->where('se.entity_tag', 'like', '%userpermissiongroup%')
+                ->where('se.entity_value', 'like', '%"' . $permCode . '"%')
+                ->select('so.main_id as person_id')
+                ->distinct()
+                ->get();
+            $mailService = new \App\Services\MailService();
+            foreach ($rows as $r) {
+                try {
+                    $user = \Illuminate\Support\Facades\DB::table('users')->where('person_id', (int)$r->person_id)->where('status', 1)->first();
+                    if (!$user || strpos($user->email ?? '', '@') === false) continue;
+                    $mailService->sendMail(['to' => $user->email, 'subject' => $subject, 'html' => $html, 'sys_code' => $this->payload['sys_code'] ?? null]);
+                    $sent++;
+                } catch (\Throwable $e) { $this->log('warning', 'planlama fallback send failed', ['person_id' => $r->person_id ?? null]); }
+            }
+        } catch (\Throwable $e) {
+            $this->log('warning', 'planlama fallback lookup failed', ['perm' => $permCode, 'e' => $e->getMessage()]);
+        }
+        $this->log('info', 'planlama fallback recipients by perm', ['perm' => $permCode, 'sent' => $sent]);
+        return $sent;
+    }
+
     // ── PLANLAMA 3 ── (Talep Dökümanı approval chain, no BUKRS — single-system flow)
     public function planlamaTalepSent(array $payload){
         $title = $payload['title'] ?? '-';
@@ -1030,6 +1061,12 @@ class SendNotificationMailJob implements ShouldQueue
             ['Yükleyen Müdürlük', e($payload['mudur'] ?? '-')],
             ['Yükleyen', e($payload['uploader'] ?? '-')],
         ], $this->planlamaLink($payload), 'Talebi İncele', $payload['note'] ?? null, ['intro' => 'Yeni Talep Dökümanı müdürlük onayına gönderildi.']);
+        $group = $this->personProvider->getNotificationUsers('planlama-01');
+        if (empty($group['planlama-01'])) {
+            $this->log('info', 'planlama-01 group empty — falling back to per-041-05-01 holders');
+            $this->sendPlanlamaToPermHolders($subject, $html, 'per-041-05-01');
+            return;
+        }
         $this->informSystemUsers($subject, $html, 'planlama-01');
         return;
     }
@@ -1063,6 +1100,12 @@ class SendNotificationMailJob implements ShouldQueue
             ['Müdürlük', e($payload['mudur'] ?? '-')],
             ['Onaylayan', e($payload['actor'] ?? '-')],
         ], $this->planlamaLink($payload), 'Talebi İncele', $payload['note'] ?? null, ['intro' => 'Talep Dökümanı müdürlük onayından geçti — standardizasyon onayı bekleniyor.']);
+        $group = $this->personProvider->getNotificationUsers('planlama-03');
+        if (empty($group['planlama-03'])) {
+            $this->log('info', 'planlama-03 group empty — falling back to per-041-05-04 holders');
+            $this->sendPlanlamaToPermHolders($subject, $html, 'per-041-05-04');
+            return;
+        }
         $this->informSystemUsers($subject, $html, 'planlama-03');
         return;
     }

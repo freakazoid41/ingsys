@@ -4,6 +4,7 @@ import 'pickletable/assets/style.css';
 import Plib from '@/lib/pickle';
 import Swal from 'sweetalert2';
 import { useAuthStore } from '@/stores/auth';
+import { planlamaLabel, planlamaColor, PLANLAMA_STATUS_TITLE } from '@/lib/planlamaStatus';
 import { useNavigationStore } from '@/stores/navigation';
 
 export default {
@@ -53,16 +54,10 @@ export default {
                       columnFormatter: (elm, rowData, col) => {
                           const parts = String(col || rowData.status || '').split('**');
                           const op = parts[0] || '';
-                          const label = parts[1] || op || '-';
-                          const map = {
-                              'tr-request-man-awaiting': '#FF5A1F',
-                              'tr-request-man-approved': '#0e7490',
-                              'tr-request-man-rejected': '#dc2626',
-                              'tr-request-std-approved': '#16a34a',
-                          };
+                          const label = parts[1] || planlamaLabel(op);
                           const span = document.createElement('span');
                           span.textContent = label;
-                          span.style.cssText = 'display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;color:#fff;background:' + (map[op] || '#64748b');
+                          span.style.cssText = 'display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;color:#fff;background:' + planlamaColor(op);
                           return span;
                       } },
                     { title: 'Oluşturulma', key: 'created_at', order: true, type: 'string' },
@@ -70,6 +65,9 @@ export default {
                       columnFormatter: (elm, rowData, columnData) => {
                           const span = document.createElement('span');
                           span.classList.add('d-flex','align-items-center','justify-content-center','gap-1','planlama-acts');
+                          const setRowBusy = (on) => {
+                              span.querySelectorAll('button').forEach(x => { x.disabled = on; x.style.opacity = on ? '0.6' : ''; });
+                          };
                           const btn = document.createElement('button');
                           btn.classList.add('btn');
                           btn.textContent = 'Detay';
@@ -104,7 +102,7 @@ export default {
                                       if (!c.isConfirmed) return;
                                   }
                                   const original = b.innerHTML;
-                                  b.disabled = true;
+                                  setRowBusy(true);
                                   b.innerHTML = '<span class="tdk-mini-spin"></span>';
                                   try {
                                   const fd = new FormData();
@@ -114,10 +112,10 @@ export default {
                                   const rsp = await this.plib.request({ url: '/api/v1/trans/set-status', method: 'POST' }, null, fd);
                                   if (!rsp?.success) { this.plib.toast(Swal, 'error', rsp?.msg || 'Durum güncellenemedi'); return; }
                                   this.plib.toast(Swal, 'success', 'Durum güncellendi');
-                                  const titles = { 'tr-request-man-approved': 'Talep Listesi Müdürlük Tarafından Onaylandı', 'tr-request-man-rejected': 'Talep Listesi Müdürlük Tarafından Reddedildi', 'tr-request-std-approved': 'Talep Listesi Standardizasyon Tarafından Onaylandı' };
+                                  const titles = PLANLAMA_STATUS_TITLE;
                                   this.table.updateRow(columnData, { status: opKey + '**' + (titles[opKey] || opKey), id: columnData });
                                   } finally {
-                                      b.disabled = false;
+                                      setRowBusy(false);
                                       b.innerHTML = original;
                                   }
                               };

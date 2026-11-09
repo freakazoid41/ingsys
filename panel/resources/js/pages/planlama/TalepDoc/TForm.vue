@@ -4,6 +4,8 @@ import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import { useRoute } from 'vue-router';
 import { useNavigationStore } from '@/stores/navigation';
+import { expandMonths, fillItemRow, findMatchingRow, findEmptyRow, itemRowsIn } from '@/lib/talepRows';
+import { planlamaLabel, planlamaColor, PLANLAMA_STATUS_TITLE } from '@/lib/planlamaStatus';
 import { useAuthStore } from '@/stores/auth';
 import { useFormDataStore } from '@/stores/formdata';
 import Form from '@/components/coalparts/Form.vue';
@@ -50,23 +52,12 @@ export default {
             return m ? (m.client_system + '-' + m.lifnr + ' ' + m.title) : '';
         },
         statusLabel() {
-            const map = {
-                'tr-request-man-awaiting': 'Müdürlük Onayına Gönderildi',
-                'tr-request-man-approved': 'Müdürlük Onayladı',
-                'tr-request-man-rejected': 'Müdürlük Reddetti',
-                'tr-request-std-approved': 'Standardizasyon Onayladı',
-            };
             if (!this.docStatus) return '-';
-            return map[this.docStatus.op] || this.docStatus.label || this.docStatus.op;
+            const l = planlamaLabel(this.docStatus.op);
+            return l !== this.docStatus.op ? l : (this.docStatus.label || this.docStatus.op);
         },
         statusColor() {
-            const map = {
-                'tr-request-man-awaiting': '#FF5A1F',
-                'tr-request-man-approved': '#0e7490',
-                'tr-request-man-rejected': '#dc2626',
-                'tr-request-std-approved': '#16a34a',
-            };
-            return (this.docStatus && map[this.docStatus.op]) || '#64748b';
+            return planlamaColor(this.docStatus && this.docStatus.op);
         },
     },
     mounted() {
@@ -248,7 +239,7 @@ export default {
             setHead('request_no', head.title || '');
                 setHead('title', head.title || '');
                 setHead('desc', head.desc || '');
-                const months = this.expandMonths(head.donem_bas || '', head.donem_bit || '');
+                const months = expandMonths(head.donem_bas || '', head.donem_bit || '');
                 const iff = rsp?.data?.formFormat?.['op-doc-request-item-form'] || {};
                 const byRow = {};
                 for (const rid in iff) {
@@ -273,11 +264,7 @@ export default {
                 }
                 if (!items.length) { this.plib.toast(Swal, 'info', 'Aktarılacak kalem yok'); return; }
                 for (const item of items) {
-                    let target = this.itemRows().find(r => {
-                        const p = r.querySelector('[name^="prod_code**"]');
-                        const t = r.querySelector('[name^="title**"]');
-                        return p && t && !p.value && !t.value;
-                    });
+                    let target = findEmptyRow(this.itemRows());
                     if (!target) {
                         const before = this.itemRows().length;
                         this.addRow();
@@ -298,8 +285,7 @@ export default {
             return document.querySelector('.area-target[data-tag="op-doc-requestf-item-form"]');
         },
         itemRows() {
-            const area = this.itemArea();
-            return area ? Array.from(area.querySelectorAll('.multiple-item-row')) : [];
+            return itemRowsIn(this.itemArea());
         },
         addRow() {
             const icon = document.querySelector('i[id*="requestf_items-subadd"]');
@@ -313,49 +299,11 @@ export default {
             return this.itemRows().length >= n;
         },
         fillRow(row, item, zeroEmpty = false) {
-            const set = (prefix, val) => {
-                if (val === undefined || val === null || val === '') {
-                    if (!(zeroEmpty && prefix === 'quantity')) return;
-                    val = '0';
-                }
-                const inp = row.querySelector(`[name^="${prefix}**"]`);
-                if (!inp) return;
-                inp.value = String(val);
-                inp.dispatchEvent(new Event('input', { bubbles: true }));
-            };
-            set('mal_grubu', item.mal_grubu);
-            set('ihale_grubu', item.ihale_grubu);
-            set('prod_code', item.prod_code);
-            set('title', item.title);
-            set('ay', item.ay);
-            set('quantity', item.quantity);
-            if (item.unit) {
-                const sel = row.querySelector('select[name^="unit**"]');
-                if (sel) {
-                    sel.value = item.unit;
-                    sel.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }
+            fillItemRow(row, item, zeroEmpty);
         },
         mapUnit(v) {
             const k = String(v || '').toLocaleUpperCase('tr').trim();
             return UNIT_MAP[k] || '';
-        },
-        expandMonths(bas, bit) {
-            const p = s => {
-                const m = String(s || '').trim().match(/^(\d{1,2})\/(\d{4})$/);
-                if (!m) return null;
-                return { m: parseInt(m[1], 10), y: parseInt(m[2], 10) };
-            };
-            const b = p(bas), e = p(bit);
-            if (!b || !e || b.m < 1 || b.m > 12 || e.m < 1 || e.m > 12) return [];
-            const out = [];
-            let m = b.m, y = b.y, guard = 0;
-            while ((y < e.y || (y === e.y && m <= e.m)) && guard++ < 36) {
-                out.push(String(m).padStart(2, '0') + '/' + y);
-                if (++m > 12) { m = 1; y++; }
-            }
-            return out;
         },
         downloadExcelTemplate() {
             const aoa = [
@@ -476,18 +424,8 @@ export default {
                 let done = 0;
                 for (const item of items) {
                     // 1) same material+month row 2) empty row 3) new row
-                    let target = this.itemRows().find(r => {
-                        const p = r.querySelector('[name^="prod_code**"]');
-                        const a = r.querySelector('[name^="ay**"]');
-                        if (!p || p.value.trim() !== item.prod_code) return false;
-                        const av = a ? a.value.trim() : '';
-                        return !av || !item.ay || av === item.ay;
-                    });
-                    if (!target) target = this.itemRows().find(r => {
-                        const p = r.querySelector('[name^="prod_code**"]');
-                        const t = r.querySelector('[name^="title**"]');
-                        return p && t && !p.value && !t.value;
-                    });
+                    let target = findMatchingRow(this.itemRows(), item);
+                    if (!target) target = findEmptyRow(this.itemRows());
                     if (!target) {
                         const before = this.itemRows().length;
                         this.addRow();
