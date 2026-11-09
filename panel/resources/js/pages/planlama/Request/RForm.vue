@@ -244,7 +244,7 @@ export default {
 </script>
 
 <template>
-    <div v-if="isFront" class="tedarik-detail" style="padding-bottom: 130px;">
+    <div v-if="isFront" class="tedarik-detail" :class="{ 'is-readonly': !canEdit }" style="padding-bottom: 130px;">
         <div class="tedarik-detail-header">
             <div class="tedarik-detail-header-top">
                 <div class="tedarik-detail-header-left">
@@ -333,6 +333,9 @@ export default {
 .tedarik-step-body :deep(i[id*="subadd"]) { background:#FF5A1F !important; color:#fff !important; border-radius:999px !important; width:34px; height:34px; display:inline-flex !important; align-items:center !important; justify-content:center !important; font-size:18px !important; cursor:pointer; box-shadow:0 4px 12px rgba(255,90,31,.25); margin-left:8px; }
 .tedarik-step-body :deep(i[id*="subadd"]:hover) { background:#ea4a0f !important; }
 .tedarik-step-body :deep(i[id*="subadd"][hidden]) { display:none !important; }
+/* view-only front: no add/remove item controls without 05-02 (mirrors admin is-readonly) */
+.tedarik-detail.is-readonly :deep(i[id*="subadd"]) { display:none !important; }
+.tedarik-detail.is-readonly :deep(.multiple-item-row .rmv-btn-form) { display:none !important; }
 /* flatten shared Form's admin cards inside the panel step card */
 .tedarik-step-body :deep(.area-target > .dform-row.card) { background:transparent !important; border:0 !important; box-shadow:none !important; margin:0 !important; padding:0 !important; }
 .tedarik-step-body :deep(.area-target > .dform-row.card > .card-body) { padding:0 !important; }
