@@ -1607,9 +1607,10 @@
     background:transparent !important; color:#b0b0b5 !important;
     font-size:13px !important; font-weight:500 !important; text-transform:none !important;
     letter-spacing:0 !important; padding:0 14px 10px !important; border:none !important; border-bottom:none !important;
-    white-space:nowrap; text-align:center !important; box-shadow:none !important; position:relative !important; top:auto !important;
+    white-space:nowrap; text-align:left !important; vertical-align:middle !important; line-height:1.4 !important; box-shadow:none !important; position:relative !important; top:auto !important;
 }
-.tedarik-docs-page :deep(.pickletable thead th:last-child){ text-align:center !important; }
+.tedarik-docs-page :deep(.pickletable thead th:last-child){ text-align:right !important; }
+.tedarik-docs-page :deep(.pickletable thead th i), .tedarik-docs-page :deep(.pickletable thead th svg){ vertical-align:middle !important; }
 .tedarik-docs-page :deep(.pickletable tbody tr){ background:transparent !important; box-shadow:none !important; transition: transform 0.15s ease, box-shadow 0.15s ease !important; }
 .tedarik-docs-page :deep(.pickletable tbody tr:hover){ transform: translateY(-1px) !important; }
 .tedarik-docs-page :deep(.pickletable tbody tr:hover td){ background:#fcfcfc !important; box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important; }

@@ -279,9 +279,9 @@ export default {
 .tedarik-card :deep(.pickletable .divTable) { height: auto !important; overflow: visible !important; border-bottom: none !important; }
 .tedarik-card :deep(.pickletable table) { border-collapse: separate !important; border-spacing: 0 7px !important; table-layout: fixed !important; border: none !important; width: 100% !important; }
 .tedarik-card :deep(.pickletable thead) { position: sticky !important; top: 0 !important; z-index: 5 !important; background: #fff !important; }
-.tedarik-card :deep(.pickletable thead th) { background: #fff !important; color: #b0b0b5 !important; font-size: 13px !important; font-weight: 500 !important; border: none !important; border-bottom: none !important; box-shadow: none !important; padding: 0 14px 10px !important; text-transform: none !important; letter-spacing: 0 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; text-align: center !important; position: sticky !important; top: 0 !important; z-index: 5 !important; }
-.tedarik-card :deep(.pickletable thead th:last-child) { text-align: center !important; }
+.tedarik-card :deep(.pickletable thead th) { background: #fff !important; color: #b0b0b5 !important; font-size: 13px !important; font-weight: 500 !important; border: none !important; border-bottom: none !important; box-shadow: none !important; padding: 0 14px 10px !important; text-transform: none !important; letter-spacing: 0 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; text-align: left !important; vertical-align: middle !important; line-height: 1.4 !important; position: sticky !important; top: 0 !important; z-index: 5 !important; }
 .tedarik-card :deep(.pickletable thead th:last-child) { text-align: right !important; }
+.tedarik-card :deep(.pickletable thead th i), .tedarik-card :deep(.pickletable thead th svg) { vertical-align: middle !important; }
 .tedarik-card :deep(.pickletable tbody tr) { background: #fff !important; border-radius: 14px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; border: none !important; }
 .tedarik-card :deep(.pickletable tbody tr:hover) { transform: translateY(-2px) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; }
 .tedarik-card :deep(.pickletable tbody tr:hover td) { background: transparent !important; }

@@ -1540,15 +1540,18 @@
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    text-align: center !important;
+    text-align: left !important;
+    vertical-align: middle !important;
+    line-height: 1.4 !important;
     box-shadow: none !important;
     position: sticky !important;
     top: 0 !important;
     z-index: 5 !important;
 }
 .tedarik-card :deep(.pickletable thead th:last-child){
-    text-align: center !important;
+    text-align: right !important;
 }
+.tedarik-card :deep(.pickletable thead th i), .tedarik-card :deep(.pickletable thead th svg){ vertical-align: middle !important; }
 .tedarik-card :deep(.pickletable tbody tr){
     background: #fff !important;
     border-radius: 14px !important;
