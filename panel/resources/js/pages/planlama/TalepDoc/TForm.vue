@@ -698,15 +698,21 @@ export default {
 .planlama-status__loading { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #0e7490; }
 .planlama-status__loading .spin { width: 14px; height: 14px; border-radius: 999px; border: 2px solid #99f6e4; border-top-color: #0e7490; animation: planlama-spin .7s linear infinite; display: inline-block; }
 @keyframes planlama-spin { to { transform: rotate(360deg); } }
-/* item section: header card + numbered item sub-cards */
+/* item section: TALEP KALEMLERİ as header strip, kalem sub-cards flat below */
 .tedarik-step-body :deep(.item-row > .form-label) { display:flex; align-items:center; gap:8px; background:linear-gradient(135deg,#fff 0%,#fff7ed 100%); border:1px solid #ffe4cc; border-top:3px solid #FF5A1F; color:#9a3412 !important; font-size:12.5px !important; font-weight:800 !important; letter-spacing:.06em; border-radius:12px; padding:10px 14px; margin:0 0 12px !important; text-transform:uppercase; }
-.tedarik-step-body :deep(.item-row:has(.multiple-item-row)) { counter-reset:planlama-kalem; background:#fff; border:1px solid #ffe4cc; border-radius:16px; box-shadow:0 6px 18px rgba(255,90,31,.07); overflow:hidden; padding:0 !important; margin:0 0 16px !important; }
-.tedarik-step-body :deep(.item-row:has(.multiple-item-row) > .form-label) { background:linear-gradient(135deg,#fff7ed 0%,#fff 100%); border:0 !important; border-top:3px solid #FF5A1F !important; border-bottom:1px solid #ffe4cc !important; border-radius:0 !important; padding:12px 16px !important; margin:0 !important; }
-.tedarik-step-body :deep(.item-row:has(.multiple-item-row) > div) { margin:0 !important; padding:16px !important; border:0 !important; background:transparent !important; border-radius:0 !important; row-gap:12px; }
-.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card) { position:relative; background:#fcfdff !important; border:1px solid #e8edf4 !important; border-left:3px solid #ffb27a !important; border-radius:12px !important; box-shadow:0 1px 2px rgba(15,23,42,.04) !important; padding:14px 14px 4px !important; margin:0 !important; row-gap:12px; transition:background-color .15s ease, border-color .15s ease, box-shadow .15s ease; }
-.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card:hover) { background:#fff !important; border-color:#fdba74 !important; border-left-color:#FF5A1F !important; box-shadow:0 6px 18px rgba(255,90,31,.10) !important; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row)) { counter-reset:planlama-kalem; background:transparent !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; margin:0 0 16px !important; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) > .form-label) { margin:0 0 12px !important; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) > div) { margin:0 !important; padding:0 !important; border:0 !important; background:transparent !important; border-radius:0 !important; row-gap:12px; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card) { position:relative; background:#fff !important; border:1px solid #ffe4cc !important; border-top:3px solid #FF5A1F !important; border-radius:16px !important; box-shadow:0 6px 18px rgba(255,90,31,.07) !important; padding:14px 16px 6px !important; margin:0 !important; row-gap:12px; column-gap:12px; transition:border-color .15s ease, box-shadow .15s ease; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card:hover) { border-color:#fdba74 !important; box-shadow:0 10px 24px rgba(255,90,31,.12) !important; }
 .tedarik-step-body :deep(.multiple-item-card)::before { counter-increment:planlama-kalem; content:"Kalem " counter(planlama-kalem); flex:0 0 100%; max-width:100%; display:flex; align-items:center; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#9a3412; background:#fff7ed; border:1px solid #ffe4cc; border-radius:8px; padding:6px 12px; margin:0 0 2px; }
-.tedarik-step-body :deep(.multiple-item-row > [class*="col-"]) { min-width:0; }
+/* kalem grid: gutter-free columns aligned to the KALEM strip edges */
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card > [class*="col-"]) { padding-left:0 !important; padding-right:0 !important; margin-left:0 !important; margin-right:0 !important; min-width:0; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card > .col-md-3) { flex:0 0 calc(25% - 9px) !important; max-width:calc(25% - 9px) !important; width:calc(25% - 9px) !important; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card > .col-md-6) { flex:0 0 calc(50% - 6px) !important; max-width:calc(50% - 6px) !important; width:calc(50% - 6px) !important; }
+@media (max-width:767.98px) {
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card > [class*="col-"]) { flex:1 1 100% !important; max-width:100% !important; width:100% !important; }
+}
 .tedarik-step-body :deep(.multiple-item-row .input-label) { font-size:11.5px !important; font-weight:800 !important; color:#9a3412 !important; text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .tedarik-step-body :deep(.multiple-item-row .form-control) { min-height:44px; border-radius:12px; font-size:13.5px; border:1.5px solid #e2e8f0; background:#fff; min-width:0; }
 .tedarik-step-body :deep(.multiple-item-row .form-control:focus) { border-color:#FF5A1F; box-shadow:0 0 0 4px rgba(255,90,31,.12); outline:none; }
