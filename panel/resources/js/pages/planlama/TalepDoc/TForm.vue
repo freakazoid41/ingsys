@@ -698,18 +698,19 @@ export default {
 .planlama-status__loading { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #0e7490; }
 .planlama-status__loading .spin { width: 14px; height: 14px; border-radius: 999px; border: 2px solid #99f6e4; border-top-color: #0e7490; animation: planlama-spin .7s linear infinite; display: inline-block; }
 @keyframes planlama-spin { to { transform: rotate(360deg); } }
-/* item rows as cards — tedarik front-panel theme */
-.tedarik-step-body :deep(.item-row > .form-label) { display:flex; align-items:center; gap:8px; background:linear-gradient(135deg,#fff 0%,#fff7ed 100%); border:1px solid #ffe4cc; border-top:3px solid #FF5A1F; color:#9a3412 !important; font-size:12.5px !important; font-weight:800 !important; letter-spacing:.06em; border-radius:12px; padding:10px 14px; margin-bottom:12px; text-transform:uppercase; }
-.tedarik-step-body :deep(.item-row > div.border) { border:none !important; background:transparent !important; padding:0 !important; border-radius:0 !important; }
-.tedarik-step-body :deep(.multiple-item-row) { background:#fff; border:1px solid #ffe4cc; border-radius:16px; padding:16px 16px 12px; margin-left:0 !important; margin-right:0 !important; margin-bottom:12px !important; row-gap:12px; box-shadow:0 4px 14px rgba(255,90,31,.06); }
-.tedarik-step-body :deep(.multiple-item-row:last-child) { margin-bottom:0 !important; }
-.tedarik-step-body :deep(.multiple-item-row .input-group > .form-control) { border-top-right-radius:0; border-bottom-right-radius:0; }
-.tedarik-step-body :deep(.multiple-item-row:hover) { border-color:#fdba74; box-shadow:0 8px 22px rgba(255,90,31,.10); }
+/* item section: single card with header + aligned grid */
+.tedarik-step-body :deep(.item-row > .form-label) { display:flex; align-items:center; gap:8px; background:linear-gradient(135deg,#fff 0%,#fff7ed 100%); border:1px solid #ffe4cc; border-top:3px solid #FF5A1F; color:#9a3412 !important; font-size:12.5px !important; font-weight:800 !important; letter-spacing:.06em; border-radius:12px; padding:10px 14px; margin:0 0 12px !important; text-transform:uppercase; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row)) { background:#fff; border:1px solid #ffe4cc; border-radius:16px; box-shadow:0 6px 18px rgba(255,90,31,.07); overflow:hidden; padding:0 !important; margin:0 0 16px !important; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) > .form-label) { background:linear-gradient(135deg,#fff7ed 0%,#fff 100%); border:0 !important; border-top:3px solid #FF5A1F !important; border-bottom:1px solid #ffe4cc !important; border-radius:0 !important; padding:12px 16px !important; margin:0 !important; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) > div) { margin:0 !important; padding:16px !important; border:0 !important; background:transparent !important; border-radius:0 !important; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-row) { background:transparent !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; margin:0 !important; row-gap:12px; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-row:hover) { background:transparent !important; border:0 !important; box-shadow:none !important; }
 .tedarik-step-body :deep(.multiple-item-row .input-label) { font-size:11.5px !important; font-weight:800 !important; color:#9a3412 !important; text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .tedarik-step-body :deep(.multiple-item-row .form-control) { min-height:44px; border-radius:12px; font-size:13.5px; border:1.5px solid #e2e8f0; background:#fff; }
 .tedarik-step-body :deep(.multiple-item-row .form-control:focus) { border-color:#FF5A1F; box-shadow:0 0 0 4px rgba(255,90,31,.12); outline:none; }
 .tedarik-step-body :deep(.multiple-item-row select.form-control) { padding-right:32px; cursor:pointer; }
 .tedarik-step-body :deep(.multiple-item-row .input-group) { flex-wrap:nowrap; }
+.tedarik-step-body :deep(.multiple-item-row .input-group > .form-control) { border-top-right-radius:0; border-bottom-right-radius:0; }
 .tedarik-step-body :deep(.multiple-item-row .rmv-btn-form) { border-radius:0 12px 12px 0; align-items:center; display:inline-flex; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; cursor:pointer; padding:0 12px; }
 .tedarik-step-body :deep(.multiple-item-row .rmv-btn-form:hover) { background:#fee2e2; }
 .tedarik-step-body :deep(i[id*="subadd"]) { background:#FF5A1F !important; color:#fff !important; border-radius:999px !important; width:34px; height:34px; display:inline-flex !important; align-items:center !important; justify-content:center !important; font-size:18px !important; cursor:pointer; box-shadow:0 4px 12px rgba(255,90,31,.25); margin-left:8px; }

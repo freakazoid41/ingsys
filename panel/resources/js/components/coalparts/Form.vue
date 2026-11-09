@@ -2240,7 +2240,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'select',
                                         name  : 'unit',
-                                        col      : 4,
+                                        col      : 3,
                                         required : true,
                                         label : 'Ölçü Birimi',
                                         options  : [
@@ -2253,7 +2253,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'ay',
-                                        col      : 4,
+                                        col      : 3,
                                         required : true,
                                         isMonth : true,
                                         label : 'Ay',
@@ -2262,7 +2262,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'quantity',
-                                        col      : 4,
+                                        col      : 6,
                                         required : true,
                                         label : 'Miktar',
                                         oninput : (e) => this.submitDynamicChanges(e.target)

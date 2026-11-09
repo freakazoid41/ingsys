@@ -76,6 +76,13 @@
     border-radius: 16px;
     box-shadow: 0 8px 24px rgba(255, 90, 31, .08);
     z-index: 5;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.fab-btns-wrapper.fab-front:hover {
+    border-color: #fdba74;
+    box-shadow: 0 12px 30px rgba(255, 90, 31, .16);
+    transform: translateY(-1px);
 }
 
 .fab-btns-wrapper.fab-front .btn {
@@ -108,8 +115,8 @@
     background: linear-gradient(135deg, #ea4a0f 0%, #ff6a1f 100%) !important;
     border-color: #ea4a0f !important;
     color: #fff !important;
-    transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(255, 90, 31, .35) !important;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 12px 28px rgba(255, 90, 31, .45) !important;
 }
 
 .fab-btns-wrapper.fab-front .btn-cancel {
@@ -123,7 +130,8 @@
     background: #fff7ed !important;
     border-color: #FF5A1F !important;
     color: #9a3412 !important;
-    box-shadow: 0 4px 12px rgba(255, 90, 31, .15) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 90, 31, .20) !important;
 }
 
 @media(max-width:991px) {
