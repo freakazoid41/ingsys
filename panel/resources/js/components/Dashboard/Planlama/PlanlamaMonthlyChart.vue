@@ -20,7 +20,7 @@ export default {
   methods:{
     async load(){
       try{
-        const rsp = await (new Plib).request({ url: '/api/v1/table/documents', method: 'POST', data: { filters: [{ key: 'form-type', type: '=', value: 'op-doc-requestf-form' }, { key: 'type', type: '=', value: 'op-doc-requestf' }], limit: 200 } }, null);
+        const rsp = await (new Plib).request({ url: '/api/v1/table/documents', method: 'POST', data: { filter: [{ key: 'form-type', type: '=', value: 'op-doc-requestf-form' }, { key: 'type', type: '=', value: 'op-doc-requestf' }], scale: { page: 1, limit: 200 } } }, null);
         const rows = rsp?.data || [];
         const map = {};
         (Array.isArray(rows) ? rows : []).forEach(r => {

@@ -40,8 +40,8 @@ export default {
   methods: {
     async load() {
       try {
-        const rsp = await (new Plib).request({ url: '/api/v1/table/documents', method: 'POST', data: { filters: [{ key: 'form-type', type: '=', value: 'op-doc-requestf-form' }, { key: 'type', type: '=', value: 'op-doc-requestf' }], limit: 10, order: 'main_id desc' } }, null);
-        const rows = rsp?.data || rsp || [];
+        const rsp = await (new Plib).request({ url: '/api/v1/table/documents', method: 'POST', data: { filter: [{ key: 'form-type', type: '=', value: 'op-doc-requestf-form' }, { key: 'type', type: '=', value: 'op-doc-requestf' }], scale: { page: 1, limit: 10 }, order: { key: 'main_id', style: 'desc' } } }, null);
+        const rows = rsp?.data || [];
         if (!Array.isArray(rows)) return;
         this.orders = rows.map(r => {
           let title = '', requestNo = '', mudur = '';

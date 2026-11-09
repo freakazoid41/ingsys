@@ -45,21 +45,21 @@ export default {
         if (Array.isArray(n.planlamaSent)) this.stats.awaiting = n.planlamaSent.length;
         if (Array.isArray(n.planlamaRejected)) this.stats.rejected = n.planlamaRejected.length;
         if (Array.isArray(n.planlamaApproved)) this.stats.approved = n.planlamaApproved.length;
-        // totals via tableList (no new backend)
+        // totals via tableList (correct keys: filter + scale, read totalCount)
         try {
-          const rsp = await plib.request({ url: '/api/v1/table/documents', method: 'POST', data: { filters: [{ key: 'form-type', type: '=', value: 'op-doc-requestf-form' }, { key: 'type', type: '=', value: 'op-doc-requestf' }], limit: 1 } }, null);
-          const total = rsp?.total || rsp?.data?.length || 0;
+          const rsp = await plib.request({ url: '/api/v1/table/documents', method: 'POST', data: { filter: [{ key: 'form-type', type: '=', value: 'op-doc-requestf-form' }, { key: 'type', type: '=', value: 'op-doc-requestf' }], scale: { page: 1, limit: 1 } } }, null);
+          const total = rsp?.totalCount || 0;
           if (total) this.stats.totalTaleps = total;
         } catch {}
         try {
-          const rsp2 = await plib.request({ url: '/api/v1/table/documents', method: 'POST', data: { filters: [{ key: 'form-type', type: '=', value: 'op-doc-request-form' }, { key: 'type', type: '=', value: 'op-doc-request' }], limit: 1 } }, null);
-          const total2 = rsp2?.total || rsp2?.data?.length || 0;
+          const rsp2 = await plib.request({ url: '/api/v1/table/documents', method: 'POST', data: { filter: [{ key: 'form-type', type: '=', value: 'op-doc-request-form' }, { key: 'type', type: '=', value: 'op-doc-request' }], scale: { page: 1, limit: 1 } } }, null);
+          const total2 = rsp2?.totalCount || 0;
           if (total2) this.stats.totalIhtiyac = total2;
         } catch {}
         // std-approved count via transactions filter if available, else 0
         try {
-          const rsp3 = await plib.request({ url: '/api/v1/table/documents', method: 'POST', data: { filters: [{ key: 'form-type', type: '=', value: 'op-doc-requestf-form' }, { key: 'type', type: '=', value: 'op-doc-requestf' }, { key: 'transactions', type: '=', value: 'tr-request-std-approved' }], limit: 1 } }, null);
-          const total3 = rsp3?.total || 0;
+          const rsp3 = await plib.request({ url: '/api/v1/table/documents', method: 'POST', data: { filter: [{ key: 'form-type', type: '=', value: 'op-doc-requestf-form' }, { key: 'type', type: '=', value: 'op-doc-requestf' }, { key: 'transactions', type: '=', value: 'tr-request-std-approved' }], scale: { page: 1, limit: 1 } } }, null);
+          const total3 = rsp3?.totalCount || 0;
           if (total3) this.stats.stdApproved = total3;
         } catch {}
       } catch (e) { console.error('planlama-stats failed', e); }
