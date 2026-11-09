@@ -1,150 +1,678 @@
-<template>
-  <div class="planlama-panel">
-    <header class="planlama-panel__head">
-      <div>
-        <strong>Malzeme Planlama</strong>
-        <span>İhtiyaç Listesi • Talep Dökümanları</span>
-      </div>
-      <div class="planlama-panel__actions">
-        <div class="planlama-bell">
-          <button class="planlama-bell__btn" @click="showNotif = !showNotif" title="Bildirimler">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.3V11a6 6 0 0 0-4-5.7V5a2 2 0 0 0-4 0v.3A6 6 0 0 0 6 11v3.3a2 2 0 0 1-.6 1.4L4 17h5m6 0v1a3 3 0 0 1-6 0v-1m6 0H9"/></svg>
-            <span v-if="unreadTotal > 0" class="planlama-bell__badge">{{ unreadTotal }}</span>
-          </button>
-          <div v-if="showNotif" class="planlama-bell__drop" @click.self="showNotif = false">
-            <div class="planlama-bell__card">
-              <div class="planlama-bell__title">Bildirimler <span v-if="unreadTotal">({{ unreadTotal }})</span></div>
-              <div v-if="!planlamaItems.length" class="planlama-bell__empty">Yeni bildirim yok</div>
-              <button v-for="n in planlamaItems" :key="n.id" class="planlama-bell__item" @click="goItem(n)">
-                <span class="planlama-bell__dot" :style="{ background: n.color }"></span>
-                <span class="planlama-bell__text"><strong>{{ n.title }}</strong><small>{{ n.sub }}</small></span>
-              </button>
-            </div>
-          </div>
-        </div>
-        <button @click="showModuleModal = true">Modüller</button>
-      </div>
-    </header>
-    <main class="planlama-panel__body">
-      <nav class="planlama-panel__nav">
-        <router-link to="/planlamapanel">Panel</router-link>
-        <router-link to="/planlamapanel/talepler">İhtiyaç Listesi</router-link>
-        <router-link v-if="(authStore.permissions || []).some(p => ['per-041-05-01','per-041-05-03','per-041-05-04'].includes(p))" to="/planlamapanel/talep-dokumanlari">Talep Dökümanları</router-link>
-      </nav>
-      <router-view />
-    </main>
-    <div v-if="showModuleModal" class="module-modal-overlay" @click.self="showModuleModal = false">
-      <div class="module-modal-card">
-        <h3>Modüller</h3>
-        <div v-for="m in modules" :key="m.key">
-          <button :disabled="m.disabled" @click="goModule(m)">{{ m.title }}</button>
-        </div>
-        <button @click="showModuleModal = false">Kapat</button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script>
-import { useAuthStore } from '@/stores/auth';
-import { useNavigationStore } from '@/stores/navigation';
-const PLAN_META = {
-  'planlama-01': { label: 'Onaya Talep Geldi', color: '#0e7490' },
-  'planlama-02': { label: 'Talep Reddedildi', color: '#dc2626' },
-  'planlama-03': { label: 'Müdürlük Onayı', color: '#16a34a' },
-};
-function parseRequest(o) {
-  let title = '', requestNo = '', mudur = '';
-  try {
-    JSON.parse(o.main_attr || '[]').forEach(d => {
-      if (d.Key === 'title' && !title) title = d.Value;
-      if (d.Key === 'request_no' && !requestNo) requestNo = d.Value;
-      if (d.Key === 'firma_adi' && !mudur) mudur = d.Value;
-    });
-  } catch {}
-  return { title: title || requestNo || o.qnid || '-', sub: mudur, qnid: o.qnid || o.id || '' };
-}
-export default {
-  name: 'PlanlamaPanel',
-  setup() { return { useNavigationStore }; },
-  data() {
-    return {
-      authStore: useAuthStore(),
-      navigationStore: useNavigationStore(),
-      showModuleModal: false,
-      showNotif: false,
-      allModules: [
-        { key: 'admin', title: 'Yönetim Paneli', path: '/coalpanel', color: '#154b91', perm: 'per-041-01' },
-        { key: 'tedarik', title: 'Tedarik', path: '/tedarikpanel', color: '#FF5A1F', perm: 'per-041-02' },
-        { key: 'planlama', title: 'Malzeme Planlama', path: '/planlamapanel', color: '#0e7490', perm: 'per-041-05' },
-      ],
-    };
-  },
-  mounted() {
-    try { this.navigationStore.getNotifications(); } catch(e) {}
-  },
-  computed: {
-    modules() {
-      const perms = this.authStore.permissions || [];
-      const hasAll = perms.includes('per-041') || perms.includes('per-00');
-      return this.allModules.filter(m => hasAll || perms.includes(m.perm));
-    },
-    planlamaItems() {
-      const n = this.navigationStore?.notifications || {};
-      const out = [];
-      const push = (arr, cat) => {
-        if (!Array.isArray(arr)) return;
-        arr.forEach(o => {
-          const m = parseRequest(o);
-          out.push({ id: cat + '-' + m.qnid, cat, title: (PLAN_META[cat]?.label || '') + ' — ' + m.title, sub: m.sub, qnid: m.qnid, color: PLAN_META[cat]?.color || '#0e7490' });
-        });
-      };
-      push(n.planlamaSent, 'planlama-01');
-      push(n.planlamaRejected, 'planlama-02');
-      push(n.planlamaApproved, 'planlama-03');
-      return out;
-    },
-    unreadTotal() { return this.planlamaItems.length; },
-  },
-  methods: {
-    goModule(mod) {
-      this.showModuleModal = false;
-      if (!mod || !mod.path) return;
-      this.$router.push(mod.path);
-    },
-    goItem(n) {
-      this.showNotif = false;
-      if (n.qnid) {
-        this.navigationStore.markNotificationRead(n.cat, n.qnid).catch(() => {});
-        this.$router.push({ name: 'PlanlamaFForm', params: { id: n.qnid } }).catch(() => {});
-      }
-    },
-  },
-};
-</script>
+import { useNavigationStore } from '@/stores/navigation'
+import { useAuthStore } from '@/stores/auth'
+import { useHead } from '@unhead/vue'
 
+export default {
+    setup() { return { useNavigationStore, useAuthStore, useHead } },
+    data() {
+        return {
+            navigationStore: useNavigationStore(),
+            authStore: useAuthStore(),
+            sysCode: 'ADM',
+            showModuleModal: false,
+            allModules: [
+                {
+                    key: 'admin',
+                    title: 'Yönetim Paneli',
+                    desc: 'Siparişler, kullanıcılar ve sistem yönetimi',
+                    icon: 'ki-outline ki-shield-tick',
+                    path: '/coalpanel',
+                    color: '#154b91',
+                    perm: 'per-041-01',
+                },
+                {
+                    key: 'tedarik',
+                    title: 'Tedarik Yönetim Panel',
+                    desc: 'Sipariş takibi ve tedarik süreçleri',
+                    icon: 'ki-outline ki-delivery',
+                    path: '/tedarikpanel',
+                    color: '#FF5A1F',
+                    perm: 'per-041-02',
+                },
+                {
+                    key: 'ihale',
+                    title: 'İhale',
+                    desc: 'İhale süreçleri — Yakında',
+                    icon: 'ki-outline ki-chart-simple',
+                    path: '/coalpanel',
+                    color: '#059669',
+                    perm: 'per-041-03',
+                    disabled: true,
+                },
+                {
+                    key: 'fabrika',
+                    title: 'Fabrika Kabul',
+                    desc: 'Fabrika kabul — Yakında',
+                    icon: 'ki-outline ki-home-2',
+                    path: '/coalpanel',
+                    color: '#7c3aed',
+                    perm: 'per-041-04',
+                    disabled: true,
+                },
+                {
+                    key: 'planlama',
+                    title: 'Malzeme Planlama',
+                    desc: 'Sipariş talepleri ve onay süreçleri',
+                    icon: 'ki-outline ki-clipboard',
+                    path: '/planlamapanel',
+                    color: '#0e7490',
+                    perm: 'per-041-05',
+                },
+            ],
+        }
+    },
+    mounted() {
+        // fetch notifications for Bilgilendirmeler badge
+        try { this.navigationStore.getNotifications(); } catch(e) {}
+        document.body.dataset.saTheme = localStorage.getItem("sa-theme");
+        try {
+            const el = document.querySelector('input[name="SYS_CODE"]');
+            if (el && el.value) this.sysCode = el.value;
+        } catch(e) {}
+        // typewriter: ONLY tedarik-main travels, frame+tabs stay — hidden at browser limit
+        document.body.style.background = '#f2f2f3';
+        try { document.documentElement.style.scrollBehavior = 'smooth'; } catch(e) {}
+        // html overflow:scroll set globally in custom.css (needed for ::-webkit-scrollbar to apply)
+        document.body.style.height = '';
+        document.body.style.transition = 'height 0.35s cubic-bezier(0.4,0,0.2,1)';
+        this.$nextTick(()=> this.setupTypewriterScroll());
+        window.addEventListener('resize', this.setupTypewriterScroll);
+        window.addEventListener('scroll', this.syncTypewriter, { passive: true });
+        // keep body height in sync when inner content grows (pickletable async)
+        this.$nextTick(()=>{
+            try {
+                const inner = document.querySelector('.tedarik-main-inner');
+                if(inner && window.ResizeObserver){
+                    this._ro = new ResizeObserver(()=> {
+                        clearTimeout(this._roTimer);
+                        this._roTimer = setTimeout(()=> this.setupTypewriterScroll(), 80);
+                    });
+                    this._ro.observe(inner);
+                }
+            } catch(e) {}
+        });
+    },
+    watch: {
+        '$route.path'(){
+            this.$nextTick(()=> setTimeout(()=> this.setupTypewriterScroll(), 220));
+        }
+    },
+    beforeUnmount() {
+        try { document.documentElement.style.scrollBehavior = ''; } catch(e) {}
+        document.documentElement.style.overflowY = '';
+        document.documentElement.style.overflow = '';
+        window.removeEventListener('resize', this.setupTypewriterScroll);
+    window.removeEventListener('scroll', this.syncTypewriter);
+        try { if(this._ro) this._ro.disconnect(); } catch(e) {}
+        clearTimeout(this._roTimer);
+        document.body.style.height = '';
+        document.documentElement.style.height = '';
+        document.body.style.transition = '';
+        const inner = document.querySelector('.tedarik-main-inner');
+        if(inner) inner.style.transform = '';
+    },
+    computed: {
+        tenantLogo() { return (String(this.sysCode || '').toUpperCase() === 'ADM') ? '/coaltheme/adm-logo.svg' : '/coaltheme/GDZ.svg'; },
+        userName() { return this.authStore.userName || this.authStore.currentStatus?.main_name || ''; },
+        isIhtiyacActive() { return this.$route.path.includes('/talepler'); },
+        isTalepActive() { return this.$route.path.includes('/talep-dokumanlari'); },
+        isDashboardActive() { return this.$route.path === '/planlamapanel' || this.$route.path === '/planlamapanel/'; },
+        isBilgilendirmelerActive() { return this.$route.path.includes('/bilgilendirmeler'); },
+        modules() {
+            const perms = this.authStore.permissions || [];
+            const hasAll = perms.includes('per-041') || perms.includes('per-00');
+            return this.allModules.filter(m => hasAll || perms.includes(m.perm));
+        },
+        bilgilendirmeCount() {
+            const n = this.navigationStore?.notifications || {};
+            let c = 0;
+            if (Array.isArray(n.planlamaSent)) c += n.planlamaSent.length;
+            if (Array.isArray(n.planlamaRejected)) c += n.planlamaRejected.length;
+            if (Array.isArray(n.planlamaApproved)) c += n.planlamaApproved.length;
+            return c;
+        },
+    },
+    methods: {
+        isActive(path) { return this.$route.path === path || this.$route.path.startsWith(path); },
+        goModule(mod){
+            this.showModuleModal=false;
+            if(!mod||!mod.path) return;
+            const cur=window.location.pathname;
+            if(cur.startsWith(mod.path)) return;
+            try{ if(this.$router&&this.$router.push){ this.$router.push(mod.path); return; } }catch(e){}
+            window.location.href=mod.path;
+        },
+        isModuleActive(mod){
+            const cur=window.location.pathname;
+            return cur===mod.path||cur.startsWith(mod.path+'/');
+        },
+        setupTypewriterScroll(){
+            try {
+                // mobile: disable typewriter, let normal page scroll
+                if(window.innerWidth <= 992){
+                    document.body.style.height = '';
+                    document.documentElement.style.height = '';
+                    const innerM = document.querySelector('.tedarik-main-inner');
+                    if(innerM) innerM.style.transform = '';
+                    return;
+                }
+                const inner = document.querySelector('.tedarik-main-inner');
+                const frame = document.querySelector('.tedarik-frame');
+                if(!inner || !frame) return;
+                // keep current transform - don't bounce to top
+                const curTransform = inner.style.transform;
+                setTimeout(()=>{
+                    if(window.innerWidth <= 992) return;
+                    const contentH = inner.scrollHeight;
+                    const viewportH = window.innerHeight;
+                    const frameChrome = 40;
+                    const need = Math.max(contentH + frameChrome + 24, viewportH + 1);
+                    const curBodyH = document.body.style.height;
+                    const needStr = need + 'px';
+                    frame.style.height = '';
+                    frame.style.minHeight = '';
+                    const main2 = document.querySelector('.tedarik-main');
+                    if(main2) { main2.style.height = ''; main2.style.minHeight = ''; }
+                    if(contentH + 48 > viewportH){
+                        if(curBodyH !== needStr){
+                            document.body.style.height = needStr;
+                            document.documentElement.style.height = needStr;
+                        }
+                    } else {
+                        if(curBodyH !== ''){
+                            document.body.style.height = '';
+                            document.documentElement.style.height = '';
+                        }
+                    }
+                    // restore transform if it was there, then sync
+                    if(curTransform) inner.style.transform = curTransform;
+                    this.syncTypewriter();
+                }, 60);
+            } catch(e) {}
+        },
+        syncTypewriter(){
+            try {
+                if(window.innerWidth <= 992) return;
+                const inner = document.querySelector('.tedarik-main-inner');
+                if(!inner) return;
+                const st = window.scrollY || document.documentElement.scrollTop || 0;
+                inner.style.transform = `translateY(${-st}px)`;
+                inner.style.willChange = 'transform';
+            } catch(e) {}
+        }
+    }
+}
+</script>
+<template>
+    <div class="tedarik-root">
+        <div class="tedarik-frame">
+            <!-- Sidebar -->
+            <aside class="tedarik-sidebar">
+                <div class="tedarik-logo">
+                    <img :src="tenantLogo" :alt="sysCode" :class="{ 'logo-adm': String(sysCode || '').toUpperCase() === 'ADM' }" @error="(e)=> e.target.style.display='none'" />
+                    <div class="tedarik-logo-label">Malzeme Planlama Süreci</div>
+                </div>
+
+                <nav class="tedarik-menu">
+                    <router-link to="/planlamapanel" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isDashboardActive }]">
+                            <i class="ki-outline ki-home-2 tedarik-menu-icon"></i>
+                            <span>Ana Sayfa</span>
+                            <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                        </a>
+                    </router-link>
+                    <router-link v-if="authStore.permissions?.includes('per-041-05')" to="/planlamapanel/talepler" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isIhtiyacActive }]">
+                            <i class="ki-outline ki-document tedarik-menu-icon"></i>
+                            <span>İhtiyaç Listesi</span>
+                            <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                        </a>
+                    </router-link>
+                    <router-link v-if="authStore.permissions?.includes('per-041-05-01') || authStore.permissions?.includes('per-041-05-03') || authStore.permissions?.includes('per-041-05-04') || authStore.permissions?.includes('per-041-05')" to="/planlamapanel/talep-dokumanlari" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isTalepActive }]">
+                            <i class="ki-outline ki-file tedarik-menu-icon"></i>
+                            <span>Talep Dökümanları</span>
+                            <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                        </a>
+                    </router-link>
+                </nav>
+
+                <div class="tedarik-bottom">
+                    <router-link to="/planlamapanel/bilgilendirmeler" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" class="tedarik-info-card" :class="{ active: isBilgilendirmelerActive, 'has-unread': bilgilendirmeCount > 0 }">
+                            <span class="tedarik-info-label">Bilgilendirmeler</span>
+                            <span class="tedarik-info-badge" :class="{ 'is-zero': bilgilendirmeCount === 0 }">{{ bilgilendirmeCount }}</span>
+                        </a>
+                    </router-link>
+
+                    <a href="javascript:;" class="tedarik-modules-btn" @click="showModuleModal=true">
+                        <span>Modüller</span>
+                        <span class="tedarik-modules-icon"><i class="ki-outline ki-element-11"></i></span>
+                    </a>
+
+                    <a href="/logout" class="tedarik-logout">
+                        <span>Çıkış</span>
+                        <span class="tedarik-logout-icon"><i class="ki-outline ki-entrance-left"></i></span>
+                    </a>
+                </div>
+
+                <teleport to="body">
+                    <div v-if="showModuleModal" class="module-modal-overlay tedarik-module-overlay" @click.self="showModuleModal=false">
+                        <div class="module-modal-card" role="dialog" aria-modal="true" aria-label="Modüller">
+                            <div class="module-modal-head">
+                                <div class="module-modal-title">
+                                    <span class="module-modal-icon-wrap"><i class="ki-outline ki-element-11"></i></span>
+                                    <div>
+                                        <div class="module-modal-title-text">Modüller</div>
+                                        <div class="module-modal-sub">Çalışmak istediğiniz panele geçin</div>
+                                    </div>
+                                </div>
+                                <button class="module-modal-close" @click="showModuleModal=false" aria-label="Kapat"><i class="ki-outline ki-cross fs-2"></i></button>
+                            </div>
+                            <div class="module-modal-body">
+                                <a v-for="mod in modules" :key="mod.key" href="javascript:;" class="module-card" :class="{ active: isModuleActive(mod), disabled: mod.disabled }" @click="!mod.disabled && goModule(mod)">
+                                    <span class="module-card-icon" :style="{ background: mod.color }"><i :class="mod.icon"></i></span>
+                                    <span class="module-card-text">
+                                        <span class="module-card-title">{{ mod.title }} <span v-if="mod.disabled" style="font-size:11px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:2px 6px; border-radius:999px; margin-left:6px;">Yakında</span></span>
+                                        <span class="module-card-desc">{{ mod.desc }}</span>
+                                        <span class="module-card-path">{{ mod.path }}</span>
+                                    </span>
+                                    <span class="module-card-arrow"><i class="ki-outline ki-right fs-3"></i></span>
+                                    <span v-if="isModuleActive(mod) && !mod.disabled" class="module-card-badge">Aktif</span>
+                                </a>
+                                <div v-if="!modules.length" style="padding:16px; text-align:center; color:#94a3b8; font-size:13px;">Yetkili modül bulunamadı.</div>
+                            </div>
+                            <div class="module-modal-foot">Admin olarak paneller arası serbest geçiş yapabilirsiniz.</div>
+                        </div>
+                    </div>
+                </teleport>
+            </aside>
+
+            <!-- Main -->
+            <main class="tedarik-main">
+                <div class="tedarik-main-inner">
+                    <router-view :key="$route.path"></router-view>
+                </div>
+            </main>
+        </div>
+    </div>
+</template>
 <style scoped>
-.planlama-panel { min-height: 100vh; background: #f2f2f3; }
-.planlama-panel__head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #fff; border-bottom: 1px solid #e2e8f0; }
-.planlama-panel__head span { display: block; font-size: 12px; color: #64748b; }
-.planlama-panel__actions { display: flex; align-items: center; gap: 10px; }
-.planlama-panel__body { padding: 20px; }
-.planlama-panel__nav { display: flex; gap: 12px; margin-bottom: 16px; }
-.planlama-panel__nav a { font-weight: 700; color: #0e7490; text-decoration: none; }
-.planlama-panel__nav a.router-link-exact-active { text-decoration: underline; }
-.planlama-bell { position: relative; }
-.planlama-bell__btn { position: relative; width: 40px; height: 40px; border-radius: 999px; border: 1px solid #e2e8f0; background: #fff; color: #0e7490; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-.planlama-bell__badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; border-radius: 999px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
-.planlama-bell__drop { position: fixed; inset: 0; z-index: 9990; }
-.planlama-bell__card { position: absolute; top: 64px; right: 16px; width: 340px; max-height: 60vh; overflow-y: auto; background: #fff; border-radius: 14px; box-shadow: 0 16px 48px rgba(15,23,42,.18); border: 1px solid #e2e8f0; padding: 10px; }
-.planlama-bell__title { font-size: 14px; font-weight: 800; color: #0f172a; padding: 6px 8px 10px; }
-.planlama-bell__empty { font-size: 13px; color: #94a3b8; text-align: center; padding: 18px 0; }
-.planlama-bell__item { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; background: #fff; border: 1px solid #f1f5f9; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; }
-.planlama-bell__item:hover { border-color: #99f6e4; background: #f0fdfa; }
-.planlama-bell__dot { width: 10px; height: 10px; border-radius: 999px; margin-top: 4px; flex-shrink: 0; }
-.planlama-bell__text { display: flex; flex-direction: column; gap: 2px; }
-.planlama-bell__text strong { font-size: 13px; color: #0f172a; }
-.planlama-bell__text small { font-size: 11.5px; color: #64748b; }
-.module-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.48); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.module-modal-card { background: #fff; border-radius: 12px; padding: 20px; min-width: 320px; }
+.tedarik-root {
+    background: #f2f2f3;
+    position: fixed;
+    inset: 0;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding: 22px 18px 18px 48px;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    box-sizing: border-box;
+}
+.tedarik-frame {
+    width: 100%;
+    max-width: 1360px;
+    height: calc(100vh - 40px);
+    height: calc(100dvh - 40px);
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.07);
+    display: flex;
+    align-items: stretch;
+    overflow: visible;
+    position: relative;
+}
+.tedarik-sidebar {
+    width: 210px;
+    min-width: 210px;
+    background: transparent;
+    padding: 22px 16px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    overflow: visible;
+    position: relative;
+    z-index: 10;
+    height: 100%;
+    flex-shrink: 0;
+    align-self: stretch;
+}
+.tedarik-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 22px;
+    padding-left: 4px;
+    gap: 8px;
+}
+.tedarik-logo img {
+    height: 68px;
+    width: auto;
+    max-width: 100%;
+    display: block;
+    object-fit: contain;
+}
+.tedarik-logo img.logo-adm { height: 64px; }
+.tedarik-logo-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    padding-left: 6px;
+    white-space: nowrap;
+    user-select: none;
+}
+.tedarik-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: visible;
+    flex: 1;
+    justify-content: start;
+    margin: 12px 0;
+}
+.tedarik-menu-item {
+    height: 64px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 18px 0 20px;
+    font-size: 17px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all .3s cubic-bezier(.4,0,.2,1);
+    background: #8e8e93;
+    color: #ffffff;
+    border: 2px solid transparent;
+    user-select: none;
+    letter-spacing: 0.15px;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-left: -52px;
+    width: calc(100% + 52px);
+    transform: scale(1);
+}
+.tedarik-menu-icon {
+    font-size: 20px;
+    opacity: 0.85;
+    flex-shrink: 0;
+    transition: all .3s cubic-bezier(.4,0,.2,1);
+}
+.tedarik-menu-item:hover {
+    background: #7a7a7e;
+    color: #fff;
+    transform: scale(1.03);
+}
+.tedarik-menu-item.active {
+    background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%);
+    color: #fff;
+    height: 70px;
+    font-size: 18px;
+    box-shadow: 0 6px 20px rgba(255,90,31,0.35);
+    transform: scale(1.04);
+    border-color: rgba(255,255,255,0.15);
+}
+.tedarik-menu-item.active .tedarik-menu-icon {
+    font-size: 22px;
+    opacity: 1;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+}
+.tedarik-menu-arrow {
+    font-size: 22px;
+    opacity: 0.7;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    flex-shrink: 0;
+    transition: all .3s cubic-bezier(.4,0,.2,1);
+}
+.tedarik-menu-item.active .tedarik-menu-arrow {
+    opacity: 1;
+    transform: translateX(2px);
+}
+.tedarik-bottom {
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 12px;
+    padding-bottom: 8px;
+}
+.tedarik-info-card {
+    height: 64px;
+    border: 1px solid #e6e6e7;
+    border-radius: 12px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    text-decoration: none;
+    color: #2f2f33;
+    font-size: 16.5px;
+    font-weight: 600;
+    transition: border-color .15s;
+    margin-left: -52px;
+    width: calc(100% + 52px);
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.tedarik-info-card:hover { border-color: #d1d5db; }
+.tedarik-info-card.active { background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%); color:#fff; border-color: rgba(255,255,255,.15); box-shadow: 0 6px 20px rgba(255,90,31,.25); }
+.tedarik-info-card.active .tedarik-info-label{ color:#fff; }
+.tedarik-info-card.has-unread { border-color: #fed7aa; background: #fff7ed; }
+.tedarik-info-card.active.has-unread{ background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%); }
+.tedarik-info-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #22c55e;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+.tedarik-info-badge.is-zero { background: #e5e7eb; color: #6b7280; }
+.tedarik-info-card.has-unread .tedarik-info-badge { background: #FF5A1F; animation: tdk-badge-pulse 1.8s infinite; }
+@keyframes tdk-badge-pulse{
+  0%{ box-shadow: 0 0 0 0 rgba(255,90,31,.45); }
+  60%{ box-shadow: 0 0 0 6px rgba(255,90,31,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(255,90,31,0); }
+}
+.tedarik-logout {
+    height: 64px;
+    border: 1.5px solid #ef3b3b;
+    border-radius: 12px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    text-decoration: none;
+    color: #2f2f33;
+    font-size: 16.5px;
+    font-weight: 700;
+    transition: background .15s;
+    margin-left: -52px;
+    width: calc(100% + 52px);
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.tedarik-logout:hover { background: #fef2f2; }
+.tedarik-logout-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ef3b3b;
+    font-size: 16px;
+}
+
+.tedarik-logout-icon i {font-size: 25px;}
+.tedarik-modules-btn{
+    height: 64px; border:1px solid #c7d2fe; border-radius:12px; background:#eef2ff;
+    display:flex; align-items:center; justify-content:space-between; padding:0 18px;
+    text-decoration:none; color:#3730a3; font-size:16.5px; font-weight:700;
+    transition: all .15s; margin-left:-52px; width:calc(100% + 52px); position:relative;
+    box-shadow:0 2px 8px rgba(0,0,0,0.04); cursor:pointer;
+}
+.tedarik-modules-btn:hover{ background:#e0e7ff; border-color:#a5b4fc; }
+.tedarik-modules-icon{ width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:18px; color:#6366f1; }
+.tedarik-module-overlay.module-modal-overlay{ padding: 18px 14px 18px 48px; justify-content: center; }
+.tedarik-main {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    border-left: 1px solid #f2f2f3;
+    border-radius: 0 12px 12px 0;
+    position: relative;
+    z-index: 1;
+    align-self: stretch;
+}
+.tedarik-main-inner {
+    flex: 0 0 auto;
+    min-height: min-content;
+    height: auto;
+    padding: 22px 24px 10px 20px;
+    overflow: visible;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+    background: #ffffff;
+    border-radius: 0 12px 0 0;
+}
+.tedarik-main-inner > * {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: min-content;
+}
+@media (max-width: 992px) {
+    .tedarik-root { position: relative; inset: auto; height: auto; min-height: 100vh; overflow: visible; align-items: flex-start; padding: 0; }
+    .tedarik-frame { border-radius: 0; height: auto; max-height: none; min-height: 100vh; flex-direction: column; overflow: visible; align-items: stretch; position: relative; }
+    .tedarik-sidebar { position: relative; top: auto; width: 100%; min-width: 0; height: auto; min-height: 0; max-height: none; border-right: none; border-bottom: 1px solid #f1f5f9; overflow: visible; align-self: auto; }
+    .tedarik-main { height: auto; min-height: 0; overflow: visible; align-self: auto; }
+    .tedarik-main-inner { height: auto; min-height: 0; overflow: visible; transform: none !important; will-change: auto; }
+    .tedarik-menu-item { margin-left: 0; width: 100%; }
+    .tedarik-info-card { margin-left: 0; width: 100%; }
+    .tedarik-logout { margin-left: 0; width: 100%; }
+    .tedarik-modules-btn { margin-left: 0; width: 100%; }
+}
+</style>
+<!-- UNSCOPED GLOBAL: override pickletable defaults for entire tedarik panel -->
+<style>
+/* Hide native scrollbar — html has overflow:scroll so ::-webkit-scrollbar applies, width:0 makes it invisible */
+html { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+html::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
+
+/* PickleTable overrides — tedarik panel */
+.tedarik-main .pickletable {
+    height: auto !important;
+    border: none !important;
+}
+.tedarik-main .pickletable .divTable {
+    height: auto !important;
+    overflow: visible !important;
+    border-bottom: none !important;
+}
+.tedarik-main .pickletable table {
+    border-collapse: separate !important;
+    border-spacing: 0 7px !important;
+    table-layout: auto !important;
+    border: none !important;
+    width: 100% !important;
+}
+.tedarik-main .pickletable thead th {
+    background: transparent !important;
+    color: #b0b0b5 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: relative !important;
+    top: auto !important;
+    padding: 0 14px 10px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+.tedarik-main .pickletable thead th:last-child {
+    text-align: right !important;
+}
+.tedarik-main .pickletable tbody tr {
+    background: transparent !important;
+}
+.tedarik-main .pickletable tbody tr:hover td {
+    background: #fcfcfc !important;
+}
+.tedarik-main .pickletable tbody td {
+    background: #fff !important;
+    border: 1px solid #e8e8ea !important;
+    border-left: 1px solid #e8e8ea !important;
+    border-right: 1px solid #e8e8ea !important;
+    font-size: 13.5px !important;
+    padding: 13px 14px !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+}
+.tedarik-main .pickletable tbody td:first-child {
+    border-left: 1px solid #e8e8ea !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-left-radius: 8px !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+}
+.tedarik-main .pickletable tbody td:last-child {
+    border-right: 1px solid #e8e8ea !important;
+    border-top-right-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+}
+.tedarik-main .pickletable .divPagination {
+    border-top: none !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    padding: 12px 0 0 !important;
+}
+.tedarik-main .pickletable .divPagination button,
+.tedarik-main .pickletable .divPagination .page-link {
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    color: #8a8a8e !important;
+    border-radius: 6px !important;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    min-width: 32px;
+    height: 30px;
+}
+.tedarik-main .pickletable .divPagination .active button,
+.tedarik-main .pickletable .divPagination .active .page-link {
+    background: #fff !important;
+    color: #FF5A1F !important;
+    border-color: #FF5A1F !important;
+    font-weight: 700 !important;
+}
 </style>

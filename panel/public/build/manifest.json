@@ -178,7 +178,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-CCwC_Lez.js",
+    "file": "assets/app-C9K6yiTG.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -189,10 +189,12 @@
       "node_modules/chart.js/auto/auto.js",
       "node_modules/chart.js/auto/auto.js",
       "node_modules/chart.js/auto/auto.js",
+      "node_modules/chart.js/auto/auto.js",
+      "node_modules/chart.js/auto/auto.js",
       "node_modules/chart.js/auto/auto.js"
     ],
     "css": [
-      "assets/app-COhFJPxL.css"
+      "assets/app-DUF0JaUk.css"
     ]
   },
   "resources/js/coal-swal.js": {

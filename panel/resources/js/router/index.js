@@ -32,6 +32,7 @@ import PlanlamaRList from '@/pages/planlama/Request/RList.vue';
 import PlanlamaRForm from '@/pages/planlama/Request/RForm.vue';
 import PlanlamaFList from '@/pages/planlama/TalepDoc/TList.vue';
 import PlanlamaFForm from '@/pages/planlama/TalepDoc/TForm.vue';
+import PlanlamaBilgilendirmeler from '@/pages/planlama/Bilgilendirmeler.vue';
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -79,6 +80,7 @@ const router = createRouter({
         { path: "/planlamapanel/talepler/form/:id?", name: 'PlanlamaRForm', component: PlanlamaRForm },
         { path: "/planlamapanel/talep-dokumanlari", name: 'PlanlamaFList', component: PlanlamaFList },
         { path: "/planlamapanel/talep-dokumanlari/form/:id?", name: 'PlanlamaFForm', component: PlanlamaFForm },
+        { path: "/planlamapanel/bilgilendirmeler", name: 'PlanlamaBilgilendirmeler', component: PlanlamaBilgilendirmeler },
       ]
     },
     {
