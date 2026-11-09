@@ -718,4 +718,71 @@ class DocumentController extends Controller
         return response()->json(['success'=>true,'data'=>['files'=>$files]]);
     }
 
+    // Talep Dökümanı uploaded-excel history (version chain via replaced_id, newest first)
+    // Talep Dökümanı uploaded-excel history, newest first.
+    // EAV rule: every upload appends a NEW sys_con_entities row with the same
+    // entity_tag, so one query by tag returns the full version history —
+    // no replaced_id chain walking needed (same mechanic as old_versions).
+    public function requestFiles(Request $request, $qnid = null){
+        $q = $qnid ?? $request->input('qnid') ?? $request->input('id') ?? $request->route('qnid');
+        if(empty($q)) return response()->json(['success'=>false,'msg'=>'Talep qnid gerekli'],422);
+        if(!$this->isValidUuid($q)){
+            return response()->json(['success'=>false,'msg'=>'Geçersiz qnid'],422);
+        }
+        $doc = \App\Models\Documents::where('qnid', $q)->first();
+        if(!$doc) return response()->json(['success'=>false,'msg'=>'Belge bulunamadı'],404);
+        $docOpKey = \App\Models\Sys_options::where('id', $doc->type_id)->value('op_key');
+        if($docOpKey !== 'op-doc-requestf') return response()->json(['success'=>false,'msg'=>'Talep Dökümanı değil'],404);
+        if(!docPermCheck('op-doc-requestf','read')){
+            return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır...'],403);
+        }
+
+        $connIds = \App\Models\Sys_con_ops::where('main_id', $doc->id)->pluck('id');
+        if($connIds->isEmpty()) return response()->json(['success'=>true,'data'=>['files'=>[]]]);
+
+        // all entity rows for this slot, newest link first
+        $fileIds = \Illuminate\Support\Facades\DB::table('sys_con_entities as se')
+            ->whereIn('se.conn_id', $connIds)
+            ->where('se.table_tag', 'document_files')
+            ->where('se.entity_tag', 'like', 'talep_excel_file**%')
+            ->orderByDesc('se.id')
+            ->pluck('se.entity_value')
+            ->map(fn($v) => is_numeric($v) ? (int)$v : null)
+            ->filter()
+            ->unique()
+            ->values();
+        if($fileIds->isEmpty()) return response()->json(['success'=>true,'data'=>['files'=>[]]]);
+
+        $files = \App\Models\Document_files::whereIn('id', $fileIds)->orderByDesc('id')->get();
+
+        // latest file transaction per file in ONE query (DISTINCT ON, newest first)
+        $in = implode(',', $fileIds->map(fn($v) => (int)$v)->toArray());
+        $lastRows = \Illuminate\Support\Facades\DB::select(
+            "SELECT DISTINCT ON (t.target_id) t.target_id, so.op_key, so.title, t.created_at, t.note
+             FROM transactions as t
+             inner join sys_options as so on so.id = t.type_id
+             WHERE t.target_id IN ($in) AND t.op_id = 1
+             ORDER BY t.target_id, t.id DESC"
+        );
+        $lastMap = [];
+        foreach($lastRows as $lr) $lastMap[(int)$lr->target_id] = $lr;
+
+        $enc = new \App\Providers\EncryptionProvider();
+        $out = [];
+        foreach($files as $fr){
+            try { $plain = $enc->decrypt($fr->description); } catch(\Throwable $e) { $plain = $fr->qnid; }
+            $last = $lastMap[(int)$fr->id] ?? null;
+            $out[] = [
+                'id' => (int)$fr->id,
+                'qnid' => $fr->qnid,
+                'status' => (int)$fr->status,
+                'replaced_id' => (int)($fr->replaced_id ?? 0),
+                'display_name' => $plain,
+                'created_at' => (string)$fr->created_at,
+                'last_status' => $last ? ['op_key'=>$last->op_key,'title'=>$last->title,'created_at'=>$last->created_at,'note'=>$last->note] : null,
+            ];
+        }
+        return response()->json(['success'=>true,'data'=>['files'=>$out]]);
+    }
+
 }

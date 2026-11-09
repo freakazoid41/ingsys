@@ -32,15 +32,18 @@ export default {
             isSubmitting: false,
             mudurlukler: [],
             selectedMudur: '',
+            excelFiles: [],
+            excelLoading: false,
         };
     },
     computed: {
         canEdit() { return (this.authStore?.permissions || []).includes('per-041-05-03'); },
         canMan() { return (this.authStore?.permissions || []).includes('per-041-05-01'); },
         canStd() { return (this.authStore?.permissions || []).includes('per-041-05-04'); },
+        canSave() { return this.canEdit && (!this.id || (this.docStatus && this.docStatus.op === 'tr-request-man-rejected')); },
         roFields() {
-            const base = ['title', 'request_no', 'desc', 'mal_grubu', 'ihale_grubu', 'prod_code', 'unit', 'ay'];
-            return this.canEdit ? base : base.concat(['quantity']);
+            const base = ['title', 'request_no', 'desc', 'mal_grubu', 'ihale_grubu', 'prod_code', 'unit', 'ay', 'talep_excel_file'];
+            return this.canSave ? base : base.concat(['quantity']);
         },
         mudurLabel() {
             const m = (this.mudurlukler || []).find(x => x.qnid === this.selectedMudur);
@@ -90,11 +93,36 @@ export default {
             } else if (this.id) {
                 await this.fetchMudurlukler();
                 this.readSavedMudur(rsp?.data);
+                await this.fetchExcelHistory();
             }
         });
         this.navigationStore.toggle(true);
     },
     methods: {
+        async fetchExcelHistory() {
+            if (!this.id) { this.excelFiles = []; return; }
+            this.excelLoading = true;
+            try {
+                const rsp = await this.plib.request({ url: '/api/v1/request/' + this.id + '/files', method: 'GET' }, null);
+                this.excelFiles = (rsp && rsp.success && rsp.data && rsp.data.files) || [];
+            } catch (e) { console.error('[TalepExcel] history failed', e); }
+            finally { this.excelLoading = false; }
+        },
+        excelDate(f) {
+            try { return String(f.created_at || '').slice(0, 16).replace('T', ' '); } catch { return f.created_at || ''; }
+        },
+        openExcel(qnid) {
+            if (qnid) window.open('/order-file/' + qnid, '_blank');
+        },
+        downloadExcel(f) {
+            if (!f || !f.qnid) return;
+            const a = document.createElement('a');
+            a.href = '/order-file/' + f.qnid;
+            a.setAttribute('download', '');
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        },
         async fetchMudurlukler() {
             try {
                 const fd = new FormData();
@@ -435,6 +463,16 @@ export default {
                         return;
                     }
                 }
+                // valid excel → attach the file itself to the Talep's excel slot (versioned on save like order files)
+                try {
+                    const slot = document.querySelector('.area-target[data-tag="op-doc-requestf-form"] input[name^="talep_excel_file"]');
+                    if (slot) {
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        slot.files = dt.files;
+                        slot.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                } catch (e) { console.error('[TalepExcel] slot inject failed', e); }
                 let done = 0;
                 for (const item of items) {
                     // 1) same material+month row 2) empty row 3) new row
@@ -469,7 +507,7 @@ export default {
             }
         },
         async submitForm(formData) {
-            if (!this.canEdit) { this.plib.toast(Swal, 'info', 'Salt okunur — düzenleme yetkiniz yok'); return; }
+            if (!this.canSave) { this.plib.toast(Swal, 'info', 'Bu aşamada kayıt değiştirilemez'); return; }
             this.isSubmitting = true;
             try {
             formData.typeKey = 'op-doc-requestf';
@@ -521,10 +559,10 @@ export default {
 </script>
 
 <template>
-    <div class="planlama-rform" :class="{ 'is-readonly': !canEdit }">
+    <div class="planlama-rform" :class="{ 'is-readonly': !canSave }">
         <div class="planlama-rform__head">
             <button type="button" class="planlama-rform__back" @click="$router.back()">← Geri</button>
-            <h2>{{ id ? (canEdit ? 'Talep Dökümanı Düzenle' : 'Talep Dökümanı Detayı') : 'Yeni Talep Dökümanı' }}</h2>
+            <h2>{{ id ? (canSave ? 'Talep Dökümanı Düzenle' : 'Talep Dökümanı Detayı') : 'Yeni Talep Dökümanı' }}</h2>
             <template v-if="loadForm && !id">
                 <span class="planlama-mudur__inline-label">Müdürlük:</span>
                 <select v-if="mudurlukler.length > 1" v-model="selectedMudur" class="form-control form-select planlama-mudur__select">
@@ -538,8 +576,8 @@ export default {
                 <span class="planlama-mudur__fixed">{{ mudurLabel }}</span>
             </template>
             <span class="planlama-rform__spacer"></span>
-            <button v-if="canEdit" type="button" class="planlama-rform__btn" @click="downloadExcelTemplate">Şablon</button>
-            <button v-if="canEdit" type="button" class="planlama-rform__btn planlama-rform__btn--primary" :disabled="excelBusy || !loadForm" @click="triggerExcelUpload">
+            <button v-if="canSave" type="button" class="planlama-rform__btn" @click="downloadExcelTemplate">Şablon</button>
+            <button v-if="canSave" type="button" class="planlama-rform__btn planlama-rform__btn--primary" :disabled="excelBusy || !loadForm" @click="triggerExcelUpload">
                 {{ excelBusy ? 'Aktarılıyor...' : "Excel'den Yükle" }}
             </button>
             <input ref="excelInput" type="file" accept=".xls,.xlsx" style="display:none" @change="onExcelSelected" />
@@ -562,6 +600,19 @@ export default {
                 <span class="planlama-status__lock">Standardizasyon onayı bekleniyor</span>
             </template>
         </div>
+        <div v-if="loadForm && id" class="planlama-excel">
+            <div class="planlama-excel__head">Yüklenen Excel Dosyaları <span v-if="excelFiles.length" class="planlama-excel__count">{{ excelFiles.length }}</span></div>
+            <div v-if="excelLoading" class="planlama-excel__loading">Yükleniyor...</div>
+            <div v-else-if="!excelFiles.length" class="planlama-excel__loading">Henüz dosya yüklenmedi — Excel içe aktarın ve Kaydedin.</div>
+            <div v-for="(f, i) in excelFiles" :key="f.qnid || f.id" class="planlama-excel__row">
+                <span class="planlama-excel__ver" :class="{ 'is-current': i === 0 }">{{ i === 0 ? 'Güncel' : ('v' + (excelFiles.length - i)) }}</span>
+                <span class="planlama-excel__name">{{ (f.display_name || '').split('/').pop() }}</span>
+                <span class="planlama-excel__date">{{ excelDate(f) }}</span>
+                <span class="planlama-excel__spacer"></span>
+                <button type="button" class="planlama-rform__btn" @click="openExcel(f.qnid)">Önizle</button>
+                <button type="button" class="planlama-rform__btn" @click="downloadExcel(f)">İndir</button>
+            </div>
+        </div>
         <Form v-if="loadForm" formtypes="op-doc-requestf-form,op-doc-requestf-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" />
         <div v-if="isSubmitting" class="planlama-saving"><span class="spin"></span> Kaydediliyor — dosyalar işleniyor...</div>
     </div>
@@ -579,6 +630,17 @@ export default {
 .planlama-rform__btn--primary { background: #0e7490; border-color: #0e7490; color: #fff; }
 .planlama-rform__btn--primary:hover { background: #155e75; }
 .planlama-rform__btn:disabled { opacity: .6; cursor: default; }
+.planlama-excel { margin-top: 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+.planlama-excel__head { font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.planlama-excel__count { font-size: 11px; font-weight: 800; background: #ecfeff; color: #0e7490; border-radius: 999px; padding: 2px 8px; }
+.planlama-excel__loading { font-size: 13px; color: #64748b; text-align: center; padding: 8px 0; }
+.planlama-excel__row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid #f1f5f9; font-size: 13px; }
+.planlama-excel__row:first-of-type { border-top: none; }
+.planlama-excel__ver { font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 999px; background: #f1f5f9; color: #64748b; white-space: nowrap; }
+.planlama-excel__ver.is-current { background: #dcfce7; color: #15803d; }
+.planlama-excel__name { font-weight: 600; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.planlama-excel__date { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+.planlama-excel__spacer { flex: 1; }
 .planlama-rform.is-readonly :deep(.fab-btns-wrapper),
 .planlama-rform.is-readonly :deep(.fab-wrapper),
 .planlama-rform.is-readonly :deep(i[id*="subadd"]),

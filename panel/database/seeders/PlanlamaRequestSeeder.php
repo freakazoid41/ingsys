@@ -34,6 +34,9 @@ class PlanlamaRequestSeeder extends Seeder
             ['op_key'=>'op-doc-requestf-form', 'group_key'=>'op-doc-forms', 'title'=>'Talep Dökümanı Formu', 'ttitle'=>'Documents', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'op-doc-requestf-item-form', 'group_key'=>'op-doc-forms', 'title'=>'Talep Dökümanı Kalem Formu', 'ttitle'=>'Documents', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'doc_trans_requestf_created', 'group_key'=>'op-trans-op-doc-requestf', 'title'=>'Talep Dökümanı Oluşturuldu', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
+
+            // ---- File type for uploaded excel ----
+            ['op_key'=>'op-talep_excel_file', 'group_key'=>'op-file-types', 'title'=>'Talep Excel Dosyası', 'ttitle'=>'document_files', 'ctitle'=>'type_id', 'parent_id'=>0],
         ];
 
         foreach ($items as $item) {

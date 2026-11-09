@@ -2166,6 +2166,28 @@
                                 label : 'Açıklama',
                                 placeholder : 'Açıklama giriniz',
                                 oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                name  : 'sub_talep_excel',
+                                label : 'Yüklenen Excel',
+                                type  : 'multiple',
+                                hidden : true,
+                                removable : false,
+                                requiredIfFirst : false,
+                                hideAdd : true,
+                                group_key : 'talep_excel',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        accept : '.xls,.xlsx',
+                                        name  : 'talep_excel_file',
+                                        required : false,
+                                        label : ' ',
+                                        col      : 12,
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
                             }
                         ]
                     },'op-doc-requestf-item-form' : {
