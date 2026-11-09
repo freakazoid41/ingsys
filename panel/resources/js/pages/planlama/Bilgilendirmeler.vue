@@ -68,7 +68,7 @@ import { buildNotificationRows, isPlanlamaCat } from '@/lib/notificationHelpers'
 import { PLANLAMA_CATS } from '@/lib/notificationHelpers';
 
 const TABLE_HEIGHT = '60vh';
-const TABLE_MIN_WIDTH = '880px';
+const TABLE_MIN_WIDTH = '785px';
 const HEADERS = [
   { title: ' ', key: 'document_card', order: false, type: 'string', columnFormatter: () => document.createTextNode('') },
   {
@@ -107,15 +107,7 @@ const HEADERS = [
   },
   { title: 'Eklenme Tarihi', key: '_created_at_fmt', order: true, width: '135px', type: 'string', columnFormatter: (elm, r) => { const s = document.createElement('span'); s.className = 'bili-date'; s.textContent = r._created_at_fmt || '—'; return s; } },
   {
-    title: 'Güncel Durum', key: 'last_status', order: false, width: '175px', type: 'string',
-    columnFormatter: (elm, rowData) => {
-      const pill = document.createElement('span'); pill.className = `bili-status bili-status--${rowData.cat}`;
-      pill.innerHTML = `<i class="${getCatMeta(rowData.cat).icon}" style="font-size:14px;"></i><span>${getCatMeta(rowData.cat).label}</span>`;
-      return pill;
-    }
-  },
-  {
-    title: 'Detaylar', key: 'id', order: false, colAlign: 'center', headAlign: 'center', width: '160px', type: 'string',
+    title: 'İşlemler', key: 'id', order: false, colAlign: 'center', headAlign: 'center', width: '160px', type: 'string',
     columnFormatter: function(elm, rowData, _col) {
       const vm = this; // bound Vue instance via .bind(this) in buildTableWithData — arrow can't be bound, so use function
       const wrap = document.createElement('div'); wrap.className = 'bili-actions';
@@ -324,10 +316,11 @@ export default {
 .tdk-bilgi__empty p{ margin:0; color:#9a3412; opacity:.7; max-width:420px; font-size:.9rem; }
 .tedarik-bottom-note{ margin-top:10px; display:flex; align-items:flex-start; gap:6px; font-size:11.5px; color:#8a8a8e; line-height:1.6; }
 .tedarik-bottom-note i{ color:#0e9cb8; font-size:13px; margin-top:2px; flex-shrink:0; }
-/* card chrome handled in global .tedarik-docs-page; hide dummy + thead here */
+/* card chrome handled in global .tedarik-docs-page; hide dummy col, show thead with limited header text */
 :deep(.pickletable tr:not(.table-group-header) td:first-child),
 :deep(.pickletable th:first-child){ display:none; }
-:deep(.pickletable thead){ display:none !important; }
+:deep(.pickletable thead){ display:table-header-group !important; }
+:deep(.pickletable thead th){ background:#fff !important; color:#94a3b8 !important; font-size:11px !important; font-weight:700 !important; letter-spacing:.06em !important; text-transform:uppercase !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:175px !important; padding:10px 12px !important; border:none !important; border-bottom:1px solid #f1f5f9 !important; vertical-align:middle !important; }
 :deep(.pickletable table){ border-spacing:0 7px !important; margin-top:4px !important; }
 /* icon + pill helpers — no inline style in JS except dynamic cat colors via inline (kept minimal) */
 :deep(.bili-cell){ display:flex; align-items:center; gap:10px; }
