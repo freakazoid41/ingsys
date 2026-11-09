@@ -103,11 +103,13 @@
                 this.table.setFilter([]);
             },
             formatClientCard(rowData){
+                const SYSTEM_LIFNRS = ['90000001','90000002','90000003'];
                 const title = rowData.title || '-';
                 const code = rowData.clicode || '-';
                 const sys = (rowData.client_system || rowData.sys_code || 'GDZ').toString().toUpperCase();
                 const lifnrRaw = rowData.lifnr || '-';
                 const lifnrDisplay = lifnrRaw !== '-' ? `${sys}-${lifnrRaw}` : '-';
+                const isSystem = SYSTEM_LIFNRS.includes(String(lifnrRaw));
 
                 const card = document.createElement('div');
                 card.classList.add('client-card');
@@ -132,6 +134,12 @@
                 sysPill.textContent = sys;
                 sysPill.style.cssText = 'display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;margin-left:6px;vertical-align:middle;border:1px solid ' + (sys==='ADM' ? '#bfdbfe;background:#eff6ff;color:#1e40af' : '#fed7aa;background:#fff7ed;color:#9a3412');
                 lifnrEl.appendChild(sysPill);
+                if (isSystem) {
+                    const lockPill = document.createElement('span');
+                    lockPill.textContent = 'Sistem';
+                    lockPill.style.cssText = 'display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;margin-left:6px;vertical-align:middle;border:1px solid #cbd5e1;background:#f1f5f9;color:#475569';
+                    lifnrEl.appendChild(lockPill);
+                }
                 
                 headerLeft.appendChild(badge);
                 headerLeft.appendChild(cardTitle);
@@ -154,7 +162,7 @@
                 editBtn.onclick = () => this.$router.push({ name: 'CForm', params: { id: rowData.id } });
                 footer.appendChild(editBtn);
 
-                if (this.authStore.permissions?.includes('per-06-02')) {
+                if (!isSystem && this.authStore.permissions?.includes('per-06-02')) {
                     const delBtn = document.createElement('button');
                     delBtn.classList.add('client-card__action-btn', 'client-card__action-btn--danger');
                     delBtn.type = 'button';
@@ -247,7 +255,7 @@
                             editBtn.onclick = () => this.$router.push({ name: 'CForm', params: { id: columnData } });
                             span.appendChild(editBtn);
 
-                            if (this.authStore.permissions?.includes('per-06-02')) {
+                            if (this.authStore.permissions?.includes('per-06-02') && !['90000001','90000002','90000003'].includes(String((rowData && rowData.lifnr) || ''))) {
                                 const delBtn = document.createElement('button');
                                 delBtn.classList.add('btn','btn-secondary','action-icon-btn','action-icon-btn--danger');
                                 delBtn.title = 'Sil';

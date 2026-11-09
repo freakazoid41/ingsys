@@ -50,10 +50,10 @@ class AuthController extends Controller
     }
 
     public function tedariklogin(\Illuminate\Http\Request $request){
-        // Email deep-link gateway: /tedarik?next=/tedarikpanel/orders/form/{qnid}
+        // Email deep-link gateway: /tedarik?next=/tedarikpanel/orders/form/{qnid} (or coalpanel/planlamapanel)
         // Persist validated next across the 2FA flow so post-login JS can redirect.
         $next = $request->query('next', $request->input('next'));
-        if (is_string($next) && preg_match('#^/(tedarikpanel|coalpanel)(/|$)#', $next)) {
+        if (is_string($next) && preg_match('#^/(tedarikpanel|coalpanel|planlamapanel)(/|$)#', $next)) {
             session(['post_login_next' => $next]);
         }
         // expose target_module if single-module auto-redirect was prepared
@@ -91,6 +91,7 @@ class AuthController extends Controller
             'per-041-02' => ['code'=>'per-041-02','title'=>'Tedarik','route'=>'/tedarikpanel','color'=>'#FF4713','desc'=>'Sipariş & Döküman','icon'=>'truck'],
             'per-041-03' => ['code'=>'per-041-03','title'=>'İhale','route'=>'/coalpanel','color'=>'#059669','desc'=>'Yakında','icon'=>'gavel','disabled'=>true],
             'per-041-04' => ['code'=>'per-041-04','title'=>'Fabrika Kabul','route'=>'/coalpanel','color'=>'#7c3aed','desc'=>'Yakında','icon'=>'factory','disabled'=>true],
+            'per-041-05' => ['code'=>'per-041-05','title'=>'Malzeme Planlama','route'=>'/planlamapanel','color'=>'#0e7490','desc'=>'Yakında','icon'=>'clipboard','disabled'=>true],
         ];
         $service = new \App\Services\PermissionService();
         $out = [];
@@ -946,7 +947,7 @@ class AuthController extends Controller
             'permissions'   => $permissionService->has(auth()->user(), 'all') ? [
                 // DEV_ADMIN backdoor — keep in sync with sys_role_templates Admin (immutable-admin)
                 'per-00','per-00-01',
-                'per-041','per-041-01','per-041-02','per-041-03','per-041-04',
+                'per-041','per-041-01','per-041-02','per-041-03','per-041-04','per-041-05','per-041-05-01','per-041-05-02','per-041-05-03','per-041-05-04',
                 'per-04','per-04-01','per-04-02','per-04-03','per-04-04',
                 'per-05','per-05-01','per-05-02','per-05-03','per-05-04','per-05-05',
                 'per-06','per-06-01','per-06-02',

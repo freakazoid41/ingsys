@@ -117,6 +117,22 @@ class SystemController extends Controller
         $response['unreadTotal'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
+        // ── PLANLAMA 3 ──
+        $r = $provider->getAdminNotifications('planlama-01', $limit);
+        $response['planlamaSent'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
+        $r = $provider->getAdminNotifications('planlama-02', $limit);
+        $response['planlamaRejected'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
+        $r = $provider->getAdminNotifications('planlama-03', $limit);
+        $response['planlamaApproved'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
         return $response;
 
     }
@@ -144,7 +160,7 @@ class SystemController extends Controller
         $userId = auth()->id();
         if(!$userId) return response()->json(['success'=>false,'msg'=>'Unauthorized'], 401);
 
-        $opKeys = ['tedarik-01','tedarik-02','tedarik-03','tedarik-04','tedarik-05','tedarik-06','tedarik-07'];
+        $opKeys = ['tedarik-01','tedarik-02','tedarik-03','tedarik-04','tedarik-05','tedarik-06','tedarik-07','planlama-01','planlama-02','planlama-03'];
         foreach($opKeys as $opKey){
             $provider = new ReportServiceProvider();
             $result = $provider->getAdminNotifications($opKey);

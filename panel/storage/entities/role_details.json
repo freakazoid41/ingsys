@@ -27,7 +27,14 @@
           { "parent_id": 0, "title": "Yönetim Paneli", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-01" },
           { "parent_id": 0, "title": "Tedarik", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-02" },
           { "parent_id": 0, "title": "İhale", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-03" },
-          { "parent_id": 0, "title": "Fabrika Kabul", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-04" }
+          { "parent_id": 0, "title": "Fabrika Kabul", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-04" },
+          { "parent_id": 0, "title": "Malzeme Planlama", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-05",
+            "childs": [
+              { "parent_id": 0, "title": "Müdürlük Talep Onay", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-05-01" },
+              { "parent_id": 0, "title": "Müdürlük İhtiyaç Oluşturma", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-05-02" },
+              { "parent_id": 0, "title": "Talep Yükleme", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-05-03" },
+              { "parent_id": 0, "title": "Malzeme Standardizasyon Yöneticiliği", "ttitle": "Perm_con_ops", "ctitle": "type_id", "op_key": "per-041-05-04" }
+            ] }
         ]
       },
       {

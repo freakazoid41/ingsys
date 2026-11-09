@@ -2021,6 +2021,233 @@
                                 ]
                             }
                         ]
+                    },'op-doc-request-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'text',
+                                name  : 'title',
+                                col      : 12,
+                                required : true,
+                                label : 'Başlık',
+                                placeholder : 'Başlık giriniz',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_donem',
+                                label : '',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'donem_bas',
+                                        col      : 6,
+                                        required : true,
+                                        isMonth : true,
+                                        label : 'Başlangıç Ayı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'donem_bit',
+                                        col      : 6,
+                                        required : true,
+                                        isMonth : true,
+                                        label : 'Bitiş Ayı',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'desc',
+                                col      : 12,
+                                rows     : 3,
+                                required : false,
+                                label : 'Açıklama',
+                                placeholder : 'Açıklama giriniz',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            }
+                        ]
+                    },'op-doc-request-item-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                name  : 'sub_request_items',
+                                label : 'İhtiyaç Kalemleri',
+                                type  : 'multiple',
+                                removable : true,
+                                requiredIfFirst : false,
+                                group_key : 'request_items',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'mal_grubu',
+                                        col      : 2,
+                                        required : false,
+                                        label : 'Mal Grubu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'ihale_grubu',
+                                        col      : 2,
+                                        required : false,
+                                        label : 'İhale Grubu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'prod_code',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Malzeme Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'title',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Malzeme Kısa Metni',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'select',
+                                        name  : 'unit',
+                                        col      : 2,
+                                        required : true,
+                                        label : 'Ölçü Birimi',
+                                        options  : [
+                                            { text: 'Adet (ST)', value: 'ST' },
+                                            { text: 'KG', value: 'KG' },
+                                            { text: 'Metre (M)', value: 'M' },
+                                        ],
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
+                    },'op-doc-requestf-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'text',
+                                name  : 'title',
+                                col      : 8,
+                                required : true,
+                                label : 'Başlık',
+                                placeholder : 'Başlık giriniz',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'text',
+                                name  : 'request_no',
+                                col      : 4,
+                                required : false,
+                                label : 'Bağlı İhtiyaç No',
+                                placeholder : 'İhtiyaç listesinden',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'textarea',
+                                name  : 'desc',
+                                col      : 12,
+                                rows     : 3,
+                                required : false,
+                                label : 'Açıklama',
+                                placeholder : 'Açıklama giriniz',
+                                oninput : (e) => this.submitDynamicChanges(e.target)
+                            }
+                        ]
+                    },'op-doc-requestf-item-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                name  : 'sub_requestf_items',
+                                label : 'Talep Kalemleri',
+                                type  : 'multiple',
+                                removable : true,
+                                requiredIfFirst : false,
+                                hideAdd : true,
+                                group_key : 'requestf_items',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'mal_grubu',
+                                        col      : 2,
+                                        required : false,
+                                        label : 'Mal Grubu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'ihale_grubu',
+                                        col      : 2,
+                                        required : false,
+                                        label : 'İhale Grubu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'prod_code',
+                                        col      : 2,
+                                        required : true,
+                                        label : 'Malzeme Kodu',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'title',
+                                        col      : 2,
+                                        required : true,
+                                        label : 'Malzeme Kısa Metni',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'select',
+                                        name  : 'unit',
+                                        col      : 1,
+                                        required : true,
+                                        label : 'Ölçü Birimi',
+                                        options  : [
+                                            { text: 'Adet (ST)', value: 'ST' },
+                                            { text: 'KG', value: 'KG' },
+                                            { text: 'Metre (M)', value: 'M' },
+                                        ],
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'ay',
+                                        col      : 1,
+                                        required : true,
+                                        isMonth : true,
+                                        label : 'Ay',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'quantity',
+                                        col      : 2,
+                                        required : true,
+                                        label : 'Miktar',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 },
                 formData        : {
@@ -2513,6 +2740,11 @@
                         if(attr?.isMonth == true){
                             input.readOnly    = true;
                             input.placeholder = 'Tarih Seçiniz';
+                            if(this.readonlyFields.includes(attr.name) || this.readonlyFields.some(rf => attr.name === rf || attr.name.startsWith(rf + '**'))){
+                                input.disabled = true;
+                                input.style.opacity = '0.6';
+                                input.style.cursor = 'not-allowed';
+                            }
                             input.value       = data?.entities?.[attr.name] !== undefined ? data?.entities[attr.name].split('-').reverse().join('/') : '';
 
                             // initialize flatpickr with month select plugin
@@ -2555,6 +2787,11 @@
                         if(attr?.class !== undefined)    input.classList.add(...attr?.class);
                         if(attr?.disabled !== undefined && attr.disabled) iDiv.style.display = 'none';
                         if(attr?.required !== undefined) input.required = attr.required;
+                        if(this.readonlyFields.includes(attr.name) || this.readonlyFields.some(rf => attr.name === rf || attr.name.startsWith(rf + '**'))){
+                            input.disabled = true;
+                            input.style.opacity = '0.6';
+                            input.style.cursor = 'not-allowed';
+                        }
                         if(attr?.hidden){
                             input.hidden = attr.hidden;
                             iDiv.hidden = attr.hidden;
@@ -2646,7 +2883,7 @@
                                     el.name = fitem.type == 'multiple' ? el.name+'**'+(fitem.group_key ?? 'unalign-group-key') + '**'+ nameTag : el.name;
                                     
                                     if(el.type == 'select'){
-                                        await createSelect(el,rowElm);
+                                        await createSelect(el,inpGroup);
                                     }else{
                                         createInput(el,inpGroup);
                                     }
@@ -2666,7 +2903,7 @@
                                             const number   = rowElm.querySelectorAll("[name^='"+el.name+"']").length;
                                             cloneElm.name += '-'+number;
                                             if(name != null) cloneElm.name = name;
-                                            cloneElm.type == 'select' ? await createSelect(cloneElm, rowElm) : createInput(cloneElm, inpGroup2);
+                                            cloneElm.type == 'select' ? await createSelect(cloneElm, inpGroup2) : createInput(cloneElm, inpGroup2);
                                             
                                             //sub item remove
                                             const rmvInp     = document.createElement('span');
@@ -2915,7 +3152,6 @@
                             break;
                         case 'textarea':
                             input                = document.createElement('textarea');
-                            input.classList.add('m-2');
                             input.name           = fitem.name;
                             //input.dataset.fileId = fileId;
                             input.dataset.rowId  = rowId;
@@ -3225,5 +3461,19 @@
 .area-target .input-label{
     font-weight: 600 !important;
     color: slategrey !important;
+}
+/* nested sub/multiple .row also matches Bootstrap .row>* gutter padding,
+   which insets it vs full-width siblings — neutralize outer edges */
+.area-target .col-lg-12 > .row{
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+.area-target .col-lg-12 > .row > div:first-child{
+    padding-left: 0 !important;
+}
+.area-target .col-lg-12 > .row > div:last-child{
+    padding-right: 0 !important;
 }
 </style>

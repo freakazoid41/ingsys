@@ -12,7 +12,7 @@ export default class Page {
                 }, 400);
                 return;
             }
-            const isSafeNext = (v) => typeof v === 'string' && /^\/(tedarikpanel|coalpanel)(\/|$)/.test(v);
+            const isSafeNext = (v) => typeof v === 'string' && /^\/(tedarikpanel|coalpanel|planlamapanel)(\/|$)/.test(v);
             // Email deep-link wins: explicit post-login target from server or stored ?next
             const nextInput = document.querySelector('input[name="postLoginNext"]');
             const storedNext = (() => { try { return localStorage.getItem('post_login_next'); } catch(e) { return null; } })();
@@ -34,7 +34,7 @@ export default class Page {
             // Preserve email ?next across the credential POST (server also reads hidden input)
             try {
                 const q = new URLSearchParams(window.location.search).get('next');
-                if(q && /^\/(tedarikpanel|coalpanel)(\/|$)/.test(q)){
+                if(q && /^\/(tedarikpanel|coalpanel|planlamapanel)(\/|$)/.test(q)){
                     localStorage.setItem('post_login_next', q);
                     const form = document.querySelector('#login-form');
                     if(form && !form.querySelector('input[name="next"]')){

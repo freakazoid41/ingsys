@@ -50,6 +50,16 @@ export default {
                     perm: 'per-041-04',
                     disabled: true,
                 },
+                {
+                    key: 'planlama',
+                    title: 'Malzeme Planlama',
+                    desc: 'Malzeme planlama — Yakında',
+                    icon: 'ki-outline ki-clipboard',
+                    path: '/planlamapanel',
+                    color: '#0e7490',
+                    perm: 'per-041-05',
+                    disabled: true,
+                },
             ],
         }
     },

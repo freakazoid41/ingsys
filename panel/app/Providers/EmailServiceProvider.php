@@ -118,6 +118,11 @@ class EmailServiceProvider extends ServiceProvider
     public function sendTedarikOrderApproved($payload){ $this->dispatchTedarik('tedarikOrderApproved', $payload); }
     public function sendTedarikOrderRejected($payload){ $this->dispatchTedarik('tedarikOrderRejected', $payload); }
 
+    // ── PLANLAMA 3 dispatchers ──
+    public function sendPlanlamaTalepSent($payload){ $this->dispatchTedarik('planlamaTalepSent', $payload); }
+    public function sendPlanlamaTalepRejected($payload){ $this->dispatchTedarik('planlamaTalepRejected', $payload); }
+    public function sendPlanlamaTalepApproved($payload){ $this->dispatchTedarik('planlamaTalepApproved', $payload); }
+
     private function dispatchTedarik($type, $payload){
         try{
             $payload['type'] = $type;

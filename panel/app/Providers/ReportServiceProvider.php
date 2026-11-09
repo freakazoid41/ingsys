@@ -124,7 +124,8 @@ class ReportServiceProvider extends ServiceProvider
         $permittedUsers = $personsProvider->getNotificationUsers($notifKey,session('person_id'));
         $isReseller = session('type_key') === 'op-pert-reseller';
         // tedarik-04/05/06/07: reseller sees own LIFNR items even if not in group
-        if(empty($permittedUsers) && !(in_array($notifKey, ['tedarik-04','tedarik-05','tedarik-06','tedarik-07']) && $isReseller)) return ['data'=>[],'total'=>0];
+        // planlama-02: rejected docs are owner-scoped (uploader sees own), no group needed
+        if(empty($permittedUsers) && !(in_array($notifKey, ['tedarik-04','tedarik-05','tedarik-06','tedarik-07']) && $isReseller) && $notifKey !== 'planlama-02') return ['data'=>[],'total'=>0];
         switch ($notifKey) {
             // ── TEDARIK 7 ──
             case 'tedarik-01': // Sipariş Sisteme Geldi (SAP Üzerinden) — doc_trans_order_created + BUKRS vs user grp_code
@@ -202,6 +203,22 @@ class ReportServiceProvider extends ServiceProvider
                     $data = $this->getTedarikOrders('doc_trans_order_rejected');
                     $data = $this->filterOrdersByBukrsForCurrentUser($data);
                 }
+                break;
+            // ── PLANLAMA 3 ── (Talep Dökümanı approval chain)
+            case 'planlama-01': // Talep Onaya Gönderildi — tr-request-man-awaiting (group members = 05-01 holders)
+                $data = $this->getPlanlamaRequests('tr-request-man-awaiting');
+                break;
+            case 'planlama-02': // Talep Reddedildi — tr-request-man-rejected, owner-scoped (uploader sees own)
+                $data = $this->getPlanlamaRequests('tr-request-man-rejected');
+                $myPid = session('person_id');
+                if($myPid !== null && $myPid !== ''){
+                    $data = array_values(array_filter($data, function($o) use ($myPid){
+                        return (string)($o->person_id ?? '') === (string)$myPid;
+                    }));
+                }
+                break;
+            case 'planlama-03': // Müdürlük Onayı Verildi — tr-request-man-approved (group members = 05-04 holders)
+                $data = $this->getPlanlamaRequests('tr-request-man-approved');
                 break;
             default:
                 # code...
@@ -287,6 +304,19 @@ class ReportServiceProvider extends ServiceProvider
         }
 
         return $data;
+    }
+
+    // ── PLANLAMA 3 ── (Talep Dökümanı approval chain, no BUKRS — single-system flow)
+    public function getPlanlamaRequests($statusKey){
+        $data = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'transactions', 'type' => '=','value' => $statusKey],
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-requestf'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-requestf-form'],
+            ],
+            'order' => ['key' => 'main_id', 'style' => 'desc'],
+        ]);
+        return $data['data'] ?? [];
     }
 
     // ── TEDARIK helpers ──

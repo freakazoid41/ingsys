@@ -127,6 +127,9 @@ class TedarikMailHelper
             'tedarikFileRejected'  => ['pill' => 'Yeniden Talep', 'color' => '#b91c1c', 'bg' => '#fee2e2', 'intro' => 'Sipariş dosyası reddedildi — tedarikçiden yeniden talep edildi.'],
             'tedarikOrderApproved' => ['pill' => 'Kalite Onayı', 'color' => '#15803d', 'bg' => '#dcfce7', 'intro' => 'Sipariş kalite onayı verildi ve kapatıldı.'],
             'tedarikOrderRejected' => ['pill' => 'Sipariş Reddedildi', 'color' => '#b91c1c', 'bg' => '#fee2e2', 'intro' => 'Sipariş reddedildi. Detayı inceleyin.'],
+            'planlamaTalepSent'     => ['pill' => 'Onaya Talep Geldi', 'color' => '#0e7490', 'bg' => '#ecfeff', 'intro' => 'Yeni Talep Dökümanı müdürlük onayına gönderildi.'],
+            'planlamaTalepRejected' => ['pill' => 'Talep Reddedildi', 'color' => '#b91c1c', 'bg' => '#fee2e2', 'intro' => 'Talep Dökümanı müdürlük tarafından reddedildi.'],
+            'planlamaTalepApproved' => ['pill' => 'Müdürlük Onayı', 'color' => '#15803d', 'bg' => '#dcfce7', 'intro' => 'Talep müdürlük onayından geçti — standardizasyon onayı bekleniyor.'],
             default                => ['pill' => 'Bilgilendirme', 'color' => '#475569', 'bg' => '#f1f5f9', 'intro' => null],
         };
     }

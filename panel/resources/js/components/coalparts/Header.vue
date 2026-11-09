@@ -59,6 +59,9 @@ export default {
       if(Array.isArray(notifs.fileRejected)) count += notifs.fileRejected.length;
       if(Array.isArray(notifs.orderApproved)) count += notifs.orderApproved.length;
       if(Array.isArray(notifs.orderRejected)) count += notifs.orderRejected.length;
+      if(Array.isArray(notifs.planlamaSent)) count += notifs.planlamaSent.length;
+      if(Array.isArray(notifs.planlamaRejected)) count += notifs.planlamaRejected.length;
+      if(Array.isArray(notifs.planlamaApproved)) count += notifs.planlamaApproved.length;
       count += (this.notifications || []).length;
       return count;
     },
@@ -142,7 +145,11 @@ export default {
         fileRejected: { cat:'tedarik-05', opKey:'tedarik-05', label:'Yeniden Talep' },
         orderApproved: { cat:'tedarik-06', opKey:'tedarik-06', label:'Kalite Onayı' },
         orderRejected: { cat:'tedarik-07', opKey:'tedarik-07', label:'Reddedildi' },
+        planlamaSent: { cat:'planlama-01', opKey:'planlama-01', label:'Onaya Talep Geldi' },
+        planlamaRejected: { cat:'planlama-02', opKey:'planlama-02', label:'Talep Reddedildi' },
+        planlamaApproved: { cat:'planlama-03', opKey:'planlama-03', label:'Müdürlük Onayı' },
       };
+      const parseRequest = (o) => { let title='',requestNo='',mudur=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='title'&&!title) title=d.Value; if(d.Key==='request_no'&&!requestNo) requestNo=d.Value; if(d.Key==='firma_adi'&&!mudur) mudur=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return { orderNo: title||requestNo||o.qnid||o.id||'-', ctitle:mudur, qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt }; };
       for(let key in this.addNotifications){
         if(key==='blink' || !(key in catMap)) continue;
         const rows = this.addNotifications[key] || [];
@@ -163,7 +170,15 @@ export default {
             else if(key==='orderSent'){ title=`Onaya Gönderildi — ${m.orderNo}`; message=m.orderNo; }
             else if(key==='orderApproved'){ title=`Kalite Onayı — ${m.orderNo}`; message=m.orderNo; }
             else if(key==='orderRejected'){ title=`Reddedildi — ${m.orderNo}`; message=m.orderNo; }
-            cb=()=> this.$router.push({ name: 'OrderForm', params:{ id:m.qnid }});
+            else if(key==='planlamaSent'||key==='planlamaRejected'||key==='planlamaApproved'){
+              const pm = parseRequest(offr);
+              qnid=pm.qnid; created_at=pm.created_at; orderNo=pm.orderNo; sub=pm.ctitle;
+              if(key==='planlamaSent'){ title=`Onaya Talep Geldi — ${pm.orderNo}`; message=pm.orderNo; }
+              else if(key==='planlamaRejected'){ title=`Talep Reddedildi — ${pm.orderNo}`; message=pm.orderNo; }
+              else { title=`Müdürlük Onayı — ${pm.orderNo}`; message=pm.orderNo; }
+              cb=()=> this.$router.push({ name: 'PlanlamaFFormAdmin', params:{ id:pm.qnid }});
+            }
+            if(!cb) cb=()=> this.$router.push({ name: 'OrderForm', params:{ id:m.qnid }});
           }
           list.push({ cat:cfg.cat, opKey:cfg.opKey, label:cfg.label, title, message, sub, orderNo, time:`Kayıt: ${created_at||''}`, fmtTime: created_at ? this.fmtTime(created_at) : '', created_at, main_id, qnid, onclick: cb });
         });

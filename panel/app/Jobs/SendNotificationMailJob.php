@@ -83,6 +83,16 @@ class SendNotificationMailJob implements ShouldQueue
             case 'tedarikOrderRejected':
                 $this->tedarikOrderRejected($this->payload);
                 break;
+            // ── PLANLAMA 3 ──
+            case 'planlamaTalepSent':
+                $this->planlamaTalepSent($this->payload);
+                break;
+            case 'planlamaTalepRejected':
+                $this->planlamaTalepRejected($this->payload);
+                break;
+            case 'planlamaTalepApproved':
+                $this->planlamaTalepApproved($this->payload);
+                break;
             default:
                 $this->log('warning', 'SendNotificationMailJob received unknown type', ['type' => $this->payload['type'] ?? null]);
                 break;
@@ -999,6 +1009,61 @@ class SendNotificationMailJob implements ShouldQueue
                 }
             }
         }
+        return;
+    }
+
+    protected function planlamaLink(array $payload): ?string
+    {
+        $H = \App\Services\TedarikMailHelper::class;
+        $qnid = $payload['qnid'] ?? $payload['talep_qnid'] ?? null;
+        if (empty($qnid)) return null;
+        return $H::gateway('/planlamapanel/talep-dokumanlari/form/' . $qnid);
+    }
+
+    // ── PLANLAMA 3 ── (Talep Dökümanı approval chain, no BUKRS — single-system flow)
+    public function planlamaTalepSent(array $payload){
+        $title = $payload['title'] ?? '-';
+        $subject = 'Onaya Talep Geldi: ' . $title;
+        $html = $this->tedarikCard('planlamaTalepSent', $subject, [
+            ['Talep', e($title)],
+            ['Bağlı İhtiyaç', e($payload['request_no'] ?? '-')],
+            ['Yükleyen Müdürlük', e($payload['mudur'] ?? '-')],
+            ['Yükleyen', e($payload['uploader'] ?? '-')],
+        ], $this->planlamaLink($payload), 'Talebi İncele', $payload['note'] ?? null, ['intro' => 'Yeni Talep Dökümanı müdürlük onayına gönderildi.']);
+        $this->informSystemUsers($subject, $html, 'planlama-01');
+        return;
+    }
+
+    public function planlamaTalepRejected(array $payload){
+        $title = $payload['title'] ?? '-';
+        $subject = 'Talebiniz Reddedildi: ' . $title;
+        $html = $this->tedarikCard('planlamaTalepRejected', $subject, [
+            ['Talep', e($title)],
+            ['Bağlı İhtiyaç', e($payload['request_no'] ?? '-')],
+            ['Reddeden', e($payload['actor'] ?? 'Müdürlük')],
+        ], $this->planlamaLink($payload), 'Talebi Gör', $payload['note'] ?? null, ['intro' => 'Talep Dökümanı müdürlük tarafından reddedildi.']);
+        // direct to uploader (pipeline: rejected → uploaded user), bell side is owner-scoped planlama-02
+        $to = trim((string)($payload['uploader_email'] ?? ''));
+        if ($to === '') {
+            $this->log('info', 'planlamaTalepRejected: no uploader email, skipping direct mail');
+            return;
+        }
+        $mailService = new \App\Services\MailService();
+        $mailService->sendMail(['to' => $to, 'subject' => $subject, 'html' => $html, 'sys_code' => $this->payload['sys_code'] ?? null]);
+        $this->log('info', 'Sending planlamaTalepRejected direct mail', ['email' => $to]);
+        return;
+    }
+
+    public function planlamaTalepApproved(array $payload){
+        $title = $payload['title'] ?? '-';
+        $subject = 'Müdürlük Onayı Verildi: ' . $title;
+        $html = $this->tedarikCard('planlamaTalepApproved', $subject, [
+            ['Talep', e($title)],
+            ['Bağlı İhtiyaç', e($payload['request_no'] ?? '-')],
+            ['Müdürlük', e($payload['mudur'] ?? '-')],
+            ['Onaylayan', e($payload['actor'] ?? '-')],
+        ], $this->planlamaLink($payload), 'Talebi İncele', $payload['note'] ?? null, ['intro' => 'Talep Dökümanı müdürlük onayından geçti — standardizasyon onayı bekleniyor.']);
+        $this->informSystemUsers($subject, $html, 'planlama-03');
         return;
     }
 

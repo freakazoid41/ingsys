@@ -19,6 +19,20 @@ function parseOrder(o) {
   return { orderNo: orderNo || o.qnid || '-', ctitle, qnid: o.qnid || o.id || o.relation_qnid || '', main_id: o.main_id || 0, created_at: statusAt, raw_created_at: o.created_at || '', last_trans_at: o.last_trans_at || '' };
 }
 
+function parseRequest(o) {
+  let title = '', requestNo = '', mudur = '';
+  try {
+    const arr = JSON.parse(o.main_attr || '[]');
+    arr.forEach(d => {
+      if (d.Key === 'title' && !title) title = d.Value;
+      if (d.Key === 'request_no' && !requestNo) requestNo = d.Value;
+      if (d.Key === 'firma_adi' && !mudur) mudur = d.Value;
+    });
+  } catch {}
+  const statusAt = o.last_trans_at || o.created_at || '';
+  return { orderNo: title || requestNo || o.qnid || '-', ctitle: mudur, qnid: o.qnid || o.id || o.relation_qnid || '', main_id: o.main_id || 0, created_at: statusAt, raw_created_at: o.created_at || '', last_trans_at: o.last_trans_at || '' };
+}
+
 function parseFile(f) {
   let statusAt = f.last_trans_at || '';
   if(!statusAt && f.last_status){
@@ -27,6 +41,7 @@ function parseFile(f) {
   statusAt = statusAt || f.created_at || '';
   return {
     orderNo: f.group_key || '-',
+    title: f.type_title || f.file_type || 'Dosya',
     ctitle: f.ctitle || '',
     qnid: f.qnid || f.id || f.relation_qnid || '',
     main_id: f.main_id || 0,
@@ -41,12 +56,12 @@ function uid(cat, qnid) {
   catch { return `${cat}-${qnid}-${Math.random().toString(36).slice(2, 8)}`; }
 }
 
-function makeRow(cat, orderNo, ctitle, qnid, created_at, main_id) {
+function makeRow(cat, orderNo, ctitle, qnid, created_at, main_id, docTitle) {
   const meta = getCatMeta(cat);
   return {
     id: uid(cat, qnid),
     qnid, cat, catLabel: meta.label,
-    file_type: meta.label,
+    file_type: docTitle || meta.label,
     group_key: orderNo,
     ctitle,
     created_at: created_at || '',
@@ -77,7 +92,7 @@ export function buildNotificationRows(notifications, rejectedFiles = []) {
     if (!Array.isArray(arr)) return;
     arr.forEach(f => {
       const m = parseFile(f);
-      rows.push(makeRow(cat, m.orderNo, m.ctitle, m.qnid, m.created_at || f.created_at, m.main_id || f.main_id));
+      rows.push(makeRow(cat, m.orderNo, m.ctitle, m.qnid, m.created_at || f.created_at, m.main_id || f.main_id, m.title));
     });
   };
 
@@ -88,6 +103,17 @@ export function buildNotificationRows(notifications, rejectedFiles = []) {
   addFiles(n.fileRejected, 'tedarik-05');
   addOrders(n.orderApproved, 'tedarik-06');
   addOrders(n.orderRejected, 'tedarik-07');
+
+  const addRequests = (arr, cat) => {
+    if (!Array.isArray(arr)) return;
+    arr.forEach(o => {
+      const m = parseRequest(o);
+      rows.push(makeRow(cat, m.orderNo, m.ctitle, m.qnid, m.created_at || o.created_at, m.main_id || o.main_id));
+    });
+  };
+  addRequests(n.planlamaSent, 'planlama-01');
+  addRequests(n.planlamaRejected, 'planlama-02');
+  addRequests(n.planlamaApproved, 'planlama-03');
 
   (rejectedFiles || []).forEach(fl => {
     rows.push(makeRow('rejected', fl.cli_id || '', '', fl.cli_id || '', fl.created_at || '', 0));
@@ -109,3 +135,7 @@ export function buildNotificationRows(notifications, rejectedFiles = []) {
 // file-type helpers for row actions
 export const FILE_CATS = ['tedarik-03', 'tedarik-04', 'tedarik-05'];
 export function isFileCat(cat) { return FILE_CATS.includes(cat); }
+
+// planlama request cats route to the Talep Dökümanı form (own panel)
+export const PLANLAMA_CATS = ['planlama-01', 'planlama-02', 'planlama-03'];
+export function isPlanlamaCat(cat) { return PLANLAMA_CATS.includes(cat); }

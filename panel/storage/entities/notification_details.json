@@ -41,5 +41,23 @@
         "group_key": "op-notif",
         "op_key": "tedarik-07",
         "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Talep Dökümanı Onaya Gönderildi",
+        "group_key": "op-notif",
+        "op_key": "planlama-01",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Talep Dökümanı Reddedildi",
+        "group_key": "op-notif",
+        "op_key": "planlama-02",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Talep Dökümanı Müdürlük Onayı Verildi",
+        "group_key": "op-notif",
+        "op_key": "planlama-03",
+        "childs": []
     }
 ]

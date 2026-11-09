@@ -86,6 +86,12 @@ export default {
       if (Array.isArray(notifs.fileRejected)) count += notifs.fileRejected.length;
       if (Array.isArray(notifs.orderApproved)) count += notifs.orderApproved.length;
       if (Array.isArray(notifs.orderRejected)) count += notifs.orderRejected.length;
+      if (Array.isArray(notifs.planlamaSent)) count += notifs.planlamaSent.length;
+      if (Array.isArray(notifs.planlamaRejected)) count += notifs.planlamaRejected.length;
+      if (Array.isArray(notifs.planlamaApproved)) count += notifs.planlamaApproved.length;
+      if (Array.isArray(notifs.planlamaSent)) count += notifs.planlamaSent.length;
+      if (Array.isArray(notifs.planlamaRejected)) count += notifs.planlamaRejected.length;
+      if (Array.isArray(notifs.planlamaApproved)) count += notifs.planlamaApproved.length;
       count += (this.authStore.currentStatus?.rejectedFiles || []).length;
       this.notifCount = count;
     },
@@ -105,6 +111,7 @@ export default {
       const notifs = this.navigationStore?.notifications || {};
       const items = [];
       const parseOrder = (o)=>{ let orderNo=o.order_no||o.group_key||''; let ctitle=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='order_no'&&!orderNo) orderNo=d.Value; if(d.Key==='ctitle'&&!ctitle) ctitle=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return {orderNo:orderNo||o.qnid||o.id||'-',ctitle,qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt}; };
+      const parseRequest = (o)=>{ let title='',requestNo='',mudur=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='title'&&!title) title=d.Value; if(d.Key==='request_no'&&!requestNo) requestNo=d.Value; if(d.Key==='firma_adi'&&!mudur) mudur=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return {orderNo:title||requestNo||o.qnid||o.id||'-',ctitle:mudur,qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt}; };
       const parseFile = (f)=> { let sAt = f.last_trans_at || ''; if(!sAt && f.last_status){ try{ const j = typeof f.last_status==='string'?JSON.parse(f.last_status):f.last_status; sAt = j.created_at || ''; }catch{} } sAt = sAt || f.created_at || ''; return {orderNo:f.group_key||'-',title:f.type_title||f.file_type||'Dosya',qnid:f.qnid||f.id||f.relation_qnid, main_id:f.main_id||0, created_at:sAt}; };
       const push = (obj, cat, opKey, title) => {
         const meta = getCatMeta(cat);
@@ -127,6 +134,9 @@ export default {
       if (Array.isArray(notifs.fileRejected)) notifs.fileRejected.forEach(f=>{ const m=parseFile(f); push(m, 'tedarik-05', 'tedarik-05', `Yeniden Talep — ${m.title}`); });
       if (Array.isArray(notifs.orderApproved)) notifs.orderApproved.forEach(o=>{ const m=parseOrder(o); push(m, 'tedarik-06', 'tedarik-06', `Kalite Onayı — ${m.orderNo}`); });
       if (Array.isArray(notifs.orderRejected)) notifs.orderRejected.forEach(o=>{ const m=parseOrder(o); push(m, 'tedarik-07', 'tedarik-07', `Reddedildi — ${m.orderNo}`); });
+      if (Array.isArray(notifs.planlamaSent)) notifs.planlamaSent.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-01', 'planlama-01', `Onaya Talep Geldi — ${m.orderNo}`); });
+      if (Array.isArray(notifs.planlamaRejected)) notifs.planlamaRejected.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-02', 'planlama-02', `Talep Reddedildi — ${m.orderNo}`); });
+      if (Array.isArray(notifs.planlamaApproved)) notifs.planlamaApproved.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-03', 'planlama-03', `Müdürlük Onayı — ${m.orderNo}`); });
 
       const sortByNewest = (a,b)=>{
         const aT = a.rawTime ? new Date(a.rawTime).getTime() : 0;
@@ -219,7 +229,9 @@ export default {
               else if(item?.cat === 'rejected' && item?.targetQnid) { /* local only */ }
               if(item?.targetQnid){
                 const isFile = ['tedarik-03','tedarik-04','tedarik-05'].includes(item.cat);
+                const isPlanlama = ['planlama-01','planlama-02','planlama-03'].includes(item.cat);
                 if(isFile) this.$router.push({ name: 'TedarikDForm', params: { id: item.targetQnid } }).catch(()=>{});
+                else if(isPlanlama) this.$router.push({ name: 'PlanlamaFForm', params: { id: item.targetQnid } }).catch(()=>{});
                 else this.$router.push({ name: 'TedarikOrderForm', params: { id: item.targetQnid } }).catch(()=>{});
               }
               Swal.close();

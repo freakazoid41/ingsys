@@ -96,6 +96,23 @@ class DocumentServiceProvider extends ServiceProvider
                 $document = Documents::where('qnid', $id)->first();
                 $isUpdate = true;
 
+                // System clients (is_system=1) are enums — full lock, not editable (seeded via SystemClientSeeder)
+                if ($document) {
+                    $docOpKey = Sys_options::where('id', $document->type_id)->value('op_key');
+                    if ($docOpKey === 'op-doc-client') {
+                        $isSys = DB::table('sys_con_entities as se')
+                            ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                            ->where('so.main_id', $document->id)
+                            ->where('se.entity_tag', 'is_system')
+                            ->where('se.entity_value', '1')
+                            ->exists();
+                        if ($isSys) {
+                            DB::rollBack();
+                            return ['success' => false, 'msg' => 'Sistem carisi düzenlenemez.'];
+                        }
+                    }
+                }
+
                 // here get all data for before data logging
 
                 $logData['description'] = [
@@ -143,6 +160,8 @@ class DocumentServiceProvider extends ServiceProvider
                 $birthMap = [
                     'op-doc-order' => 'doc_trans_order_created',
                     'op-doc-order-item' => 'doc_trans_created',
+                    // Talep Dökümanı is born awaiting Müdürlük approval (entered by Talep Yükleme user)
+                    'op-doc-requestf' => 'tr-request-man-awaiting',
                 ];
                 $birthKey = $birthMap[$typeKey] ?? 'doc_trans_created';
                 $birthType = Sys_options::where('op_key', $birthKey)->first();
@@ -563,9 +582,9 @@ class DocumentServiceProvider extends ServiceProvider
                                         )
                                 from transactions as t
                                     inner join sys_options so on so.id = t.type_id
-                                    inner join user_logs ul on ul.id = t.log_id
-                                    inner join users u on u.id = ul.user_id
-                                    inner join persons p on p.id = u.person_id
+                                    left join user_logs ul on ul.id = t.log_id
+                                    left join users u on u.id = ul.user_id
+                                    left join persons p on p.id = u.person_id
                                 where target_id = d.id and so.group_key = 'op-trans-' || sp.op_key)  as  status
                             
                             from documents d 
@@ -702,6 +721,16 @@ class DocumentServiceProvider extends ServiceProvider
         $document = Documents::where('qnid', $id)->first();
         if (empty($document)) return ['success' => false, 'msg' => 'Belge bulunamadı'];
         $docTypeKey = Sys_options::where('id', $document->type_id)->value('op_key');
+        // System clients are enums — not deletable
+        if ($docTypeKey === 'op-doc-client') {
+            $isSys = DB::table('sys_con_entities as se')
+                ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                ->where('so.main_id', $document->id)
+                ->where('se.entity_tag', 'is_system')
+                ->where('se.entity_value', '1')
+                ->exists();
+            if ($isSys) return ['success' => false, 'msg' => 'Sistem carisi silinemez.'];
+        }
         // Clone order/item restoration: if this is a partitioned piece, give its qty back to main
         $needsRestoreClone = ($docTypeKey === 'op-doc-order' && (int)$document->parent_id !== 0);
         $needsRestoreItem  = ($docTypeKey === 'op-doc-order-item');
@@ -976,6 +1005,36 @@ class DocumentServiceProvider extends ServiceProvider
                                 'msg' => 'Bu durum geçişine izin verilmiyor: '.$lastOpKey.' → '.$statusKey,
                             ];
                         }
+                    }
+                }
+            }
+
+            // Talep Dökümanı approval chain: awaiting -> man-approved | man-rejected; man-approved -> std-approved;
+            // man-rejected -> man-awaiting (re-submit after revision re-queues it)
+            if (($documentType->op_key ?? null) === 'op-doc-requestf') {
+                $allowedF = [
+                    'tr-request-man-awaiting' => ['tr-request-man-approved','tr-request-man-rejected'],
+                    'tr-request-man-approved' => ['tr-request-std-approved'],
+                    'tr-request-man-rejected' => ['tr-request-man-awaiting'],
+                ];
+                $lastFOpKey = DB::table('transactions as t')
+                    ->join('sys_options as so','so.id','=','t.type_id')
+                    ->where('t.target_id',$document->id)
+                    ->where('so.group_key','op-trans-'.$documentType->op_key)
+                    ->orderBy('t.id','desc')
+                    ->value('so.op_key');
+                // no history yet → only birth (awaiting) may be written explicitly
+                if (!$lastFOpKey) {
+                    if ($statusKey !== 'tr-request-man-awaiting') {
+                        return ['success' => false, 'msg' => 'Bu durum geçişine izin verilmiyor: (yok) → '.$statusKey];
+                    }
+                } else {
+                    $allowedFNext = $allowedF[$lastFOpKey] ?? null;
+                    if ($allowedFNext === null || !in_array($statusKey,$allowedFNext)) {
+                        return [
+                            'success' => false,
+                            'msg' => 'Bu durum geçişine izin verilmiyor: '.$lastFOpKey.' → '.$statusKey,
+                        ];
                     }
                 }
             }

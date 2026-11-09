@@ -63,6 +63,12 @@ export default {
       if (Array.isArray(notifs.fileRejected)) count += notifs.fileRejected.length;
       if (Array.isArray(notifs.orderApproved)) count += notifs.orderApproved.length;
       if (Array.isArray(notifs.orderRejected)) count += notifs.orderRejected.length;
+      if (Array.isArray(notifs.planlamaSent)) count += notifs.planlamaSent.length;
+      if (Array.isArray(notifs.planlamaRejected)) count += notifs.planlamaRejected.length;
+      if (Array.isArray(notifs.planlamaApproved)) count += notifs.planlamaApproved.length;
+      if (Array.isArray(notifs.planlamaSent)) count += notifs.planlamaSent.length;
+      if (Array.isArray(notifs.planlamaRejected)) count += notifs.planlamaRejected.length;
+      if (Array.isArray(notifs.planlamaApproved)) count += notifs.planlamaApproved.length;
       count += (this.notifications || []).length;
       return count > 0;
     }
@@ -111,6 +117,7 @@ export default {
           return { orderNo: orderNo||o.qnid||o.id||'-', ctitle, qnid: o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt, rawCreated:o.created_at||'', last_trans_at:o.last_trans_at||'' };
         };
         const parseFile = (f) => { let sAt = f.last_trans_at || ''; if(!sAt && f.last_status){ try{ const j=typeof f.last_status==='string'?JSON.parse(f.last_status):f.last_status; sAt=j.created_at||''; }catch{} } sAt = sAt || f.created_at || ''; return { orderNo: f.group_key||'-', title: f.type_title||f.file_type||'Dosya', qnid: f.qnid||f.id||f.relation_qnid, main_id:f.main_id||0, created_at:sAt, rawCreated:f.created_at||'', last_trans_at:f.last_trans_at||sAt }; };
+        const parseRequest = (o) => { let title='',requestNo='',mudur=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='title'&&!title) title=d.Value; if(d.Key==='request_no'&&!requestNo) requestNo=d.Value; if(d.Key==='firma_adi'&&!mudur) mudur=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return { orderNo: title||requestNo||o.qnid||o.id||'-', ctitle:mudur, qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt, rawCreated:o.created_at||'', last_trans_at:o.last_trans_at||'' }; };
         for (const key in addNotifications) {
           switch (key) {
             case 'orderImported':
@@ -133,6 +140,15 @@ export default {
               break;
             case 'orderRejected':
               list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); const at=m.created_at; return { id:`ted07-${m.qnid}`, text: `Sipariş Reddedildi — ${m.orderNo}`, sub:m.ctitle||'', orderNo:m.orderNo, time: `Kayıt: ${at||''}`, fmtTime: at?this.fmtTime(at):'', rawTime:at||'', rawId:m.main_id, type: 'tedarik07', cat:'tedarik-07', opKey:'tedarik-07', targetQnid:m.qnid, qnid:m.qnid, main_id:m.main_id, created_at:at||'', last_trans_at:m.last_trans_at||at, iconClass: 'ki-outline ki-cross-square', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
+              break;
+            case 'planlamaSent':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseRequest(o); const at=m.created_at; return { id:`pln01-${m.qnid}`, text: `Onaya Talep Geldi — ${m.orderNo}`, sub:m.ctitle||'', orderNo:m.orderNo, time: `Kayıt: ${at||''}`, fmtTime: at?this.fmtTime(at):'', rawTime:at||'', rawId:m.main_id, type: 'planlama01', cat:'planlama-01', opKey:'planlama-01', targetQnid:m.qnid, qnid:m.qnid, main_id:m.main_id, created_at:at||'', last_trans_at:m.last_trans_at||at, iconClass: 'ki-outline ki-send', onclick:()=>this.$router.push({name:'PlanlamaFFormAdmin',params:{id:m.qnid}}) }; })];
+              break;
+            case 'planlamaRejected':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseRequest(o); const at=m.created_at; return { id:`pln02-${m.qnid}`, text: `Talep Reddedildi — ${m.orderNo}`, sub:m.ctitle||'', orderNo:m.orderNo, time: `Kayıt: ${at||''}`, fmtTime: at?this.fmtTime(at):'', rawTime:at||'', rawId:m.main_id, type: 'planlama02', cat:'planlama-02', opKey:'planlama-02', targetQnid:m.qnid, qnid:m.qnid, main_id:m.main_id, created_at:at||'', last_trans_at:m.last_trans_at||at, iconClass: 'ki-outline ki-cross-circle', onclick:()=>this.$router.push({name:'PlanlamaFFormAdmin',params:{id:m.qnid}}) }; })];
+              break;
+            case 'planlamaApproved':
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseRequest(o); const at=m.created_at; return { id:`pln03-${m.qnid}`, text: `Müdürlük Onayı — ${m.orderNo}`, sub:m.ctitle||'', orderNo:m.orderNo, time: `Kayıt: ${at||''}`, fmtTime: at?this.fmtTime(at):'', rawTime:at||'', rawId:m.main_id, type: 'planlama03', cat:'planlama-03', opKey:'planlama-03', targetQnid:m.qnid, qnid:m.qnid, main_id:m.main_id, created_at:at||'', last_trans_at:m.last_trans_at||at, iconClass: 'ki-outline ki-check-circle', onclick:()=>this.$router.push({name:'PlanlamaFFormAdmin',params:{id:m.qnid}}) }; })];
               break;
             default:
               break;

@@ -71,6 +71,16 @@ export default {
                     perm: 'per-041-04',
                     disabled: true,
                 },
+                {
+                    key: 'planlama',
+                    title: 'Malzeme Planlama',
+                    desc: 'Malzeme planlama — Yakında',
+                    icon: 'ki-outline ki-clipboard',
+                    path: '/planlamapanel',
+                    color: '#0e7490',
+                    perm: 'per-041-05',
+                    disabled: true,
+                },
             ],
         };
     },
@@ -332,6 +342,41 @@ export default {
                                 <router-link :to="{ name: 'CList' }" class="menu-link sub-link">
                                     <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
                                     <span class="menu-title">Firma Listesi</span>
+                                </router-link>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Malzeme Standartizasyon -->
+                    <div v-if="this.useAuthStore().permissions?.includes('per-041-05')"
+                         data-kt-menu-trigger="click"
+                         class="menu-item py-1 menu-row-main">
+                        <span class="menu-link main-menu px-3">
+                            <span class="menu-icon me-0">
+                                <i class="ki-solid ki-clipboard fs-1"></i>
+                            </span>
+                            <div class="menu-content d-flex justify-content-between align-items-center w-100">
+                                <span class="menu-section ps-2 py-1 text-dark">Malzeme Standartizasyon</span>
+                                <span class="menu-arrow"><i class="ki-outline ki-down fs-7"></i></span>
+                            </div>
+                        </span>
+                        <div class="sub-menu hidden-menu">
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'MList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Müdürlükler</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-041-05')">
+                                <router-link :to="{ name: 'PlanlamaRListAdmin' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">İhtiyaç Listesi</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.some(p => ['per-041-05-01','per-041-05-03','per-041-05-04'].includes(p))">
+                                <router-link :to="{ name: 'PlanlamaFListAdmin' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Talep Dökümanları</span>
                                 </router-link>
                             </div>
                         </div>

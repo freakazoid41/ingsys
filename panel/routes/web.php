@@ -66,6 +66,22 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
         Route::get('/tedarikpanel',$tedarikAuth)->name('tedarik-app');
         Route::get('/tedarikpanel/{any}',$tedarikAuth)->where('any', '^((?!api).)*');
 
+        $planlamaAuth = function (){
+            if(session('type_key') !== null && session('2f_success') !== null){
+                $user = auth()->user();
+                if($user && !(new \App\Services\PermissionService())->has($user, 'per-041-05')){
+                    if(!app(\App\Services\PermissionService::class)->has($user, 'all')){
+                        abort(403, 'Bu modüle yetkiniz yok (Malzeme Planlama)');
+                    }
+                }
+                return view('planlamaapp',['type' => session('type_key') == 'op-pert-admin' ? 'admin' : 'client']);
+            }else{
+                abort('403');
+            }
+        };
+        Route::get('/planlamapanel',$planlamaAuth)->name('planlama-app');
+        Route::get('/planlamapanel/{any}',$planlamaAuth)->where('any', '^((?!api).)*');
+
         /*Route::get('/client',$auth)->name('app');
         Route::get('/client/{any}',$auth)->where('any', '^((?!api).)*');*/
 

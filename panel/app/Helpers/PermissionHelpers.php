@@ -49,6 +49,29 @@ if(!function_exists('checkPerm')){
                 'status' => 'per-05-03',
                 'cancel' => 'per-05-04',
                 'rename' => 'per-05-05',
+            ],
+            // Malzeme Planlama requests: edit = İhtiyaç Oluşturma, read = all planlama roles (view list/detail), status unused
+            'op-doc-request' => [
+                'edit' => 'per-041-05-02',
+                'read' => 'per-041-05-02,per-041-05-03,per-041-05-01,per-041-05-04',
+                'status' => 'per-041-05-01',
+            ],
+            'op-doc-request-item' => [
+                'edit' => 'per-041-05-02',
+                'read' => 'per-041-05-02,per-041-05-03,per-041-05-01,per-041-05-04',
+                'status' => 'per-041-05-01',
+            ],
+            // Talep Dökümanı (supplier answer): upload = Talep Yükleme, status = Talep Onay
+            // read is shared by loader (05-03), approver (05-01) and standardizer (05-04); edit stays loader-only
+            'op-doc-requestf' => [
+                'edit' => 'per-041-05-03',
+                'read' => 'per-041-05-03,per-041-05-01,per-041-05-04',
+                'status' => 'per-041-05-01',
+            ],
+            'op-doc-requestf-item' => [
+                'edit' => 'per-041-05-03',
+                'read' => 'per-041-05-03,per-041-05-01,per-041-05-04',
+                'status' => 'per-041-05-01',
             ]
         ];
         

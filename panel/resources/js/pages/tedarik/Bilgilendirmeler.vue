@@ -64,7 +64,7 @@ import 'pickletable/assets/style.css';
 import Plib from '@/lib/pickle';
 import Swal from 'sweetalert2';
 import { getCatMeta, CHIP_DEFS } from '@/lib/notificationMaps';
-import { buildNotificationRows, isFileCat } from '@/lib/notificationHelpers';
+import { buildNotificationRows, isFileCat, isPlanlamaCat } from '@/lib/notificationHelpers';
 
 const TABLE_HEIGHT = '60vh';
 const TABLE_MIN_WIDTH = '920px';
@@ -282,6 +282,7 @@ export default {
         this.$nextTick(() => this.applyFilterToTable());
       }
       if (isFileCat(rowData.cat) && rowData.qnid) this.$router.push({ name: 'TedarikDForm', params: { id: rowData.qnid } }).catch(() => {});
+      else if (isPlanlamaCat(rowData.cat) && rowData.qnid) this.$router.push({ name: 'PlanlamaFForm', params: { id: rowData.qnid } }).catch(() => {});
       else if (rowData.qnid) this.$router.push({ name: 'TedarikOrderForm', params: { id: rowData.qnid } }).catch(() => {});
     },
   },

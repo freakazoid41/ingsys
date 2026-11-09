@@ -180,6 +180,28 @@ class DocumentController extends Controller
         $files = $request->files->all();
         $this->mergeTempUploadReferences($request->all(), $files);
         $res = $this->docs->registerContent(0, $decoded, $files);
+        // Pipeline step 2: new Talep Dökümanı → notify Müdürlük Talep Onay (05-01 group, planlama-01)
+        if ($key === 'op-doc-requestf' && (($res['id'] ?? 0) > 0)) {
+            try {
+                $detail = $res['detail'] ?? $this->docs->getFormData($res['qnid'] ?? '');
+                $ents = [];
+                foreach (($detail['formFormat']['op-doc-requestf-form'] ?? []) as $cr) {
+                    foreach (($cr['entities'] ?? []) as $k => $v) if (!isset($ents[$k])) $ents[$k] = $v;
+                }
+                $me = auth()->user();
+                $this->emails->sendPlanlamaTalepSent([
+                    'qnid' => $res['qnid'] ?? null,
+                    'talep_qnid' => $res['qnid'] ?? null,
+                    'title' => $ents['title'] ?? '-',
+                    'request_no' => $ents['request_no'] ?? '-',
+                    'mudur' => $ents['firma_adi'] ?? '-',
+                    'uploader' => $me->email ?? '-',
+                    'sys_code' => $GLOBALS['SYS_CODE'] ?? null,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('planlama-01 dispatch failed', ['msg' => $e->getMessage()]);
+            }
+        }
         return response()->json(['success'=>($res['id'] ?? 0) > 0, 'data'=>$res]);
     }
 
@@ -201,6 +223,38 @@ class DocumentController extends Controller
         $this->mergeTempUploadReferences($data, $files);
 
         $res = $this->docs->registerContent($request->id, $decoded, $files);
+
+        // Rejected Talep re-saved (revised) → back to awaiting (re-queue for approval) + notify 05-01 again
+        if ($key === 'op-doc-requestf' && (($res['id'] ?? 0) > 0)) {
+            try {
+                $detail = $res['detail'] ?? $this->docs->getFormData($request->id);
+                $st = $detail['document']->status ?? null;
+                $arr = is_string($st) ? (json_decode($st, true) ?: []) : (array)$st;
+                $last = end($arr);
+                if (($last['op_key'] ?? null) === 'tr-request-man-rejected') {
+                    $back = $this->docs->setStatus($request->id, 'tr-request-man-awaiting', 'Revize edildi — yeniden onaya gönderildi');
+                    if ($back['success'] ?? false) {
+                        $ents = [];
+                        foreach (($detail['formFormat']['op-doc-requestf-form'] ?? []) as $cr) {
+                            foreach (($cr['entities'] ?? []) as $k => $v) if (!isset($ents[$k])) $ents[$k] = $v;
+                        }
+                        $me = auth()->user();
+                        $this->emails->sendPlanlamaTalepSent([
+                            'qnid' => $request->id,
+                            'talep_qnid' => $request->id,
+                            'title' => $ents['title'] ?? '-',
+                            'request_no' => $ents['request_no'] ?? '-',
+                            'mudur' => $ents['firma_adi'] ?? '-',
+                            'uploader' => $me->email ?? '-',
+                            'note' => 'Revize edilerek yeniden gönderildi',
+                            'sys_code' => $GLOBALS['SYS_CODE'] ?? null,
+                        ]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('planlama requeue failed', ['msg' => $e->getMessage(), 'id' => $request->id]);
+            }
+        }
 
         $transferMode = $decoded['transfer_mode'] ?? null;
         if ($key === 'op-doc-order' && in_array($transferMode, ['at_once','partial'], true)) {
@@ -284,13 +338,25 @@ class DocumentController extends Controller
             return response()->json(['success'=>false,'msg'=>'Belge bulunamadı'],404);
         }
 
-        $validated = docPermCheck($docOpKey,'status');
-        if($validateUser->fails() || !$validated){
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing Parameters',
-                'error'   => $validateUser->errors()
-            ],422);
+        // Talep Dökümanı approval chain — per-key permission (generic docPermCheck 'status' does not cover these):
+        // man-approved/man-rejected = Müdürlük Talep Onay (per-041-05-01), std-approved = Standardizasyon Yöneticiliği (per-041-05-04)
+        if ($docOpKey === 'op-doc-requestf' && in_array($request->op_key, ['tr-request-man-approved','tr-request-man-rejected','tr-request-std-approved'], true)) {
+            if ($validateUser->fails()) {
+                return response()->json(['success' => false, 'message' => 'Missing Parameters', 'error' => $validateUser->errors()],422);
+            }
+            $need = $request->op_key === 'tr-request-std-approved' ? 'per-041-05-04' : 'per-041-05-01';
+            if (!checkPerm($need)) {
+                return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır ('.$need.')...'],403);
+            }
+        } else {
+            $validated = docPermCheck($docOpKey,'status');
+            if($validateUser->fails() || !$validated){
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing Parameters',
+                    'error'   => $validateUser->errors()
+                ],422);
+            }
         }
 
         $response = $this->docs->setStatus($request->id,$request->op_key,$request->note);
@@ -311,6 +377,40 @@ class DocumentController extends Controller
                 }
             }catch(\Throwable $e){
                 Log::warning('tedarik-06/07 dispatch failed', ['msg'=>$e->getMessage(), 'id'=>$request->id]);
+            }
+        }
+        // Pipeline step 3: Talep Dökümanı man-approve → 05-04 group; man-reject → uploader directly
+        if(($response['detail']['document']->op_key ?? null) == 'op-doc-requestf' && in_array($request->op_key, ['tr-request-man-approved','tr-request-man-rejected'], true)){
+            try{
+                $detail = $response['detail'] ?? $this->docs->getFormData($request->id);
+                $ents = [];
+                foreach(($detail['formFormat']['op-doc-requestf-form'] ?? []) as $cr){
+                    foreach(($cr['entities'] ?? []) as $k=>$v) if(!isset($ents[$k])) $ents[$k]=$v;
+                }
+                $me = auth()->user();
+                $base = [
+                    'qnid' => $request->id,
+                    'talep_qnid' => $request->id,
+                    'title' => $ents['title'] ?? '-',
+                    'request_no' => $ents['request_no'] ?? '-',
+                    'mudur' => $ents['firma_adi'] ?? '-',
+                    'actor' => $me->email ?? '-',
+                    'note' => $request->note ?? '',
+                    'sys_code' => $GLOBALS['SYS_CODE'] ?? null,
+                ];
+                if($request->op_key === 'tr-request-man-approved'){
+                    $this->emails->sendPlanlamaTalepApproved($base);
+                } else {
+                    $doc = \App\Models\Documents::where('qnid', $request->id)->first();
+                    $uploaderEmail = null;
+                    if ($doc && is_numeric($doc->person_id)) {
+                        $uploaderEmail = \Illuminate\Support\Facades\DB::table('users')->where('person_id', (int)$doc->person_id)->where('status', 1)->value('email');
+                    }
+                    $base['uploader_email'] = $uploaderEmail;
+                    $this->emails->sendPlanlamaTalepRejected($base);
+                }
+            }catch(\Throwable $e){
+                Log::warning('planlama-02/03 dispatch failed', ['msg'=>$e->getMessage(), 'id'=>$request->id]);
             }
         }
         return $response;

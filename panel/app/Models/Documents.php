@@ -90,6 +90,7 @@ class Documents extends Model
             //document activeness (documents.status) is a separate axis from the transaction status above.
             //for offers 0 means "cancelled", for other document types it keeps its "passive" meaning.
             'document_status' => 'i.status  as  document_status',
+            'person_id' => 'i.person_id  as  person_id',
             'main_attr'    => 'i.id  as  main_attr', // default main_attr column for search and filter, this will be changed with filters if needed
             'addional'     => "'-'  as  addional" // this is for showing some additional info if needed like person name or something else, this will be changed with filters if needed
                         
@@ -530,6 +531,15 @@ class Documents extends Model
                     case 'parent_id':
                         $where .= " and i.parent_id = '".intval($f['value'])."' ";
                         break;
+                    case 'is_system':
+                    case 'system_only':
+                        $v = trim((string)$f['value']);
+                        if ($v === '1' || strtolower($v) === 'true') {
+                            $where .= " and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='is_system' and se3.entity_value='1') ";
+                        } else {
+                            $where .= " and not exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='is_system' and se3.entity_value='1') ";
+                        }
+                        break;
                     case 'free':
                     case 'all':
                         $value = $f['value'];
@@ -570,7 +580,12 @@ class Documents extends Model
                 }
                 
             }
-        } 
+        }
+
+        // System clients (is_system=1) live under Müdürlükler, not Firma list — exclude by default for op-doc-client
+        if ($formType === 'op-doc-client' && !isset($obj['filterKeys']['is_system']) && !isset($obj['filterKeys']['system_only'])) {
+            $where .= " and not exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='is_system' and se3.entity_value='1') ";
+        }
         
        
         //create query    

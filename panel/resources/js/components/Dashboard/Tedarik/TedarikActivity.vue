@@ -5,90 +5,92 @@
       <span class="tdk-activity__badge">{{ items.length }}</span>
     </div>
     <div v-if="loading" class="tdk-activity__loading"><div class="tdk-activity__spinner"></div></div>
-    <div v-else-if="!items.length" class="tdk-activity__empty">Henüz sipariş işlemi yok</div>
+    <div v-else-if="!items.length" class="tdk-activity__empty">Henüz bildirim yok</div>
     <div v-else class="tdk-activity__timeline">
       <div v-for="a in items" :key="a.id" class="tdk-activity__item" :class="{ 'is-clickable': !!a.qnid }" @click="goDetail(a)">
-        <div class="tdk-activity__avatar" :style="{ background: avatarBg(a) }">{{ initials(a) }}</div>
+        <div class="tdk-activity__avatar" :style="{ background: a.color || '#FF5A1F' }">{{ initials(a) }}</div>
         <div class="tdk-activity__body">
-          <div class="tdk-activity__text">{{ a.desc_text || a.title }}</div>
-          <div v-if="a.order_no" class="tdk-activity__detail"><i class="ki-outline ki-package" style="font-size:11px"></i> {{ a.order_no }}<span v-if="a.spec_code" style="opacity:.6"> · {{ a.spec_code }}</span></div>
+          <div class="tdk-activity__text">{{ a.title }}</div>
+          <div v-if="a.orderNo && a.orderNo !== '-'" class="tdk-activity__detail"><i class="ki-outline ki-package" style="font-size:11px"></i> {{ a.orderNo }}<span v-if="a.ctitle" style="opacity:.6"> · {{ a.ctitle }}</span></div>
           <div class="tdk-activity__meta">
-            <span class="tdk-activity__actor">{{ a.actor_name || a.actor_email || 'Sistem' }}</span>
-            <span class="tdk-activity__dot">·</span>
-            <span class="tdk-activity__time">{{ fmtTime(a.created_at) }}</span>
+            <span class="tdk-activity__time">{{ a.createdFmt }}</span>
           </div>
         </div>
-        <span class="tdk-activity__pill" :class="pillCls(a)">{{ pillLabel(a) }}</span>
+        <span class="tdk-activity__pill" :style="{ background: a.bg, color: a.pillColor, borderColor: a.pillBorder }">{{ a.label }}</span>
       </div>
     </div>
   </div>
 </template>
 <script>
-import Plib from '@/lib/pickle';
+import { useNavigationStore } from '@/stores/navigation';
+import { buildNotificationRows, isFileCat, isPlanlamaCat } from '@/lib/notificationHelpers';
+import { getCatMeta } from '@/lib/notificationMaps';
 export default {
   name: 'TedarikActivity',
-  data(){ return { loading:true, items:[] }; },
-  mounted(){ this.load(); },
-  methods:{
-    async load(){
-      try{
-        const rsp = await (new Plib).request({ url: '/api/v1/dashboard/tedarik-activity', method: 'GET' }, null);
-        if(Array.isArray(rsp)) this.items = rsp;
-      }catch(e){ console.error('tedarik-activity failed',e); }
-      finally{ this.loading=false; }
+  data() {
+    return {
+      navigationStore: useNavigationStore(),
+      loading: true,
+      rawItems: [],
+    };
+  },
+  computed: {
+    items() {
+      return this.rawItems.slice(0, 12);
     },
-    initials(a){
-      const n=(a.actor_name||a.actor_email||'S').trim();
-      return n.split(/\s+/).slice(0,2).map(s=>s[0]).join('').toUpperCase().slice(0,2);
+  },
+  mounted() {
+    this.load();
+  },
+  watch: {
+    'navigationStore.notifications': {
+      handler() { this.build(); },
+      deep: true,
     },
-    avatarBg(a){
-      const h=(a.actor_email||a.actor_name||'').split('').reduce((s,c)=>s+c.charCodeAt(0),0);
-      const hues=['#FF5A1F','#f59e0b','#7c3aed','#e11d48','#059669','#0ea5e9'];
-      return hues[h % hues.length];
-    },
-    fmtTime(v){
-      if(!v) return '—';
-      try{ const d=new Date(v); const now=new Date(); const diff=Math.floor((now-d)/60000); if(diff<1) return 'şimdi'; if(diff<60) return diff+' dk'; if(diff<1440) return Math.floor(diff/60)+' sa'; return d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch{ return v.slice(0,16); }
-    },
-    pillLabel(a){
-      const k=(a.op_key||'');
-      if(k.includes('file')) return 'Dosya';
-      if(k.includes('order')||k.includes('tender')||k.includes('document')||k.includes('log-order')) return 'Sipariş';
-      return 'İşlem';
-    },
-    pillCls(a){
-      const k=(a.op_key||'');
-      if(k.includes('file')) return 'is-file';
-      return 'is-order';
-    },
-    goDetail(a){
-      if(!a.qnid) return;
-      const isFile = (a.op_key||'').includes('file');
-      // Determine opKey for read tracking
-      let opKey = '';
-      const k = a.op_key || '';
-      if(k.includes('order') && (a.order_no || '').includes('-')) opKey = 'tedarik-02'; // clone = transfer_sent
-      else if(k.includes('order') && k.includes('created')) opKey = 'tedarik-01';
-      else if(k.includes('order') && k.includes('approved')) opKey = 'tedarik-06';
-      else if(k.includes('order') && (k.includes('rejected') || k.includes('files_rejected'))) opKey = 'tedarik-07';
-      else if(k.includes('file') && k.includes('waiting')) opKey = 'tedarik-03';
-      else if(k.includes('file') && k.includes('accepted')) opKey = 'tedarik-04';
-      else if(k.includes('file') && k.includes('rejected')) opKey = 'tedarik-05';
-      else if(k.includes('log-order') || k.includes('log-document') || k.includes('log-tender')) opKey = 'tedarik-01';
-
-      // Mark as read
-      if(opKey && a.qnid){
-        const { useNavigationStore } = require('@/stores/navigation');
-        const navStore = useNavigationStore();
-        navStore.markNotificationRead(opKey, a.qnid);
+  },
+  methods: {
+    async load() {
+      try {
+        await this.navigationStore.getNotifications();
+      } catch (e) { console.error('[TedarikActivity] load', e); }
+      finally {
+        this.build();
+        this.loading = false;
       }
-
-      if(isFile){
-        this.$router.push({ name: 'TedarikDList' });
-      } else {
-        this.$router.push({ name: 'TedarikOrderForm', params: { id: a.qnid } });
-      }
-    }
+    },
+    build() {
+      try {
+        const rows = buildNotificationRows(this.navigationStore?.notifications, []);
+        this.rawItems = rows.map(r => {
+          const meta = getCatMeta(r.cat);
+          return {
+            id: r.id,
+            title: (r.file_type && r.file_type !== meta.label ? (meta.label + ' \u2014 ' + r.file_type) : meta.label),
+            orderNo: r.group_key || '',
+            ctitle: r.ctitle || '',
+            qnid: r.qnid,
+            cat: r.cat,
+            createdFmt: r._created_at_fmt || '',
+            label: meta.label,
+            color: meta.pillBg,
+            bg: meta.bg,
+            pillColor: meta.color,
+            pillBorder: meta.pillBg,
+          };
+        });
+      } catch (e) { console.error('[TedarikActivity] build', e); }
+    },
+    initials(a) {
+      const n = (a.title || 'B').trim();
+      return n.split(/\s+/).slice(0, 2).map(s => s[0]).join('').toUpperCase().slice(0, 2);
+    },
+    goDetail(a) {
+      if (!a.qnid) return;
+      this.navigationStore.markNotificationRead(a.cat, a.qnid).catch(() => {});
+      if (isFileCat(a.cat)) this.$router.push({ name: 'TedarikDList' }).catch(() => {});
+      else if (isPlanlamaCat(a.cat)) this.$router.push({ name: 'PlanlamaFForm', params: { id: a.qnid } }).catch(() => {});
+      else this.$router.push({ name: 'TedarikOrderForm', params: { id: a.qnid } }).catch(() => {});
+    },
   }
 };
 </script>
@@ -111,10 +113,5 @@ export default {
 .tdk-activity__body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:0.2rem; }
 .tdk-activity__text{ font-size:0.84rem; font-weight:700; color:#431407; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .tdk-activity__meta{ display:flex; align-items:center; gap:0.35rem; font-size:0.72rem; color:#9a3412; opacity:.7; font-weight:600; }
-.tdk-activity__actor{ color:#7c2d12; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.tdk-activity__dot{ color:#fed7aa; }
 .tdk-activity__pill{ font-size:0.65rem; font-weight:800; padding:0.22rem 0.55rem; border-radius:999px; border:1px solid transparent; white-space:nowrap; flex-shrink:0; align-self:center; }
-.tdk-activity__pill.is-file{ background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
-.tdk-activity__pill.is-login{ background:#fef9c3; color:#854d0e; border-color:#fde68a; }
-.tdk-activity__pill.is-order{ background:#ffedd5; color:#9a3412; border-color:#fed7aa; }
 </style>

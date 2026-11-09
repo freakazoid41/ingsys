@@ -53,6 +53,10 @@
                 this.navigationStore.toggle(true);
                 //set ready data do store for update transactions (form component will catch that)
                 this.formDataStore.setData(response?.data?.formFormat);
+                this.formDataStore.rawData = response?.data || null;
+                if (this.isSystemClient(response?.data)) {
+                    this.plib.toast(this.Swal, 'info', 'Sistem carisi düzenlenemez.');
+                }
                
                 this.loadForm = true;
                 setTimeout(() => {
@@ -77,6 +81,17 @@
             };
         },
         methods: {
+            isSystemClient(data) {
+                try {
+                    const ff = data?.formFormat?.['op-doc-client-form'] || {};
+                    for (const rowId in ff) {
+                        const ents = ff[rowId]?.entities || {};
+                        if (String(ents.is_system || '') === '1') return true;
+                        if (['90000001','90000002','90000003'].includes(String(ents.lifnr || ''))) return true;
+                    }
+                } catch(e) {}
+                return false;
+            },
             async submitStatus(type){
                 //this.navigationStore.toggle(true);
                 //here update status for all files of document
@@ -133,6 +148,10 @@
             },
             async submitForm(formData){
                 this.formData = formData;
+                if (this.id !== undefined && this.isSystemClient(this.formDataStore?.rawData)) {
+                    this.plib.toast(this.Swal, 'error', 'Sistem carisi düzenlenemez.');
+                    return;
+                }
                 this.navigationStore.toggle(true);
                 this.formData.typeKey = 'op-doc-client';
                 const rsp = this.plib.checkForm('.form-item');
