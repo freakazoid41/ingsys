@@ -1518,11 +1518,17 @@
     border-collapse: separate !important;
     border-spacing: 0 7px !important;
     width: 100% !important;
-    table-layout: auto !important;
+    table-layout: fixed !important;
     border: none !important;
 }
+.tedarik-card :deep(.pickletable thead){
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+    background: #fff !important;
+}
 .tedarik-card :deep(.pickletable thead th){
-    background: transparent !important;
+    background: #fff !important;
     color: #b0b0b5 !important;
     font-size: 13px !important;
     font-weight: 500 !important;
@@ -1531,11 +1537,14 @@
     padding: 0 14px 10px !important;
     border: none !important;
     border-bottom: none !important;
-    white-space: nowrap;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     text-align: left !important;
     box-shadow: none !important;
-    position: relative !important;
-    top: auto !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
 }
 .tedarik-card :deep(.pickletable thead th:last-child){
     text-align: right !important;

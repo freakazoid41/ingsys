@@ -88,15 +88,17 @@ export default {
                       columnFormatter: (elm, rowData, col) => {
                           const s = document.createElement('span'); s.textContent = col || rowData.firma_adi || '—'; s.style.color = '#334155'; s.style.display='inline-block'; s.style.maxWidth='160px'; s.style.overflow='hidden'; s.style.textOverflow='ellipsis'; s.style.whiteSpace='nowrap'; return s;
                       } },
-                    { title: 'Durum', key: 'status', order: false, type: 'string', width: isFront ? '190px' : undefined,
+                    { title: 'Durum', key: 'status', order: false, type: 'string', width: isFront ? '170px' : undefined,
                       columnFormatter: (elm, rowData, col) => {
                           const parts = String(col || rowData.status || '').split('**');
                           const op = parts[0] || '';
-                          const label = parts[1] || planlamaLabel(op);
+                          const full = parts[1] || planlamaLabel(op);
+                          const SHORT = { 'tr-request-man-awaiting': 'Onay Bekliyor', 'tr-request-man-approved': 'Müdürlük Onayladı', 'tr-request-man-rejected': 'Reddedildi', 'tr-request-std-approved': 'Std. Onaylandı' };
+                          const label = SHORT[op] || full;
                           const span = document.createElement('span');
                           span.textContent = label;
-                          span.title = label;
-                          span.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;padding:' + (isFront ? '5px 10px' : '6px 12px') + ';border-radius:' + (isFront ? '6px' : '8px') + ';font-size:' + (isFront ? '11.5px' : '0.82rem') + ';font-weight:600;white-space:nowrap;border:1px solid transparent;gap:6px;background:' + planlamaColor(op) + ';color:#fff;border-color:' + planlamaColor(op);
+                          span.title = full;
+                          span.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:' + (isFront ? '5px 10px' : '6px 12px') + ';border-radius:' + (isFront ? '6px' : '8px') + ';font-size:' + (isFront ? '11.5px' : '0.82rem') + ';font-weight:600;border:1px solid transparent;gap:6px;background:' + planlamaColor(op) + ';color:#fff;border-color:' + planlamaColor(op);
                           return span;
                       } },
                     { title: 'Oluşturulma', key: 'created_at', order: true, type: 'string', width: isFront ? '150px' : undefined,
@@ -275,8 +277,9 @@ export default {
 .tedarik-bottom-note i { color: #0e9cb8; font-size: 13px; margin-top: 2px; flex-shrink: 0; }
 .tedarik-card :deep(.pickletable) { height: auto !important; border: none !important; }
 .tedarik-card :deep(.pickletable .divTable) { height: auto !important; overflow: visible !important; border-bottom: none !important; }
-.tedarik-card :deep(.pickletable table) { border-collapse: separate !important; border-spacing: 0 7px !important; table-layout: auto !important; border: none !important; width: 100% !important; }
-.tedarik-card :deep(.pickletable thead th) { background: transparent !important; color: #b0b0b5 !important; font-size: 13px !important; font-weight: 500 !important; border: none !important; border-bottom: none !important; box-shadow: none !important; padding: 0 14px 10px !important; text-transform: none !important; letter-spacing: 0 !important; white-space: nowrap; text-align: left !important; position: relative !important; top: auto !important; }
+.tedarik-card :deep(.pickletable table) { border-collapse: separate !important; border-spacing: 0 7px !important; table-layout: fixed !important; border: none !important; width: 100% !important; }
+.tedarik-card :deep(.pickletable thead) { position: sticky !important; top: 0 !important; z-index: 5 !important; background: #fff !important; }
+.tedarik-card :deep(.pickletable thead th) { background: #fff !important; color: #b0b0b5 !important; font-size: 13px !important; font-weight: 500 !important; border: none !important; border-bottom: none !important; box-shadow: none !important; padding: 0 14px 10px !important; text-transform: none !important; letter-spacing: 0 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; text-align: left !important; position: sticky !important; top: 0 !important; z-index: 5 !important; }
 .tedarik-card :deep(.pickletable thead th:last-child) { text-align: right !important; }
 .tedarik-card :deep(.pickletable tbody tr) { background: #fff !important; border-radius: 14px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; border: none !important; }
 .tedarik-card :deep(.pickletable tbody tr:hover) { transform: translateY(-2px) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; }
