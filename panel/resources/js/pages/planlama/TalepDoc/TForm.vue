@@ -260,9 +260,9 @@ export default {
                     .map(r => ({ mal_grubu: r.mal_grubu || '', ihale_grubu: r.ihale_grubu || '', prod_code: r.prod_code || '', title: r.title || '', unit: r.unit || '' }))
                     .filter(r => r.prod_code || r.title)) {
                     if (months.length) {
-                        for (const m of months) items.push(Object.assign({ ay: m, quantity: '' }, base));
+                        for (const m of months) items.push(Object.assign({ ay: m, quantity: '0' }, base));
                     } else {
-                        items.push(Object.assign({ ay: '', quantity: '' }, base));
+                        items.push(Object.assign({ ay: '', quantity: '0' }, base));
                     }
                 }
                 if (!items.length) { this.plib.toast(Swal, 'info', 'Aktarılacak kalem yok'); return; }
@@ -504,7 +504,11 @@ export default {
                     const sel = (this.mudurlukler || []).find(x => x.qnid === this.selectedMudur);
                     if (sel) { mq = sel.qnid; mt = sel.client_system + '-' + sel.lifnr + ' ' + sel.title; }
                     if (!mq && (this.mudurlukler || []).length > 1) {
-                        this.plib.toast(Swal, 'info', 'Talep eden müdürlüğü seçmelisiniz');
+                        await Swal.fire({ icon: 'warning', title: 'Müdürlük Seçiniz', text: 'Talep eden müdürlüğü seçmelisiniz — liste başında seçim yapın.', confirmButtonText: 'Tamam', confirmButtonColor: '#FF5A1F' });
+                        try {
+                            const sel = document.querySelector('.tedarik-step-body select') || document.querySelector('.planlama-mudur__select');
+                            if (sel) { sel.classList.add('is-invalid'); sel.style.borderColor='#dc2626'; sel.focus(); sel.scrollIntoView({block:'center', behavior:'smooth'}); setTimeout(()=>{ sel.style.borderColor=''; sel.classList.remove('is-invalid'); }, 2500); }
+                        } catch(e){}
                         return;
                     }
                     if (!mt) mt = (this.authStore.currentStatus && (this.authStore.currentStatus.clientTitle || this.authStore.currentStatus.main_name)) || this.authStore.userName || '';
