@@ -35,6 +35,7 @@ export default {
             selectedMudur: '',
             excelFiles: [],
             excelLoading: false,
+            justSaved: false,
         };
     },
     computed: {
@@ -42,7 +43,7 @@ export default {
         canEdit() { return (this.authStore?.permissions || []).includes('per-041-05-03'); },
         canMan() { return (this.authStore?.permissions || []).includes('per-041-05-01'); },
         canStd() { return (this.authStore?.permissions || []).includes('per-041-05-04'); },
-        canSave() { return this.canEdit && (!this.id || (this.docStatus && this.docStatus.op === 'tr-request-man-rejected')); },
+        canSave() { return !this.justSaved && this.canEdit && (!this.id || (this.docStatus && this.docStatus.op === 'tr-request-man-rejected')); },
         roFields() {
             const base = ['title', 'request_no', 'desc', 'mal_grubu', 'ihale_grubu', 'prod_code', 'unit', 'ay', 'talep_excel_file'];
             return this.canSave ? base : base.concat(['quantity']);
@@ -539,6 +540,7 @@ export default {
                 this.plib.toast(Swal, 'error', rsp?.msg || 'Kayıt oluşturulamadı');
                 return;
             }
+            this.justSaved = true;
             this.plib.toast(Swal, 'success', 'İşlem Tamamlandı', () => this.$router.push({ name: this.listRoute() }));
         }
     }

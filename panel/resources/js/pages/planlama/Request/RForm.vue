@@ -28,11 +28,12 @@ export default {
             formDataStore: useFormDataStore(),
             id: route?.params?.id !== '' ? route?.params?.id : undefined,
             excelBusy: false,
+            justSaved: false,
         };
     },
     computed: {
         isFront() { return this.$route.path.startsWith('/planlamapanel'); },
-        canEdit() { return (this.authStore.permissions || []).includes('per-041-05-02'); },
+        canEdit() { return !this.justSaved && (this.authStore.permissions || []).includes('per-041-05-02'); },
         roFields() {
             return this.canEdit ? [] : ['title', 'desc', 'donem_bas', 'donem_bit', 'mal_grubu', 'ihale_grubu', 'prod_code', 'unit'];
         },
@@ -237,6 +238,7 @@ export default {
                 this.plib.toast(Swal, 'error', rsp?.msg || 'Kayıt oluşturulamadı');
                 return;
             }
+            this.justSaved = true;
             this.plib.toast(Swal, 'success', 'İşlem Tamamlandı', () => this.$router.push({ name: this.listRoute() }));
         }
     }
