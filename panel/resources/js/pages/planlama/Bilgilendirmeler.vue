@@ -77,7 +77,7 @@ const HEADERS = [
       const wrap = document.createElement('div'); wrap.className = 'bili-cell bili-cell--title';
       const box = document.createElement('div'); box.className = `bili-icon bili-icon--${rowData.cat}`;
       box.innerHTML = `<i class="${getCatMeta(rowData.cat).icon}" style="font-size:18px;"></i>`;
-      // Planlama: file_type is status (Onaya Talep Geldi), the real doc title lives in group_key. Show the title.
+      // Planlama: file_type is status (Talep Onaya Gönderildi), the real doc title lives in group_key. Show the title.
       const display = String(rowData.group_key || '').trim() || String(col || '').trim() || '—';
       const span = document.createElement('span'); span.className = 'bili-title'; span.textContent = display; span.title = display;
       wrap.append(box, span);

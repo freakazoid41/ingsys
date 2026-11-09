@@ -96,7 +96,7 @@ export default {
           orderNo: obj.orderNo,
         });
       };
-      if (Array.isArray(notifs.planlamaSent)) notifs.planlamaSent.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-01', 'planlama-01', `Onaya Talep Geldi — ${m.orderNo}`); });
+      if (Array.isArray(notifs.planlamaSent)) notifs.planlamaSent.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-01', 'planlama-01', `Talep Onaya Gönderildi — ${m.orderNo}`); });
       if (Array.isArray(notifs.planlamaRejected)) notifs.planlamaRejected.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-02', 'planlama-02', `Talep Reddedildi — ${m.orderNo}`); });
       if (Array.isArray(notifs.planlamaApproved)) notifs.planlamaApproved.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-03', 'planlama-03', `Müdürlük Onayı — ${m.orderNo}`); });
 

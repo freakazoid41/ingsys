@@ -145,7 +145,7 @@ export default {
         fileRejected: { cat:'tedarik-05', opKey:'tedarik-05', label:'Yeniden Talep' },
         orderApproved: { cat:'tedarik-06', opKey:'tedarik-06', label:'Kalite Onayı' },
         orderRejected: { cat:'tedarik-07', opKey:'tedarik-07', label:'Reddedildi' },
-        planlamaSent: { cat:'planlama-01', opKey:'planlama-01', label:'Onaya Talep Geldi' },
+        planlamaSent: { cat:'planlama-01', opKey:'planlama-01', label:'Talep Onaya Gönderildi' },
         planlamaRejected: { cat:'planlama-02', opKey:'planlama-02', label:'Talep Reddedildi' },
         planlamaApproved: { cat:'planlama-03', opKey:'planlama-03', label:'Müdürlük Onayı' },
       };
@@ -173,7 +173,7 @@ export default {
             else if(key==='planlamaSent'||key==='planlamaRejected'||key==='planlamaApproved'){
               const pm = parseRequest(offr);
               qnid=pm.qnid; created_at=pm.created_at; orderNo=pm.orderNo; sub=pm.ctitle;
-              if(key==='planlamaSent'){ title=`Onaya Talep Geldi — ${pm.orderNo}`; message=pm.orderNo; }
+              if(key==='planlamaSent'){ title=`Talep Onaya Gönderildi — ${pm.orderNo}`; message=pm.orderNo; }
               else if(key==='planlamaRejected'){ title=`Talep Reddedildi — ${pm.orderNo}`; message=pm.orderNo; }
               else { title=`Müdürlük Onayı — ${pm.orderNo}`; message=pm.orderNo; }
               cb=()=> this.$router.push({ name: 'PlanlamaFFormAdmin', params:{ id:pm.qnid }});

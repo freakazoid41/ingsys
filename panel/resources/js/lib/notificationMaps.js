@@ -9,7 +9,7 @@ export const CAT_META = {
   'tedarik-05': { label: 'Yeniden Talep', icon: 'ki-outline ki-cross-circle', color: '#991b1b', bg: '#fee2e2', pillBg: '#ef4444', pillColor: '#fff', pillBorder: '#ef4444' },
   'tedarik-06': { label: 'Kalite Onayı', icon: 'ki-outline ki-shield-tick', color: '#064e3b', bg: '#d1fae5', pillBg: '#10b981', pillColor: '#fff', pillBorder: '#10b981' },
   'tedarik-07': { label: 'Sipariş Reddedildi', icon: 'ki-outline ki-cross', color: '#7f1d1d', bg: '#fee2e2', pillBg: '#ef4444', pillColor: '#fff', pillBorder: '#ef4444' },
-  'planlama-01': { label: 'Onaya Talep Geldi', icon: 'ki-outline ki-send', color: '#0e7490', bg: '#ecfeff', pillBg: '#0e7490', pillColor: '#fff', pillBorder: '#0e7490' },
+  'planlama-01': { label: 'Talep Onaya Gönderildi', icon: 'ki-outline ki-send', color: '#0e7490', bg: '#ecfeff', pillBg: '#0e7490', pillColor: '#fff', pillBorder: '#0e7490' },
   'planlama-02': { label: 'Talep Reddedildi', icon: 'ki-outline ki-cross-circle', color: '#991b1b', bg: '#fee2e2', pillBg: '#ef4444', pillColor: '#fff', pillBorder: '#ef4444' },
   'planlama-03': { label: 'Müdürlük Onayı', icon: 'ki-outline ki-check-circle', color: '#065f46', bg: '#dcfce7', pillBg: '#16a34a', pillColor: '#fff', pillBorder: '#16a34a' },
   'rejected': { label: 'Reddedilen Dosya', icon: 'ki-outline ki-information', color: '#991b1b', bg: '#fee2e2', pillBg: '#ef4444', pillColor: '#fff', pillBorder: '#ef4444' },
