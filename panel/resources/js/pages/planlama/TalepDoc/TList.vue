@@ -101,11 +101,15 @@ export default {
                           span.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:' + (isFront ? '5px 10px' : '6px 12px') + ';border-radius:' + (isFront ? '6px' : '8px') + ';font-size:' + (isFront ? '11.5px' : '0.82rem') + ';font-weight:600;border:1px solid transparent;gap:6px;background:' + planlamaColor(op) + ';color:#fff;border-color:' + planlamaColor(op);
                           return span;
                       } },
-                    { title: 'Oluşturulma', key: 'created_at', order: true, type: 'string', width: isFront ? '150px' : undefined,
+                    { title: 'Oluşturulma', key: 'created_at', order: true, type: 'string', width: isFront ? '135px' : undefined,
                       columnFormatter: (elm, rowData, col) => {
-                          const s = document.createElement('span'); s.textContent = col || rowData.created_at || '—'; s.style.color = '#334155'; return s;
+                          const raw = String(col || rowData.created_at || '').trim();
+                          let txt = raw ? raw.slice(0,10) : '—';
+                          const m = txt.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                          if (m) txt = `${m[3]}.${m[2]}.${m[1]}`;
+                          const s = document.createElement('span'); s.textContent = txt; s.style.color = '#334155'; s.style.whiteSpace='nowrap'; return s;
                       } },
-                    { title: '', key: 'id', order: false, type: 'string', width: isFront ? '280px' : undefined,
+                    { title: '', key: 'id', order: false, type: 'string', width: isFront ? '230px' : undefined,
                       columnFormatter: (elm, rowData, columnData) => {
                           const wrap = document.createElement('div');
                           wrap.style.display = 'flex';
