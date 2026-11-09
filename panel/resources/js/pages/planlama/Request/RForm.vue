@@ -299,9 +299,11 @@ export default {
 .tedarik-company-icon { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#FF5A1F,#ff8a4a); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
 .tedarik-detail-title { font-size:18px; font-weight:800; color:#0f172a; letter-spacing:-0.01em; }
 .tedarik-step-card { background:#fff; border:1px solid #f1f5f9; border-radius:16px; padding:18px 20px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03); }
+.tedarik-step-card { overflow-x:clip; }
 .tedarik-step-head { display:flex; align-items:center; gap:10px; font-size:14px; font-weight:700; color:#0f172a; margin-bottom:12px; }
 .tedarik-step-num { width:26px; height:26px; border-radius:999px; background:#FF5A1F; color:#fff; font-size:13px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
 .tedarik-step-body { font-size:13.5px; }
+.tedarik-step-body :deep(.item-row) { margin-left:0 !important; margin-right:0 !important; }
 .tedarik-btn-light { height:38px; padding:0 16px; border-radius:10px; background:#fff; border:1.5px solid #e2e8f0; color:#334155; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
 .tedarik-btn-light:hover { background:#f8fafc; border-color:#cbd5e1; }
 .tedarik-btn-light:disabled { opacity:.55; cursor:not-allowed; }
@@ -319,8 +321,8 @@ export default {
 .tedarik-step-body :deep(.multiple-item-row .rmv-btn-form:hover) { background:#fee2e2; }
 .tedarik-step-body :deep(i[id*="subadd"]) { background:#FF5A1F !important; color:#fff !important; border-radius:999px !important; width:34px; height:34px; display:inline-flex !important; align-items:center !important; justify-content:center !important; font-size:18px !important; cursor:pointer; box-shadow:0 4px 12px rgba(255,90,31,.25); margin-left:8px; }
 .tedarik-step-body :deep(i[id*="subadd"]:hover) { background:#ea4a0f !important; }
-/* save bar in panel theme */
-:deep(.fab-btns-wrapper) { background:#fff; border:1px solid #ffe4cc; border-top:3px solid #FF5A1F; border-radius:16px; padding:12px 16px; box-shadow:0 8px 24px rgba(255,90,31,.08); position:sticky; bottom:16px; z-index:20; width:fit-content; max-width:calc(100% - 32px); margin:14px auto 0; display:flex; gap:10px; justify-content:center; }
+/* save bar in panel theme — static pill at form end, never floats over fields */
+:deep(.fab-btns-wrapper) { background:#fff; border:1px solid #ffe4cc; border-top:3px solid #FF5A1F; border-radius:16px; padding:12px 16px; box-shadow:0 8px 24px rgba(255,90,31,.08); position:static; width:fit-content; max-width:calc(100% - 32px); margin:14px auto 0; display:flex; gap:10px; justify-content:center; }
 :deep(.fab-btns-wrapper .btn-cancel) { background:#fff !important; border:1.5px solid #e2e8f0 !important; color:#334155 !important; border-radius:12px !important; font-weight:800 !important; padding:10px 22px !important; }
 :deep(.fab-btns-wrapper .btn-cancel:hover) { background:#f8fafc !important; }
 :deep(.fab-btns-wrapper .btn-danger) { background:linear-gradient(135deg,#FF5A1F 0%,#ff7a3a 100%) !important; border-color:#FF5A1F !important; color:#fff !important; border-radius:12px !important; font-weight:800 !important; padding:10px 26px !important; box-shadow:0 6px 16px rgba(255,90,31,.25); }
