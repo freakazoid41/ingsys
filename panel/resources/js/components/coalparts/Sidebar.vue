@@ -296,6 +296,41 @@ export default {
                         </div>
                     </div>
 
+                    <!-- Tedarik Onay -->
+                    <div v-if="this.useAuthStore().permissions?.includes('per-05-03') || this.useAuthStore().permissions?.includes('per-05-04') || this.useAuthStore().permissions?.includes('per-05-01')"
+                         data-kt-menu-trigger="click"
+                         class="menu-item py-1 menu-row-main">
+                        <span class="menu-link main-menu px-3">
+                            <span class="menu-icon me-0">
+                                <i class="ki-solid ki-shield-tick fs-1"></i>
+                            </span>
+                            <div class="menu-content d-flex justify-content-between align-items-center w-100">
+                                <span class="menu-section ps-2 py-1 text-dark">Tedarik Onay</span>
+                                <span class="menu-arrow"><i class="ki-outline ki-down fs-7"></i></span>
+                            </div>
+                        </span>
+                        <div class="sub-menu hidden-menu">
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-05-01')">
+                                <router-link :to="{ name: 'OrderList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Siparişler</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-07-01')">
+                                <router-link :to="{ name: 'DList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Dökümanlar</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-06-01')">
+                                <router-link :to="{ name: 'CList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Firma</span>
+                                </router-link>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Transferler removed: transfers are EBELN-X rows inside Sipariş Listesi, status shows Kalite Onayı/Dosyalar Kontrol -->
                     <div v-if="false" class="menu-item py-1 menu-row-main"></div>
 
