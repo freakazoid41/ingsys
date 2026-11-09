@@ -599,55 +599,86 @@ html::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: no
 .tedarik-main .pickletable table {
     border-collapse: separate !important;
     border-spacing: 0 7px !important;
-    table-layout: auto !important;
+    table-layout: fixed !important;
     border: none !important;
     width: 100% !important;
 }
+.tedarik-main .pickletable thead {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+    background: #fff !important;
+}
 .tedarik-main .pickletable thead th {
-    background: transparent !important;
+    background: #fff !important;
     color: #b0b0b5 !important;
     font-size: 13px !important;
     font-weight: 500 !important;
     border: none !important;
+    border-bottom: none !important;
     box-shadow: none !important;
-    position: relative !important;
-    top: auto !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
     padding: 0 14px 10px !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: left !important;
+    vertical-align: middle !important;
+    line-height: 1.4 !important;
 }
 .tedarik-main .pickletable thead th:last-child {
     text-align: right !important;
 }
-.tedarik-main .pickletable tbody tr {
-    background: transparent !important;
-}
-.tedarik-main .pickletable tbody tr:hover td {
-    background: #fcfcfc !important;
-}
-.tedarik-main .pickletable tbody td {
-    background: #fff !important;
-    border: 1px solid #e8e8ea !important;
-    border-left: 1px solid #e8e8ea !important;
-    border-right: 1px solid #e8e8ea !important;
-    font-size: 13.5px !important;
-    padding: 13px 14px !important;
-    text-overflow: clip !important;
-    overflow: visible !important;
-    white-space: nowrap !important;
+.tedarik-main .pickletable thead th.orderable span {
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
     vertical-align: middle !important;
 }
+.tedarik-main .pickletable thead th.orderable span:after {
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+    margin-left: 6px !important;
+}
+.tedarik-main .pickletable thead th i, .tedarik-main .pickletable thead th svg {
+    vertical-align: middle !important;
+}
+.tedarik-main .pickletable tbody tr {
+    background: #fff !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+    border: none !important;
+}
+.tedarik-main .pickletable tbody tr:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+}
+.tedarik-main .pickletable tbody tr:hover td {
+    background: transparent !important;
+}
+.tedarik-main .pickletable tbody td {
+    background: transparent !important;
+    padding: 14px 12px !important;
+    font-size: 13px !important;
+    color: #333 !important;
+    border: none !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
 .tedarik-main .pickletable tbody td:first-child {
-    border-left: 1px solid #e8e8ea !important;
-    border-top-left-radius: 8px !important;
-    border-bottom-left-radius: 8px !important;
+    border-radius: 14px 0 0 14px !important;
     font-weight: 600 !important;
     color: #111827 !important;
 }
 .tedarik-main .pickletable tbody td:last-child {
-    border-right: 1px solid #e8e8ea !important;
-    border-top-right-radius: 8px !important;
-    border-bottom-right-radius: 8px !important;
+    border-radius: 0 14px 14px 0 !important;
 }
 .tedarik-main .pickletable .divPagination {
     border-top: none !important;
