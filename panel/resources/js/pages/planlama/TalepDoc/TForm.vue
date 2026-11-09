@@ -696,6 +696,12 @@ export default {
 .planlama-status__loading { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #0e7490; }
 .planlama-status__loading .spin { width: 14px; height: 14px; border-radius: 999px; border: 2px solid #99f6e4; border-top-color: #0e7490; animation: planlama-spin .7s linear infinite; display: inline-block; }
 @keyframes planlama-spin { to { transform: rotate(360deg); } }
+/* item rows as cards — not squished single row */
+.tedarik-step-body :deep(.multiple-item-row) { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:14px 14px 10px; margin-bottom:12px !important; row-gap:10px; }
+.tedarik-step-body :deep(.multiple-item-row .input-label) { font-size:11.5px !important; font-weight:800 !important; color:#64748b !important; text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tedarik-step-body :deep(.multiple-item-row .form-control) { min-height:42px; border-radius:10px; font-size:13.5px; }
+.tedarik-step-body :deep(.multiple-item-row .input-group) { flex-wrap:nowrap; }
+.tedarik-step-body :deep(.multiple-item-row .rmv-btn-form) { border-radius:0 10px 10px 0; align-items:center; display:inline-flex; }
 .planlama-saving { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 9999; display: inline-flex; align-items: center; gap: 10px; background: #0f172a; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: 999px; box-shadow: 0 12px 32px rgba(15,23,42,.35); }
 .planlama-saving .spin { width: 16px; height: 16px; border-radius: 999px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: planlama-spin .7s linear infinite; display: inline-block; }
 </style>

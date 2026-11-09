@@ -305,6 +305,12 @@ export default {
 .tedarik-btn-light { height:38px; padding:0 16px; border-radius:10px; background:#fff; border:1.5px solid #e2e8f0; color:#334155; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
 .tedarik-btn-light:hover { background:#f8fafc; border-color:#cbd5e1; }
 .tedarik-btn-light:disabled { opacity:.55; cursor:not-allowed; }
+/* item rows as cards — not squished single row */
+.tedarik-step-body :deep(.multiple-item-row) { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:14px 14px 10px; margin-bottom:12px !important; row-gap:10px; }
+.tedarik-step-body :deep(.multiple-item-row .input-label) { font-size:11.5px !important; font-weight:800 !important; color:#64748b !important; text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tedarik-step-body :deep(.multiple-item-row .form-control) { min-height:42px; border-radius:10px; font-size:13.5px; }
+.tedarik-step-body :deep(.multiple-item-row .input-group) { flex-wrap:nowrap; }
+.tedarik-step-body :deep(.multiple-item-row .rmv-btn-form) { border-radius:0 10px 10px 0; align-items:center; display:inline-flex; }
 .planlama-rform { background: #fff; border-radius: 12px; padding: 20px; }
 .planlama-rform.is-readonly :deep(.fab-btns-wrapper),
 .planlama-rform.is-readonly :deep(.fab-wrapper),

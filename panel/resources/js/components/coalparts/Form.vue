@@ -2089,7 +2089,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'mal_grubu',
-                                        col      : 2,
+                                        col      : 3,
                                         required : false,
                                         label : 'Mal Grubu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -2097,7 +2097,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'ihale_grubu',
-                                        col      : 2,
+                                        col      : 3,
                                         required : false,
                                         label : 'İhale Grubu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -2121,7 +2121,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'select',
                                         name  : 'unit',
-                                        col      : 2,
+                                        col      : 3,
                                         required : true,
                                         label : 'Ölçü Birimi',
                                         options  : [
@@ -2208,7 +2208,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'mal_grubu',
-                                        col      : 2,
+                                        col      : 3,
                                         required : false,
                                         label : 'Mal Grubu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -2216,7 +2216,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'ihale_grubu',
-                                        col      : 2,
+                                        col      : 3,
                                         required : false,
                                         label : 'İhale Grubu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -2224,7 +2224,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'prod_code',
-                                        col      : 2,
+                                        col      : 3,
                                         required : true,
                                         label : 'Malzeme Kodu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -2232,7 +2232,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'title',
-                                        col      : 2,
+                                        col      : 3,
                                         required : true,
                                         label : 'Malzeme Kısa Metni',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -2240,7 +2240,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'select',
                                         name  : 'unit',
-                                        col      : 1,
+                                        col      : 3,
                                         required : true,
                                         label : 'Ölçü Birimi',
                                         options  : [
@@ -2253,7 +2253,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'ay',
-                                        col      : 1,
+                                        col      : 3,
                                         required : true,
                                         isMonth : true,
                                         label : 'Ay',
@@ -2262,7 +2262,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'quantity',
-                                        col      : 2,
+                                        col      : 3,
                                         required : true,
                                         label : 'Miktar',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
