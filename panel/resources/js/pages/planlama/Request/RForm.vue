@@ -307,19 +307,21 @@ export default {
 .tedarik-btn-light { height:38px; padding:0 16px; border-radius:10px; background:#fff; border:1.5px solid #e2e8f0; color:#334155; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
 .tedarik-btn-light:hover { background:#f8fafc; border-color:#cbd5e1; }
 .tedarik-btn-light:disabled { opacity:.55; cursor:not-allowed; }
-/* item section: single card with header + aligned grid */
+/* item section: header card + numbered item sub-cards */
 .tedarik-step-body :deep(.item-row > .form-label) { display:flex; align-items:center; gap:8px; background:linear-gradient(135deg,#fff 0%,#fff7ed 100%); border:1px solid #ffe4cc; border-top:3px solid #FF5A1F; color:#9a3412 !important; font-size:12.5px !important; font-weight:800 !important; letter-spacing:.06em; border-radius:12px; padding:10px 14px; margin:0 0 12px !important; text-transform:uppercase; }
-.tedarik-step-body :deep(.item-row:has(.multiple-item-row)) { background:#fff; border:1px solid #ffe4cc; border-radius:16px; box-shadow:0 6px 18px rgba(255,90,31,.07); overflow:hidden; padding:0 !important; margin:0 0 16px !important; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row)) { counter-reset:planlama-kalem; background:#fff; border:1px solid #ffe4cc; border-radius:16px; box-shadow:0 6px 18px rgba(255,90,31,.07); overflow:hidden; padding:0 !important; margin:0 0 16px !important; }
 .tedarik-step-body :deep(.item-row:has(.multiple-item-row) > .form-label) { background:linear-gradient(135deg,#fff7ed 0%,#fff 100%); border:0 !important; border-top:3px solid #FF5A1F !important; border-bottom:1px solid #ffe4cc !important; border-radius:0 !important; padding:12px 16px !important; margin:0 !important; }
-.tedarik-step-body :deep(.item-row:has(.multiple-item-row) > div) { margin:0 !important; padding:16px !important; border:0 !important; background:transparent !important; border-radius:0 !important; }
-.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-row) { background:transparent !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; margin:0 !important; row-gap:12px; }
-.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-row:hover) { background:transparent !important; border:0 !important; box-shadow:none !important; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) > div) { margin:0 !important; padding:16px !important; border:0 !important; background:transparent !important; border-radius:0 !important; row-gap:12px; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card) { position:relative; background:#fcfdff !important; border:1px solid #e8edf4 !important; border-left:3px solid #ffb27a !important; border-radius:12px !important; box-shadow:0 1px 2px rgba(15,23,42,.04) !important; padding:14px 14px 4px !important; margin:0 !important; row-gap:12px; transition:background-color .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.tedarik-step-body :deep(.item-row:has(.multiple-item-row) .multiple-item-card:hover) { background:#fff !important; border-color:#fdba74 !important; border-left-color:#FF5A1F !important; box-shadow:0 6px 18px rgba(255,90,31,.10) !important; }
+.tedarik-step-body :deep(.multiple-item-card)::before { counter-increment:planlama-kalem; content:"Kalem " counter(planlama-kalem); flex:0 0 100%; max-width:100%; display:flex; align-items:center; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#9a3412; background:#fff7ed; border:1px solid #ffe4cc; border-radius:8px; padding:6px 12px; margin:0 0 2px; }
+.tedarik-step-body :deep(.multiple-item-row > [class*="col-"]) { min-width:0; }
 .tedarik-step-body :deep(.multiple-item-row .input-label) { font-size:11.5px !important; font-weight:800 !important; color:#9a3412 !important; text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.tedarik-step-body :deep(.multiple-item-row .form-control) { min-height:44px; border-radius:12px; font-size:13.5px; border:1.5px solid #e2e8f0; background:#fff; }
+.tedarik-step-body :deep(.multiple-item-row .form-control) { min-height:44px; border-radius:12px; font-size:13.5px; border:1.5px solid #e2e8f0; background:#fff; min-width:0; }
 .tedarik-step-body :deep(.multiple-item-row .form-control:focus) { border-color:#FF5A1F; box-shadow:0 0 0 4px rgba(255,90,31,.12); outline:none; }
 .tedarik-step-body :deep(.multiple-item-row select.form-control) { padding-right:32px; cursor:pointer; }
-.tedarik-step-body :deep(.multiple-item-row .input-group) { flex-wrap:nowrap; }
-.tedarik-step-body :deep(.multiple-item-row .input-group > .form-control) { border-top-right-radius:0; border-bottom-right-radius:0; }
+.tedarik-step-body :deep(.multiple-item-row .input-group) { flex-wrap:nowrap; width:100%; }
+.tedarik-step-body :deep(.multiple-item-row .input-group:has(> .rmv-btn-form) > .form-control) { border-top-right-radius:0; border-bottom-right-radius:0; }
 .tedarik-step-body :deep(.multiple-item-row .rmv-btn-form) { border-radius:0 12px 12px 0; align-items:center; display:inline-flex; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; cursor:pointer; padding:0 12px; }
 .tedarik-step-body :deep(.multiple-item-row .rmv-btn-form:hover) { background:#fee2e2; }
 .tedarik-step-body :deep(i[id*="subadd"]) { background:#FF5A1F !important; color:#fff !important; border-radius:999px !important; width:34px; height:34px; display:inline-flex !important; align-items:center !important; justify-content:center !important; font-size:18px !important; cursor:pointer; box-shadow:0 4px 12px rgba(255,90,31,.25); margin-left:8px; }

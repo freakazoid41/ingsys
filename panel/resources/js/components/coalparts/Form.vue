@@ -2875,6 +2875,7 @@
                                 //addional item row element
                                 const row = document.createElement('div');
                                 row.classList.add('row','mb-2','multiple-item-row');
+                                if(fitem.type === 'multiple') row.classList.add('multiple-item-card');
                                 
                                 inputDiv.appendChild(row);
 
