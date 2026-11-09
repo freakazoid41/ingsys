@@ -718,6 +718,11 @@ export default {
 .tedarik-step-body :deep(i[id*="subadd"]) { background:#FF5A1F !important; color:#fff !important; border-radius:999px !important; width:34px; height:34px; display:inline-flex !important; align-items:center !important; justify-content:center !important; font-size:18px !important; cursor:pointer; box-shadow:0 4px 12px rgba(255,90,31,.25); margin-left:8px; }
 .tedarik-step-body :deep(i[id*="subadd"]:hover) { background:#ea4a0f !important; }
 .tedarik-step-body :deep(i[id*="subadd"][hidden]) { display:none !important; }
+/* BAŞLIK + BAĞLI İHTİYAÇ NO side by side (6-6), AÇIKLAMA full width (12) */
+.tedarik-step-body :deep(.area-target[data-tag="op-doc-requestf-form"] > .dform-row > .card-body) { display:flex; flex-wrap:wrap; gap:0 16px; }
+.tedarik-step-body :deep(.area-target[data-tag="op-doc-requestf-form"] .item-row:has([name="title"])),
+.tedarik-step-body :deep(.area-target[data-tag="op-doc-requestf-form"] .item-row:has([name="request_no"])) { flex:1 1 calc(50% - 8px); min-width:280px; max-width:calc(50% - 8px); }
+.tedarik-step-body :deep(.area-target[data-tag="op-doc-requestf-form"] .item-row:has([name="desc"])) { flex:1 1 100%; max-width:100%; }
 /* flatten shared Form's admin cards inside the panel step card */
 .tedarik-step-body :deep(.area-target > .dform-row.card) { background:transparent !important; border:0 !important; box-shadow:none !important; margin:0 !important; padding:0 !important; }
 .tedarik-step-body :deep(.area-target > .dform-row.card > .card-body) { padding:0 !important; }
