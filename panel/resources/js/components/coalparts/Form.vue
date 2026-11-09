@@ -2199,7 +2199,7 @@
                                 name  : 'sub_requestf_items',
                                 label : 'Talep Kalemleri',
                                 type  : 'multiple',
-                                removable : true,
+                                removable : false,
                                 requiredIfFirst : false,
                                 hideAdd : true,
                                 group_key : 'requestf_items',
