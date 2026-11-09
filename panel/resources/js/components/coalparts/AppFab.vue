@@ -58,6 +58,74 @@
     color: #fff !important;
 }
 
+/* Planlama front panel: dock the save bar inside the form instead of fixed overlay */
+.fab-btns-wrapper.fab-front {
+    position: static;
+    left: auto;
+    transform: none;
+    width: 100%;
+    max-width: 720px;
+    margin: 16px auto 0;
+    padding: 12px 16px;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #ffe4cc;
+    border-top: 3px solid #FF5A1F;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(255, 90, 31, .08);
+    z-index: 5;
+}
+
+.fab-btns-wrapper.fab-front .btn {
+    min-width: 0;
+    margin: 0 !important;
+    padding: 10px 24px;
+    border-radius: 12px;
+    border: 1px solid #FF5A1F;
+    background: linear-gradient(135deg, #FF5A1F 0%, #ff7a3a 100%) !important;
+    color: #fff !important;
+    font-size: 14px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 6px 16px rgba(255, 90, 31, .25);
+    cursor: pointer;
+    transition: all .18s ease;
+}
+
+.fab-btns-wrapper.fab-front .btn i {
+    position: static;
+    transform: none;
+    font-size: 18px;
+    padding: 0;
+}
+
+.fab-btns-wrapper.fab-front .btn:hover {
+    background: linear-gradient(135deg, #ea4a0f 0%, #ff6a1f 100%) !important;
+    border-color: #ea4a0f;
+    color: #fff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(255, 90, 31, .35);
+}
+
+.fab-btns-wrapper.fab-front .btn-cancel {
+    background: #fff !important;
+    border: 1.5px solid #e2e8f0 !important;
+    color: #334155 !important;
+    box-shadow: none;
+}
+
+.fab-btns-wrapper.fab-front .btn-cancel:hover {
+    background: #fff7ed !important;
+    border-color: #FF5A1F !important;
+    color: #9a3412 !important;
+    box-shadow: 0 4px 12px rgba(255, 90, 31, .15);
+}
+
 @media(max-width:991px) {
     .fab-btns-wrapper{
         width: 100%;
@@ -282,6 +350,11 @@ export default {
             fab: this.fabType == undefined ? 'bar' : this.fabType
         }
     },
+    computed: {
+        isPlanlamaFront() {
+            return typeof this.$route?.path === 'string' && this.$route.path.startsWith('/planlamapanel');
+        }
+    },
     mounted() {
         if (this.fab === undefined) this.fab = 'bar';
         if (this.type === undefined) this.type = 'saveBtn';
@@ -364,7 +437,7 @@ export default {
 </script>
 <template>
 
-    <div class="row fab-btns-wrapper" v-if="this.fab == 'bar'">
+    <div class="row fab-btns-wrapper" :class="{ 'fab-front': isPlanlamaFront }" v-if="this.fab == 'bar'">
         <button v-if="cancelcallback" class="btn btn-cancel" @click="executeCancel"><i class="ki-outline ki-arrow-left fs-2x"></i> İptal</button>
         <button class="btn btn-danger" @click="execute"><i class="ki-outline ki-archive-tick fs-2x"></i> {{ savebtntitle }}</button>
         <button class="btn btn-success" v-if="type === 'options'" @click="executeAccept"><i

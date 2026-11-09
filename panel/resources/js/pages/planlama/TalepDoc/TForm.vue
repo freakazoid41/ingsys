@@ -713,12 +713,6 @@ export default {
 .tedarik-step-body :deep(i[id*="subadd"]) { background:#FF5A1F !important; color:#fff !important; border-radius:999px !important; width:34px; height:34px; display:inline-flex !important; align-items:center !important; justify-content:center !important; font-size:18px !important; cursor:pointer; box-shadow:0 4px 12px rgba(255,90,31,.25); margin-left:8px; }
 .tedarik-step-body :deep(i[id*="subadd"]:hover) { background:#ea4a0f !important; }
 .tedarik-step-body :deep(i[id*="subadd"][hidden]) { display:none !important; }
-/* save bar in panel theme — docked pill at form end, never covers fields */
-:deep(.fab-btns-wrapper) { background:#fff; border:1px solid #ffe4cc; border-top:3px solid #FF5A1F; border-radius:16px; padding:12px 16px; box-shadow:0 8px 24px rgba(255,90,31,.08); position:static; width:fit-content; max-width:calc(100% - 32px); margin:14px auto 0; display:flex; gap:10px; justify-content:center; }
-:deep(.fab-btns-wrapper .btn-cancel) { background:#fff !important; border:1.5px solid #e2e8f0 !important; color:#334155 !important; border-radius:12px !important; font-weight:800 !important; padding:10px 22px !important; cursor:pointer; transition:all .18s ease; }
-:deep(.fab-btns-wrapper .btn-cancel:hover) { background:#fff7ed !important; border-color:#FF5A1F !important; color:#9a3412 !important; transform:translateY(-1px); box-shadow:0 4px 12px rgba(255,90,31,.15); }
-:deep(.fab-btns-wrapper .btn-danger) { background:linear-gradient(135deg,#FF5A1F 0%,#ff7a3a 100%) !important; border-color:#FF5A1F !important; color:#fff !important; border-radius:12px !important; font-weight:800 !important; padding:10px 26px !important; box-shadow:0 6px 16px rgba(255,90,31,.25); cursor:pointer; transition:all .18s ease; }
-:deep(.fab-btns-wrapper .btn-danger:hover) { background:linear-gradient(135deg,#ea4a0f 0%,#ff6a1f 100%) !important; border-color:#ea4a0f !important; transform:translateY(-1px); box-shadow:0 10px 24px rgba(255,90,31,.35); }
 .planlama-saving { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 9999; display: inline-flex; align-items: center; gap: 10px; background: #0f172a; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: 999px; box-shadow: 0 12px 32px rgba(15,23,42,.35); }
 .planlama-saving .spin { width: 16px; height: 16px; border-radius: 999px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: planlama-spin .7s linear infinite; display: inline-block; }
 </style>

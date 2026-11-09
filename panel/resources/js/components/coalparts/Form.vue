@@ -3463,7 +3463,7 @@
     </div>
     <div v-else>
         <div class="area-target" v-for="(item, index) in ftypes" :data-tag="item"></div>
-        <AppFab v-if="authStore.data.type=='admin' || ['op-doc-request-form','op-doc-order-form','op-doc-order-item-form'].some(k=>formtypes.includes(k))" :savebtntitle="savebtntitle ?? 'Formu Kaydet'" :btntype="fabtype" :callback="formCallback" :rejectcallback="rejectcallback" :acceptcallback="acceptcallback" :cancelcallback="() => $router.go(-1)" />
+        <AppFab v-if="authStore.data.type=='admin' || ['op-doc-request-form','op-doc-requestf-form','op-doc-order-form','op-doc-order-item-form'].some(k=>formtypes.includes(k))" :savebtntitle="savebtntitle ?? 'Formu Kaydet'" :btntype="fabtype" :callback="formCallback" :rejectcallback="rejectcallback" :acceptcallback="acceptcallback" :cancelcallback="() => $router.go(-1)" />
     </div>
 </template>
 
