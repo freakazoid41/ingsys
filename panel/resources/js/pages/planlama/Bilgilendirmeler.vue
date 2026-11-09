@@ -326,11 +326,10 @@ export default {
 .tdk-bilgi__empty p{ margin:0; color:#9a3412; opacity:.7; max-width:420px; font-size:.9rem; }
 .tedarik-bottom-note{ margin-top:10px; display:flex; align-items:flex-start; gap:6px; font-size:11.5px; color:#8a8a8e; line-height:1.6; }
 .tedarik-bottom-note i{ color:#0e9cb8; font-size:13px; margin-top:2px; flex-shrink:0; }
-/* card chrome handled in global .tedarik-docs-page; hide dummy col, show thead with limited header text */
+/* card chrome handled in global .tedarik-docs-page; hide dummy + thead (card rows) */
 :deep(.pickletable tr:not(.table-group-header) td:first-child),
 :deep(.pickletable th:first-child){ display:none; }
-:deep(.pickletable thead){ display:table-header-group !important; }
-:deep(.pickletable thead th){ background:#fff !important; color:#94a3b8 !important; font-size:11px !important; font-weight:700 !important; letter-spacing:.06em !important; text-transform:uppercase !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:175px !important; padding:10px 12px !important; border:none !important; border-bottom:1px solid #f1f5f9 !important; vertical-align:middle !important; }
+:deep(.pickletable thead){ display:none !important; }
 :deep(.pickletable table){ border-spacing:0 7px !important; margin-top:4px !important; }
 /* icon + pill helpers — no inline style in JS except dynamic cat colors via inline (kept minimal) */
 :deep(.bili-cell){ display:flex; align-items:center; gap:10px; }
