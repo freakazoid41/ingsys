@@ -85,13 +85,20 @@ const HEADERS = [
   {
     title: 'Sipariş / İlişki', key: 'group_key', order: true, width: '285px', type: 'string',
     columnFormatter: (elm, rowData, col) => {
-      const orderCode = rowData.group_key || col || '';
-      const iliski = rowData.ctitle || '';
-      if (iliski && orderCode && iliski !== orderCode) {
+      const orderCode = String(rowData.group_key || col || '').trim();
+      const iliski = String(rowData.ctitle || '').trim();
+      // User wants only the client code (e.g. GDZ-90000002), not the display name (Ofis Mobilyaları).
+      // Pick whichever field looks like a code (contains '-' and digits), otherwise fall back to the non-empty one.
+      const pickCode = (s) => String(s || '').trim().split(' ')[0];
+      const isCode = (s) => /[A-Z]{2,3}-\d+/.test(s) || /^\d{5,}$/.test(s.replace(/[^0-9]/g,'')) || s.includes('-');
+      let code = '';
+      if (orderCode && isCode(orderCode)) code = pickCode(orderCode);
+      else if (iliski && isCode(iliski)) code = pickCode(iliski);
+      else code = pickCode(orderCode || iliski);
+      if (code) {
         const wrap = document.createElement('div'); wrap.className = 'bili-merged';
-        const b1 = document.createElement('span'); b1.className = 'bili-pill bili-pill--order'; b1.textContent = orderCode; b1.title = orderCode;
-        const b2 = document.createElement('span'); b2.className = 'bili-pill bili-pill--company'; b2.textContent = iliski; b2.title = iliski;
-        wrap.append(b1, b2);
+        const b = document.createElement('span'); b.className = 'bili-pill bili-pill--company'; b.textContent = code; b.title = code;
+        wrap.append(b);
         return wrap;
       }
       const span = document.createElement('span'); span.className = 'bili-single'; span.textContent = (orderCode || iliski || '—'); span.title = span.textContent;
