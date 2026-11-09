@@ -699,8 +699,9 @@ export default {
 .tedarik-btn-light { height:38px; padding:0 16px; border-radius:10px; background:#fff; border:1.5px solid #e2e8f0; color:#334155; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
 .tedarik-btn-light:hover { background:#f8fafc; border-color:#cbd5e1; }
 .tedarik-btn-light:disabled { opacity:.55; cursor:not-allowed; }
-.tedarik-btn-ok { height:38px; padding:0 16px; border-radius:10px; background:#16a34a; border:1px solid #16a34a; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
-.tedarik-btn-danger { height:38px; padding:0 16px; border-radius:10px; background:#fff; border:1px solid #dc2626; color:#dc2626; font-size:13px; font-weight:700; cursor:pointer; }
+.tedarik-btn-ok { height:38px; padding:0 16px; border-radius:10px; background:#16a34a; border:1px solid #16a34a; color:#fff; font-size:13px; font-weight:700; cursor:pointer; flex:0 0 auto; white-space:nowrap; }
+.tedarik-btn-danger { height:38px; padding:0 16px; border-radius:10px; background:#fff; border:1px solid #dc2626; color:#dc2626; font-size:13px; font-weight:700; cursor:pointer; flex:0 0 auto; white-space:nowrap; }
+.tedarik-btn-light { flex:0 0 auto; white-space:nowrap; }
 .planlama-rform { background: #fff; border-radius: 12px; padding: 20px; }
 .planlama-rform__head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
 .planlama-rform__head h2 { margin: 0; font-size: 17px; font-weight: 800; color: #0f172a; }

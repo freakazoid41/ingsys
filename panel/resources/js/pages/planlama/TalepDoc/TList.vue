@@ -105,13 +105,14 @@ export default {
                       columnFormatter: (elm, rowData, col) => {
                           const s = document.createElement('span'); s.textContent = col || rowData.created_at || '—'; s.style.color = '#334155'; return s;
                       } },
-                    { title: '', key: 'id', order: false, type: 'string', width: isFront ? '200px' : undefined,
+                    { title: '', key: 'id', order: false, type: 'string', width: isFront ? '280px' : undefined,
                       columnFormatter: (elm, rowData, columnData) => {
                           const wrap = document.createElement('div');
                           wrap.style.display = 'flex';
                           wrap.style.justifyContent = isFront ? 'flex-end' : 'center';
                           wrap.style.alignItems = 'center';
                           wrap.style.gap = '6px';
+                          wrap.style.flexWrap = 'wrap';
                           wrap.classList.add('planlama-acts');
                           const setRowBusy = (on) => {
                               wrap.querySelectorAll('button').forEach(x => { x.disabled = on; x.style.opacity = on ? '0.6' : ''; });
@@ -120,7 +121,7 @@ export default {
                               const b = document.createElement('button');
                               b.classList.add('btn');
                               b.textContent = label;
-                              b.style.cssText = `background:${bg};border:1px solid ${border};color:${color};border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;`;
+                              b.style.cssText = `background:${bg};border:1px solid ${border};color:${color};border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;flex:0 0 auto;min-height:32px;line-height:1;`;
                               return b;
                           };
                           const btn = mk('Detay', '#0e8ea4', '#ffffff', '#0e8ea4');
