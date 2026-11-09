@@ -20,6 +20,7 @@ export default {
             authStore: useAuthStore(),
             navigationStore: useNavigationStore(),
             table: null,
+            _buildTimeouts: [],
             isPlanlama() { return this.$route.path.startsWith('/planlamapanel'); },
         };
     },
@@ -33,8 +34,26 @@ export default {
         this.navigationStore.toggle(true);
         this.buildTable();
         setTimeout(() => this.navigationStore.toggle(false), 300);
+        this._buildTimeouts.push(setTimeout(() => this.enforceFrontHeight(), 400));
+    },
+    beforeUnmount() {
+        this._buildTimeouts.forEach(clearTimeout);
     },
     methods: {
+        enforceFrontHeight() {
+            if (!this.isFront) return;
+            try {
+                const el = document.querySelector('.tedarik-card .pickletable');
+                if (!el) return;
+                el.style.setProperty('height', '75vh', 'important');
+                el.style.setProperty('min-height', 'calc(75vh - 280px)', 'important');
+                const dt = el.querySelector('.divTable');
+                if (dt) {
+                    dt.style.setProperty('height', '90%', 'important');
+                    dt.style.setProperty('overflow', 'auto', 'important');
+                }
+            } catch {}
+        },
         searchTable() {
             const inp = this.$refs.frontSearch || document.getElementById('mainSearch');
             const v = (inp?.value || '').trim();
@@ -261,11 +280,16 @@ export default {
 .tedarik-card :deep(.pickletable) { height: auto !important; border: none !important; }
 .tedarik-card :deep(.pickletable .divTable) { height: auto !important; overflow: visible !important; border-bottom: none !important; }
 .tedarik-card :deep(.pickletable table) { border-collapse: separate !important; border-spacing: 0 7px !important; table-layout: auto !important; border: none !important; width: 100% !important; }
-.tedarik-card :deep(.pickletable thead th) { background: transparent !important; color: #b0b0b5 !important; font-size: 13px !important; font-weight: 500 !important; border: none !important; box-shadow: none !important; padding: 0 14px 10px !important; text-transform: none !important; letter-spacing: 0 !important; }
-.tedarik-card :deep(.pickletable tbody td) { background: #fff !important; border: 1px solid #e8e8ea !important; font-size: 13.5px !important; padding: 13px 14px !important; vertical-align: middle !important; }
-.tedarik-card :deep(.pickletable tbody td:first-child) { border-top-left-radius: 8px !important; border-bottom-left-radius: 8px !important; }
-.tedarik-card :deep(.pickletable tbody td:last-child) { border-top-right-radius: 8px !important; border-bottom-right-radius: 8px !important; }
-.tedarik-card :deep(.pickletable .divPagination) { border-top: none !important; display: flex !important; justify-content: flex-end !important; align-items: center !important; padding: 12px 0 0 !important; }
+.tedarik-card :deep(.pickletable thead th) { background: transparent !important; color: #b0b0b5 !important; font-size: 13px !important; font-weight: 500 !important; border: none !important; border-bottom: none !important; box-shadow: none !important; padding: 0 14px 10px !important; text-transform: none !important; letter-spacing: 0 !important; white-space: nowrap; text-align: left !important; position: relative !important; top: auto !important; }
+.tedarik-card :deep(.pickletable thead th:last-child) { text-align: right !important; }
+.tedarik-card :deep(.pickletable tbody tr) { background: #fff !important; border-radius: 14px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; border: none !important; }
+.tedarik-card :deep(.pickletable tbody tr:hover) { transform: translateY(-2px) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; }
+.tedarik-card :deep(.pickletable tbody tr:hover td) { background: transparent !important; }
+.tedarik-card :deep(.pickletable tbody td) { background: transparent !important; padding: 14px 12px !important; font-size: 13px !important; color: #333 !important; border: none !important; vertical-align: middle !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; font-weight: 400; }
+.tedarik-card :deep(.pickletable tbody td:first-child) { border-radius: 14px 0 0 14px !important; font-weight: 600 !important; color: #111827 !important; }
+.tedarik-card :deep(.pickletable tbody td:last-child) { border-radius: 0 14px 14px 0 !important; }
+.tedarik-card :deep(.pickletable .divPagination) { background: transparent !important; border-top: none !important; padding: 10px 0 0 !important; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; position: relative; }
+.tedarik-card :deep(.pickletable .divPagination .pagination) { gap: 5px; margin-top: 14px; }
 .tedarik-card :deep(.pickletable .divPagination button), .tedarik-card :deep(.pickletable .divPagination .page-link) { border: 1px solid #e5e7eb !important; background: #fff !important; color: #8a8a8e !important; border-radius: 6px !important; padding: 5px 10px !important; font-size: 12px !important; font-weight: 500 !important; min-width: 32px; height: 30px; }
 .tedarik-card :deep(.pickletable .divPagination .active button), .tedarik-card :deep(.pickletable .divPagination .active .page-link) { background: #fff !important; color: #FF5A1F !important; border-color: #FF5A1F !important; font-weight: 700 !important; }
 </style>
