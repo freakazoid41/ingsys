@@ -77,25 +77,31 @@
                     title: 'Cari / Müdürlük Seçiniz',
                     showCloseButton: true,
                     showConfirmButton: false,
+                    width: '920px',
+                    padding: '1.2rem 1.1rem 1rem',
+                    customClass: { popup: 'swal-client-picker', title: 'swal-client-title', htmlContainer: 'swal-client-html' },
                     html: ` <style>
-                                /* make the full row red when any cell is hovered */
-                                .pickletable tr:hover td {
-                                    background-color: #154b91 !important;
-                                    color : white !important;
-                                }
-                                .pickletable tr:hover {
-                                    border-radius: 10px !important;
-                                }
-
-                                .pickletable tr:hover td:first-child {
-                                    border-top-left-radius: 10px !important;
-                                    border-bottom-left-radius: 10px !important;
-                                }
-
-                                .pickletable tr:hover td:last-child {
-                                    border-top-right-radius: 10px !important;
-                                    border-bottom-right-radius: 10px !important;
-                                }
+                                .swal-client-picker{ border-radius:16px !important; }
+                                .swal-client-title{ font-size:17px !important; font-weight:800 !important; color:#0f172a !important; padding-bottom:10px !important; }
+                                .swal-client-html{ margin:0 !important; }
+                                #client-tree .pickletable{ border:1px solid #e2e8f0 !important; border-radius:12px !important; overflow:hidden !important; background:#fff !important; }
+                                #client-tree .pickletable .divTable{ overflow-x:auto !important; }
+                                #client-tree .pickletable table{ width:100% !important; min-width:720px !important; table-layout:fixed !important; }
+                                #client-tree .pickletable th{ background:#f8fafc !important; color:#475569 !important; font-size:12px !important; font-weight:700 !important; letter-spacing:.04em !important; text-transform:uppercase !important; white-space:nowrap !important; overflow:visible !important; text-overflow:clip !important; padding:10px 12px !important; border-bottom:1px solid #e2e8f0 !important; }
+                                #client-tree .pickletable th input{ width:100% !important; margin-top:6px !important; border-radius:8px !important; }
+                                #client-tree .pickletable td{ font-size:13px !important; color:#0f172a !important; padding:11px 12px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; border-bottom:1px solid #f1f5f9 !important; }
+                                #client-tree .pickletable td:first-child{ font-weight:600 !important; }
+                                #client-tree .pickletable th:nth-child(1), #client-tree .pickletable td:nth-child(1){ width:34% !important; }
+                                #client-tree .pickletable th:nth-child(2), #client-tree .pickletable td:nth-child(2){ width:22% !important; }
+                                #client-tree .pickletable th:nth-child(3), #client-tree .pickletable td:nth-child(3){ width:22% !important; }
+                                #client-tree .pickletable th:nth-child(4), #client-tree .pickletable td:nth-child(4){ width:14% !important; text-align:center !important; }
+                                /* make the full row blue when any cell is hovered */
+                                #client-tree .pickletable tbody tr:hover td{ background-color:#154b91 !important; color:white !important; }
+                                #client-tree .pickletable tbody tr:hover{ border-radius:10px !important; }
+                                #client-tree .pickletable tbody tr:hover td:first-child{ border-top-left-radius:10px !important; border-bottom-left-radius:10px !important; }
+                                #client-tree .pickletable tbody tr:hover td:last-child{ border-top-right-radius:10px !important; border-bottom-right-radius:10px !important; }
+                                #client-tree .pickletable .divPagination{ padding:12px 14px !important; border-top:1px solid #f1f5f9 !important; background:#fff !important; }
+                                #client-tree .pickletable .divPagination button{ min-width:36px !important; height:36px !important; border-radius:8px !important; }
                             </style>
                             <div id="client-tree" class="text-start"></div>`,
                     willOpen : () => {
@@ -3416,7 +3422,7 @@
                     container : target, //table target div
                     headers   : headers,
                     pageLimit : 10, // -1 for closing pagination
-                    height    : '30vh',
+                    height    : '56vh',
                     type      : 'ajax',
                     columnSearch : true, // true - false for opening and closig
                     paginationType : 'number',// scroll - number (number for default)
