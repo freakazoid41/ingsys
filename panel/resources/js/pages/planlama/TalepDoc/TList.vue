@@ -168,7 +168,7 @@ export default {
                                       b.innerHTML = original;
                                   }
                               };
-                              span.appendChild(b);
+                              wrap.appendChild(b);
                           };
                           if (stOp === 'tr-request-man-awaiting' && (this.authStore.permissions || []).includes('per-041-05-01')) {
                               mkBtn('Onayla', '#16a34a', 'tr-request-man-approved', false);
