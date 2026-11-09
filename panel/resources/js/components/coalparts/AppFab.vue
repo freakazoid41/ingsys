@@ -58,14 +58,11 @@
     color: #fff !important;
 }
 
-/* Planlama front panel: dock the save bar inside the form instead of fixed overlay */
+/* Planlama front panel: keep the save bar floating like the admin panel */
 .fab-btns-wrapper.fab-front {
-    position: static;
-    left: auto;
-    transform: none;
-    width: 100%;
-    max-width: 720px;
-    margin: 16px auto 0;
+    width: 600px;
+    max-width: calc(100vw - 32px);
+    margin: 0 !important;
     padding: 12px 16px;
     gap: 10px;
     justify-content: center;
@@ -77,7 +74,7 @@
     border-top: 3px solid #FF5A1F;
     border-radius: 16px;
     box-shadow: 0 8px 24px rgba(255, 90, 31, .08);
-    z-index: 5;
+    z-index: 9999;
     transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
@@ -86,7 +83,7 @@
     background: #fff7ed !important;
     border-color: #FF5A1F !important;
     box-shadow: 0 14px 34px rgba(255, 90, 31, .20) !important;
-    transform: translateY(-2px) !important;
+    transform: translate(-50%, -2px) !important;
 }
 
 .fab-btns-wrapper.fab-front .btn {
@@ -138,6 +135,19 @@
     color: #fff !important;
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 10px 24px rgba(255, 90, 31, .38), 0 0 0 4px rgba(255, 90, 31, .14) !important;
+}
+
+/* center the floating save bar over the main content column (210px sidebar) */
+@media (min-width: 993px) {
+    .fab-btns-wrapper.fab-front {
+        left: calc(50% + 120px) !important;
+    }
+}
+
+@media (max-width: 992px) {
+    .fab-btns-wrapper.fab-front {
+        left: 50% !important;
+    }
 }
 
 @media(max-width:991px) {
@@ -453,14 +463,16 @@ export default {
 </script>
 <template>
 
-    <div class="row fab-btns-wrapper" :class="{ 'fab-front': isPlanlamaFront, 'is-bar-hover': barHover }" @mouseenter="barHover = true" @mouseleave="barHover = false; btnHover = ''" v-if="this.fab == 'bar'">
-        <button v-if="cancelcallback" class="btn btn-cancel" :class="{ 'is-btn-hover': btnHover === 'cancel' }" @mouseenter="btnHover = 'cancel'" @mouseleave="btnHover = ''" @click="executeCancel"><i class="ki-outline ki-arrow-left fs-2x"></i> İptal</button>
-        <button class="btn btn-danger" :class="{ 'is-btn-hover': btnHover === 'save' }" @mouseenter="btnHover = 'save'" @mouseleave="btnHover = ''" @click="execute"><i class="ki-outline ki-archive-tick fs-2x"></i> {{ savebtntitle }}</button>
-        <button class="btn btn-success" :class="{ 'is-btn-hover': btnHover === 'accept' }" v-if="type === 'options'" @mouseenter="btnHover = 'accept'" @mouseleave="btnHover = ''" @click="executeAccept"><i
-                class="ki-outline ki-double-check fs-2x"></i> Bütün Belgeleri Onayla</button>
-        <button class="btn btn-warning" :class="{ 'is-btn-hover': btnHover === 'reject' }" v-if="type === 'options'" @mouseenter="btnHover = 'reject'" @mouseleave="btnHover = ''" @click="executeReject"><i
-                class="ki-outline ki-cross fs-2x"></i> Bütün Belgeleri Reddet</button>
-    </div>
+    <Teleport to="body" :disabled="!isPlanlamaFront">
+        <div class="row fab-btns-wrapper" :class="{ 'fab-front': isPlanlamaFront, 'is-bar-hover': barHover }" @mouseenter="barHover = true" @mouseleave="barHover = false; btnHover = ''" v-if="this.fab == 'bar'">
+            <button v-if="cancelcallback" class="btn btn-cancel" :class="{ 'is-btn-hover': btnHover === 'cancel' }" @mouseenter="btnHover = 'cancel'" @mouseleave="btnHover = ''" @click="executeCancel"><i class="ki-outline ki-arrow-left fs-2x"></i> İptal</button>
+            <button class="btn btn-danger" :class="{ 'is-btn-hover': btnHover === 'save' }" @mouseenter="btnHover = 'save'" @mouseleave="btnHover = ''" @click="execute"><i class="ki-outline ki-archive-tick fs-2x"></i> {{ savebtntitle }}</button>
+            <button class="btn btn-success" :class="{ 'is-btn-hover': btnHover === 'accept' }" v-if="type === 'options'" @mouseenter="btnHover = 'accept'" @mouseleave="btnHover = ''" @click="executeAccept"><i
+                    class="ki-outline ki-double-check fs-2x"></i> Bütün Belgeleri Onayla</button>
+            <button class="btn btn-warning" :class="{ 'is-btn-hover': btnHover === 'reject' }" v-if="type === 'options'" @mouseenter="btnHover = 'reject'" @mouseleave="btnHover = ''" @click="executeReject"><i
+                    class="ki-outline ki-cross fs-2x"></i> Bütün Belgeleri Reddet</button>
+        </div>
+    </Teleport>
     <div class="fab-wrapper" v-if="this.fab == 'leftIcon'">
         <input id="fabCheckbox" v-if="type === 'options'" type="checkbox" class="fab-checkbox" />
 

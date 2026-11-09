@@ -244,7 +244,7 @@ export default {
 </script>
 
 <template>
-    <div v-if="isFront" class="tedarik-detail" style="padding-bottom: 40px;">
+    <div v-if="isFront" class="tedarik-detail" style="padding-bottom: 130px;">
         <div class="tedarik-detail-header">
             <div class="tedarik-detail-header-top">
                 <div class="tedarik-detail-header-left">
