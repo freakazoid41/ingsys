@@ -323,10 +323,10 @@ export default {
 .tedarik-step-body :deep(i[id*="subadd"]:hover) { background:#ea4a0f !important; }
 /* save bar in panel theme — static pill at form end, never floats over fields */
 :deep(.fab-btns-wrapper) { background:#fff; border:1px solid #ffe4cc; border-top:3px solid #FF5A1F; border-radius:16px; padding:12px 16px; box-shadow:0 8px 24px rgba(255,90,31,.08); position:static; width:fit-content; max-width:calc(100% - 32px); margin:14px auto 0; display:flex; gap:10px; justify-content:center; }
-:deep(.fab-btns-wrapper .btn-cancel) { background:#fff !important; border:1.5px solid #e2e8f0 !important; color:#334155 !important; border-radius:12px !important; font-weight:800 !important; padding:10px 22px !important; }
-:deep(.fab-btns-wrapper .btn-cancel:hover) { background:#f8fafc !important; }
-:deep(.fab-btns-wrapper .btn-danger) { background:linear-gradient(135deg,#FF5A1F 0%,#ff7a3a 100%) !important; border-color:#FF5A1F !important; color:#fff !important; border-radius:12px !important; font-weight:800 !important; padding:10px 26px !important; box-shadow:0 6px 16px rgba(255,90,31,.25); }
-:deep(.fab-btns-wrapper .btn-danger:hover) { filter:brightness(.95); }
+:deep(.fab-btns-wrapper .btn-cancel) { background:#fff !important; border:1.5px solid #e2e8f0 !important; color:#334155 !important; border-radius:12px !important; font-weight:800 !important; padding:10px 22px !important; cursor:pointer; transition:all .18s ease; }
+:deep(.fab-btns-wrapper .btn-cancel:hover) { background:#fff7ed !important; border-color:#FF5A1F !important; color:#9a3412 !important; transform:translateY(-1px); box-shadow:0 4px 12px rgba(255,90,31,.15); }
+:deep(.fab-btns-wrapper .btn-danger) { background:linear-gradient(135deg,#FF5A1F 0%,#ff7a3a 100%) !important; border-color:#FF5A1F !important; color:#fff !important; border-radius:12px !important; font-weight:800 !important; padding:10px 26px !important; box-shadow:0 6px 16px rgba(255,90,31,.25); cursor:pointer; transition:all .18s ease; }
+:deep(.fab-btns-wrapper .btn-danger:hover) { background:linear-gradient(135deg,#ea4a0f 0%,#ff6a1f 100%) !important; border-color:#ea4a0f !important; transform:translateY(-1px); box-shadow:0 10px 24px rgba(255,90,31,.35); }
 .planlama-rform { background: #fff; border-radius: 12px; padding: 20px; }
 .planlama-rform.is-readonly :deep(.fab-btns-wrapper),
 .planlama-rform.is-readonly :deep(.fab-wrapper),
