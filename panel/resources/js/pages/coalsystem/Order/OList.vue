@@ -1552,6 +1552,8 @@
     text-align: right !important;
 }
 .tedarik-card :deep(.pickletable thead th i), .tedarik-card :deep(.pickletable thead th svg){ vertical-align: middle !important; }
+.tedarik-card :deep(.pickletable thead th.orderable span){ display: inline-flex !important; align-items: center !important; line-height: 1 !important; vertical-align: middle !important; }
+.tedarik-card :deep(.pickletable thead th.orderable span:after){ display: inline-flex !important; align-items: center !important; line-height: 1 !important; margin-left: 6px !important; }
 .tedarik-card :deep(.pickletable tbody tr){
     background: #fff !important;
     border-radius: 14px !important;

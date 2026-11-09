@@ -1611,6 +1611,8 @@
 }
 .tedarik-docs-page :deep(.pickletable thead th:last-child){ text-align:right !important; }
 .tedarik-docs-page :deep(.pickletable thead th i), .tedarik-docs-page :deep(.pickletable thead th svg){ vertical-align:middle !important; }
+.tedarik-docs-page :deep(.pickletable thead th.orderable span){ display:inline-flex !important; align-items:center !important; line-height:1 !important; vertical-align:middle !important; }
+.tedarik-docs-page :deep(.pickletable thead th.orderable span:after){ display:inline-flex !important; align-items:center !important; line-height:1 !important; margin-left:6px !important; }
 .tedarik-docs-page :deep(.pickletable tbody tr){ background:transparent !important; box-shadow:none !important; transition: transform 0.15s ease, box-shadow 0.15s ease !important; }
 .tedarik-docs-page :deep(.pickletable tbody tr:hover){ transform: translateY(-1px) !important; }
 .tedarik-docs-page :deep(.pickletable tbody tr:hover td){ background:#fcfcfc !important; box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important; }
