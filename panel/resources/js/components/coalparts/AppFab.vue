@@ -71,18 +71,22 @@
     justify-content: center;
     align-items: center;
     background: #fff;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     border: 1px solid #ffe4cc;
     border-top: 3px solid #FF5A1F;
     border-radius: 16px;
     box-shadow: 0 8px 24px rgba(255, 90, 31, .08);
     z-index: 5;
-    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
-.fab-btns-wrapper.fab-front:hover {
-    border-color: #fdba74;
-    box-shadow: 0 12px 30px rgba(255, 90, 31, .16);
-    transform: translateY(-1px);
+.fab-btns-wrapper.fab-front:hover,
+.fab-btns-wrapper.fab-front.is-bar-hover {
+    background: #fff7ed !important;
+    border-color: #FF5A1F !important;
+    box-shadow: 0 14px 34px rgba(255, 90, 31, .20) !important;
+    transform: translateY(-2px) !important;
 }
 
 .fab-btns-wrapper.fab-front .btn {
@@ -111,12 +115,13 @@
     padding: 0;
 }
 
-.fab-btns-wrapper.fab-front .btn:hover {
-    background: linear-gradient(135deg, #ea4a0f 0%, #ff6a1f 100%) !important;
-    border-color: #ea4a0f !important;
+.fab-btns-wrapper.fab-front .btn:hover,
+.fab-btns-wrapper.fab-front .btn.is-btn-hover {
+    background: linear-gradient(135deg, #d63d00 0%, #f55a12 100%) !important;
+    border-color: #d63d00 !important;
     color: #fff !important;
-    transform: translateY(-2px) scale(1.03);
-    box-shadow: 0 12px 28px rgba(255, 90, 31, .45) !important;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 12px 28px rgba(255, 90, 31, .45), 0 0 0 4px rgba(255, 90, 31, .16) !important;
 }
 
 .fab-btns-wrapper.fab-front .btn-cancel {
@@ -126,12 +131,13 @@
     box-shadow: none !important;
 }
 
-.fab-btns-wrapper.fab-front .btn-cancel:hover {
-    background: #fff7ed !important;
+.fab-btns-wrapper.fab-front .btn-cancel:hover,
+.fab-btns-wrapper.fab-front .btn-cancel.is-btn-hover {
+    background: linear-gradient(135deg, #FF5A1F 0%, #ff7a3a 100%) !important;
     border-color: #FF5A1F !important;
-    color: #9a3412 !important;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(255, 90, 31, .20) !important;
+    color: #fff !important;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 10px 24px rgba(255, 90, 31, .38), 0 0 0 4px rgba(255, 90, 31, .14) !important;
 }
 
 @media(max-width:991px) {
@@ -355,7 +361,9 @@ export default {
         return {
             status: 'await',
             type: this.btntype,
-            fab: this.fabType == undefined ? 'bar' : this.fabType
+            fab: this.fabType == undefined ? 'bar' : this.fabType,
+            barHover: false,
+            btnHover: ''
         }
     },
     computed: {
@@ -445,12 +453,12 @@ export default {
 </script>
 <template>
 
-    <div class="row fab-btns-wrapper" :class="{ 'fab-front': isPlanlamaFront }" v-if="this.fab == 'bar'">
-        <button v-if="cancelcallback" class="btn btn-cancel" @click="executeCancel"><i class="ki-outline ki-arrow-left fs-2x"></i> İptal</button>
-        <button class="btn btn-danger" @click="execute"><i class="ki-outline ki-archive-tick fs-2x"></i> {{ savebtntitle }}</button>
-        <button class="btn btn-success" v-if="type === 'options'" @click="executeAccept"><i
+    <div class="row fab-btns-wrapper" :class="{ 'fab-front': isPlanlamaFront, 'is-bar-hover': barHover }" @mouseenter="barHover = true" @mouseleave="barHover = false; btnHover = ''" v-if="this.fab == 'bar'">
+        <button v-if="cancelcallback" class="btn btn-cancel" :class="{ 'is-btn-hover': btnHover === 'cancel' }" @mouseenter="btnHover = 'cancel'" @mouseleave="btnHover = ''" @click="executeCancel"><i class="ki-outline ki-arrow-left fs-2x"></i> İptal</button>
+        <button class="btn btn-danger" :class="{ 'is-btn-hover': btnHover === 'save' }" @mouseenter="btnHover = 'save'" @mouseleave="btnHover = ''" @click="execute"><i class="ki-outline ki-archive-tick fs-2x"></i> {{ savebtntitle }}</button>
+        <button class="btn btn-success" :class="{ 'is-btn-hover': btnHover === 'accept' }" v-if="type === 'options'" @mouseenter="btnHover = 'accept'" @mouseleave="btnHover = ''" @click="executeAccept"><i
                 class="ki-outline ki-double-check fs-2x"></i> Bütün Belgeleri Onayla</button>
-        <button class="btn btn-warning" v-if="type === 'options'" @click="executeReject"><i
+        <button class="btn btn-warning" :class="{ 'is-btn-hover': btnHover === 'reject' }" v-if="type === 'options'" @mouseenter="btnHover = 'reject'" @mouseleave="btnHover = ''" @click="executeReject"><i
                 class="ki-outline ki-cross fs-2x"></i> Bütün Belgeleri Reddet</button>
     </div>
     <div class="fab-wrapper" v-if="this.fab == 'leftIcon'">
