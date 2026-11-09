@@ -723,6 +723,9 @@ export default {
 .tedarik-step-body :deep(.area-target[data-tag="op-doc-requestf-form"] .item-row:has([name="title"])),
 .tedarik-step-body :deep(.area-target[data-tag="op-doc-requestf-form"] .item-row:has([name="request_no"])) { flex:1 1 calc(50% - 8px); min-width:280px; max-width:calc(50% - 8px); }
 .tedarik-step-body :deep(.area-target[data-tag="op-doc-requestf-form"] .item-row:has([name="desc"])) { flex:1 1 100%; max-width:100%; }
+/* strip-to-input alignment: kill the bootstrap gutter on header field wrappers */
+.tedarik-step-body :deep(.area-target[data-tag="op-doc-requestf-form"] .item-row > .col-lg-12.row) { padding-left:0 !important; padding-right:0 !important; margin-left:0 !important; margin-right:0 !important; }
+.tedarik-step-body :deep(.area-target[data-tag="op-doc-requestf-form"] .item-row > .col-lg-12.row > .form-control) { width:100% !important; max-width:100% !important; }
 /* flatten shared Form's admin cards inside the panel step card */
 .tedarik-step-body :deep(.area-target > .dform-row.card) { background:transparent !important; border:0 !important; box-shadow:none !important; margin:0 !important; padding:0 !important; }
 .tedarik-step-body :deep(.area-target > .dform-row.card > .card-body) { padding:0 !important; }
