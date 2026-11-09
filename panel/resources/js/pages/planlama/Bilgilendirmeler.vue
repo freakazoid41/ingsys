@@ -68,7 +68,7 @@ import { buildNotificationRows, isPlanlamaCat } from '@/lib/notificationHelpers'
 import { PLANLAMA_CATS } from '@/lib/notificationHelpers';
 
 const TABLE_HEIGHT = '60vh';
-const TABLE_MIN_WIDTH = '785px';
+const TABLE_MIN_WIDTH = '935px';
 const HEADERS = [
   { title: ' ', key: 'document_card', order: false, type: 'string', columnFormatter: () => document.createTextNode('') },
   {
@@ -108,6 +108,14 @@ const HEADERS = [
     }
   },
   { title: 'Eklenme Tarihi', key: '_created_at_fmt', order: true, width: '135px', type: 'string', columnFormatter: (elm, r) => { const s = document.createElement('span'); s.className = 'bili-date'; s.textContent = r._created_at_fmt || '—'; return s; } },
+  {
+    title: 'Durum', key: 'last_status', order: false, width: '150px', type: 'string',
+    columnFormatter: (elm, rowData) => {
+      const pill = document.createElement('span'); pill.className = `bili-status bili-status--${rowData.cat}`;
+      pill.innerHTML = `<i class="${getCatMeta(rowData.cat).icon}" style="font-size:14px;"></i><span>${getCatMeta(rowData.cat).label}</span>`;
+      return pill;
+    }
+  },
   {
     title: 'İşlemler', key: 'id', order: false, colAlign: 'center', headAlign: 'center', width: '160px', type: 'string',
     columnFormatter: function(elm, rowData, _col) {
