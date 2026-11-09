@@ -31,6 +31,7 @@ export default {
         };
     },
     computed: {
+        isFront() { return this.$route.path.startsWith('/planlamapanel'); },
         canEdit() { return (this.authStore.permissions || []).includes('per-041-05-02'); },
         roFields() {
             return this.canEdit ? [] : ['title', 'desc', 'donem_bas', 'donem_bit', 'mal_grubu', 'ihale_grubu', 'prod_code', 'unit'];
@@ -51,6 +52,9 @@ export default {
     methods: {
         listRoute() {
             return this.$route.path.startsWith('/planlamapanel') ? 'PlanlamaRList' : 'PlanlamaRListAdmin';
+        },
+        goBackToList() {
+            this.$router.push({ name: this.listRoute() }).catch(() => {});
         },
         itemArea() {
             return document.querySelector('.area-target[data-tag="op-doc-request-item-form"]');
@@ -240,7 +244,35 @@ export default {
 </script>
 
 <template>
-    <div class="planlama-rform" :class="{ 'is-readonly': !canEdit }">
+    <div v-if="isFront" class="tedarik-detail" style="padding-bottom: 40px;">
+        <div class="tedarik-detail-header">
+            <div class="tedarik-detail-header-top">
+                <div class="tedarik-detail-header-left">
+                    <button @click="goBackToList" class="tedarik-back-link" title="İhtiyaç Listesi" aria-label="Geri">
+                        <i class="ki-outline ki-arrow-left"></i>
+                        <span>Tüm İhtiyaçlar</span>
+                    </button>
+                    <div class="tedarik-company-row">
+                        <span class="tedarik-company-icon"><i class="ki-outline ki-document"></i></span>
+                        <div class="tedarik-detail-title">{{ id ? (canEdit ? 'İhtiyaç Listesi Düzenle' : 'İhtiyaç Listesi Detayı') : 'Yeni İhtiyaç Listesi' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tedarik-step-card">
+            <div class="tedarik-step-head"><span class="tedarik-step-num">1</span><span>Başlık, dönem ve kalemleri girin.</span></div>
+            <div class="tedarik-step-body">
+                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                    <button v-if="canEdit" type="button" class="tedarik-btn-light" @click="downloadExcelTemplate">Şablon</button>
+                    <button type="button" class="tedarik-btn-light" @click="exportItemsExcel">Kalemleri İndir</button>
+                    <button v-if="canEdit" type="button" class="tedarik-btn-light" :disabled="excelBusy || !loadForm" @click="triggerExcelUpload">{{ excelBusy ? 'Aktarılıyor...' : "Excel'den Yükle" }}</button>
+                    <input ref="excelInput" type="file" accept=".xls,.xlsx" style="display:none" @change="onExcelSelected" />
+                </div>
+                <Form v-if="loadForm" formtypes="op-doc-request-form,op-doc-request-item-form" savebtntitle="Kaydet" :savecallback="submitForm" :readonlyFields="roFields" />
+            </div>
+        </div>
+    </div>
+    <div v-else class="planlama-rform" :class="{ 'is-readonly': !canEdit }">
         <div class="planlama-rform__head">
             <button type="button" class="planlama-rform__back" @click="$router.back()">← Geri</button>
             <h2>{{ id ? (canEdit ? 'İhtiyaç Listesi Düzenle' : 'İhtiyaç Listesi Detayı') : 'Yeni İhtiyaç Listesi' }}</h2>
@@ -257,6 +289,22 @@ export default {
 </template>
 
 <style scoped>
+.tedarik-detail-header { background: linear-gradient(135deg, #ffffff 0%, #fcfdff 100%) !important; border:1px solid #e2e8f0 !important; border-radius:16px !important; padding:18px 22px 16px !important; box-shadow:0 8px 24px rgba(15,23,42,0.04), 0 2px 8px rgba(15,23,42,0.03) !important; position:relative; overflow:hidden; margin-bottom:14px; }
+.tedarik-detail-header::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #FF5A1F 0%, #fb923c 50%, #FF5A1F 100%); }
+.tedarik-detail-header-top { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap; }
+.tedarik-detail-header-left { display:flex; flex-direction:column; gap:10px; }
+.tedarik-back-link { display:inline-flex; align-items:center; gap:6px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:999px; padding:6px 14px; font-size:12.5px; font-weight:700; cursor:pointer; width:fit-content; }
+.tedarik-back-link:hover { background:#ffedd5; }
+.tedarik-company-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.tedarik-company-icon { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#FF5A1F,#ff8a4a); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+.tedarik-detail-title { font-size:18px; font-weight:800; color:#0f172a; letter-spacing:-0.01em; }
+.tedarik-step-card { background:#fff; border:1px solid #f1f5f9; border-radius:16px; padding:18px 20px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03); }
+.tedarik-step-head { display:flex; align-items:center; gap:10px; font-size:14px; font-weight:700; color:#0f172a; margin-bottom:12px; }
+.tedarik-step-num { width:26px; height:26px; border-radius:999px; background:#FF5A1F; color:#fff; font-size:13px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+.tedarik-step-body { font-size:13.5px; }
+.tedarik-btn-light { height:38px; padding:0 16px; border-radius:10px; background:#fff; border:1.5px solid #e2e8f0; color:#334155; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
+.tedarik-btn-light:hover { background:#f8fafc; border-color:#cbd5e1; }
+.tedarik-btn-light:disabled { opacity:.55; cursor:not-allowed; }
 .planlama-rform { background: #fff; border-radius: 12px; padding: 20px; }
 .planlama-rform.is-readonly :deep(.fab-btns-wrapper),
 .planlama-rform.is-readonly :deep(.fab-wrapper),
