@@ -16,6 +16,8 @@ export function expandMonths(bas, bit) {
     out.push(String(m).padStart(2, '0') + '/' + y);
     if (++m > 12) { m = 1; y++; }
   }
+  // flag truncation instead of silent cut — callers can toast when 36 reached but period not exhausted
+  if ((y < e.y || (y === e.y && m <= e.m)) && guard >= 36) out.truncated = true;
   return out;
 }
 

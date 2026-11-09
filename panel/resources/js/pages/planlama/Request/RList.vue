@@ -80,6 +80,7 @@ export default {
                     }
                 }
                 const months = expandMonths(head.donem_bas || '', head.donem_bit || '');
+            if (months.truncated) this.plib.toast(Swal, 'warning', 'Dönem 36 ayı aşıyor — sadece ilk 36 ay dışa aktarılacak');
                 const mlabels = months.map(m => { const p = m.split('/'); return p[1] + '-' + p[0]; });
                 const aoa = [['Mal Grubu', 'İhale Grubu', 'Malzeme Kodu', 'Malzeme İsmi', 'Ölçü Birimi'].concat(mlabels)];
                 const iff = rsp?.data?.formFormat?.['op-doc-request-item-form'] || {};

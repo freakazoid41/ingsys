@@ -229,7 +229,7 @@ export default {
                             <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                         </a>
                     </router-link>
-                    <router-link v-if="authStore.permissions?.includes('per-041-05-01') || authStore.permissions?.includes('per-041-05-03') || authStore.permissions?.includes('per-041-05-04') || authStore.permissions?.includes('per-041-05')" to="/planlamapanel/talep-dokumanlari" custom v-slot="{ navigate, href }">
+                    <router-link v-if="authStore.permissions?.includes('per-041-05-01') || authStore.permissions?.includes('per-041-05-03') || authStore.permissions?.includes('per-041-05-04')" to="/planlamapanel/talep-dokumanlari" custom v-slot="{ navigate, href }">
                         <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isTalepActive }]">
                             <i class="ki-outline ki-file tedarik-menu-icon"></i>
                             <span>Talep Dökümanları</span>

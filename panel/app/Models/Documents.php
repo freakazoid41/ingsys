@@ -208,15 +208,20 @@ class Documents extends Model
                         }
                     break;
                     case 'op-doc-client':
-                        $where .= " and (i.qnid in ('".implode("','",session('currentStatus')['clientQnidList'])."') ";
+                        // System müdürlük picker (system_only=1 / is_system=1) must show all system clients even for resellers bound to non-system caris (fixes TForm empty picker for YILDIZ users)
+                        if ((isset($obj['filterKeys']['system_only']) && $obj['filterKeys']['system_only'] === '1') || (isset($obj['filterKeys']['is_system']) && $obj['filterKeys']['is_system'] === '1')) {
+                            // no reseller LIFNR restriction — system filter below handles is_system=1
+                        } else {
+                            $where .= " and (i.qnid in ('".implode("','",session('currentStatus')['clientQnidList'])."') ";
 
-                        $where .= " or (
+                            $where .= " or (
                                         se.entity_value in ('".implode("','",session('currentStatus')['clientQnidList'])."') 
                                         and se.entity_tag like '%cliid**%'
                                         and se.table_tag = 'sys_con_ops'
                                     ) ";
 
-                        $where .= ')';
+                            $where .= ')';
+                        }
                         
                     break;
                 }

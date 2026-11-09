@@ -113,6 +113,23 @@ class DocumentServiceProvider extends ServiceProvider
                     }
                 }
 
+                // Talep Dökümanı hard save rule: only NEW or rejected may be edited (mirrors TForm canSave) — backend hardening
+                if ($document && ($typeKey ?? null) === 'op-doc-requestf') {
+                    $docOpForGuard = Sys_options::where('id', $document->type_id)->value('op_key');
+                    if ($docOpForGuard === 'op-doc-requestf') {
+                        $lastGuard = DB::table('transactions as t')
+                            ->join('sys_options as so','so.id','=','t.type_id')
+                            ->where('t.target_id',$document->id)
+                            ->where('so.group_key','op-trans-op-doc-requestf')
+                            ->orderBy('t.id','desc')
+                            ->value('so.op_key');
+                        if ($lastGuard && $lastGuard !== 'tr-request-man-rejected') {
+                            DB::rollBack();
+                            return ['success'=>false,'msg'=>'Bu aşamada talep düzenlenemez — sadece reddedilen talepler revize edilebilir.'];
+                        }
+                    }
+                }
+
                 // here get all data for before data logging
 
                 $logData['description'] = [
@@ -160,6 +177,9 @@ class DocumentServiceProvider extends ServiceProvider
                 $birthMap = [
                     'op-doc-order' => 'doc_trans_order_created',
                     'op-doc-order-item' => 'doc_trans_created',
+                    'op-doc-request' => 'doc_trans_request_created',
+                    'op-doc-request-item' => 'doc_trans_created',
+                    'op-doc-requestf-item' => 'doc_trans_created',
                     // Talep Dökümanı is born awaiting Müdürlük approval (entered by Talep Yükleme user)
                     'op-doc-requestf' => 'tr-request-man-awaiting',
                 ];
@@ -1049,48 +1069,59 @@ class DocumentServiceProvider extends ServiceProvider
                     ->orderBy('t.id','desc')->first();
                 if ($lastRow) { $lastOpKey = $lastRow->op_key ?? null; $lastTitle = $lastRow->title ?? null; }
             } catch (\Throwable $e) {}
-            $log = UserLog::create([
-                'user_id' => $actor['user_id'] ?? auth('sanctum')->user()->id ?? 0,
-                'sys_code' => $GLOBALS['SYS_CODE'] ?? $actor['sys_code'] ?? 'GDZ',
-                'relation' => 'documents',
-                'relation_id' => $document->id,
-                'type_id' => Sys_options::where('op_key', 'log-document-status-update')->first()->id ?? 0,
-                'description' => json_encode(
-                    [
-                        'after' => ['document' => ['op_key' => $documentType->op_key, 'qnid' => $document->qnid]],
-                        'actor' => $actor,
-                        'document' => $docSnap,
-                        'from' => $lastOpKey ? ['op_key'=>$lastOpKey,'title'=>$lastTitle] : null,
-                        'to' => ['op_key'=>$statusKey,'title'=>$type->title ?? $statusKey],
-                        'desc' => $documentType->title.' Durumu Değiştirildi',
-                        'note' => $note ?? '-',
-                    ], JSON_UNESCAPED_UNICODE),
-            ]);
+            DB::beginTransaction();
+            try {
+                $log = UserLog::create([
+                    'user_id' => $actor['user_id'] ?? auth('sanctum')->user()->id ?? 0,
+                    'sys_code' => $GLOBALS['SYS_CODE'] ?? $actor['sys_code'] ?? 'GDZ',
+                    'relation' => 'documents',
+                    'relation_id' => $document->id,
+                    'type_id' => Sys_options::where('op_key', 'log-document-status-update')->first()->id ?? 0,
+                    'description' => json_encode(
+                        [
+                            'after' => ['document' => ['op_key' => $documentType->op_key, 'qnid' => $document->qnid]],
+                            'actor' => $actor,
+                            'document' => $docSnap,
+                            'from' => $lastOpKey ? ['op_key'=>$lastOpKey,'title'=>$lastTitle] : null,
+                            'to' => ['op_key'=>$statusKey,'title'=>$type->title ?? $statusKey],
+                            'desc' => $documentType->title.' Durumu Değiştirildi',
+                            'note' => $note ?? '-',
+                        ], JSON_UNESCAPED_UNICODE),
+                ]);
 
-            $trans = new Transactions;
-            $trans->target_id = $document->id;  // can be add from both listing pages..
-            $trans->log_id = $log->id;
-            $trans->type_id = $type->id;
-            $trans->note = $note ?? '-';
-            $trans->amount = 0;
-            $trans->cur_id = 0;
-            $trans->rel_id = 0;
-            $trans->sign = 0;
-            $trans->period = '-';
-            // $trans->created_at =
-            $trans->save();
+                $trans = new Transactions;
+                $trans->target_id = $document->id;  // can be add from both listing pages..
+                $trans->log_id = $log->id;
+                $trans->type_id = $type->id;
+                $trans->note = $note ?? '-';
+                $trans->amount = 0;
+                $trans->cur_id = 0;
+                $trans->rel_id = 0;
+                $trans->sign = 0;
+                $trans->period = '-';
+                // $trans->created_at =
+                $trans->save();
 
-            // durum yazildiktan sonra teklifi aktife al; geri acilis ayrica loglanir
-            if ($revived) {
-                $document->status = 1;
-                $document->save();
+                // durum yazildiktan sonra teklifi aktife al; geri acilis ayrica loglanir
+                if ($revived) {
+                    $document->status = 1;
+                    $document->save();
 
-                $this->logOfferReopened($document, 'Durum değişikliğiyle geri açıldı: '.$type->title);
+                    $this->logOfferReopened($document, 'Durum değişikliğiyle geri açıldı: '.$type->title);
+                }
+                DB::commit();
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                return [
+                    'success' => false,
+                    'msg' => $e->getMessage(),
+                ];
             }
 
             // Tedarik Aksiyonlar "Kalite Onayı Ver ve Kapat": approve the order AND
             // accept every active file under it (order-level + its item files). Supplier
             // should not need to approve files one by one.
+            // Outside main transaction — never break order status if file bulk fails
             if (($documentType->op_key ?? null) === 'op-doc-order' && $statusKey === 'doc_trans_order_approved') {
                 $this->acceptAllOrderFiles($document->id);
             }

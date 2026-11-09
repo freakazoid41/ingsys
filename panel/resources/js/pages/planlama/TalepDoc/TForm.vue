@@ -35,6 +35,7 @@ export default {
             selectedMudur: '',
             excelFiles: [],
             excelLoading: false,
+            linkBusy: false,
             justSaved: false,
         };
     },
@@ -43,7 +44,7 @@ export default {
         canEdit() { return (this.authStore?.permissions || []).includes('per-041-05-03'); },
         canMan() { return (this.authStore?.permissions || []).includes('per-041-05-01'); },
         canStd() { return (this.authStore?.permissions || []).includes('per-041-05-04'); },
-        canSave() { return !this.justSaved && this.canEdit && (!this.id || (this.docStatus && this.docStatus.op === 'tr-request-man-rejected')); },
+        canSave() { return !this.justSaved && !this.linkBusy && this.canEdit && (!this.id || (this.docStatus && this.docStatus.op === 'tr-request-man-rejected')); },
         roFields() {
             const base = ['title', 'request_no', 'desc', 'mal_grubu', 'ihale_grubu', 'prod_code', 'unit', 'ay', 'talep_excel_file'];
             return this.canSave ? base : base.concat(['quantity']);
@@ -224,6 +225,7 @@ export default {
             this.$router.push({ name: this.listRoute() }).catch(() => {});
         },
         async linkFromSource(qnid) {
+            this.linkBusy = true;
             try {
                 const rsp = await this.plib.request({ url: '/api/v1/document/' + qnid, method: 'GET' }, null);
                 const ff = rsp?.data?.formFormat?.['op-doc-request-form'] || {};
@@ -244,6 +246,7 @@ export default {
                 setHead('title', head.title || '');
                 setHead('desc', head.desc || '');
                 const months = expandMonths(head.donem_bas || '', head.donem_bit || '');
+                if (months.truncated) this.plib.toast(Swal, 'warning', 'Dönem 36 ayı aşıyor — sadece ilk 36 ay aktarıldı');
                 const iff = rsp?.data?.formFormat?.['op-doc-request-item-form'] || {};
                 const byRow = {};
                 for (const rid in iff) {
@@ -283,7 +286,7 @@ export default {
             } catch (err) {
                 console.error(err);
                 this.plib.toast(Swal, 'error', 'İhtiyaç yüklenemedi');
-            }
+            } finally { this.linkBusy = false; }
         },
         itemArea() {
             return document.querySelector('.area-target[data-tag="op-doc-requestf-item-form"]');
@@ -368,7 +371,7 @@ export default {
             XLSX.writeFile(wb, 'talep-kalem-sablon.xlsx');
         },
         triggerExcelUpload() {
-            if (!this.loadForm) return;
+            if (!this.loadForm || this.linkBusy) return;
             this.$refs.excelInput && this.$refs.excelInput.click();
         },
         async onExcelSelected(e) {
@@ -470,6 +473,7 @@ export default {
                         dt.items.add(file);
                         slot.files = dt.files;
                         slot.dispatchEvent(new Event('input', { bubbles: true }));
+                        slot.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 } catch (e) { console.error('[TalepExcel] slot inject failed', e); }
                 let done = 0;
@@ -591,7 +595,7 @@ export default {
             <div class="tedarik-step-body">
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
                     <button v-if="canSave" type="button" class="tedarik-btn-light" @click="downloadExcelTemplate">Şablon</button>
-                    <button v-if="canSave" type="button" class="tedarik-btn-light" :disabled="excelBusy || !loadForm" @click="triggerExcelUpload">{{ excelBusy ? 'Aktarılıyor...' : "Excel'den Yükle" }}</button>
+                    <button v-if="canSave" type="button" class="tedarik-btn-light" :disabled="excelBusy || linkBusy || !loadForm" @click="triggerExcelUpload">{{ excelBusy ? 'Aktarılıyor...' : "Excel'den Yükle" }}</button>
                     <input ref="excelInput" type="file" accept=".xls,.xlsx" style="display:none" @change="onExcelSelected" />
                     <template v-if="id && docStatus && docStatus.op === 'tr-request-man-awaiting' && canMan">
                         <button type="button" class="tedarik-btn-ok" :disabled="statusBusy" @click="approveMan">Onayla</button>
@@ -636,7 +640,7 @@ export default {
             </template>
             <span class="planlama-rform__spacer"></span>
             <button v-if="canSave" type="button" class="planlama-rform__btn" @click="downloadExcelTemplate">Şablon</button>
-            <button v-if="canSave" type="button" class="planlama-rform__btn planlama-rform__btn--primary" :disabled="excelBusy || !loadForm" @click="triggerExcelUpload">
+            <button v-if="canSave" type="button" class="planlama-rform__btn planlama-rform__btn--primary" :disabled="excelBusy || linkBusy || !loadForm" @click="triggerExcelUpload">
                 {{ excelBusy ? 'Aktarılıyor...' : "Excel'den Yükle" }}
             </button>
             <input ref="excelInput" type="file" accept=".xls,.xlsx" style="display:none" @change="onExcelSelected" />
