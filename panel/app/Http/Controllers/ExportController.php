@@ -135,6 +135,39 @@ class ExportController extends Controller
                     return $row[$key] ?? '';
                 };
                 break;
+            case 'kvas':
+                $filename = 'guc-tanimlari.xlsx';
+                $headers = [
+                    'title'      => 'Başlık',
+                    'code'       => 'Değer',
+                    'created_at' => 'Oluşturulma Tarihi'
+                ];
+
+                $data = (array)\App\Models\Documents::tableList([
+                    'filter' => array_merge($filter,[
+                        ['key'=>'form-type','type'=>'=','value'=>'op-doc-kva-form'],
+                        ['key'=>'type','type'=>'=','value'=>'op-doc-kva']
+                    ])
+                ])['data'];
+
+                foreach ($data as $key => $value) {
+                    $mainAttr = \json_decode($value->main_attr, true);
+                    foreach($mainAttr as $ma){
+                        $value->{$ma['Key']} = $ma['Value'];
+                    }
+                }
+
+                $rowCallback = function ($row, $key, $label, $rowIndex, $columnIndex) {
+                    $row = (array) $row;
+
+                    switch($key){
+                        case 'created_at':
+                            return \Carbon\Carbon::parse($row[$key])->format('d.m.Y H:i:s');
+                    }
+
+                    return $row[$key] ?? '';
+                };
+                break;
             case 'documents':
                 $filename = 'belgeler.xlsx';
                 $headers = [

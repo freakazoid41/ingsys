@@ -33,7 +33,7 @@ async function login(page, email, pass){
   page.on('console', m=> console.log(`[console] ${m.text()}`));
   try{
     console.log('=== VISIBLE RUN: kadir → kbbozat → pickle → kadir ===');
-    await login(page, 'kadir@kontent.com.tr','Kadir412.');
+    await login(page, 'redv@kontent.com.tr','R3dV!Kontent-2026');
     await page.goto('http://localhost:8000/planlamapanel/talepler'); await page.waitForLoadState('networkidle');
     await page.waitForSelector('#div_table',{timeout:10000}); await page.waitForTimeout(1000);
     const title=`VISIBLE ${Date.now()}`;
@@ -107,7 +107,7 @@ async function login(page, email, pass){
     await page.waitForTimeout(3000);
     // kadir std
     await page.goto('http://localhost:8000/logout'); await page.waitForLoadState('networkidle');
-    await login(page, 'kadir@kontent.com.tr','Kadir412.');
+    await login(page, 'redv@kontent.com.tr','R3dV!Kontent-2026');
     console.log(`[std] as kadir - WATCH`);
     const std = await page.evaluate(async (qnid)=>{ const fd=new FormData(); fd.append('id',qnid); fd.append('op_key','tr-request-std-approved'); const r=await fetch('/api/v1/trans/set-status',{method:'POST',body:fd}); return await r.json().catch(()=>({})); }, talepQnid);
     console.log(`[std] ${JSON.stringify(std).slice(0,100)}`);

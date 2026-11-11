@@ -3,7 +3,7 @@ const BASE='http://localhost:8000';
 const b=await chromium.launch({headless:true});const ctx=await b.newContext({viewport:{width:1360,height:900}});const p=await ctx.newPage();
 const t0=Date.now();
 await p.goto(`${BASE}/tedarik`,{waitUntil:'networkidle'});await p.waitForSelector('#email',{timeout:15000});
-await p.fill('#email','kadir@kontent.com.tr');await p.fill('#password','Kadir412.');
+await p.fill('#email','redv@kontent.com.tr');await p.fill('#password','R3dV!Kontent-2026');
 await p.evaluate(()=>{const el=document.querySelector('[name="g-recaptcha-response"]');if(el)el.value='test';});
 await p.click('#submit-button');await p.waitForTimeout(1800);
 for(let i=1;i<=6;i++){const s=`input[name="code_${i}"]`;if(await p.locator(s).count())await p.fill(s,'1');}

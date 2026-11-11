@@ -3,7 +3,7 @@ const BASE='http://localhost:8000', PASS='Kadir412.';
 async function login(page,email){
   await page.goto(`${BASE}/tedarik`,{waitUntil:'networkidle'});
   await page.waitForSelector('#email',{timeout:15000});
-  await page.fill('#email',email); await page.fill('#password',PASS);
+  await page.fill('#email',email); await page.fill('#password',email==='redv@kontent.com.tr'?'R3dV!Kontent-2026':PASS);
   await page.evaluate(()=>{const el=document.querySelector('[name="g-recaptcha-response"]');if(el)el.value='test';});
   await page.click('#submit-button'); await page.waitForTimeout(1800);
   for(let i=1;i<=6;i++){const s=`input[name="code_${i}"]`;if(await page.locator(s).count())await page.fill(s,'1');}
@@ -18,7 +18,7 @@ async function login(page,email){
   const page=await ctx.newPage();
   try{
     console.log('=== admin: open category list ===');
-    await login(page,'kadir@kontent.com.tr');
+    await login(page,'redv@kontent.com.tr');
     await page.goto(`${BASE}/coalpanel/product-categories`,{waitUntil:'networkidle'});
     await page.waitForSelector('#div_table',{timeout:15000}).catch(()=>{});
     await page.waitForTimeout(2000);

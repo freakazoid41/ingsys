@@ -31,6 +31,16 @@
             }
         },
         mounted(){
+            // delegated: readonly category field opens the picker even if the
+            // Form engine (re)builds its inputs asynchronously
+            this._catClickHandler = (e) => {
+                const t = e.target && e.target.closest ? e.target.closest('.area-target input[name^="category_title"]') : null;
+                if (t) {
+                    t.style.cursor = 'pointer';
+                    this.openCatModal();
+                }
+            };
+            document.addEventListener('click', this._catClickHandler);
             this.navigationStore.toggle(true);
             const checkData = async () => {
                 if(this.id !== undefined && this.id !== ''){
@@ -65,6 +75,12 @@
                     this.navigationStore.toggle(false);
                 }, 500);
             });
+        },
+        beforeUnmount(){
+            if (this._catClickHandler) {
+                document.removeEventListener('click', this._catClickHandler);
+                this._catClickHandler = null;
+            }
         },
         data() {
             const route = useRoute();
@@ -278,6 +294,91 @@
     </div>
 
 </template>
+
+<style>
+/* readonly category display doubles as picker opener */
+.area-target input[name^="category_title"] {
+    cursor: pointer;
+}
+/* ---- category picker modal: card rows like the front panels ---- */
+#pc_cat_table {
+    height: auto !important;
+    border: none !important;
+    background: #eef2f7 !important;
+    border-radius: 14px !important;
+    padding: 6px 10px 12px !important;
+}
+#pc_cat_table .divTable {
+    height: auto !important;
+    max-height: 38vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    border-bottom: none !important;
+    border-radius: 10px !important;
+}
+#pc_cat_table table {
+    border-collapse: separate !important;
+    border-spacing: 0 7px !important;
+    table-layout: fixed !important;
+    border: none !important;
+    width: 100% !important;
+}
+#pc_cat_table thead th {
+    background: transparent !important;
+    color: #94a3b8 !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    border: none !important;
+    padding: 6px 14px !important;
+    text-align: left !important;
+    text-transform: uppercase !important;
+    letter-spacing: .04em !important;
+}
+#pc_cat_table thead th:nth-child(2),
+#pc_cat_table tbody td:nth-child(2) {
+    width: 110px !important;
+}
+#pc_cat_table thead th:nth-child(3),
+#pc_cat_table tbody td:nth-child(3) {
+    width: 110px !important;
+    text-align: right !important;
+}
+#pc_cat_table tbody tr {
+    background: #fff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,.07) !important;
+    border: 1px solid #eef2f7 !important;
+}
+#pc_cat_table tbody tr:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(15,23,42,.12) !important;
+}
+#pc_cat_table tbody td {
+    background: transparent !important;
+    padding: 12px 14px !important;
+    font-size: 13.5px !important;
+    color: #334155 !important;
+    border: none !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+#pc_cat_table tbody td:first-child {
+    font-weight: 600 !important;
+    color: #0f172a !important;
+}
+#pc_cat_table tbody td .btn {
+    border-radius: 999px !important;
+    padding: 7px 18px !important;
+    font-weight: 600 !important;
+}
+#pc_cat_table .divPagination {
+    border-top: none !important;
+    justify-content: center !important;
+    padding-top: 8px !important;
+}
+</style>
 
 <style scoped>
 .rlist-btn {

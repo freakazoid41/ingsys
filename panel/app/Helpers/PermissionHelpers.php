@@ -84,6 +84,12 @@ if(!function_exists('checkPerm')){
                 'edit' => 'per-09-02',
                 'read' => 'per-09-01',
                 'status' => 'per-09-02',
+            ],
+            // kVA power definitions (system settings list, picked multi-select in file defs)
+            'op-doc-kva' => [
+                'edit' => 'per-09-02',
+                'read' => 'per-09-01',
+                'status' => 'per-09-02',
             ]
         ];
         

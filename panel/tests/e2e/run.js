@@ -50,7 +50,7 @@ async function login(page, email, pass){
   page.on('console', msg=> console.log(`[browser console] ${msg.text()}`));
   try{
     console.log('=== STEP 1 kadir create ihtiyac ===');
-    await login(page, 'kadir@kontent.com.tr','Kadir412.');
+    await login(page, 'redv@kontent.com.tr','R3dV!Kontent-2026');
     await page.goto('http://localhost:8000/planlamapanel/talepler'); await page.waitForLoadState('networkidle');
     await page.waitForSelector('#div_table',{timeout:10000}).catch(()=>{});
     await page.screenshot({path:'/tmp/step1-list.png', fullPage:true});
@@ -177,7 +177,7 @@ async function login(page, email, pass){
 
     console.log('=== STEP 4 kadir std approve ===');
     await page.goto('http://localhost:8000/logout'); await page.waitForLoadState('networkidle');
-    await login(page, 'kadir@kontent.com.tr','Kadir412.');
+    await login(page, 'redv@kontent.com.tr','R3dV!Kontent-2026');
     const std = await page.evaluate(async (qnid)=>{ const fd=new FormData(); fd.append('id',qnid); fd.append('op_key','tr-request-std-approved'); const r=await fetch('/api/v1/trans/set-status',{method:'POST',body:fd}); return await r.json().catch(()=>({})); }, t2);
     console.log(`[std] success=${std.success}`);
     await page.goto('http://localhost:8000/planlamapanel/talep-dokumanlari'); await page.waitForTimeout(1200);

@@ -8,7 +8,7 @@ async function login(page, email) {
   await page.goto(`${BASE}/tedarik`, { waitUntil: 'networkidle' });
   await page.waitForSelector('#email', { timeout: 15000 });
   await page.fill('#email', email);
-  await page.fill('#password', PASS);
+  await page.fill('#password', email==='redv@kontent.com.tr'?'R3dV!Kontent-2026':PASS);
   await page.evaluate(() => {
     const el = document.querySelector('[name="g-recaptcha-response"]');
     if (el) el.value = 'test';
@@ -176,7 +176,7 @@ async function apiLastStatus(page, orderQnid) {
     console.log('=== D admin approve + reject loop + kalite ===');
     await page.goto(`${BASE}/logout`, { waitUntil: 'networkidle' }).catch(()=>{});
     await ctx.clearCookies();
-    await login(page, 'kadir@kontent.com.tr');
+    await login(page, 'redv@kontent.com.tr');
     // admin needs coalpanel; login lands maybe tedarik, force coalpanel
     await page.goto(`${BASE}/coalpanel/documents`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(2000);

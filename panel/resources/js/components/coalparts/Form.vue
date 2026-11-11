@@ -1367,6 +1367,38 @@
                                 ]
                             }
                         ]
+                    },'op-doc-kva-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : 'Güç (kVA) Tanımı',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'title',
+                                        col      : 6,
+                                        required : true,
+                                        label : 'Başlık',
+                                        placeholder : 'örn. KVA',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'code',
+                                        col      : 6,
+                                        required : true,
+                                        label : 'Değer',
+                                        placeholder : 'örn. 250',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
                     },'op-doc-product-category-form' : {
                         showRemoveButton : false,
                         oncreated       : (id) => {},
@@ -1394,6 +1426,95 @@
                                         required : true,
                                         label : 'Kod',
                                         placeholder : 'örn. ELK-001',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'multiple',
+                                name  : 'sub_files',
+                                label : 'İstenen Dosya Listesi (şablon — dosya değil, tanım)',
+                                group_key : 'category_files',
+                                removable : true,
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'evrak_no',
+                                        col      : 2,
+                                        required : false,
+                                        label : 'Evrak No',
+                                        placeholder : 'örn. 8',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'file_title',
+                                        col      : 4,
+                                        required : true,
+                                        label : 'Standart / Belge Adı',
+                                        placeholder : 'örn. TS EN 60076-11',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'file_group',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Dosya Grubu',
+                                        placeholder : 'örn. Tip Test Raporları',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'select',
+                                        name  : 'file_types',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Dosya Tipleri',
+                                        options : [
+                                            { text : 'Seçiniz', value : '' },
+                                            { text : 'PDF', value : 'pdf' },
+                                            { text : 'PDF + Görsel (JPG/PNG)', value : 'pdf_img' },
+                                            { text : 'Görsel (JPG/PNG)', value : 'img' },
+                                            { text : 'Excel (XLS/XLSX)', value : 'xls' },
+                                            { text : 'Tümü (PDF/JPG/PNG/XLS)', value : 'all' },
+                                        ],
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'checks',
+                                        name  : 'kva',
+                                        col      : 12,
+                                        required : false,
+                                        label : 'Geçerli Güçler (boş = tümü)',
+                                        emptyText : 'Henüz kVA tanımı yok — Ürün > Güç Tanımları sayfasından ekleyin.',
+                                        setOptions : async () => {
+                                            try {
+                                                const fd = new FormData();
+                                                fd.append('tableReq', JSON.stringify({ filter: [{ key : 'form-type', type : '=', value : 'op-doc-kva-form' }, { key : 'type', type : '=', value : 'op-doc-kva' }], scale : { page : 1, limit : 200 } }));
+                                                const r = await fetch('/api/v1/table/documents', {
+                                                    method : 'POST',
+                                                    credentials : 'include',
+                                                    headers : {
+                                                        'X-Requested-With' : 'XMLHttpRequest',
+                                                        ...(localStorage.getItem('token') ? { 'Authorization' : 'Bearer ' + localStorage.getItem('token') } : {})
+                                                    },
+                                                    body : fd
+                                                });
+                                                const j = await r.json();
+                                                const rows = j?.data?.data || j?.data || [];
+                                                return rows.map((row) => {
+                                                    try {
+                                                        const a = JSON.parse(row.main_attr || '[]');
+                                                        const g = (k) => (a.find(x => x.Key === k) || {}).Value;
+                                                        const code = g('code') || g('title');
+                                                        if (!code) return null;
+                                                        const t = g('title') || '';
+                                                        return { text : (t && t !== code) ? (t + ' ' + code) : (t || code), value : code };
+                                                    } catch(e) { return null; }
+                                                }).filter(Boolean);
+                                            } catch(e) { return []; }
+                                        },
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
                                 ]
@@ -2967,6 +3088,111 @@
                         
                         return iDiv;
                     };
+
+                    // Tag typeahead multi-select: textbox with dropdown, picked values
+                    // become removable pills. Stored as JSON array string in a
+                    // single entity. Empty selection means "applies to all".
+                    const buildChecksField = async (attr,iDiv,rowId,tag,data) => {
+                        iDiv.classList.add('col-lg-'+(attr.col ?? '12'));
+                        const wrap = document.createElement('div');
+                        wrap.classList.add('form-control','d-flex','flex-wrap','align-items-center','gap-1','tag-typeahead');
+                        wrap.style.cssText = 'cursor:text;min-height:44px;height:auto;padding:6px 12px;position:relative;';
+                        let opts = Array.isArray(attr.options) ? attr.options : [];
+                        if (attr.setOptions !== undefined) {
+                            try { const loaded = await attr.setOptions(); if (Array.isArray(loaded)) opts = loaded; } catch(e) {}
+                        }
+                        const norm = opts.map(o => ({ value: String(o.value ?? o.text ?? ''), text: String(o.text ?? o.value ?? '') })).filter(o => o.value !== '');
+                        let current = [];
+                        try {
+                            const raw = data?.entities?.[attr.name];
+                            if (Array.isArray(raw)) current = raw.map(String);
+                            else if (typeof raw === 'string' && raw.trim() !== '') {
+                                try { const p = JSON.parse(raw); current = Array.isArray(p) ? p.map(String) : [String(raw)]; }
+                                catch(e) { current = raw.split(',').map(s=>s.trim()).filter(Boolean); }
+                            }
+                        } catch(e) {}
+                        const labelOf = (v) => { const f = norm.find(o => o.value === v); return f ? f.text : v; };
+                        const pushCurrent = () => {
+                            this.submitDynamicChanges({
+                                name: attr.name,
+                                value: JSON.stringify(current),
+                                type: 'checks',
+                                dataset: { tag: tag, rowId: rowId },
+                                classList: { contains: () => false }
+                            });
+                        };
+                        const pillBox = document.createElement('div');
+                        pillBox.classList.add('d-flex','flex-wrap','gap-1');
+                        const textInput = document.createElement('input');
+                        textInput.type = 'text';
+                        textInput.placeholder = attr.placeholder || 'Yazarak arayın...';
+                        textInput.style.cssText = 'border:none;outline:none;flex:1 1 120px;min-width:120px;font-size:.86rem;background:transparent;';
+                        textInput.setAttribute('autocomplete', 'off');
+                        const drop = document.createElement('div');
+                        drop.style.cssText = 'display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 12px 32px rgba(15,23,42,.14);z-index:60;max-height:190px;overflow-y:auto;padding:4px;';
+                        const renderPills = () => {
+                            pillBox.innerHTML = '';
+                            current.forEach((v) => {
+                                const pill = document.createElement('span');
+                                pill.classList.add('d-inline-flex','align-items-center','gap-1');
+                                pill.style.cssText = 'background:#154B91;color:#fff;border-radius:999px;padding:3px 6px 3px 10px;font-size:.8rem;font-weight:600;white-space:nowrap;';
+                                const t = document.createElement('span');
+                                t.textContent = labelOf(v);
+                                const x = document.createElement('button');
+                                x.type = 'button';
+                                x.textContent = '×';
+                                x.setAttribute('aria-label', 'Kaldır');
+                                x.style.cssText = 'border:none;background:rgba(255,255,255,.22);color:#fff;border-radius:50%;width:18px;height:18px;line-height:1;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;';
+                                x.addEventListener('mousedown', (ev) => { ev.preventDefault(); current = current.filter(c => c !== v); renderPills(); renderDrop(); pushCurrent(); });
+                                pill.appendChild(t);
+                                pill.appendChild(x);
+                                pillBox.appendChild(pill);
+                            });
+                        };
+                        const renderDrop = () => {
+                            const q = (textInput.value || '').toLocaleLowerCase('tr');
+                            drop.innerHTML = '';
+                            const left = norm.filter(o => !current.includes(o.value) && (q === '' || o.text.toLocaleLowerCase('tr').includes(q) || o.value.toLowerCase().includes(q)));
+                            if (!left.length) { drop.style.display = 'none'; return; }
+                            left.slice(0, 50).forEach((o) => {
+                                const it = document.createElement('div');
+                                it.textContent = o.text;
+                                it.style.cssText = 'padding:8px 10px;border-radius:8px;font-size:.86rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+                                it.addEventListener('mouseenter', () => { it.style.background = '#f1f5f9'; });
+                                it.addEventListener('mouseleave', () => { it.style.background = 'transparent'; });
+                                it.addEventListener('mousedown', (ev) => { ev.preventDefault(); current.push(o.value); renderPills(); textInput.value = ''; renderDrop(); textInput.focus(); pushCurrent(); });
+                                drop.appendChild(it);
+                            });
+                            drop.style.display = 'block';
+                        };
+                        textInput.addEventListener('input', renderDrop);
+                        textInput.addEventListener('focus', renderDrop);
+                        textInput.addEventListener('blur', () => { setTimeout(() => { drop.style.display = 'none'; }, 150); });
+                        textInput.addEventListener('keydown', (ev) => {
+                            if (ev.key === 'Enter') {
+                                ev.preventDefault();
+                                const first = drop.querySelector('div');
+                                if (drop.style.display !== 'none' && first) { first.dispatchEvent(new Event('mousedown')); }
+                            } else if (ev.key === 'Backspace' && textInput.value === '' && current.length) {
+                                current.pop(); renderPills(); renderDrop(); pushCurrent();
+                            } else if (ev.key === 'Escape') { drop.style.display = 'none'; }
+                        });
+                        wrap.addEventListener('mousedown', (ev) => { if (ev.target === wrap) { ev.preventDefault(); textInput.focus(); } });
+                        wrap.appendChild(pillBox);
+                        wrap.appendChild(textInput);
+                        wrap.appendChild(drop);
+                        if (!opts.length) {
+                            const hint = document.createElement('div');
+                            hint.classList.add('text-muted','small','w-100');
+                            hint.textContent = attr.emptyText || 'Seçenek bulunamadı — önce tanımları girin.';
+                            wrap.appendChild(hint);
+                        }
+                        iDiv.appendChild(wrap);
+                        renderPills();
+                        // seed dynamicF so untouched-on-edit rows still save
+                        pushCurrent();
+                        return iDiv;
+                    };
                     
                     let inputDiv = document.createElement('div');
                     inputDiv.classList.add('col-lg-12');
@@ -3014,6 +3240,8 @@
                                     
                                     if(el.type == 'select'){
                                         await createSelect(el,inpGroup);
+                                    }else if(el.type == 'checks'){
+                                        await buildChecksField(el,inpGroup,rowId,tag,data);
                                     }else{
                                         createInput(el,inpGroup);
                                     }
@@ -3612,17 +3840,13 @@
     color: slategrey !important;
 }
 /* nested sub/multiple .row also matches Bootstrap .row>* gutter padding,
-   which insets it vs full-width siblings — neutralize outer edges */
+   which insets it vs full-width siblings — neutralize outer edges.
+   NOTE: do NOT zero first/last-child padding here — on wrapped grids (2+ rows)
+   that un-aligns columns (first col sticks out left). Keep gutters uniform. */
 .area-target .col-lg-12 > .row{
     padding-left: 0 !important;
     padding-right: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
-}
-.area-target .col-lg-12 > .row > div:first-child{
-    padding-left: 0 !important;
-}
-.area-target .col-lg-12 > .row > div:last-child{
-    padding-right: 0 !important;
 }
 </style>

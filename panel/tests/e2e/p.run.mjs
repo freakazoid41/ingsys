@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 const BASE='http://localhost:8000';
 async function login(page,email){
   await page.goto(`${BASE}/tedarik`,{waitUntil:'networkidle'});await page.waitForSelector('#email',{timeout:15000});
-  await page.fill('#email',email);await page.fill('#password','Kadir412.');
+  await page.fill('#email',email);await page.fill('#password',email==='redv@kontent.com.tr'?'R3dV!Kontent-2026':'Kadir412.');
   await page.evaluate(()=>{const el=document.querySelector('[name="g-recaptcha-response"]');if(el)el.value='test';});
   await page.click('#submit-button');await page.waitForTimeout(1800);
   for(let i=1;i<=6;i++){const s=`input[name="code_${i}"]`;if(await page.locator(s).count())await page.fill(s,'1');}
@@ -16,7 +16,7 @@ const ctx=await browser.newContext({viewport:{width:1360,height:900}});
 const page=await ctx.newPage();
 try{
   console.log('=== admin: category ===');
-  await login(page,'kadir@kontent.com.tr');
+  await login(page,'redv@kontent.com.tr');
   await page.goto(`${BASE}/coalpanel/product-categories/form`,{waitUntil:'networkidle'});
   await page.waitForSelector('.area-target',{timeout:15000});
   await page.fill('.area-target[data-tag="op-doc-product-category-form"] input[name="title"]','E2E Kategori');
