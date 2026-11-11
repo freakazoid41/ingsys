@@ -21,6 +21,7 @@ class Document_files extends Model
     protected $fillable = [
         'description',
         'replaced_id',
+        'valid_until',
         'type_id',
         'selected_at',
         'title',

@@ -10,7 +10,7 @@
     "isDynamicEntry": true
   },
   "public/coaltheme/css/custom.css": {
-    "file": "assets/custom-DPh-G_fi.css",
+    "file": "assets/custom-BGHPHPHI.css",
     "src": "public/coaltheme/css/custom.css",
     "isEntry": true
   },
@@ -178,7 +178,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-TfJbGzlB.js",
+    "file": "assets/app-CPlV25Ju.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -194,7 +194,7 @@
       "node_modules/chart.js/auto/auto.js"
     ],
     "css": [
-      "assets/app-CwIUp_Tx.css"
+      "assets/app-DO8FqOTi.css"
     ]
   },
   "resources/js/coal-swal.js": {

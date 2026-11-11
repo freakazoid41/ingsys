@@ -471,7 +471,7 @@ if(!function_exists('tempUploadFile')){
      * Uploads a file to temporary storage and creates a pending document_files record.
      * Returns: { success, reference_id, encrypted_name, original_name }
      */
-    function tempUploadFile($file){
+    function tempUploadFile($file, $validUntil = null){
         try{
             if($file->getSize() <= 42000000 && in_array(strtolower($file->getClientOriginalExtension()),['jpg','png','jpeg','pdf','xls','xlsx']) ){
                 $filename = time().(\Illuminate\Support\Str::random(5)).slugify($file->getClientOriginalName()).'.'.$file->getClientOriginalExtension();
@@ -496,6 +496,9 @@ if(!function_exists('tempUploadFile')){
                 $docFile->type_id = $fileType->id ?? 0;
                 $docFile->description = $encryptedName;
                 $docFile->status = 1;
+                if (! empty($validUntil)) {
+                    try { $docFile->valid_until = \Carbon\Carbon::parse($validUntil)->toDateString(); } catch (\Throwable $e) {}
+                }
                 $docFile->save();
 
                 return [
@@ -503,6 +506,7 @@ if(!function_exists('tempUploadFile')){
                     'reference_id' => $docFile->id,
                     'encrypted_name' => $encryptedName,
                     'original_name' => $file->getClientOriginalName(),
+                    'valid_until' => $docFile->valid_until,
                 ];
             }else{
                 return [

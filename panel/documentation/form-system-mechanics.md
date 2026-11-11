@@ -318,6 +318,7 @@ Client-side equivalents live in `authStore.permissions.includes(...)` and route 
 6. **`before` in audit logs** is used by the UI to distinguish edits from status changes — keep the convention (omit `before` for status-only events).
 7. **SQL injection discipline** — qnid-style params reaching `getFormData`/`tableList` must be UUID-validated; filters go through `noInject()` + `strip_tags()`.
 8. **Transactions are the status** — always read latest `op-trans-<type>` per target; the `documents.status` column is only active/passive/cancelled.
+9. **`setOptions` is memoised per loader function** (`Form.vue` `loadSetOptions`). Before this, a `multiple` group with N rows called `setOptions` N times *serially* while awaiting — the category form with 14 file-definition rows fired 14 identical kVA table queries (~430 ms each → ~6 s blank form). Cache is a `WeakMap` keyed by the loader closure, so a fresh mount (new closures) refetches. Never make `setOptions` depend on per-row mutable data or all rows will share one result.
 
 ---
 

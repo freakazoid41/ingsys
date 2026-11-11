@@ -947,7 +947,7 @@ class AuthController extends Controller
             'permissions'   => $permissionService->has(auth()->user(), 'all') ? [
                 // DEV_ADMIN backdoor — keep in sync with sys_role_templates Admin (immutable-admin)
                 'per-00','per-00-01',
-                'per-041','per-041-01','per-041-02','per-041-03','per-041-04','per-041-05','per-041-05-01','per-041-05-02','per-041-05-03','per-041-05-04',
+                'per-041','per-041-01','per-041-02','per-041-03','per-041-03-01','per-041-03-02','per-041-04','per-041-05','per-041-05-01','per-041-05-02','per-041-05-03','per-041-05-04',
                 'per-04','per-04-01','per-04-02','per-04-03','per-04-04',
                 'per-05','per-05-01','per-05-02','per-05-03','per-05-04','per-05-05',
                 'per-06','per-06-01','per-06-02',

@@ -367,6 +367,24 @@ class Documents extends Model
 
                     $columns['addional'] = " request_attr.request_attr  as  addional"; 
                 }
+
+                // İhale list: how many product rows the tender carries (repeatable `ihale_product_rows` group).
+                if($obj['filterKeys']['form-type'] === 'op-doc-ihale-form'){
+                    $columns['row_count'] = "(SELECT count(DISTINCT split_part(se5.entity_tag, '**', 3))
+                                              FROM sys_con_entities se5
+                                              INNER JOIN sys_con_ops so5 ON so5.id = se5.conn_id
+                                              WHERE so5.main_id = i.id
+                                                AND se5.entity_tag LIKE '%**ihale_product_rows**%')  as  row_count";
+                }
+
+                // Teklif list: one item form connection per offered product row.
+                if($obj['filterKeys']['form-type'] === 'op-doc-ihale-offer-form'){
+                    $columns['row_count'] = "(SELECT count(*)
+                                              FROM sys_con_ops so6
+                                              INNER JOIN sys_options sp6 ON sp6.id = so6.type_id
+                                              WHERE so6.main_id = i.id
+                                                AND sp6.op_key = 'op-doc-ihale-offer-item-form')  as  row_count";
+                }
             }
 
 

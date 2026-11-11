@@ -394,6 +394,41 @@ export default {
                         </div>
                     </div>
 
+                    <!-- İhale Yönetimi -->
+                    <div v-if="this.useAuthStore().permissions?.includes('per-041-03')"
+                         data-kt-menu-trigger="click"
+                         class="menu-item py-1 menu-row-main">
+                        <span class="menu-link main-menu px-3">
+                            <span class="menu-icon me-0">
+                                <i class="ki-outline ki-chart-simple fs-1"></i>
+                            </span>
+                            <div class="menu-content d-flex justify-content-between align-items-center w-100">
+                                <span class="menu-section ps-2 py-1 text-dark">İhale Yönetimi</span>
+                                <span class="menu-arrow"><i class="ki-outline ki-down fs-7"></i></span>
+                            </div>
+                        </span>
+                        <div class="sub-menu hidden-menu">
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'IhList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">İhaleler</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'IhForm' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Yeni İhale</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-041-03-02')">
+                                <router-link :to="{ name: 'IhOfferList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Teklifler</span>
+                                </router-link>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Section: YÖNETİM (altta) -->
                     <div v-if="!isMini && authStore.typeKey !== 'op-pert-reseller'" class="aside-section-label text-muted text-uppercase fs-8 fw-bold ls-1 px-3 pt-4 pb-1">
                         Yönetim

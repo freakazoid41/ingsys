@@ -33,6 +33,14 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     Route::any('/v1/document/{id?}',                   [DocumentController::class, 'index']);
     Route::any('/v1/transaction/{id?}',                [DocumentController::class, 'transaction']);
     Route::post('/v1/temp-upload',                     [DocumentController::class, 'tempUpload']);
+    Route::get('/v1/client-docs/{supplier}',            [DocumentController::class, 'clientDocs']);
+    Route::post('/v1/client-docs/slot',                 [DocumentController::class, 'clientDocsSlot']);
+    Route::post('/v1/tenders/complete',                 [DocumentController::class, 'completeTender']);
+    Route::post('/v1/tenders/activate',                 [DocumentController::class, 'activateTender']);
+    Route::post('/v1/offers/accept',                    [DocumentController::class, 'acceptOffer']);
+    Route::post('/v1/offers/reject',                    [DocumentController::class, 'rejectOffer']);
+    Route::post('/v1/offers/file-reject',               [DocumentController::class, 'rejectOfferFile']);
+    Route::post('/v1/tender-products',                  [DocumentController::class, 'tenderProducts']);
     Route::get('/v1/get-apartments',                   [DocumentController::class, 'getAparments']);
     Route::post('/v1/set-apartments',                  [DocumentController::class, 'setAparments']);
     //Route::post('/v1/admin/refresh-perms/{personId}',  [PersonsController::class, 'adminRefreshPermissions']);

@@ -101,4 +101,5 @@ Detail: `panel/documentation/optimize-suggestions.md`
 - `optimize-suggestions.md` — shared composables/libs for next listings
 - `export-system.md` — Excel pipeline
 - `modules/order-planning.md` — Malzeme Planlama bible (doc types, chain, notifs, gotchas)
+- `modules/products.md` — Ürün bible (categories, products, kVA defs, file templates, checks/tagbox field, gotchas)
 - `memory/05` — LIVE snapshot, `memory/06` — next steps, `memory/07` — SAP sync command

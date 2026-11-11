@@ -18,6 +18,21 @@
     import Swal from 'sweetalert2';
     import dayjs from 'dayjs';
 
+    // Memoise async option loaders. A repeatable `multiple` group with N rows used to
+    // call its `setOptions` N times, serially awaited — the category form's kVA tag
+    // fields fired 14 identical table requests before the form painted. Keyed by the
+    // loader function itself, so a fresh component mount (new closures) refetches.
+    const __setOptionsMemo = new WeakMap();
+    const loadSetOptions = (fn) => {
+        let p = __setOptionsMemo.get(fn);
+        if (!p) {
+            p = Promise.resolve().then(() => fn());
+            __setOptionsMemo.set(fn, p);
+            p.catch(() => __setOptionsMemo.delete(fn));
+        }
+        return p;
+    };
+
 
     export default {
         props: {
@@ -1302,6 +1317,110 @@
                                 ]
                             }
                         ]
+                    },'op-doc-ihale-form' : {
+                        showRemoveButton : false,
+                        oncreated       : (id) => {},
+                        fields          : [
+                            {
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                type  : 'sub',
+                                name  : 'sub_1',
+                                label : 'İhale Bilgisi',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'ihale_kodu',
+                                        col      : 12,
+                                        required : true,
+                                        label : 'İhale Kodu',
+                                        placeholder : 'örn. IHL-2026-001',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                name  : 'sub_spec',
+                                label : 'İlgili Teknik Şartname',
+                                type  : 'multiple',
+                                removable : false,
+                                hideAdd : true,
+                                group_key : 'ihale_spec',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'spec_title',
+                                        col      : 6,
+                                        required : false,
+                                        label : 'İlgili Teknik Şartname Adı',
+                                        placeholder : 'örn. Trafo Teknik Şartnamesi',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'file',
+                                        accept : '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
+                                        name  : 'ihale_spec_file',
+                                        col      : 6,
+                                        // NOTE: file inputs can't use `required` — checkForm sees value=''
+                                        // even after a pick, which would block every save. Required-ness is
+                                        // enforced in IhForm.submitForm (hasSpecFile) instead.
+                                        required : false,
+                                        label : 'Dosya *',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            },{
+                                class : ['form-control','mb-2','mb-md-0','form-item'],
+                                name  : 'sub_products',
+                                label : 'Ürünler',
+                                type  : 'multiple',
+                                removable : true,
+                                requiredIfFirst : true,
+                                group_key : 'ihale_product_rows',
+                                subs  : [
+                                    {
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'product_qnid',
+                                        col      : 12,
+                                        required : false,
+                                        hidden : true,
+                                        label : 'Ürün ID',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'product_title',
+                                        col      : 6,
+                                        required : true,
+                                        readOnly : true,
+                                        label : 'Ürün (seçmek için tıklayın)',
+                                        placeholder : 'Seçmek için tıklayın...',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'quantity',
+                                        col      : 3,
+                                        required : true,
+                                        label : 'Miktar',
+                                        placeholder : 'örn. 100',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
+                                        name  : 'unit',
+                                        col      : 3,
+                                        required : false,
+                                        readOnly : true,
+                                        label : 'Birim',
+                                        placeholder : '—',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    }
+                                ]
+                            }
+                        ]
                     },'op-doc-product-form' : {
                         showRemoveButton : false,
                         oncreated       : (id) => {},
@@ -1449,11 +1568,20 @@
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
+                                        name  : 'standard',
+                                        col      : 2,
+                                        required : false,
+                                        label : 'Standart',
+                                        placeholder : 'örn. TS EN 60076',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'text',
                                         name  : 'file_title',
-                                        col      : 4,
+                                        col      : 3,
                                         required : true,
-                                        label : 'Standart / Belge Adı',
-                                        placeholder : 'örn. TS EN 60076-11',
+                                        label : 'Belge Adı',
+                                        placeholder : 'örn. Tip Test Raporu',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
@@ -1468,7 +1596,7 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'select',
                                         name  : 'file_types',
-                                        col      : 3,
+                                        col      : 2,
                                         required : true,
                                         label : 'Dosya Tipleri',
                                         options : [
@@ -3056,7 +3184,7 @@
                         input.appendChild(op);
 
                         if(attr?.setOptions !== undefined){
-                            attr.options = await  attr.setOptions();
+                            attr.options = await loadSetOptions(attr.setOptions);
                         }
                         input.oninput = (e) => attr.oninput(e);
                         for (let index = 0; index < attr?.options?.length; index++) {
@@ -3099,7 +3227,7 @@
                         wrap.style.cssText = 'cursor:text;min-height:44px;height:auto;padding:6px 12px;position:relative;';
                         let opts = Array.isArray(attr.options) ? attr.options : [];
                         if (attr.setOptions !== undefined) {
-                            try { const loaded = await attr.setOptions(); if (Array.isArray(loaded)) opts = loaded; } catch(e) {}
+                            try { const loaded = await loadSetOptions(attr.setOptions); if (Array.isArray(loaded)) opts = loaded; } catch(e) {}
                         }
                         const norm = opts.map(o => ({ value: String(o.value ?? o.text ?? ''), text: String(o.text ?? o.value ?? '') })).filter(o => o.value !== '');
                         let current = [];

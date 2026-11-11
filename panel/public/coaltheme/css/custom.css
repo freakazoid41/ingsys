@@ -963,3 +963,14 @@ html body #kt_content .rlist-card .pickletable tbody tr:hover,
 html body #kt_content .order-list-card:not(.tedarik-card) .pickletable tbody tr:hover {
     background: #f8fafc !important;
 }
+
+/* Offer matrix — file cell action modal (no default Swal title/actions) */
+.iho-cell-modal.swal2-popup {
+    border-radius: 16px !important;
+    padding: 0 !important;
+}
+.iho-cell-modal .swal2-html-container {
+    margin: 0 !important;
+    padding: 20px 24px 18px !important;
+}
+.iho-cell-modal .swal2-actions { display: none !important; }

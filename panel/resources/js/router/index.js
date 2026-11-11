@@ -22,6 +22,10 @@ import DList from "@/pages/coalsystem/Documents/DList.vue";
 import DForm from "@/pages/coalsystem/Documents/DForm.vue";
 import NSettings from "@/pages/coalsystem/Notifications/NSettings.vue";
 import MList from "@/pages/coalsystem/Standardization/MList.vue";
+import IhForm from "@/pages/coalsystem/Ihale/IhForm.vue";
+import IhList from "@/pages/coalsystem/Ihale/IhList.vue";
+import IhOfferList from "@/pages/coalsystem/Ihale/IhOfferList.vue";
+import IhOffer from "@/pages/coalsystem/Ihale/IhOffer.vue";
 import LList from "@/pages/coalsystem/Logs/LList.vue";
 import NList from "@/pages/coalsystem/NotificationLogs/NList.vue";
 // Order Management System (new)
@@ -76,6 +80,10 @@ const router = createRouter({
         { path: "/coalpanel/sistem-loglari", name: 'LList', component: LList},
         { path: "/coalpanel/notifikasyon-loglari", name: 'NList', component: NList},
         { path: "/coalpanel/mudurlukler", name: 'MList', component: MList },
+        { path: "/coalpanel/ihaleler", name: 'IhList', component: IhList },
+        { path: "/coalpanel/ihaleler/teklifler", name: 'IhOfferList', component: IhOfferList },
+        { path: "/coalpanel/ihaleler/form/:id?", name: 'IhForm', component: IhForm },
+        { path: "/coalpanel/ihaleler/teklif/:id?", name: 'IhOffer', component: IhOffer },
         { path: "/coalpanel/planlama", name: 'PlanlamaList', component: PlanlamaDashboard },
         { path: "/coalpanel/planlama/talepler", name: 'PlanlamaRListAdmin', component: PlanlamaRList },
         { path: "/coalpanel/planlama/talepler/form/:id?", name: 'PlanlamaRFormAdmin', component: PlanlamaRForm },
@@ -164,6 +172,18 @@ router.beforeEach((to, from, next) => {
         if (to.path.startsWith('/tedarikpanel/orders') && perms.length) {
             const hasOrder = perms.includes('per-05') || perms.includes('per-05-01');
             if (!hasOrder) return next('/tedarikpanel');
+        }
+        // İhale Yönetimi guard: per-041-03 required for the whole module
+        if (to.path.startsWith('/coalpanel/ihaleler') && perms.length) {
+            if (!perms.includes('per-041-03')) return next('/coalpanel');
+        }
+        // Teklif listesi (review queue) admin-only: per-041-03-02
+        if (to.path.includes('/ihaleler/teklifler') && perms.length) {
+            if (!perms.includes('per-041-03-02') && !perms.includes('per-041-03')) return next('/coalpanel');
+        }
+        // Teklif guard: create (03-01) or inspect (03-02)
+        if (to.path.includes('/ihaleler/teklif') && !to.path.includes('/ihaleler/teklifler') && perms.length) {
+            if (!perms.includes('per-041-03-01') && !perms.includes('per-041-03-02')) return next('/coalpanel');
         }
         // Planlama guard: per-041-05 required
         if ((to.path.startsWith('/planlamapanel') || to.path.startsWith('/coalpanel/planlama')) && perms.length) {

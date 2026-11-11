@@ -71,6 +71,34 @@ class DocumentServiceProvider extends ServiceProvider
         $isUpdate = false;
         $registerUser = session('person_id'); // this is records user_id for more easy logging and reporting
 
+        // Tender guard: offers may only be written while the tender is ACTIVE.
+        // Completed = locked (snapshot frozen); created/not-activated = too early.
+        if ($typeKey === 'op-doc-ihale-offer') {
+            $ihaleQnid = null;
+            foreach ($dynamicF as $row) {
+                if (! empty($row['entities']['ihale_qnid'])) {
+                    $ihaleQnid = $row['entities']['ihale_qnid'];
+                    break;
+                }
+            }
+            if ($ihaleQnid) {
+                $ihaleDocId = Documents::where('qnid', $ihaleQnid)->value('id');
+                $lastTenderStatus = $ihaleDocId ? DB::table('transactions as t')
+                    ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                    ->where('t.target_id', $ihaleDocId)
+                    ->where('so.group_key', 'op-trans-op-doc-ihale')
+                    ->orderByDesc('t.id')
+                    ->value('so.op_key') : null;
+
+                if ($lastTenderStatus === 'tender-complated') {
+                    return ['success' => false, 'msg' => 'İhale tamamlandı — teklif kilitli, düzenlenemez.'];
+                }
+                if ($lastTenderStatus !== 'tender-activated') {
+                    return ['success' => false, 'msg' => 'İhale henüz aktif değil — teklif hazırlanamaz.'];
+                }
+            }
+        }
+
         // now add sended files to the document with connection table info
         foreach ($files as $key => $f) {
             if (strpos($key, 'dynamicFile') !== false) {
@@ -205,6 +233,10 @@ class DocumentServiceProvider extends ServiceProvider
                     'op-doc-requestf-item' => 'doc_trans_created',
                     // Talep Dökümanı is born awaiting Müdürlük approval (entered by Talep Yükleme user)
                     'op-doc-requestf' => 'tr-request-man-awaiting',
+                    // İhale owns a 3-step chain: created → activated → complated (winner locked)
+                    'op-doc-ihale' => 'tender-created',
+                    // Offer is born "sent" — supplier submission is the first real state
+                    'op-doc-ihale-offer' => 'offer-sended',
                 ];
                 $birthKey = $birthMap[$typeKey] ?? 'doc_trans_created';
                 $birthType = Sys_options::where('op_key', $birthKey)->first();
@@ -423,6 +455,24 @@ class DocumentServiceProvider extends ServiceProvider
             }
             // ////////////////////////////// Dynamic Fields ********************************
             DB::commit(); // <= Commit the changes
+
+            // Offer revision: a rejected offer that the supplier fixes and saves again
+            // returns to "offer-sended" (new transaction, audit keeps the rejection).
+            if ($typeKey === 'op-doc-ihale-offer' && $isUpdate) {
+                try {
+                    $lastOfferOp = DB::table('transactions as t')
+                        ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                        ->where('t.target_id', $document->id)
+                        ->where('so.group_key', 'op-trans-op-doc-ihale-offer')
+                        ->orderByDesc('t.id')
+                        ->value('so.op_key');
+                    if ($lastOfferOp === 'offer-rejected') {
+                        $this->setStatus($document->qnid, 'offer-sended', 'Teklif düzeltildi ve yeniden gönderildi');
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('offer resend status failed', ['msg' => $e->getMessage()]);
+                }
+            }
 
             // Order System: re-uploading a rejected file replaces it (old → status 0,
             // new → doc_file_refreshed). Recompute the parent order status so
@@ -1079,6 +1129,30 @@ class DocumentServiceProvider extends ServiceProvider
                             'msg' => 'Bu durum geçişine izin verilmiyor: '.$lastFOpKey.' → '.$statusKey,
                         ];
                     }
+                }
+            }
+
+            // İhale chain: tender-created → tender-activated → tender-complated (terminal)
+            if (($documentType->op_key ?? null) === 'op-doc-ihale') {
+                $allowedI = [
+                    'tender-created' => ['tender-activated'],
+                    'tender-activated' => ['tender-complated'],
+                    'tender-complated' => [],
+                ];
+                $lastIOpKey = DB::table('transactions as t')
+                    ->join('sys_options as so','so.id','=','t.type_id')
+                    ->where('t.target_id',$document->id)
+                    ->where('so.group_key','op-trans-op-doc-ihale')
+                    ->orderBy('t.id','desc')
+                    ->value('so.op_key');
+
+                $from = $lastIOpKey ?: 'tender-created';
+                $allowedNext = $allowedI[$from] ?? null;
+                if ($allowedNext === null || !in_array($statusKey, $allowedNext)) {
+                    return [
+                        'success' => false,
+                        'msg' => 'Bu durum geçişine izin verilmiyor: '.$from.' → '.$statusKey,
+                    ];
                 }
             }
 
