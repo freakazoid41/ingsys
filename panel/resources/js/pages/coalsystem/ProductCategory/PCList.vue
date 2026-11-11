@@ -123,7 +123,7 @@
                             editBtn.onclick = () => this.$router.push({ name: 'PCForm', params: { id: columnData } });
                             span.appendChild(editBtn);
 
-                            if (this.authStore.permissions?.includes('per-09-02')) {
+                            if (this.authStore.permissions?.includes('per-09-03')) {
                                 const delBtn = document.createElement('button');
                                 delBtn.classList.add('btn','btn-secondary','action-icon-btn','action-icon-btn--danger');
                                 delBtn.title = 'Sil';
@@ -212,7 +212,7 @@
             </div>
             <div class="rlist-toolbar">
                 <router-link
-                    v-if="useAuthStore().permissions?.includes('per-09-02')"
+                    v-if="useAuthStore().permissions?.includes('per-09-03')"
                     :to="{ name: 'PCForm' }"
                     class="rlist-btn rlist-btn-create"
                 >

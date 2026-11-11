@@ -54,12 +54,11 @@ export default {
                 {
                     key: 'ihale',
                     title: 'İhale',
-                    desc: 'İhale süreçleri — Yakında',
+                    desc: 'İhale & Teklif Yönetimi',
                     icon: 'ki-outline ki-chart-simple',
-                    path: '/coalpanel',
+                    path: '/coalpanel/ihaleler',
                     color: '#059669',
                     perm: 'per-041-03',
-                    disabled: true,
                 },
                 {
                     key: 'fabrika',
@@ -395,7 +394,7 @@ export default {
                     </div>
 
                     <!-- İhale Yönetimi -->
-                    <div v-if="this.useAuthStore().permissions?.includes('per-041-03')"
+                    <div v-if="this.useAuthStore().permissions?.includes('per-041-03') || this.useAuthStore().permissions?.includes('per-041-03-01')"
                          data-kt-menu-trigger="click"
                          class="menu-item py-1 menu-row-main">
                         <span class="menu-link main-menu px-3">
@@ -414,13 +413,13 @@ export default {
                                     <span class="menu-title">İhaleler</span>
                                 </router-link>
                             </div>
-                            <div class="menu-item">
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-041-03')">
                                 <router-link :to="{ name: 'IhForm' }" class="menu-link sub-link">
                                     <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
                                     <span class="menu-title">Yeni İhale</span>
                                 </router-link>
                             </div>
-                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-041-03-02')">
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-041-03')">
                                 <router-link :to="{ name: 'IhOfferList' }" class="menu-link sub-link">
                                     <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
                                     <span class="menu-title">Teklifler</span>

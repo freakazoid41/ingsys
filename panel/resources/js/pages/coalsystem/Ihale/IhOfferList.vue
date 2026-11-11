@@ -51,7 +51,7 @@
             canReview(){
                 if (this.isReseller) return false;
                 const p = this.authStore.permissions || [];
-                return p.includes('per-041-03-02') || p.includes('per-041-03');
+                return p.includes('per-041-03');
             },
         },
         watch: {

@@ -10,55 +10,54 @@
 
 ```
 ── 1. CREATE ─────────────────────────────────────────────────────────────────
-[admin]  İhaleler → Yeni İhale            /coalpanel/ihaleler/form
-         İhale Kodu (required) · Teknik Şartname file (required) · product rows (picker + qty/unit)
-         → documents(op-doc-ihale) + EAV
-         → transactions: tender-created
-         state: tender-created              offers BLOCKED (server-enforced)
+WHO: Admin / İş Birimi                          PERM: per-041-03
+İhaleler → Yeni İhale                            /coalpanel/ihaleler/form
+İhale Kodu (required) · Teknik Şartname file (required) · product rows (picker + qty/unit)
+→ documents(op-doc-ihale) + EAV → transactions: tender-created
+state: tender-created → offers BLOCKED (server-enforced)
 
 ── 2. ACTIVATE ───────────────────────────────────────────────────────────────
-[admin]  İhaleler → 🚀 Aktif Et
-         → POST /v1/tenders/activate
-         → transactions: tender-activated
-         state: tender-activated             teklif alımı açık
+WHO: Admin / İş Birimi                          PERM: per-041-03
+İhaleler → 🚀 Aktif Et → POST /v1/tenders/activate
+→ transactions: tender-activated → teklif alımı açık
 
 ── 3. OFFER (supplier) ───────────────────────────────────────────────────────
-[supplier] İhaleler → Teklif Ver           /coalpanel/ihaleler/teklif?ihale=<qnid>
-           Ürün Listesi (server-side, card rows) → product → matrix
-           per file upload:
-             temp-upload (valid_until via flatpickr, optional)
-             → POST /v1/client-docs/slot
-             → shared library doc (client + product code + requirement + kVA)
-             → transactions(op_id=1): doc_file_waiting | doc_file_refreshed
-           Teklifi Kaydet → POST/PUT /v1/document  (op-doc-ihale-offer)
-           → offer doc + header conn + N item conns
-           → transactions: offer-sended
-           expired file = save blocked
+WHO: client-bound user (Tedarikçi)              PERM: per-041-03-01
+İhaleler → Teklif Ver (row icon)                 /coalpanel/ihaleler/teklif?ihale=<qnid>
+Ürün Listesi (server-side, card rows) → product → matrix
+per file upload:
+  temp-upload (valid_until via flatpickr, optional)
+  → POST /v1/client-docs/slot
+  → shared library doc (client + product code + requirement + kVA)
+  → transactions(op_id=1): doc_file_waiting | doc_file_refreshed
+Teklifi Kaydet → POST/PUT /v1/document  (op-doc-ihale-offer)
+→ offer doc + header conn + N item conns → transactions: offer-sended
+expired file = save blocked · tender must be activated
 
 ── 4. REVIEW (admin) ─────────────────────────────────────────────────────────
-[admin]  Teklifler queue                   /coalpanel/ihaleler/teklifler
-         ✔ Kabul Et   → POST /v1/offers/accept
-                        → transactions: offer-accepted
-                        → winner entities + snapshot every offer + tender-complated
-         ✖ Reddet     → POST /v1/offers/reject {note}
-                        → transactions: offer-rejected (reason required)
-         cell modal   → Dosyayı Reddet
-                        → POST /v1/offers/file-reject {note}
-                        → file transaction: offer-file-rejected
-                        → offer auto-rejected: "Dosya reddedildi: <note>"
+WHO: Admin / İş Birimi                          PERM: per-041-03
+Teklifler queue                                  /coalpanel/ihaleler/teklifler
+✔ Kabul Et  → POST /v1/offers/accept
+              → offer-accepted + winner entities + snapshot every offer + tender-complated
+✖ Reddet    → POST /v1/offers/reject {note}      (reason required) → offer-rejected
+Dosyayı Reddet (cell modal) → POST /v1/offers/file-reject {note}
+              → file transaction: offer-file-rejected
+              → offer auto-rejected: "Dosya reddedildi: <note>"
 
 ── 5. REVISE (supplier) ──────────────────────────────────────────────────────
-[supplier] fix + Teklifi Kaydet on a rejected offer
-           → registerContent sees last offer status = offer-rejected
-           → transactions: offer-sended   (rejection stays in history)
+WHO: client-bound user (Tedarikçi)              PERM: per-041-03-01
+fix + Teklifi Kaydet on a rejected offer
+→ registerContent sees last offer status = offer-rejected
+→ transactions: offer-sended   (rejection stays in history)
 
 ── 6. COMPLETE (admin) ───────────────────────────────────────────────────────
-[admin]  İhaleler → ✔ Tamamla → winner modal (only suppliers who submitted)
-         → POST /v1/tenders/complete {winner_supplier_qnid, winner_supplier_title}
-         → winner_supplier_qnid / winner_supplier_title / winner_offer_qnid on tender
-         → snapshot JSON on every offer (files frozen at that moment)
-         → transactions: tender-complated
-         state: read-only — later library replacements do NOT rewrite this tender
+WHO: Admin / İş Birimi                          PERM: per-041-03
+İhaleler → ✔ Tamamla → winner modal (only suppliers who submitted)
+→ POST /v1/tenders/complete {winner_supplier_qnid, winner_supplier_title}
+→ winner_supplier_qnid / winner_supplier_title / winner_offer_qnid on tender
+→ snapshot JSON on every offer (files frozen at that moment)
+→ transactions: tender-complated
+state: read-only — later library replacements do NOT rewrite this tender
 
 ── PLANNED ───────────────────────────────────────────────────────────────────
 - invites/participants + deadline auto-disqualification
@@ -69,6 +68,71 @@
 - supplier portal under /tedarikpanel (today entry is coalpanel)
 ```
 
+---
+
+## 1.1 Actors, roles & permissions — who can do what
+
+### Permission catalog (İhale + Ürün)
+
+| Code | Title | Scope |
+|---|---|---|
+| `per-041-03` | **İhale Oluşturma / Yönetme** | create tender, edit until completed, activate, complete + lock with winner, review queue, accept/reject offers, reject offer files |
+| `per-041-03-01` | **Teklif Oluşturma** | prepare/save **own** offers, read tenders, read/write own document library (needs a bound client) |
+| `per-09-01` | Ürün Listeleme | read products / categories / kVA |
+| `per-09-02` | **Ürün Oluşturma / Düzenleme** | product create/edit/delete + kVA definitions |
+| `per-09-03` | **Kategori Oluşturma / Düzenleme** | product category create/edit/delete + file-definition templates |
+
+`per-041-03-02` (Teklif İnceleme) is **retired** — management (`per-041-03`) covers review; do not reintroduce it.
+
+### Roles (live `sys_role_templates`)
+
+| Role | op_key | İhale | Ürün | Notes |
+|---|---|---|---|---|
+| Admin | `immutable-admin` | `03`, `03-01` | `09-01/02/03` | everything; DEV_ADMIN backdoor mirrors this list |
+| İş Birimi | `immutable-satınalma-keyuser` | `03` | — | tender management + review |
+| Tedarikçi | `immutable-reseller` | `03-01` | — | offers only; must have a bound client |
+| Ürün Kategori Yöneticisi | `immutable-product-manager` | — | `09-01/02/03` | catalogue only |
+| İB. Görüntüleme | (viewer) | — | — | coalpanel shell only |
+
+Everyone needs **`per-041-01`** to enter `/coalpanel`; the İhale module tile and menu are enabled for `03`/`03-01`.
+
+### Job → permission matrix
+
+| Job | Screen / endpoint | Permission | Admin | İş Birimi | Tedarikçi | Ürün Yön. |
+|---|---|---|---|---|---|---|
+| See tender list | `/coalpanel/ihaleler` | `03` or `03-01` | ✅ | ✅ | ✅ | — |
+| Create / edit tender | `IhForm`, `POST/PUT /v1/document` (`op-doc-ihale`) | `03` | ✅ | ✅ | ❌ | — |
+| Activate tender | `POST /v1/tenders/activate` | `03` | ✅ | ✅ | ❌ | — |
+| Complete + pick winner | `POST /v1/tenders/complete` | `03` | ✅ | ✅ | ❌ | — |
+| Open Teklif Ver | row icon on active tender → `IhOffer` | `03-01` | ✅ | ❌ | ✅ | — |
+| Save own offer | `POST/PUT /v1/document` (`op-doc-ihale-offer`) | `03-01` + ownership | ✅ | ❌ | ✅ own | — |
+| Review queue | `/coalpanel/ihaleler/teklifler` | `03` | ✅ | ✅ | ❌ | — |
+| Accept / reject offer | `/v1/offers/accept`, `/v1/offers/reject` | `03` | ✅ | ✅ | ❌ | — |
+| Reject one file | `/v1/offers/file-reject` | `03` | ✅ | ✅ | ❌ | — |
+| Read own library | `GET /v1/client-docs/{supplier}` | `03-01` + own client | ✅ | ✅ | ✅ own | — |
+| Upload/replace own library file | `POST /v1/client-docs/slot` | `03-01` + own client | ✅ | ✅ | ✅ own | — |
+| Tender product rows | `POST /v1/tender-products` | `03` or `03-01` | ✅ | ✅ | ✅ | — |
+| Products CRUD | `/coalpanel/products` | `09-02` | ✅ | — | — | ✅ |
+| Categories CRUD | `/coalpanel/product-categories` | `09-03` | ✅ | — | — | ✅ |
+
+> Admin holds **both** İhale codes (DEV_ADMIN mirror) but has no client binding — create offers with a supplier account (`Tedarikçi` + bound client). İş Birimi has `03` only, so it manages/reviews but cannot create offers.
+
+### Enforcement layers
+
+1. **Shell:** `coalAuth` requires `per-041-01`.
+2. **Sidebar:** İhale section visible for `03 || 03-01`; **Yeni İhale** + **Teklifler** require `03`; row **Teklif Ver** requires `03-01` and a `tender-activated` tender.
+3. **Router guards:** `/coalpanel/ihaleler*` → `03 || 03-01`; `/ihaleler/teklifler` → `03`; `/ihaleler/teklif` → `03-01 || 03`.
+4. **Server doc permissions:** `docPermCheck` — tender edit/status `03`, read `03,03-01`; offer/item edit/status `03-01`, read `03,03-01`; category edit `09-03`; product/kVA edit `09-02`.
+5. **Controller endpoints:** activate/complete `03`; accept/reject/file-reject `03`; client-docs (supplier: own supplier + `03-01`, office: `03`); tender-products `03 || 03-01`.
+6. **Ownership:** `assertOfferOwnership` — a reseller can only touch offers whose `supplier_qnid` is in their bound client list (payload on write, stored doc on read). Role detection falls back to `users.role` for Bearer-token requests; client list falls back to the person's `cliid` entities. Fail-closed.
+7. **State guards (not permissions):** offers blocked unless the tender is `tender-activated`; completed tender is read-only; `offer-accepted` is immutable; expired files block offer save.
+
+### "Required user" for a supplier
+
+- `users.role = immutable-reseller` (Tedarikçi)
+- `per-041-03-01` granted (from role template)
+- at least one connected client (`op-doc-user-client-form` → `cliid` entities) — otherwise `IhOffer` shows "bağlı carisi olan hesap" notice and server rejects library access
+- `per-041-01` to enter coalpanel (currently granted to resellers in the live DB)
 
 ---
 
@@ -76,14 +140,14 @@
 
 | Piece | File | Notes |
 |---|---|---|
-| Menu "İhale Yönetimi" | `resources/js/components/coalparts/Sidebar.vue:397` | gated `per-041-03`; children: İhaleler · Yeni İhale · Teklifler. **Teklif Ver menu entry removed 2026-11-11**, but the per-row **Teklif Ver** icon in `IhList` stays (gated `per-041-03-01`) → opens `IhOffer?ihale=<qnid>` |
+| Menu "İhale Yönetimi" | `resources/js/components/coalparts/Sidebar.vue:397` | section `03 || 03-01`; children **İhaleler** (both), **Yeni İhale** (`03`), **Teklifler** (`03`). Per-row **Teklif Ver** icon in `IhList` (`03-01`, active tender) → `IhOffer?ihale=<qnid>`. No standalone Teklif Ver menu entry |
 | Routes | `resources/js/router/index.js` | `/coalpanel/ihaleler` → `IhList`, `/ihaleler/teklifler` → `IhOfferList`, `/ihaleler/form/:id?` → `IhForm`, `/ihaleler/teklif/:id?` → `IhOffer` |
 | Tender list | `resources/js/pages/coalsystem/Ihale/IhList.vue` | ajax PickleTable, `all` search, product count from `main_attr` row keys, spec pill, edit/offers/delete |
 | Offers list | `resources/js/pages/coalsystem/Ihale/IhOfferList.vue` | admin queue; `?ihale=<qnid>` filters one tender (`attr` filter), `row_count` from server |
 | Page + product picker | `resources/js/pages/coalsystem/Ihale/IhForm.vue` | modal table, multi-row products, qty/unit; save → back to `IhList` |
 | Form schema | `resources/js/components/coalparts/Form.vue:1305` | `op-doc-ihale-form` (see §4) |
 | Dictionary seeder | `database/seeders/IhaleSeeder.php` | idempotent, run once per env (see §3) |
-| Permission map | `app/Helpers/PermissionHelpers.php:89` | `op-doc-ihale` edit/read/status → `per-041-03` |
+| Permission map | `app/Helpers/PermissionHelpers.php` | `op-doc-ihale` edit/status `per-041-03`, read `03,03-01`; offer/item `03-01`; category `09-03`; product/kVA `09-02` — full matrix in **§1.1** |
 | List counts | `app/Models/Documents.php` `tableList` | conditional `row_count` for `op-doc-ihale-form` (distinct product rows) + `op-doc-ihale-offer-form` (item form conns) |
 
 ---
@@ -155,30 +219,41 @@ Tender examples = `TenderDemoSeeder.php` (idempotent by `ihale_kodu`, created th
 
 `IH-2026-004` intentionally repeats **TRF-33-100** with `IH-2026-002` so the shared client-document library can be seen across two tenders.
 
-Verified: `tableList` `row_count` and UI card count both return 3 / 4 / 2. Offer tables still empty (supplier flow has no UI door yet).
+Verified: `tableList` `row_count` and UI card count both return 3 / 4 / 2. All four tenders are at **`tender-created`** (offers blocked) until an admin uses 🚀 Aktif Et. No offers exist in the local DB (smoke data cleaned).
 
 ---
 
 ## 8. How To Verify
 
-1. Hard refresh → coalpanel → **İhale Yönetimi → İhale**.
-2. Fill İhale Kodu, attach a spec file, click Ürün → modal lists the 9 `TRF-33-*` transformer products → Seç → unit (`ST`) fills → type Miktar → + Ekle for more rows → trash removes a row.
-3. Kaydet → success toast → URL becomes `/coalpanel/ihaleler/form/{qnid}`.
-4. Reopen: code, spec, products, quantities, units all read back.
+1. Hard refresh → coalpanel → **İhale Yönetimi → İhaleler**.
+2. **Yeni İhale** → İhale Kodu, attach a spec file (required), click Ürün → modal lists the 9 `TRF-33-*` products → Seç → unit (`ST`) fills → Miktar → + Ekle → Kaydet (returns to the list).
+3. `IH-2026-001` row shows `3 kalem` + Şartname pill + **Oluşturuldu**; actions are ✏️ 🚀 (activate) 📄 🗑.
+4. 🚀 → **İhale Aktif**; login as `kbbozat`-type reseller → row shows **Teklif Ver**; open matrix, upload a file (expiry optional), save → offer `Gönderildi`.
+5. Admin → **Teklifler** queue → ✔ Kabul Et (completes + winner) or ✖ Reddet with reason; a cell's Do­sya İşlemleri → **Dosyayı Reddet** auto-rejects the offer.
 
 ---
 
 ---
 
-## 10. Teklif (Offer) — Built 2026-11-11, Verified Over HTTP
+## 9. Teklif (Offer) — Built 2026-11-11, Verified Over HTTP
 
-Supplier-only screen (`IhOffer.vue`, route `/coalpanel/ihaleler/teklif/:id?`, menu **Teklif Ver**). Custom UI (no Form engine — matrix too complex), same data mechanic: one POST/PUT envelope (`typeKey` + `dynamicF` + `dynamicFile*` refs) through `/v1/document` → `registerContent`. Versioning, logs, perms unchanged.
+Supplier screen (`IhOffer.vue`, route `/coalpanel/ihaleler/teklif/:id?`, entry from the row **Teklif Ver** icon or the offers list **Aç**). Custom UI (no Form engine — matrix too complex), same data mechanic: one POST/PUT envelope (`typeKey` + `dynamicF` + `dynamicFile*` refs) through `/v1/document` → `registerContent`. Versioning, logs and permissions unchanged.
 
-**Rule:** offer requires an account with a connected client (non-empty `clientQnidList`); otherwise the screen shows a notice. Admin review UI is a later step.
+**Rule:** creating an offer requires a connected client (non-empty `clientQnidList`) and `per-041-03-01`; otherwise the screen shows a notice. Office users (`per-041-03`) can open an existing offer read-only for review.
 
 **Dictionary** (`IhaleSeeder.php`, seeded): `op-doc-ihale-offer` (header), `op-doc-ihale-offer-form` (header row: `ihale_qnid`, `ihale_kodu`, `supplier_qnid`, `supplier_title`), `op-doc-ihale-offer-item-form` (one row per product: product link + qty/unit + `imalatci_firma_adi`, `urun_markasi`, `tedas_raporu`, `genel_gorus`). Item rows also carry `ihale_qnid` + `supplier_qnid` (denormalized, for scoping).
 
-**Permissions:** `docPermCheck` map (`PermissionHelpers.php`): offer + item → edit `per-041-03-01` (Teklif Oluşturma), read `per-041-03-01,per-041-03-02` (İnceleme). Menu **Teklif Ver** + route gate on create (inspect-only opens the screen readonly: inputs disabled, actions + save hidden). Seeded via `role_details.json` + `coal_roles_templates.json` → `SysRoleTemplateSeeder` (admin: both codes; reseller: 03-01); existing user entities migrated by role-template union + cache bump (24 users). DEV_ADMIN list updated. **Ownership** (`DocumentController::assertOfferOwnership`, after `docPermCheck`): resellers may only touch offers whose `supplier_qnid` is in their own `clientQnidList` (checked in payload for POST/PUT, in stored doc for GET/DELETE). Admins bypass. Fail-closed. Note: kbbozat/picklecanme user entities were missing `per-041-03` (stale vs role template) — granted + cache bumped.
+**Permissions (2026-11-11 — two-code model)**
+| Code | Title | Grants |
+|---|---|---|
+| `per-041-03` | **İhale Oluşturma / Yönetme** | create/edit tender (until completed), activate, complete + winner, review queue, offer accept/reject, per-file reject |
+| `per-041-03-01` | **Teklif Oluşturma** | create/read **own** offers (requires a bound client), read tenders, read/write own document library |
+| ~~`per-041-03-02`~~ | retired | removed from catalog + role templates; management covers review |
+
+- `docPermCheck`: `op-doc-ihale` edit/status `per-041-03`, read `per-041-03,per-041-03-01`; offer + item edit/status `per-041-03-01`, read `per-041-03,per-041-03-01`.
+- **Ownership** (`assertOfferOwnership`): resellers only touch offers whose `supplier_qnid` is in their bound client list (payload on write, stored doc on read). Role detection falls back to `users.role` for Bearer-token requests (no session), and the client list falls back to the person's `cliid` entities. Fail-closed.
+- Frontend: sidebar section `03 || 03-01`; **Yeni İhale** + **Teklifler** `03`; row **Teklif Ver** `03-01` and only on `tender-activated`; router guards mirror this. `IhList` manage buttons require `03`, `IhOfferList` review requires `03`, `IhOffer` save requires `03-01`.
+- Roles: **Admin** all; **Tedarikçi** `03-01` only; **İş Birimi** `03`; **Ürün Kategori Yöneticisi** `09*`. Module tile for İhale is now enabled.
 
 **Matrix mechanic (the image, sections A/B/C):**
 - Header table A per product: ihale kodu (ro), imalatçı* (fill), tedarikçi (ro, from binding), marka* (fill), malzeme grubu (ro), spec (ro), tedaş/görüş (optional).
@@ -198,7 +273,7 @@ Supplier-only screen (`IhOffer.vue`, route `/coalpanel/ihaleler/teklif/:id?`, me
 - PUT replacement as owner → 200; old file status 0, new `replaced_id` → old, tag reused.
 - `syncOrderStatusFromFiles` verified no-op for offer docs (early return unless `op-doc-order`).
 
-## 11. Paylaşımlı Evrak Kütüphanesi — Shared Client Files (2026-11-11)
+## 10. Paylaşımlı Evrak Kütüphanesi — Shared Client Files (2026-11-11)
 
 > **Rule:** a file belongs to **client + product code + requirement + kVA**, never to a tender. Same client + same product code + same requirement sees the same file in every tender.
 
@@ -224,21 +299,21 @@ Supplier-only screen (`IhOffer.vue`, route `/coalpanel/ihaleler/teklif/:id?`, me
 **UI (IhOffer.vue)**
 - **Product overview first:** opening an offer lands on a **server-side paginated table** (`PickleTable` ajax → `POST /v1/tender-products`, 10/page, search by name/code) rendered as **card rows** (rounded row cards, left accent stripe = state). Columns: Ürün (title + `prod_code` + qty/unit) · Kategori · Evrak (`ready/total` + mini bar) · Eksik (missing + expired) · Durum pill (**Dikkat Bekliyor / Devam Ediyor / Tamamlandı**) · Doldur/Aç. Header chips summarise `N ürün dikkat bekliyor` / `N tamam` / total. Stats come from the built items (`itemStats`), so they refresh on return from the matrix. Clicking a row opens that product's matrix (`viewMode='form'`); `← Ürün Listesi` returns and rebuilds the table.
 - **TEDAŞ / Genel Görüş rows** use attachment cards (`.iho-attach-*`): doc icon, ellipsised file name, status pill, right-aligned Önizle / Değiştir / Kaldır; pending uploads render as dashed amber cards; empty state = dashed **+ Dosya Ekle/Yükle** button. TEDAŞ stays multi-file (append), görüş stays single (replace).
-- **Matrix cells (`IhFileCell.vue`):** empty → outlined **Yükle**; filled → **icon-only tile** (no text): **green check** = uploaded/valid, **red alert** = rejected, **amber clock** = expired (`title` tooltip carries the date/status). Clicking the tile opens **Dosya İşlemleri** modal: status pill, yüklenme/geçerlilik/kaynak/sürüm rows, **Not / Ret nedeni** box (unwrapped from `last_status.note` JSON), and buttons **Önizle · Geçmiş (n) · Yenile** (Yenile hidden on a locked/completed tender). `Geçmiş` hands off to the version-history modal; `Yenile` re-opens the same flatpickr expiry + upload flow. `Geçmiş` hands off to the version-history modal; `Yenile` re-opens the same flatpickr expiry + upload flow.
+- **Matrix cells (`IhFileCell.vue`):** empty → outlined **Yükle** button; filled → **icon-only tile** (no text): **green check** = uploaded/valid, **red alert** = rejected, **amber clock** = expired (`title` tooltip carries date/status). Clicking the tile opens **Dosya İşlemleri** modal: status pill, yüklenme/geçerlilik/kaynak/sürüm rows, **Not / Ret nedeni** box, and buttons **Önizle · Geçmiş (n) · Yenile · Dosyayı Reddet** (admin only, hidden on a locked tender). `Geçmiş` opens the version-history modal; `Yenile` re-opens the flatpickr expiry + upload flow.
 - On file pick: `Geçerlilik Tarihi` prompt — **flatpickr** (Turkish locale, `d/m/Y`, typed or picked, optional) → temp upload with `valid_until` → slot POST → cell becomes `saved` + `Paylaşımlı`, expiry shown, `Geçmiş (n)` opens the version history modal.
 - `itemMissing` / `missingList` treat expired files as missing → save is blocked with "süresi doldu".
 - `IhList` gained a **Durum** pill (Açık / İhale Tamamlandı) and the completion action.
 
-**Permissions:** supplier may read own library and write with `per-041-03-01` (client qnid must be in `currentStatus.clientQnidList`); office side needs `per-041-03`. Fail-closed.
+**Permissions:** supplier may read/write own library with `per-041-03-01` (client qnid must be one of their bound clients — session list, or the person's `cliid` entities on token requests); office side needs `per-041-03`. Fail-closed. See **§1.1**.
 
-**Note:** `reseller` in the live DB has `per-041-01`, so suppliers reach `/coalpanel/ihaleler/teklif` today; the tedarik shell's ihale tile is still `disabled` (see §12).
+**Note:** `reseller` in the live DB has `per-041-01` + `per-041-03-01`, so suppliers reach `/coalpanel/ihaleler/teklif` today; the tedarik/planlama shells' ihale tiles are still `disabled` (see §12).
 
 **Tender status chain (own state machine, `op-trans-op-doc-ihale`)**
 | Status | Meaning | Who |
 |---|---|---|
 | `tender-created` | birth on save (EAV) — offers **not** accepted | automatic (`registerContent` birth map) |
-| `tender-activated` | teklif alımı açık; offers can be prepared/saved | admin `IhList` → 🚀 **Aktif Et** |
-| `tender-complated` | ended, **winner selected**, offers frozen to snapshot, read-only | admin `IhList` → ✔ **Tamamla** (winner modal) |
+| `tender-activated` | teklif alımı açık; offers can be prepared/saved | Admin / İş Birimi (`03`) → 🚀 **Aktif Et** |
+| `tender-complated` | ended, **winner selected**, offers frozen to snapshot, read-only | Admin / İş Birimi (`03`) → ✔ **Tamamla** (winner modal) |
 
 - Transition guard in `DocumentServiceProvider::setStatus`: `created → activated → complated`, terminal after completed.
 - Offer writes (`registerContent`, `op-doc-ihale-offer`) are **server-blocked** unless the tender is `tender-activated`; completed = locked.
@@ -256,25 +331,26 @@ Supplier-only screen (`IhOffer.vue`, route `/coalpanel/ihaleler/teklif/:id?`, me
 
 - Rejected → supplier edits and saves → `registerContent` flips it back to **`offer-sended`** automatically (rejection stays in the audit history).
 - Accepting requires the tender to be `tender-activated`; it runs the same `completeTenderWithWinner()` core (winner entities + snapshots + `tender-complated`).
-- Offers list (`IhOfferList`) is the review queue: **Durum** pill (Gönderildi / Kabul Edildi / Reddedildi + reason), actions **Aç · ✔ Kabul Et · ✖ Reddet**. Admin-only (`per-041-03-02`); suppliers no longer see other suppliers' offers.
+- Offers list (`IhOfferList`) is the review queue: **Durum** pill (Gönderildi / Kabul Edildi / Reddedildi + reason), actions **Aç · ✔ Kabul Et · ✖ Reddet**. Management-only (`per-041-03`); suppliers no longer see other suppliers' offers.
 - Supplier screen (`IhOffer`) shows a red banner with the reject reason (editable) or a green "kabul edildi" banner.
 - **File-level rejection:** from a cell's **Dosya İşlemleri** modal an admin gets **Dosyayı Reddet** → reason required → writes `offer-file-rejected` as an `op_id=1` transaction on that `document_files` row **and auto-rejects the offer** with `Dosya reddedildi: <note>` (`POST /v1/offers/file-reject` `{id, file_qnid|file_id, note}`). The cell tile turns red, the reason appears in the modal, and the supplier can replace the file to clear it. Because files live in the shared client library, the rejection marks that document version globally (all tenders see it red) — replace = new version, clean.
 - `ClientDocsService::listing()` now returns `file.last_status` (latest `op_id=1` transaction) so tiles/modal can render rejected state without extra calls.
+- **Tender documents stay out of `/coalpanel/documents`:** `Document_files::tableList` excludes parent types `op-doc-ihale`, `op-doc-ihale-offer`, `op-doc-ihale-offer-item`, `op-doc-client-docs` (tender spec, offer files, shared library). They are only visible inside the tender offer details screen — the list and its Excel export follow automatically.
 
 ---
 
-## 12. Open Items (Master decides)
+## 11. Open Items (Master decides)
 
-- ~~Offers list page~~ **DONE 2026-11-11** — `IhOfferList` at `/coalpanel/ihaleler/teklifler` (admin review queue; supplier filter via `?ihale=<qnid>`).
-- ~~Ihale list page~~ **DONE 2026-11-11** — `IhList` at `/coalpanel/ihaleler` (search, product count, spec pill, edit/offers/delete).
-- **Supplier shell still has no tender route** — `IhForm/IhOffer` live under `/coalpanel/*`. Live DB shows `immutable-reseller` **has** `per-041-01`, so suppliers can reach the offer screen via coalpanel today; `TedarikPanel.vue` / `PlanlamaPanel.vue` still show the ihale tile as `disabled`. Needs `/tedarikpanel/ihaleler*` + menu wiring eventually.
-- ~~Offer status machine~~ **DONE 2026-11-11** — `offer-sended → offer-rejected (reason) → offer-sended (resend) → offer-accepted (completes tender + winner)`.
-- ~~Tender status machine~~ **DONE 2026-11-11** — `tender-created → tender-activated → tender-complated`.
-- Per-**file** review: rejection **DONE** (`offer-file-rejected`, auto-rejects offer); per-file acceptance/approval not implemented (offer-level accept only).
-- Notifications (`ihale-*` types don't exist yet) — accept/reject sends no mail/bell.
-- Lib files are not admin-reviewed yet (no per-file accept/reject on registry slots).
-- File deletion from the library (only replace exists); retention policy for replaced versions (same as orders — physical files stay).
-- Prices online vs offline; order handoff after award; deadline auto-disqualification.
-- `per-041-03-01/02` sub-codes DO exist (seeded + DEV_ADMIN list) — admin has both, reseller only `03-01`, keyuser only `03`.
-- Module-select tile still `disabled` (`AuthController::getAvailableModules`).
-- Participant model (invite/disqualify) and deadline job; supplier visibility scope rules.
+### Done (2026-11-11)
+- Tender list (`IhList`), offers list (`IhOfferList`), supplier offer screen (`IhOffer`), shared client library, expiry + history, tender + offer + file status machines, winner selection, snapshot lock, permission split, DList exclusion.
+- Tender module tile enabled (`AuthController::getAvailableModules`); `per-041-03-02` retired.
+
+### Open
+- **Supplier shell route** — `IhForm/IhOffer` live under `/coalpanel/*`; resellers have `per-041-01` + `per-041-03-01` so they reach it today, but `TedarikPanel.vue` / `PlanlamaPanel.vue` still show the ihale tile as `disabled`. Needs `/tedarikpanel/ihaleler*` + menu wiring.
+- **Notifications** — no `ihale-*`/`offer-*` types; activate, submit, reject, accept send no mail/bell.
+- **Per-file acceptance** — only rejection exists (`offer-file-rejected`); no per-file approve. File rejection is **global** (shared library): the same document shows red in every tender using it. Scoping rejection per offer would need an offer-item entity flag.
+- **Library management** — no delete (replace only); replaced physical versions stay on disk (same policy as orders).
+- **Tender scope** — no participant/invite model, no deadline auto-disqualification, no lot-based or multi-winner tenders.
+- **Prices / award handoff** — no price capture, no order creation from the winning offer.
+- **İş Birimi scope** — `03` currently grants full tender management; if business units should only *view*, split a read-only code later.
+- **Table endpoint scoping** — `POST /v1/table/documents` still has no per-type permission check; reseller scoping relies on the UI + doc endpoints. Harden before exposing to more roles.

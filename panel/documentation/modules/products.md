@@ -31,8 +31,8 @@ Run: `php artisan db:seed --class=ProductCategorySeeder|ProductSeeder|KvaSeeder`
 
 ## 3. Permissions & Role
 
-- `per-09` (Ürünler) + `per-09-01` (listeleme) + `per-09-02` (oluşturma/düzenleme), seeded via `storage/entities/role_details.json` → `php artisan db:seed --class=SysRoleTemplateSeeder` (clears file caches).
-- `docPermCheck` map (`PermissionHelpers.php`): `op-doc-product-category` and `op-doc-product` and `op-doc-kva` → `read: per-09-01`, `edit/status: per-09-02`.
+- `per-09` (Ürün Sistemi) + `per-09-01` (Listeleme) + `per-09-02` (Ürün Oluşturma / Düzenleme) + `per-09-03` (Kategori Oluşturma / Düzenleme), seeded via `storage/entities/role_details.json` → `php artisan db:seed --class=SysRoleTemplateSeeder` (clears file caches).
+- `docPermCheck` map (`PermissionHelpers.php`): `op-doc-product` + `op-doc-kva` → `read: per-09-01`, `edit/status: per-09-02`; **`op-doc-product-category` → `edit/status: per-09-03`** (separate category permission).
 - New role `immutable-product-manager` (Ürün Kategori Yöneticisi): `per-041-01` (coalpanel access) + `per-09*`. Seeded from `coal_roles_templates.json`. Admin assigns it in user form; person type must be `op-pert-admin` (office), **not** reseller — otherwise reseller scoping hides everything (see §8).
 - `immutable-admin` carries all three per-09 codes.
 - **Gotcha:** `AuthController::getPermissions()` hardcodes the DEV_ADMIN full-permission list — every new `per-*` must be added there too or the god-mode account silently loses the UI.
@@ -116,7 +116,7 @@ Generic tag-input used today for per-row kVA selection; reusable for any multi-p
 
 ## 10. Listing & Export
 
-- `PList` (`/coalpanel/products`, Ürün submenu, per-09-01 gate; create/delete per-09-02): `POST /v1/table/documents` with `form-type` + `type` filters, `rowFormatter` flattens `main_attr` → `prod_code/short_name/unit/category_title`. Same for `PCList`, `KvList` (title/code).
+- `PList` (`/coalpanel/products`, Ürün submenu, per-09-01 gate; create/delete per-09-02): `POST /v1/table/documents` with `form-type` + `type` filters, `rowFormatter` flattens `main_attr` → `prod_code/short_name/unit/category_title`. `PCList` uses **per-09-03** for create/delete, `KvList` per-09-02.
 - No status pills — products/categories have only birth transactions (`doc_trans_created` fallback in `DocumentServiceProvider`), no state machine.
 - Export: `POST /v1/export/products|productcategories|kvas` (`ExportController` branches mirror the clients pattern; `rowCallback` formats dates).
 

@@ -115,7 +115,7 @@
                 try {
                     if (this.authStore.typeKey === 'op-pert-reseller') return false;
                     const p = this.authStore.permissions || [];
-                    return p.includes('per-041-03-02') || p.includes('per-041-03');
+                    return p.includes('per-041-03');
                 } catch(e) { return false; }
             },
         },
@@ -123,7 +123,7 @@
             async init(){
                 const perms = this.authStore.permissions || [];
                 this.canWrite = perms.includes('per-041-03-01');
-                const canInspect = perms.includes('per-041-03-02');
+                const canInspect = perms.includes('per-041-03');
                 if (!this.canWrite && !canInspect) {
                     this.gateMsg = 'Teklifler için yetkiniz yok (Teklif Oluşturma / İnceleme).';
                     return;

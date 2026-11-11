@@ -89,7 +89,7 @@ class AuthController extends Controller
         $defs = [
             'per-041-01' => ['code'=>'per-041-01','title'=>'Yönetim Paneli','route'=>'/coalpanel','color'=>'#154b91','desc'=>'Kontrol Paneli & Raporlar','icon'=>'shield'],
             'per-041-02' => ['code'=>'per-041-02','title'=>'Tedarik','route'=>'/tedarikpanel','color'=>'#FF4713','desc'=>'Sipariş & Döküman','icon'=>'truck'],
-            'per-041-03' => ['code'=>'per-041-03','title'=>'İhale','route'=>'/coalpanel','color'=>'#059669','desc'=>'Yakında','icon'=>'gavel','disabled'=>true],
+            'per-041-03' => ['code'=>'per-041-03','title'=>'İhale','route'=>'/coalpanel','color'=>'#059669','desc'=>'İhale & Teklif Yönetimi','icon'=>'gavel'],
             'per-041-04' => ['code'=>'per-041-04','title'=>'Fabrika Kabul','route'=>'/coalpanel','color'=>'#7c3aed','desc'=>'Yakında','icon'=>'factory','disabled'=>true],
             'per-041-05' => ['code'=>'per-041-05','title'=>'Malzeme Planlama','route'=>'/planlamapanel','color'=>'#0e7490','desc'=>'Talep & Onay','icon'=>'clipboard'],
         ];
@@ -947,13 +947,13 @@ class AuthController extends Controller
             'permissions'   => $permissionService->has(auth()->user(), 'all') ? [
                 // DEV_ADMIN backdoor — keep in sync with sys_role_templates Admin (immutable-admin)
                 'per-00','per-00-01',
-                'per-041','per-041-01','per-041-02','per-041-03','per-041-03-01','per-041-03-02','per-041-04','per-041-05','per-041-05-01','per-041-05-02','per-041-05-03','per-041-05-04',
+                'per-041','per-041-01','per-041-02','per-041-03','per-041-03-01','per-041-04','per-041-05','per-041-05-01','per-041-05-02','per-041-05-03','per-041-05-04',
                 'per-04','per-04-01','per-04-02','per-04-03','per-04-04',
                 'per-05','per-05-01','per-05-02','per-05-03','per-05-04','per-05-05',
                 'per-06','per-06-01','per-06-02',
                 'per-07','per-07-01','per-07-02',
                 'per-061','per-061-01','per-061-02',
-                'per-09','per-09-01','per-09-02',
+                'per-09','per-09-01','per-09-02','per-09-03',
             ] : session('perms') 
         ],200);
     }

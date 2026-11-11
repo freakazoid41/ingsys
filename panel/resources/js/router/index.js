@@ -173,17 +173,17 @@ router.beforeEach((to, from, next) => {
             const hasOrder = perms.includes('per-05') || perms.includes('per-05-01');
             if (!hasOrder) return next('/tedarikpanel');
         }
-        // İhale Yönetimi guard: per-041-03 required for the whole module
+        // İhale module: management (03) or offer creation (03-01) may enter the list
         if (to.path.startsWith('/coalpanel/ihaleler') && perms.length) {
+            if (!perms.includes('per-041-03') && !perms.includes('per-041-03-01')) return next('/coalpanel');
+        }
+        // Teklifler review queue: management only
+        if (to.path.includes('/ihaleler/teklifler') && perms.length) {
             if (!perms.includes('per-041-03')) return next('/coalpanel');
         }
-        // Teklif listesi (review queue) admin-only: per-041-03-02
-        if (to.path.includes('/ihaleler/teklifler') && perms.length) {
-            if (!perms.includes('per-041-03-02') && !perms.includes('per-041-03')) return next('/coalpanel');
-        }
-        // Teklif guard: create (03-01) or inspect (03-02)
+        // Teklif screen: create (03-01) or management inspect (03)
         if (to.path.includes('/ihaleler/teklif') && !to.path.includes('/ihaleler/teklifler') && perms.length) {
-            if (!perms.includes('per-041-03-01') && !perms.includes('per-041-03-02')) return next('/coalpanel');
+            if (!perms.includes('per-041-03-01') && !perms.includes('per-041-03')) return next('/coalpanel');
         }
         // Planlama guard: per-041-05 required
         if ((to.path.startsWith('/planlamapanel') || to.path.startsWith('/coalpanel/planlama')) && perms.length) {

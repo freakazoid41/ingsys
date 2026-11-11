@@ -75,33 +75,32 @@ if(!function_exists('checkPerm')){
             ],
             // Product categories: view = Kategori Listeleme, edit = Kategori Oluşturma/Düzenleme
             'op-doc-product-category' => [
-                'edit' => 'per-09-02',
+                'edit' => 'per-09-03',
                 'read' => 'per-09-01',
-                'status' => 'per-09-02',
+                'status' => 'per-09-03',
             ],
-            // Products live under the same product-domain permission
+            // Ürün Oluşturma / Düzenleme
             'op-doc-product' => [
                 'edit' => 'per-09-02',
                 'read' => 'per-09-01',
                 'status' => 'per-09-02',
             ],
-            // İhale form: read/edit under the İhale module gate for now (per-041-03-01/02 sub-codes come later)
+            // İhale: management = İhale Oluşturma / Yönetme (create/edit/complete/review),
+            // read is also open to Teklif Oluşturma holders (suppliers must see the tender).
             'op-doc-ihale' => [
                 'edit' => 'per-041-03',
-                'read' => 'per-041-03',
+                'read' => 'per-041-03,per-041-03-01',
                 'status' => 'per-041-03',
             ],
-            // İhale teklifi (supplier offer): create = Teklif Oluşturma,
-            // inspect = Teklif İnceleme. Supplier ownership
-            // (supplier_qnid in own client list) is enforced in DocumentController
+            // Teklif: create/edit = Teklif Oluşturma; management can read/act on offers.
             'op-doc-ihale-offer' => [
                 'edit' => 'per-041-03-01',
-                'read' => 'per-041-03-01,per-041-03-02',
+                'read' => 'per-041-03,per-041-03-01',
                 'status' => 'per-041-03-01',
             ],
             'op-doc-ihale-offer-item' => [
                 'edit' => 'per-041-03-01',
-                'read' => 'per-041-03-01,per-041-03-02',
+                'read' => 'per-041-03,per-041-03-01',
                 'status' => 'per-041-03-01',
             ],
             // kVA power definitions (system settings list, picked multi-select in file defs)

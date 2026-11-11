@@ -155,6 +155,10 @@ class Document_files extends Model
         $where  .= " and (sf.op_key is null or sf.op_key not in ('op-offer_otherdocs_file')) ";
         // Exclude product images from files listing — they are per-item and not actionable
         $where  .= " and se.entity_tag not like '%item_images_file%' ";
+        // Tender documents are not part of the order/document review list:
+        // tender spec file, offer files and the shared supplier library are only
+        // visible inside the tender offer details screen.
+        $where  .= " and dt.op_key not in ('op-doc-ihale','op-doc-ihale-offer','op-doc-ihale-offer-item','op-doc-client-docs') ";
 
         // Tedarik supplier scope: reseller sees only own files (LIFNR+SYSTEM-matched orders/items + own client docs)
         // Handles duplicate numeric codes across GDZ/ADM via client_system

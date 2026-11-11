@@ -69,8 +69,8 @@ class DocumentController extends Controller
     private function assertOfferOwnership(?string $key, string $method, Request $request, ?array $decodedData)
     {
         if (!in_array($key, self::OFFER_KEYS, true)) return true;
-        if (session('type_key') !== 'op-pert-reseller') return true;
-        $allowed = session('currentStatus')['clientQnidList'] ?? [];
+        if (! $this->currentRoleIsReseller()) return true;
+        $allowed = $this->currentSupplierList();
 
         $suppliers = [];
         if (is_array($decodedData)) {
@@ -109,7 +109,7 @@ class DocumentController extends Controller
     private function stripResellerGorus(?string $key, array &$files, ?array &$decoded): void
     {
         if (!in_array($key, self::OFFER_KEYS, true)) return;
-        if (session('type_key') !== 'op-pert-reseller') return;
+        if (! $this->currentRoleIsReseller()) return;
         foreach ($files as $fkey => $f) {
             $fn = explode('*-*', (string) $fkey)[1] ?? '';
             if (str_starts_with($fn, 'gorus_')) unset($files[$fkey]);
@@ -909,14 +909,36 @@ class DocumentController extends Controller
     // Supplier document library (shared files across tenders)
     // ---------------------------------------------------------------------
 
+    private function currentRoleIsReseller(): bool
+    {
+        if (session('type_key') === 'op-pert-reseller') return true;
+        $u = auth('sanctum')->user() ?? auth()->user();
+        return $u && ($u->role === 'immutable-reseller');
+    }
+
     private function currentSupplierList(): array
     {
-        return session('currentStatus')['clientQnidList'] ?? [];
+        $list = session('currentStatus')['clientQnidList'] ?? [];
+        if (! empty($list)) return $list;
+
+        // Bearer-token requests have no session currentStatus — fall back to the
+        // bound client entities of the authenticated person (fails closed).
+        $u = auth('sanctum')->user() ?? auth()->user();
+        if (! $u) return [];
+        $formId = \App\Models\Sys_options::where('op_key', 'op-doc-user-client-form')->value('id');
+
+        return \Illuminate\Support\Facades\DB::table('sys_con_entities as se')
+            ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+            ->where('so.main_id', $u->person_id)
+            ->where('so.type_id', $formId)
+            ->where('se.entity_tag', 'like', 'cliid%')
+            ->pluck('se.entity_value')
+            ->all();
     }
 
     private function isReseller(): bool
     {
-        return session('type_key') === 'op-pert-reseller';
+        return $this->currentRoleIsReseller();
     }
 
     private function canUseClientDocs(string $supplierQnid, bool $forWrite = false): bool
@@ -926,7 +948,7 @@ class DocumentController extends Controller
 
         if ($this->isReseller()) {
             if (! in_array($supplierQnid, $this->currentSupplierList(), true)) return false;
-            return $forWrite ? $this->perms->has($auth, 'per-041-03-01') : true;
+            return $this->perms->has($auth, 'per-041-03-01');
         }
 
         // office / admin side
@@ -987,7 +1009,7 @@ class DocumentController extends Controller
     public function tenderProducts(Request $request)
     {
         $auth = auth('sanctum')->user() ?? auth()->user();
-        if (! $auth || ! $this->perms->has($auth, 'per-041-03')) {
+        if (! $auth || (! $this->perms->has($auth, 'per-041-03') && ! $this->perms->has($auth, 'per-041-03-01'))) {
             return response()->json(['success' => false, 'msg' => 'Yetkiniz yok.'], 403);
         }
 
@@ -1280,7 +1302,7 @@ class DocumentController extends Controller
         if (! $this->isValidUuid($qnid)) {
             return response()->json(['success' => false, 'msg' => 'Geçersiz teklif kimliği'], 422);
         }
-        if (! $auth || (! $this->perms->has($auth, 'per-041-03-02') && ! $this->perms->has($auth, 'per-041-03'))) {
+        if (! $auth || ! $this->perms->has($auth, 'per-041-03')) {
             return response()->json(['success' => false, 'msg' => 'Teklif değerlendirme yetkiniz yok.'], 403);
         }
 
@@ -1328,7 +1350,7 @@ class DocumentController extends Controller
         if (mb_strlen($note) < 3) {
             return response()->json(['success' => false, 'msg' => 'Red nedeni zorunludur.'], 422);
         }
-        if (! $auth || (! $this->perms->has($auth, 'per-041-03-02') && ! $this->perms->has($auth, 'per-041-03'))) {
+        if (! $auth || ! $this->perms->has($auth, 'per-041-03')) {
             return response()->json(['success' => false, 'msg' => 'Teklif değerlendirme yetkiniz yok.'], 403);
         }
 
@@ -1368,7 +1390,7 @@ class DocumentController extends Controller
         if (mb_strlen($note) < 3) {
             return response()->json(['success' => false, 'msg' => 'Red nedeni zorunludur.'], 422);
         }
-        if (! $auth || (! $this->perms->has($auth, 'per-041-03-02') && ! $this->perms->has($auth, 'per-041-03'))) {
+        if (! $auth || ! $this->perms->has($auth, 'per-041-03')) {
             return response()->json(['success' => false, 'msg' => 'Teklif değerlendirme yetkiniz yok.'], 403);
         }
 

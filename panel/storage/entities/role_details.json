@@ -1,289 +1,290 @@
 [
- {
-  "parent_id": 0,
-  "title": "Bildirimler",
-  "ttitle": "Perm_con_ops",
-  "ctitle": "type_id",
-  "group_key": "op-perm",
-  "op_key": "per-00",
-  "childs": [
-   {
-    "parent_id": 0,
-    "title": "Bildirim Yönetimi",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-00-01"
-   }
-  ]
- },
- {
-  "parent_id": 0,
-  "title": "Modüller",
-  "ttitle": "Perm_con_ops",
-  "ctitle": "type_id",
-  "group_key": "op-perm",
-  "op_key": "per-041",
-  "childs": [
-   {
-    "parent_id": 0,
-    "title": "Yönetim Paneli",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-041-01"
-   },
-   {
-    "parent_id": 0,
-    "title": "Tedarik",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-041-02"
-   },
-   {
-    "parent_id": 0,
-    "title": "İhale",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-041-03",
-    "childs": [
-     {
-      "parent_id": 0,
-      "title": "Teklif Oluşturma",
-      "ttitle": "Perm_con_ops",
-      "ctitle": "type_id",
-      "op_key": "per-041-03-01"
-     },
-     {
-      "parent_id": 0,
-      "title": "Teklif İnceleme",
-      "ttitle": "Perm_con_ops",
-      "ctitle": "type_id",
-      "op_key": "per-041-03-02"
-     }
-    ]
-   },
-   {
-    "parent_id": 0,
-    "title": "Fabrika Kabul",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-041-04"
-   },
-   {
-    "parent_id": 0,
-    "title": "Malzeme Planlama",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-041-05",
-    "childs": [
-     {
-      "parent_id": 0,
-      "title": "Müdürlük Talep Onay",
-      "ttitle": "Perm_con_ops",
-      "ctitle": "type_id",
-      "op_key": "per-041-05-01"
-     },
-     {
-      "parent_id": 0,
-      "title": "Müdürlük İhtiyaç Oluşturma",
-      "ttitle": "Perm_con_ops",
-      "ctitle": "type_id",
-      "op_key": "per-041-05-02"
-     },
-     {
-      "parent_id": 0,
-      "title": "Talep Yükleme",
-      "ttitle": "Perm_con_ops",
-      "ctitle": "type_id",
-      "op_key": "per-041-05-03"
-     },
-     {
-      "parent_id": 0,
-      "title": "Malzeme Standardizasyon Yöneticiliği",
-      "ttitle": "Perm_con_ops",
-      "ctitle": "type_id",
-      "op_key": "per-041-05-04"
-     }
-    ]
-   }
-  ]
- },
- {
-  "parent_id": 0,
-  "title": "Kontrol Paneli",
-  "ttitle": "Perm_con_ops",
-  "ctitle": "type_id",
-  "group_key": "op-perm",
-  "op_key": "per-04",
-  "childs": [
-   {
-    "parent_id": 0,
-    "title": "Kullanıcı Listeleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-04-01"
-   },
-   {
-    "parent_id": 0,
-    "title": "Kullanıcı Oluşturma / Düzenleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-04-02"
-   },
-   {
-    "parent_id": 0,
-    "title": "Rol ve Yetki Yönetimi",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-04-03"
-   },
-   {
-    "parent_id": 0,
-    "title": "Sistem Logları",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-04-04"
-   }
-  ]
- },
- {
-  "parent_id": 0,
-  "title": "Siparişler",
-  "ttitle": "Perm_con_ops",
-  "ctitle": "type_id",
-  "group_key": "op-perm",
-  "op_key": "per-05",
-  "childs": [
-   {
-    "parent_id": 0,
-    "title": "Sipariş Listeleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-05-01"
-   },
-   {
-    "parent_id": 0,
-    "title": "Sipariş Oluşturma / Düzenleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-05-02"
-   },
-   {
-    "parent_id": 0,
-    "title": "Sipariş Sevkiyata Gönderme (Onaylama)",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-05-03"
-   },
-   {
-    "parent_id": 0,
-    "title": "Sipariş İptali / Parça Sipariş Silebilme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-05-04"
-   },
-   {
-    "parent_id": 0,
-    "title": "Sipariş Numarası Düzenleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-05-05"
-   }
-  ]
- },
- {
-  "parent_id": 0,
-  "title": "Firma Yönetimi",
-  "ttitle": "Perm_con_ops",
-  "ctitle": "type_id",
-  "group_key": "op-perm",
-  "op_key": "per-06",
-  "childs": [
-   {
-    "parent_id": 0,
-    "title": "Firma Listeleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-06-01"
-   },
-   {
-    "parent_id": 0,
-    "title": "Firma Oluşturma / Düzenleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-06-02"
-   }
-  ]
- },
- {
-  "parent_id": 0,
-  "title": "Dökümanlar",
-  "ttitle": "Perm_con_ops",
-  "ctitle": "type_id",
-  "group_key": "op-perm",
-  "op_key": "per-07",
-  "childs": [
-   {
-    "parent_id": 0,
-    "title": "Döküman Listeleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-07-01"
-   },
-   {
-    "parent_id": 0,
-    "title": "Döküman Değerlendirme (inceleme , onaylama veya reddetme)",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-07-02"
-   }
-  ]
- },
- {
-  "parent_id": 0,
-  "title": "Raporlar",
-  "ttitle": "Perm_con_ops",
-  "ctitle": "type_id",
-  "group_key": "op-perm",
-  "op_key": "per-061",
-  "childs": [
-   {
-    "parent_id": 0,
-    "title": "Listeleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-061-01"
-   },
-   {
-    "parent_id": 0,
-    "title": "Görüntüleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-061-02"
-   }
-  ]
- },
- {
-  "parent_id": 0,
-  "title": "Ürün Kategorileri",
-  "ttitle": "Perm_con_ops",
-  "ctitle": "type_id",
-  "group_key": "op-perm",
-  "op_key": "per-09",
-  "childs": [
-   {
-    "parent_id": 0,
-    "title": "Kategori Listeleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-09-01"
-   },
-   {
-    "parent_id": 0,
-    "title": "Kategori Oluşturma / Düzenleme",
-    "ttitle": "Perm_con_ops",
-    "ctitle": "type_id",
-    "op_key": "per-09-02"
-   }
-  ]
- }
+    {
+        "parent_id": 0,
+        "title": "Bildirimler",
+        "ttitle": "Perm_con_ops",
+        "ctitle": "type_id",
+        "group_key": "op-perm",
+        "op_key": "per-00",
+        "childs": [
+            {
+                "parent_id": 0,
+                "title": "Bildirim Yönetimi",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-00-01"
+            }
+        ]
+    },
+    {
+        "parent_id": 0,
+        "title": "Modüller",
+        "ttitle": "Perm_con_ops",
+        "ctitle": "type_id",
+        "group_key": "op-perm",
+        "op_key": "per-041",
+        "childs": [
+            {
+                "parent_id": 0,
+                "title": "Yönetim Paneli",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-041-01"
+            },
+            {
+                "parent_id": 0,
+                "title": "Tedarik",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-041-02"
+            },
+            {
+                "parent_id": 0,
+                "title": "İhale Oluşturma / Yönetme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-041-03",
+                "childs": [
+                    {
+                        "parent_id": 0,
+                        "title": "Teklif Oluşturma",
+                        "ttitle": "Perm_con_ops",
+                        "ctitle": "type_id",
+                        "op_key": "per-041-03-01"
+                    }
+                ]
+            },
+            {
+                "parent_id": 0,
+                "title": "Fabrika Kabul",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-041-04"
+            },
+            {
+                "parent_id": 0,
+                "title": "Malzeme Planlama",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-041-05",
+                "childs": [
+                    {
+                        "parent_id": 0,
+                        "title": "Müdürlük Talep Onay",
+                        "ttitle": "Perm_con_ops",
+                        "ctitle": "type_id",
+                        "op_key": "per-041-05-01"
+                    },
+                    {
+                        "parent_id": 0,
+                        "title": "Müdürlük İhtiyaç Oluşturma",
+                        "ttitle": "Perm_con_ops",
+                        "ctitle": "type_id",
+                        "op_key": "per-041-05-02"
+                    },
+                    {
+                        "parent_id": 0,
+                        "title": "Talep Yükleme",
+                        "ttitle": "Perm_con_ops",
+                        "ctitle": "type_id",
+                        "op_key": "per-041-05-03"
+                    },
+                    {
+                        "parent_id": 0,
+                        "title": "Malzeme Standardizasyon Yöneticiliği",
+                        "ttitle": "Perm_con_ops",
+                        "ctitle": "type_id",
+                        "op_key": "per-041-05-04"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "parent_id": 0,
+        "title": "Kontrol Paneli",
+        "ttitle": "Perm_con_ops",
+        "ctitle": "type_id",
+        "group_key": "op-perm",
+        "op_key": "per-04",
+        "childs": [
+            {
+                "parent_id": 0,
+                "title": "Kullanıcı Listeleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-04-01"
+            },
+            {
+                "parent_id": 0,
+                "title": "Kullanıcı Oluşturma / Düzenleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-04-02"
+            },
+            {
+                "parent_id": 0,
+                "title": "Rol ve Yetki Yönetimi",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-04-03"
+            },
+            {
+                "parent_id": 0,
+                "title": "Sistem Logları",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-04-04"
+            }
+        ]
+    },
+    {
+        "parent_id": 0,
+        "title": "Siparişler",
+        "ttitle": "Perm_con_ops",
+        "ctitle": "type_id",
+        "group_key": "op-perm",
+        "op_key": "per-05",
+        "childs": [
+            {
+                "parent_id": 0,
+                "title": "Sipariş Listeleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-05-01"
+            },
+            {
+                "parent_id": 0,
+                "title": "Sipariş Oluşturma / Düzenleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-05-02"
+            },
+            {
+                "parent_id": 0,
+                "title": "Sipariş Sevkiyata Gönderme (Onaylama)",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-05-03"
+            },
+            {
+                "parent_id": 0,
+                "title": "Sipariş İptali / Parça Sipariş Silebilme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-05-04"
+            },
+            {
+                "parent_id": 0,
+                "title": "Sipariş Numarası Düzenleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-05-05"
+            }
+        ]
+    },
+    {
+        "parent_id": 0,
+        "title": "Firma Yönetimi",
+        "ttitle": "Perm_con_ops",
+        "ctitle": "type_id",
+        "group_key": "op-perm",
+        "op_key": "per-06",
+        "childs": [
+            {
+                "parent_id": 0,
+                "title": "Firma Listeleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-06-01"
+            },
+            {
+                "parent_id": 0,
+                "title": "Firma Oluşturma / Düzenleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-06-02"
+            }
+        ]
+    },
+    {
+        "parent_id": 0,
+        "title": "Dökümanlar",
+        "ttitle": "Perm_con_ops",
+        "ctitle": "type_id",
+        "group_key": "op-perm",
+        "op_key": "per-07",
+        "childs": [
+            {
+                "parent_id": 0,
+                "title": "Döküman Listeleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-07-01"
+            },
+            {
+                "parent_id": 0,
+                "title": "Döküman Değerlendirme (inceleme , onaylama veya reddetme)",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-07-02"
+            }
+        ]
+    },
+    {
+        "parent_id": 0,
+        "title": "Raporlar",
+        "ttitle": "Perm_con_ops",
+        "ctitle": "type_id",
+        "group_key": "op-perm",
+        "op_key": "per-061",
+        "childs": [
+            {
+                "parent_id": 0,
+                "title": "Listeleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-061-01"
+            },
+            {
+                "parent_id": 0,
+                "title": "Görüntüleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-061-02"
+            }
+        ]
+    },
+    {
+        "parent_id": 0,
+        "title": "Ürün Sistemi",
+        "ttitle": "Perm_con_ops",
+        "ctitle": "type_id",
+        "group_key": "op-perm",
+        "op_key": "per-09",
+        "childs": [
+            {
+                "parent_id": 0,
+                "title": "Listeleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-09-01"
+            },
+            {
+                "parent_id": 0,
+                "title": "Ürün Oluşturma / Düzenleme",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-09-02"
+            },
+            {
+                "op_key": "per-09-03",
+                "title": "Kategori Oluşturma / Düzenleme",
+                "group_key": "op-perm",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "childs": []
+            }
+        ]
+    }
 ]
