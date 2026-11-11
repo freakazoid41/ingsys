@@ -67,6 +67,74 @@ class ExportController extends Controller
                     return $row[$key] ?? '';
                 };
                 break;
+            case 'productcategories':
+                $filename = 'urun-kategorileri.xlsx';
+                $headers = [
+                    'title'      => 'Başlık',
+                    'code'       => 'Kod',
+                    'created_at' => 'Oluşturulma Tarihi'
+                ];
+
+                $data = (array)\App\Models\Documents::tableList([
+                    'filter' => array_merge($filter,[
+                        ['key'=>'form-type','type'=>'=','value'=>'op-doc-product-category-form'],
+                        ['key'=>'type','type'=>'=','value'=>'op-doc-product-category']
+                    ])
+                ])['data'];
+
+                foreach ($data as $key => $value) {
+                    $mainAttr = \json_decode($value->main_attr, true);
+                    foreach($mainAttr as $ma){
+                        $value->{$ma['Key']} = $ma['Value'];
+                    }
+                }
+
+                $rowCallback = function ($row, $key, $label, $rowIndex, $columnIndex) {
+                    $row = (array) $row;
+
+                    switch($key){
+                        case 'created_at':
+                            return \Carbon\Carbon::parse($row[$key])->format('d.m.Y H:i:s');
+                    }
+
+                    return $row[$key] ?? '';
+                };
+                break;
+            case 'products':
+                $filename = 'urunler.xlsx';
+                $headers = [
+                    'prod_code'      => 'Ürün Kodu',
+                    'short_name'     => 'Kısa Ad',
+                    'unit'           => 'Birim',
+                    'category_title' => 'Kategori',
+                    'created_at'     => 'Oluşturulma Tarihi'
+                ];
+
+                $data = (array)\App\Models\Documents::tableList([
+                    'filter' => array_merge($filter,[
+                        ['key'=>'form-type','type'=>'=','value'=>'op-doc-product-form'],
+                        ['key'=>'type','type'=>'=','value'=>'op-doc-product']
+                    ])
+                ])['data'];
+
+                foreach ($data as $key => $value) {
+                    $mainAttr = \json_decode($value->main_attr, true);
+                    foreach($mainAttr as $ma){
+                        $value->{$ma['Key']} = $ma['Value'];
+                    }
+                }
+
+                $rowCallback = function ($row, $key, $label, $rowIndex, $columnIndex) {
+                    $row = (array) $row;
+
+                    switch($key){
+                        case 'created_at':
+                            return \Carbon\Carbon::parse($row[$key])->format('d.m.Y H:i:s');
+                    }
+
+                    return $row[$key] ?? '';
+                };
+                break;
             case 'documents':
                 $filename = 'belgeler.xlsx';
                 $headers = [

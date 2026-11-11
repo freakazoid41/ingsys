@@ -600,6 +600,8 @@ class PersonsServiceProvider extends ServiceProvider
 
         try {
             //first find client qnid's from user connections which are unique connection ids
+            //session person_id is int id pre-2FA but person qnid post-2FA — accept both
+            $pidInt = (int) $personQnId;
             $clients  = "SELECT se.entity_value as client_qnid,
                                 se2.entity_value as title
                         FROM sys_con_entities as se
@@ -607,8 +609,7 @@ class PersonsServiceProvider extends ServiceProvider
                             inner join sys_options as sp on sp.id = so.type_id
                             inner join persons as p on p.id = so.main_id
                             inner join sys_con_entities se2 on se2.conn_id = se.conn_id and se2.entity_tag like '%title%'
-
-                        where so.conn_id = 0 and sp.op_key = 'op-doc-user-client-form' and se.entity_tag like '%cliid**%'  and p.qnid = '$personQnId'";
+                        where so.conn_id = 0 and sp.op_key = 'op-doc-user-client-form' and se.entity_tag like '%cliid**%'  and (p.qnid = '$personQnId' or p.id = $pidInt)";
             
             $clients  = DB::select($clients);  
 

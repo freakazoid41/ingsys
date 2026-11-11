@@ -8,6 +8,10 @@ import CIndex from '@/pages/coalsystem/Dashboard.vue';
 
 import CList from "@/pages/coalsystem/Client/CList.vue";
 import CForm from "@/pages/coalsystem/Client/CForm.vue";
+import PCList from "@/pages/coalsystem/ProductCategory/PCList.vue";
+import PCForm from "@/pages/coalsystem/ProductCategory/PCForm.vue";
+import PList from "@/pages/coalsystem/Product/PList.vue";
+import PForm from "@/pages/coalsystem/Product/PForm.vue";
 import UList from "@/pages/coalsystem/Users/UList.vue";
 import UForm from "@/pages/coalsystem/Users/UForm.vue";
 import TreeExample from "@/pages/coalsystem/treeTest.vue";
@@ -56,6 +60,10 @@ const router = createRouter({
         
         { path: "/coalpanel/client", name: 'CList', component: CList},
         { path: "/coalpanel/client/form/:id?", name: 'CForm', component: CForm},
+        { path: "/coalpanel/product-categories", name: 'PCList', component: PCList},
+        { path: "/coalpanel/product-categories/form/:id?", name: 'PCForm', component: PCForm},
+        { path: "/coalpanel/products", name: 'PList', component: PList},
+        { path: "/coalpanel/products/form/:id?", name: 'PForm', component: PForm},
         { path: "/coalpanel/users", name: 'UList', component: UList},
         { path: "/coalpanel/users/form/:id?", name: 'UForm', component: UForm},
         { path: "/coalpanel/roles", name: 'Roles', component: Roles},

@@ -137,17 +137,21 @@ class Document_files extends Model
 
         $limit = '';
         $order = '';
+        // NOTE: se join is restricted to table_tag='document_files' (1:1 via
+        // idx_sce_table_value) — without it every scalar entity whose value
+        // happens to equal a file id multiplies the row. sf is a lateral
+        // indexed lookup instead of a function join over all sys_options.
         $join = "   inner join sys_options so on so.id = i.type_id 
-                    inner join sys_con_entities se on se.entity_value = i.id::text
+                    inner join sys_con_entities se on se.entity_value = i.id::text and se.table_tag = 'document_files'
                     inner join documents as d on d.id = i.relation_id::int
                     inner join sys_options as dt on dt.id = d.type_id
-                    inner join sys_options as sf on sf.op_key = 'op-'|| SPLIT_PART(se.entity_tag, '**', 1)";
+                    left join lateral (select sot.title, sot.op_key from sys_options sot where sot.op_key = 'op-'|| SPLIT_PART(se.entity_tag, '**', 1) limit 1) as sf on true";
         
         $where  = " where i.description!='' and i.status = 1 "; //  and i.grp_code='".($GLOBALS['SYS_CODE'] ?? 'GDZ')."'"; 
         //all documents in document list are belong the clients so split company from clients
         $where  .= " and d.grp_code='".($GLOBALS['SYS_CODE'] ?? 'GDZ')."' and d.status = 1 ";
 
-        $where  .= " and sf.op_key not in ('op-offer_otherdocs_file') ";
+        $where  .= " and (sf.op_key is null or sf.op_key not in ('op-offer_otherdocs_file')) ";
         // Exclude product images from files listing — they are per-item and not actionable
         $where  .= " and se.entity_tag not like '%item_images_file%' ";
 
@@ -170,10 +174,10 @@ class Document_files extends Model
                         if(empty($bySys[$sys])) continue;
                         $lifList = "'" . implode("','", array_map('noInject', $bySys[$sys])) . "'";
                         $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
-                        // spec_code on d (order) + sys_code matches client's system
-                        $ors[] = "exists (select 1 from sys_con_entities sce3 join sys_con_ops sco3 on sco3.id=sce3.conn_id where sco3.main_id=d.id and sce3.entity_tag='spec_code' and sce3.entity_value IN ($lifList) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=d.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%')))";
+                        // spec_code on d (order) + sys_code matches client system (single same-conn EXISTS)
+                        $ors[] = "exists (select 1 from sys_con_ops sco3 on sco3.main_id=d.id and sco3.conn_id=0 join sys_con_entities sce3 on sce3.conn_id=sco3.id and sce3.entity_tag='spec_code' and sce3.entity_value IN ($lifList) join sys_con_entities se3 on se3.conn_id=sco3.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%\))";
                         // spec_code on parent order (for item files)
-                        $ors[] = "exists (select 1 from documents pd join sys_con_ops sco_p on sco_p.main_id=pd.id and sco_p.conn_id=0 join sys_con_entities sce_p on sce_p.conn_id=sco_p.id where pd.id = d.parent_id and pd.status=1 and sce_p.entity_tag='spec_code' and sce_p.entity_value IN ($lifList) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=pd.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%')))";
+                        $ors[] = "exists (select 1 from documents pd join sys_con_ops sco_p on sco_p.main_id=pd.id and sco_p.conn_id=0 join sys_con_entities sce_p on sce_p.conn_id=sco_p.id and sce_p.entity_tag='spec_code' and sce_p.entity_value IN ($lifList) join sys_con_entities se3 on se3.conn_id=sco_p.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%') where pd.id = d.parent_id and pd.status=1)";
                         // direct lifnr on d (client docs themselves)
                         $ors[] = "exists (select 1 from sys_con_entities sce4 join sys_con_ops sco4 on sco4.id=sce4.conn_id where sco4.main_id=d.id and sce4.entity_tag='lifnr' and sce4.entity_value IN ($lifList))";
                     }

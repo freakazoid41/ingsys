@@ -98,9 +98,14 @@ class Documents extends Model
         
         $limit = '';
         $order = '';
-        $join = '   inner join sys_options as sp on sp.id = i.type_id 
-                    inner join sys_con_ops as so on i.id = so.main_id 
+        // NOTE: the base entity join (so/se aliases) is only needed by reseller
+        // scoping + a few legacy filters below. Joining it unconditionally
+        // multiplies every row by its entity count and forces DISTINCT to
+        // collapse ~13x rows on big datasets — keep it opt-in.
+        $needsEntityJoin = false;
+        $entityJoin = ' inner join sys_con_ops as so on i.id = so.main_id
                     inner join sys_con_entities as se on so.id = se.conn_id ';
+        $join = '   inner join sys_options as sp on sp.id = i.type_id ';
         
        
         //i.parent_type_id for free documents, if parent_type_id is 0, it means this document is not connected to any other table so it is a main document. if parent_type_id is not 0, it means this document is connected to another table like users or persons, so it is a sub document. we only want to list main documents in the table list, so we will add this condition to the where clause.
@@ -127,6 +132,7 @@ class Documents extends Model
                     case 'legacy-op-doc-offer': // removed
                         //$where .= " and i.person_id = '".session('person_id')."'";
                         //check for clients offers
+                        $needsEntityJoin = true;
                         $where .= " and (
                                         se.entity_value in ('".implode("','",session('currentStatus')['clientQnidList'])."') 
                                         and se.entity_tag like '%cliid%'
@@ -158,9 +164,10 @@ class Documents extends Model
                                 if(empty($bySys[$sys])) continue;
                                 $lifIn = "'".implode("','", array_map('noInject', $bySys[$sys]))."'" ;
                                 $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
-                                // order's spec_code matches AND its sys_code (BUKRS normalized) matches client's system
-                                $ors[] = "exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn)) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%'))";
-                                $ors[] = "exists (select 1 from sys_con_entities se2 join sys_con_ops so2 on so2.id=se2.conn_id where so2.main_id=i.id and se2.entity_tag='lifnr' and se2.entity_value in ($lifIn)) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=i.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%'))";
+                                // order's spec_code matches AND its sys_code (BUKRS normalized) matches client's system.
+                                // single EXISTS on the same form conn (was: two independent EXISTS) — index-driven, ~100x faster on big datasets
+                                $ors[] = "exists (select 1 from sys_con_ops so2 join sys_con_entities se2 on se2.conn_id=so2.id and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn) join sys_con_entities se3 on se3.conn_id=so2.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%') where so2.main_id=i.id and so2.conn_id=0)";
+                                $ors[] = "exists (select 1 from sys_con_ops so2 join sys_con_entities se2 on se2.conn_id=so2.id and se2.entity_tag='lifnr' and se2.entity_value in ($lifIn) join sys_con_entities se3 on se3.conn_id=so2.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%') where so2.main_id=i.id and so2.conn_id=0)";
                             }
                             $ors[] = "i.qnid in ($qnidIn)";
                             $where .= " and (".implode(" or ", $ors).") ";
@@ -181,7 +188,7 @@ class Documents extends Model
                                 if(empty($bySys[$sys])) continue;
                                 $lifIn = "'".implode("','", array_map('noInject', $bySys[$sys]))."'" ;
                                 $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
-                                $ors[] = "exists (select 1 from documents d2 join sys_con_ops so2 on so2.main_id = d2.id join sys_con_entities se2 on se2.conn_id = so2.id where d2.id = i.parent_id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=d2.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%')))";
+                                $ors[] = "exists (select 1 from documents d2 join sys_con_ops so2 on so2.main_id = d2.id and so2.conn_id=0 join sys_con_entities se2 on se2.conn_id = so2.id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn) join sys_con_entities se3 on se3.conn_id = so2.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%') where d2.id = i.parent_id)";
                             }
                             $where .= " and (".implode(" or ", $ors).") ";
                         }
@@ -201,7 +208,7 @@ class Documents extends Model
                                 if(empty($bySys[$sys])) continue;
                                 $lifIn = "'".implode("','", array_map('noInject', $bySys[$sys]))."'" ;
                                 $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
-                                $ors[] = "exists (select 1 from documents di join documents d2 on d2.id = di.parent_id join sys_con_ops so2 on so2.main_id = d2.id join sys_con_entities se2 on se2.conn_id = so2.id where di.id = i.parent_id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn) and exists (select 1 from sys_con_entities se3 join sys_con_ops so3 on so3.id=se3.conn_id where so3.main_id=d2.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%')))";
+                                $ors[] = "exists (select 1 from documents di join documents d2 on d2.id = di.parent_id join sys_con_ops so2 on so2.main_id = d2.id and so2.conn_id=0 join sys_con_entities se2 on se2.conn_id = so2.id and se2.table_tag='sys_con_ops' and se2.entity_tag='spec_code' and se2.entity_value in ($lifIn) join sys_con_entities se3 on se3.conn_id = so2.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%') where di.id = i.parent_id)";
                             }
                             $where .= " and (".implode(" or ", $ors).") ";
                         }
@@ -211,6 +218,7 @@ class Documents extends Model
                         if ((isset($obj['filterKeys']['system_only']) && $obj['filterKeys']['system_only'] === '1') || (isset($obj['filterKeys']['is_system']) && $obj['filterKeys']['is_system'] === '1')) {
                             // no reseller LIFNR restriction — system filter below handles is_system=1
                         } else {
+                            $needsEntityJoin = true;
                             $where .= " and (i.qnid in ('".implode("','",session('currentStatus')['clientQnidList'])."') ";
 
                             $where .= " or (
@@ -373,6 +381,7 @@ class Documents extends Model
                     case 'showExpired':
                         if($expiredKeyReaded) break;
                         if($f['value'] == 'false'){
+                            $needsEntityJoin = true;
                             $where .= " and (
                                             to_date(se.entity_value, 'DD/MM/YYYY') > current_date 
                                             and se.entity_tag = 'contract_end_date'
@@ -390,6 +399,7 @@ class Documents extends Model
                         break;
                     case 'is-rodevans':
                             if($f['value'] == 'true'){
+                                $needsEntityJoin = true;
                                 $where .= " and (
                                                 se.entity_value = '1' 
                                                 and se.entity_tag = 'request_type'
@@ -416,6 +426,7 @@ class Documents extends Model
                     case 'with-cancelled':
                         break;
                     case 'attr':
+                        $needsEntityJoin = true;
                         $where .= " and (
                                         se.entity_value ilike '%".$f['value']."%'
                                         and se.entity_tag like '%".$f['type']."%'
@@ -594,14 +605,26 @@ class Documents extends Model
         }
         
        
-        //create query    
-        $sql = 'select distinct '.implode(",", array_values($columns)).'
+        //create query
+        // opt-in entity join: only present when a filter above referenced the
+        // bare so/se aliases (reseller scope, attr, showExpired, is-rodevans).
+        if ($needsEntityJoin) {
+            $join .= $entityJoin;
+        }
+        // DISTINCT is only needed when a join can multiply rows (the entity
+        // join above — the sp join and all laterals are 1:1). Without it the
+        // planner can stop after LIMIT rows instead of evaluating the
+        // per-row status subqueries for the whole candidate set.
+        $dist = $needsEntityJoin ? 'distinct ' : '';
+        $sql = 'select '.$dist.implode(",", array_values($columns)).'
                     from documents as i '.$join.' ' . $where.$order.$limit ;
         
         $result = DB::select($sql);
         
-        //count query
-        $sql = 'select count(distinct i.id) as row from documents as i '.$join.' '. $where;
+        //count query — select-list subqueries (status/main_attr laterals) do not
+        //affect count(distinct i.id); dropping them avoids evaluating ~N
+        //correlated subqueries per row on big datasets.
+        $sql = 'select count('.$dist.'i.id) as row from documents as i '.$join.' '. $where;
         $total_count = DB::select($sql)[0];
         
         

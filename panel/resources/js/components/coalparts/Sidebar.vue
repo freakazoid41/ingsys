@@ -359,6 +359,35 @@ export default {
                         </div>
                     </div>
 
+                    <!-- Ürün -->
+                    <div v-if="this.useAuthStore().permissions?.includes('per-09-01')"
+                         data-kt-menu-trigger="click"
+                         class="menu-item py-1 menu-row-main">
+                        <span class="menu-link main-menu px-3">
+                            <span class="menu-icon me-0">
+                                <i class="ki-solid ki-cube-3 fs-1"></i>
+                            </span>
+                            <div class="menu-content d-flex justify-content-between align-items-center w-100">
+                                <span class="menu-section ps-2 py-1 text-dark">Ürün</span>
+                                <span class="menu-arrow"><i class="ki-outline ki-down fs-7"></i></span>
+                            </div>
+                        </span>
+                        <div class="sub-menu hidden-menu">
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'PCList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Ürün Kategorileri</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item">
+                                <router-link :to="{ name: 'PList' }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Ürünler</span>
+                                </router-link>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Section: YÖNETİM (altta) -->
                     <div v-if="!isMini && authStore.typeKey !== 'op-pert-reseller'" class="aside-section-label text-muted text-uppercase fs-8 fw-bold ls-1 px-3 pt-4 pb-1">
                         Yönetim

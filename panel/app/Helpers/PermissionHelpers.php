@@ -72,6 +72,18 @@ if(!function_exists('checkPerm')){
                 'edit' => 'per-041-05-03',
                 'read' => 'per-041-05-03,per-041-05-01,per-041-05-04',
                 'status' => 'per-041-05-01',
+            ],
+            // Product categories: view = Kategori Listeleme, edit = Kategori Oluşturma/Düzenleme
+            'op-doc-product-category' => [
+                'edit' => 'per-09-02',
+                'read' => 'per-09-01',
+                'status' => 'per-09-02',
+            ],
+            // Products live under the same product-domain permission
+            'op-doc-product' => [
+                'edit' => 'per-09-02',
+                'read' => 'per-09-01',
+                'status' => 'per-09-02',
             ]
         ];
         
