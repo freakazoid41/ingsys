@@ -23,7 +23,7 @@
 </template>
 <script>
 import { useNavigationStore } from '@/stores/navigation';
-import { buildNotificationRows, isFileCat, isPlanlamaCat, isTenderCat } from '@/lib/notificationHelpers';
+import { buildNotificationRows, isFileCat, isPlanlamaCat, isTenderCat, isTedarikCat } from '@/lib/notificationHelpers';
 import { getCatMeta } from '@/lib/notificationMaps';
 export default {
   name: 'TedarikActivity',
@@ -60,7 +60,9 @@ export default {
     },
     build() {
       try {
-        const rows = buildNotificationRows(this.navigationStore?.notifications, []);
+        const rows = buildNotificationRows(this.navigationStore?.notifications, [])
+          // tedarik panel scope — ihale/planlama feeds belong to their own panels
+          .filter(r => isTedarikCat(r.cat));
         this.rawItems = rows.map(r => {
           const meta = getCatMeta(r.cat);
           return {

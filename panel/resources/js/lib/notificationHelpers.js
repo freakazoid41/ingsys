@@ -152,6 +152,10 @@ export function buildNotificationRows(notifications, rejectedFiles = []) {
 export const FILE_CATS = ['tedarik-03', 'tedarik-04', 'tedarik-05'];
 export function isFileCat(cat) { return FILE_CATS.includes(cat); }
 
+// tedarik feed cats (+ legacy 'rejected' rows appended from currentStatus.rejectedFiles)
+export const TEDARIK_CATS = ['tedarik-01', 'tedarik-02', 'tedarik-03', 'tedarik-04', 'tedarik-05', 'tedarik-06', 'tedarik-07', 'rejected'];
+export function isTedarikCat(cat) { return TEDARIK_CATS.includes(cat); }
+
 // planlama request cats route to the Talep Dökümanı form (own panel)
 export const PLANLAMA_CATS = ['planlama-01', 'planlama-02', 'planlama-03'];
 export function isPlanlamaCat(cat) { return PLANLAMA_CATS.includes(cat); }

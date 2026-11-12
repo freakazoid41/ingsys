@@ -22,6 +22,13 @@ This is what allows the same `documents` table to hold clients, orders, order it
 
 ---
 
+**readonlyFields is live-stamped (2026-11-12, race fix):**
+- `readonlyFields` is stamped onto fields at build time **and** re-applied by a watcher (`applyReadonlyState`) whenever the prop changes. Every built `input`/`select`/`textarea` registers itself in `builtFields` via `rememberField(el, name, { baseReadOnly, isFile })`; the watcher recomputes `disabled`/`readOnly`/file-slot styles for each registered field (compound names like `transfer_kabul_file**transfer_kabul**<id>` match by `startsWith(name + '**')`).
+- Why: parents change the prop asynchronously after the form is built — `TForm` unlocks `quantity` once `linkBusy` goes false (before this fix the first build raced the unlock and qty cells stayed disabled until reload), `OForm` flips file slots via `isFilesLocked` on status changes.
+- Pages must **not** toggle field lock state by direct DOM surgery anymore; flip the `readonlyFields` prop and the engine re-stamps.
+
+---
+
 **Form definitions moved out of Form.vue (2026-11-12, split JS):**
 - `resources/js/forms/formDefinitions.js` — thin registry: `buildFormDefinitions(vm)` builds a `ctx` (submitDynamicChanges, plib, Swal, buildClientTable, pickClient, dayjs, generatePassword, VMasker, stores) and calls each def with it. `applyDefaults()` injects the standard `oninput → ctx.submitDynamicChanges` for fields that carry none.
 - `resources/js/forms/defs/*.js` — **one file per form** (flat, user, client, ihale, product, kva, product-category, offer, order, order-item, request, request-item, requestf, requestf-item). Callbacks live in the same file as their data (plain JS, no JSON limitation) and use `ctx.*`.

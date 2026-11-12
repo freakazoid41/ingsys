@@ -127,7 +127,9 @@ export default {
         },
         bilgilendirmeCount() {
             const n = this.navigationStore?.notifications || {};
-            // prefer server-calculated unreadTotal (read-tracking aware)
+            // panel-scoped unread: tedarik feeds only (read-tracking aware)
+            if (typeof n.tedarikUnread === 'number') return n.tedarikUnread;
+            // fallback: server global for stale cached payloads
             if (typeof n.unreadTotal === 'number') return n.unreadTotal;
             // fallback: sum of tedarik-01..07 arrays like TedarikHeader.mergeNotifications()
             let c = 0;

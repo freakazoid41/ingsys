@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
  */
 class TenderDashboardService
 {
-    private function latestStatusSub(string $group)
+    private function ihaleLatestStatusSub(string $group)
     {
         return DB::table('transactions as t')
             ->join('sys_options as so', 'so.id', '=', 't.type_id')

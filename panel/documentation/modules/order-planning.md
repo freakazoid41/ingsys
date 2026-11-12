@@ -87,7 +87,7 @@ terminal: std-approved; man-rejected may return to awaiting after revision
 
 **Creation is ONLY via İhtiyaç row → `?from=<qnid>`** (`TList` has no create button; `TForm` without `from` bounces to list; backend create still needs `05-03`). On open, `linkFromSource` copies header (title/request_no/desc) + expands items × period months (`MM/YYYY`), one row per material×month.
 
-**Editing rule (hard): save allowed only when NEW or status is `man-rejected`.** `canSave` gates: save bar, Excel buttons, quantity field, submit. Everything else is always read-only (`readonlyFields` incl. `talep_excel_file`, `ay`, all identity fields; only `quantity` is ever editable, and only while savable).
+**Editing rule (hard): save allowed only when NEW or status is `man-rejected`.** `canSave` gates: save bar, Excel buttons, quantity field, submit. Everything else is always read-only (`readonlyFields` incl. `talep_excel_file`, `ay`, all identity fields; only `quantity` is ever editable, and only while savable). The qty unlock is engine-reliable: `Form.vue` re-stamps on `readonlyFields` change (watcher, 2026-11-12) — no manual reload needed even when the form builds during `linkBusy`.
 
 **Müdürlük picker**: create-time header select populated from the user's **bound system clients** (`POST /v1/table/documents` + `system_only=1`, reseller-scoped automatically). Single binding → auto-selected. Stamped as `firma_adi` (+`mudur_qnid`) on create only; shown read-only afterwards and in the list's Müdürlük column.
 

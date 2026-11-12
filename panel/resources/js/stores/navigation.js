@@ -138,10 +138,14 @@ export const useNavigationStore = defineStore('navigation', {
               const k = keyMap[op];
               if (k) this.notifications[k] = [];
             }
-            let total = 0;
-            for (const k of Object.values(keyMap)) {
-              if (Array.isArray(this.notifications[k])) total += this.notifications[k].length;
-            }
+            const sumOf = (keys) => keys.reduce((acc, k) => acc + (Array.isArray(this.notifications[k]) ? this.notifications[k].length : 0), 0);
+            const tedarikKeys = ['orderImported', 'orderSent', 'pendingFiles', 'fileApproved', 'fileRejected', 'orderApproved', 'orderRejected'];
+            const planlamaKeys = ['planlamaSent', 'planlamaRejected', 'planlamaApproved'];
+            const tenderKeys = ['tenderActivated', 'tenderCompleted', 'offerSubmitted', 'offerRejected', 'offerAccepted'];
+            this.notifications.tedarikUnread = sumOf(tedarikKeys);
+            this.notifications.planlamaUnread = sumOf(planlamaKeys);
+            this.notifications.tenderUnread = sumOf(tenderKeys);
+            const total = this.notifications.tedarikUnread + this.notifications.planlamaUnread + this.notifications.tenderUnread;
             this.notifications.unreadTotal = total;
             this.notifications.blink = total > 0 ? 1 : 0;
           } else {
@@ -154,6 +158,10 @@ export const useNavigationStore = defineStore('navigation', {
     clearNotifications(){
         this.notifications = {
           blink: 0,
+          unreadTotal: 0,
+          tedarikUnread: 0,
+          planlamaUnread: 0,
+          tenderUnread: 0,
           orderImported: [],
           orderSent: [],
           pendingFiles: [],

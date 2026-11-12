@@ -67,7 +67,7 @@ php artisan orders:sync --json=/tmp/sap_fresh_payload.json
 3. Step2/3 fill `order_desc` + `imalatci_firma_adi` (required, detached `v-model` — must prefer `tedarikImalatci` over `getFieldValue`, see gotcha).
 4. Step4 print Kabul/Cins PDFs → sign → scan.
 5. Step5 upload `transfer_kabul_file` + `transfer_cins_file` (single, `hideAdd`) + per-item `item_test_file` + `images`. Temp via `POST /v1/temp-upload` → reference.
-6. `Gönder` → `PUT /v1/document/:qnid` with `transfer_mode + selected_items/item_serials` → `processOrderTransfer` → `transfer_sent`. Toast success → list `Dosyalar Kontrol Ediliyor`.
+6. `Gönder` → `PUT /v1/document/:qnid` with `transfer_mode + selected_items/item_serials` → `processOrderTransfer` → `transfer_sent`. Toast success → list `Dosyalar Kontrol Ediliyor`. **Server-enforced (2026-11-12):** `processOrderTransfer` rejects the transfer (`success:false`) when `transfer_kabul_file` or `transfer_cins_file` entities are missing — the UI Swal ("Eksik Dosya") is now backed by the API, a raw PUT cannot push an order to `transfer_sent` with zero files.
 7. Admin `/coalpanel/documents` sees 4 rows `group_key=EBELN`. `DForm` eye preview → `Onayla` (`doc_file_accepted per-07-02`) per file.
 8. `syncOrderStatusFromFiles` auto: any `rejected` → `files_rejected`, all `accepted` → `ready_for_shipment`.
 9. Kalite: `POST /v1/trans/set-status approved` (`per-07-02` only, backend enforced) → `acceptAllOrderFiles` closes.

@@ -168,12 +168,23 @@
                 isLoadingRoles  : true,
                 ftypes          : this.formtypes.split(','),
                 forms           : null,
+                // Registry of every built field so readonlyFields changes can
+                // re-stamp live (build-time stamping alone raced TForm linkBusy).
+                builtFields     : [],
                 formData        : {
                     dynamicF : {},
                     files : {},
                     removedData : []
                 },
                 flatpickrInstances : []
+            }
+        },
+        watch: {
+            // readonlyFields is stamped at build time; parents (TForm canSave /
+            // linkBusy, OForm isFilesLocked, ...) change it asynchronously after
+            // the form is built. Re-stamp every registered field so locks release.
+            readonlyFields() {
+                this.applyReadonlyState();
             }
         },
         async mounted() {
@@ -199,6 +210,31 @@
             this.formDataStore.setData({},{});
         },
         methods: {
+            rememberField(el, name, opts = {}) {
+                if (!el || !name) return;
+                if (this.builtFields.some(f => f.el === el)) return;
+                this.builtFields.push({
+                    el,
+                    name,
+                    baseReadOnly : !!opts.baseReadOnly,
+                    isFile       : !!opts.isFile,
+                });
+            },
+            applyReadonlyState() {
+                const rf = Array.isArray(this.readonlyFields) ? this.readonlyFields : [];
+                const isRo = (name) => rf.includes(name) || rf.some(x => name === x || name.startsWith(x + '**'));
+                for (const f of this.builtFields) {
+                    if (!f.el) continue;
+                    const ro = isRo(f.name);
+                    f.el.disabled  = ro;
+                    f.el.readOnly  = f.baseReadOnly || ro;
+                    if (f.isFile) {
+                        f.el.style.pointerEvents = ro ? 'none' : '';
+                    }
+                    f.el.style.opacity = ro ? '0.6' : '';
+                    f.el.style.cursor  = ro ? 'not-allowed' : '';
+                }
+            },
             getCurrentFormData(){
                 return this.formData || {};
             },
@@ -435,6 +471,11 @@
                         input.placeholder    = attr?.placeholder ?? '';
                         
                         attr.element         = input;
+
+                        this.rememberField(input, attr.name, {
+                            baseReadOnly : !!(attr?.readOnly || attr?.isDate || attr?.isMonth),
+                            isFile       : attr.type === 'file',
+                        });
                         
                         if(attr?.defaultValue)            input.value = attr.defaultValue;
                         if(attr?.readOnly)                input.readOnly = attr.readOnly;
@@ -710,6 +751,8 @@
                         input.dataset.rowId  = rowId;
                         input.dataset.tag    = tag;
                         input.name           = attr.name;
+
+                        this.rememberField(input, attr.name, { baseReadOnly: !!attr?.readOnly, isFile: false });
 
                         if(attr?.class !== undefined)    input.classList.add(...attr?.class);
                         if(attr?.disabled !== undefined && attr.disabled) iDiv.style.display = 'none';
@@ -1194,6 +1237,8 @@
                             if(fitem.rows) input.rows = fitem.rows;
                             else if(fitem.name === 'order_desc') input.rows = 3;
                             input.classList.add(...fitem.class);
+
+                            this.rememberField(input, fitem.name, { baseReadOnly: false, isFile: false });
                             if(fitem?.required !== undefined) input.required = fitem.required;
                             if(this.readonlyFields.includes(fitem.name) || this.readonlyFields.some(rf => fitem.name === rf || fitem.name.startsWith(rf + '**'))){
                                 input.readOnly = true;

@@ -104,7 +104,7 @@ class SystemController extends Controller
             return $cached;
         }
 
-        $response = ['blink' => 0, 'unreadTotal' => 0];
+        $response = ['blink' => 0, 'unreadTotal' => 0, 'tedarikUnread' => 0, 'planlamaUnread' => 0, 'tenderUnread' => 0];
         $provider = new ReportServiceProvider();
         $limit = 10; // show only 10 unread per category
 
@@ -112,78 +112,92 @@ class SystemController extends Controller
         $r = $provider->getAdminNotifications('tedarik-01', $limit);
         $response['orderImported'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tedarikUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('tedarik-02', $limit);
         $response['orderSent'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tedarikUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('tedarik-03', $limit);
         $response['pendingFiles'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tedarikUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('tedarik-04', $limit);
         $response['fileApproved'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tedarikUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('tedarik-05', $limit);
         $response['fileRejected'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tedarikUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('tedarik-06', $limit);
         $response['orderApproved'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
-        if($r['total'] > 0) $response['blink'] = 1;
+        $response['tedarikUnread'] += $r['total'];
 
         $r = $provider->getAdminNotifications('tedarik-07', $limit);
         $response['orderRejected'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tedarikUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         // ── PLANLAMA 3 ──
         $r = $provider->getAdminNotifications('planlama-01', $limit);
         $response['planlamaSent'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['planlamaUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('planlama-02', $limit);
         $response['planlamaRejected'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['planlamaUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('planlama-03', $limit);
         $response['planlamaApproved'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['planlamaUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         // ── TENDER 5 ──
         $r = $provider->getAdminNotifications('ihale-01', $limit);
         $response['tenderActivated'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tenderUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('ihale-02', $limit);
         $response['tenderCompleted'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tenderUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('offer-01', $limit);
         $response['offerSubmitted'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tenderUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('offer-02', $limit);
         $response['offerRejected'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tenderUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         $r = $provider->getAdminNotifications('offer-03', $limit);
         $response['offerAccepted'] = $r['data'];
         $response['unreadTotal'] += $r['total'];
+        $response['tenderUnread'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
         // Several dashboard widgets call this endpoint on mount; a short cache

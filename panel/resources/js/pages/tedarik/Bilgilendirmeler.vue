@@ -64,7 +64,7 @@ import 'pickletable/assets/style.css';
 import Plib from '@/lib/pickle';
 import Swal from 'sweetalert2';
 import { getCatMeta, CHIP_DEFS } from '@/lib/notificationMaps';
-import { buildNotificationRows, isFileCat, isPlanlamaCat, isTenderCat } from '@/lib/notificationHelpers';
+import { buildNotificationRows, isFileCat, isPlanlamaCat, isTenderCat, isTedarikCat, TEDARIK_CATS } from '@/lib/notificationHelpers';
 
 const TABLE_HEIGHT = '60vh';
 const TABLE_MIN_WIDTH = '920px';
@@ -152,12 +152,16 @@ export default {
   computed: {
     unreadTotal() {
       const n = this.navigationStore?.notifications || {};
-      return typeof n.unreadTotal === 'number' ? n.unreadTotal : this.rawItems.length;
+      // panel-scoped unread: tedarik feeds only (server-calculated, read-tracking aware)
+      if (typeof n.tedarikUnread === 'number') return n.tedarikUnread;
+      // fallback for stale cached payloads (pre-scoped-shape)
+      if (typeof n.unreadTotal === 'number') return n.unreadTotal;
+      return this.rawItems.length;
     },
     filterTabs() {
       const counts = {};
       this.rawItems.forEach(it => { counts[it.cat] = (counts[it.cat] || 0) + 1; });
-      return CHIP_DEFS.map(d => ({ ...d, count: d.key === 'all' ? this.rawItems.length : (counts[d.key] || 0) }));
+      return CHIP_DEFS.filter(d => d.key === 'all' || TEDARIK_CATS.includes(d.key)).map(d => ({ ...d, count: d.key === 'all' ? this.rawItems.length : (counts[d.key] || 0) }));
     },
   },
   mounted() {
@@ -181,7 +185,9 @@ export default {
       this.loading = true;
       try {
         await this.navigationStore.getNotifications();
-        this.rawItems = buildNotificationRows(this.navigationStore.notifications, this.authStore.currentStatus?.rejectedFiles);
+        const all = buildNotificationRows(this.navigationStore.notifications, this.authStore.currentStatus?.rejectedFiles);
+        // tedarik panel scope: tedarik feeds only (ihale/planlama rows live on their own panels)
+        this.rawItems = all.filter(r => isTedarikCat(r.cat));
         this.applyFilterToTable();
       } catch (e) { console.error('[Bilgilendirmeler] load', e); }
       finally { this.loading = false; }
@@ -268,7 +274,8 @@ export default {
       if (this.markingAll) return;
       this.markingAll = true;
       try {
-        await this.navigationStore.markAllNotificationsRead();
+        // scope to tedarik cats — must not clear ihale/planlama unread states
+        await this.navigationStore.markAllNotificationsRead(TEDARIK_CATS);
         this.rawItems = [];
         this.applyFilterToTable();
         this.plib.toast(Swal, 'success', 'Tüm bildirimler okundu işaretlendi');

@@ -161,6 +161,9 @@ export default {
   },
   computed: {
     unreadTotal() {
+      const n = this.navigationStore?.notifications || {};
+      // server-calculated planlama-scoped unread (read-tracking aware); rows are capped at 10/cat
+      if (typeof n.planlamaUnread === 'number') return n.planlamaUnread;
       return this.rawItems.length;
     },
     filterTabs() {
@@ -278,7 +281,8 @@ export default {
       if (this.markingAll) return;
       this.markingAll = true;
       try {
-        await this.navigationStore.markAllNotificationsRead();
+        // scope to planlama cats — must not clear tedarik/ihale unread states
+        await this.navigationStore.markAllNotificationsRead(PLANLAMA_CATS);
         this.rawItems = [];
         this.applyFilterToTable();
         this.plib.toast(Swal, 'success', 'Tüm bildirimler okundu işaretlendi');

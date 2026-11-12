@@ -580,6 +580,13 @@ class DocumentController extends Controller
             }
             $res['transfer_msg'] = $transferRes['msg'] ?? null;
 
+            if (($transferRes['success'] ?? false) === false) {
+                // The document update itself may have succeeded, but the transfer
+                // was rejected (e.g. missing kabul/cins forms) — surface the
+                // failure honestly so clients can't misread a 200 as "sent".
+                $res['success'] = false;
+            }
+
             if (($transferRes['success'] ?? false) === true) {
                 try {
                     $orderQnidForNotif = $transferRes['clone_qnid'] ?? $request->id;
@@ -607,7 +614,7 @@ class DocumentController extends Controller
             $this->docs->updatePersonClients($request->id, $clientInfo);
         }
 
-        return response()->json(['success'=>($res['id'] ?? 0) > 0, 'data'=>$res]);
+        return response()->json(['success'=> ($res['id'] ?? 0) > 0 && ($res['success'] ?? true), 'data'=>$res]);
     }
 
     private function handleDestroy(Request $request, ?string $key)

@@ -1871,6 +1871,20 @@ class DocumentServiceProvider extends ServiceProvider
             }
         }
 
+        // Mechanics guard: a transfer without both acceptance forms must not
+        // exist. The UI blocks this (OForm "Eksik Dosya" Swal), but the API
+        // must enforce it too — otherwise a raw PUT can push the order to
+        // transfer_sent with zero files for admin to review.
+        $hasKabul = false;
+        $hasCins  = false;
+        foreach ($entities as $k => $v) {
+            if (str_starts_with((string) $k, 'transfer_kabul_file') && ! empty($v)) { $hasKabul = true; }
+            if (str_starts_with((string) $k, 'transfer_cins_file') && ! empty($v))  { $hasCins  = true; }
+        }
+        if (! $hasKabul || ! $hasCins) {
+            return ['success' => false, 'msg' => 'Malzeme Kabul Formu ve Malzeme Cins-Miktar Kabul Formu yüklenmelidir. Lütfen her iki formu da 5. adımda yükleyip tekrar Gönder ile kontrole gönderin.'];
+        }
+
         $baseNo = $entities['order_no'] ?? '';
         $baseNo = preg_replace('/-\d+$/', '', (string) $baseNo);
 

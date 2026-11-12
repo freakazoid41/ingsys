@@ -244,16 +244,19 @@ async getPermissions(){
 **Method**: `getNotifications()` (lines 78-115) — **TEDARIK 7 + Read Tracking**
 ```php
 public function getNotifications(){
-  $response = ['blink' => 0, 'unreadTotal' => 0];
+  $response = ['blink' => 0, 'unreadTotal' => 0, 'tedarikUnread' => 0, 'planlamaUnread' => 0, 'tenderUnread' => 0];
   $provider = new ReportServiceProvider();
   $limit = 10; // show only 10 unread per category
   // Each: $r = $provider->getAdminNotifications('tedarik-0X', $limit);
   // $response['category'] = $r['data']; // max 10 unread
   // $response['unreadTotal'] += $r['total']; // all unread count
+  // $response['<scope>Unread'] += $r['total']; // tedarik/planlama/tender scoped unread
   // if($r['total'] > 0) $response['blink'] = 1;
   return $response;
 }
 ```
+
+**Panel scoping (2026-11-12, cross-module leak fix):** the response carries per-scope unread totals — `tedarikUnread` (tedarik-01..07), `planlamaUnread` (planlama-01..03), `tenderUnread` (ihale-01/02 + offer-01..03). Each front panel reads only its scope: `TedarikPanel` bell + `tedarik/Bilgilendirmeler` badge use `tedarikUnread`; the tedarik page filters rows with `isTedarikCat()` (TEDARIK_CATS incl. legacy `rejected`), scopes its chips, and sends `TEDARIK_CATS` to `mark-all` (`read-all` accepts `op_keys`, so tedarik mark-all never clears ihale/planlama unread). Planlama page filters `PLANLAMA_CATS` and marks only those; ihale page filters `TENDER_CATS` and marks only those. Only coalpanel admin widgets may show the global mix. Fallback: stale cached payloads (15s TTL) fall back to the global `unreadTotal` until refreshed. `TedarikActivity` widget also filters `isTedarikCat()`.
 
 **Response Structure** (with read tracking):
 ```json
