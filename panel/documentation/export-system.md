@@ -43,8 +43,11 @@ The current export system supports these models:
 
 - `clients`
 - `documents`
-- `offers`
-- `requests`
+- `products`
+- `productcategories`
+- `kvas`
+- `offers` (legacy tables, kept for compatibility)
+- `requests` (legacy tables, kept for compatibility)
 - `notificationlogs`
 - `users`
 - `userlogs`

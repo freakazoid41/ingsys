@@ -5,10 +5,9 @@
       @open-notifications="openNotifications"
       @open-profile="openProfile"
     />
-    <ClientStats />
+    <TedarikStats />
     <ClientQuickOps />
     <ClientInfoSection ref="infoSection" />
-    <ClientOfferTable />
   </div>
 </template>
 
@@ -552,19 +551,18 @@
 import { useAuthStore } from '@/stores/auth';
 import { useNavigationStore } from '@/stores/navigation';
 import ClientHeader from './Client/ClientHeader.vue';
-import ClientStats from './Client/ClientStats.vue';
+import TedarikStats from './Tedarik/TedarikStats.vue';
 import ClientQuickOps from './Client/ClientQuickOps.vue';
 import ClientInfoSection from './Client/ClientInfoSection.vue';
-import ClientOfferTable from './Client/ClientOfferTable.vue';
+
 
 export default {
   name: 'ClientDashboard',
   components: {
     ClientHeader,
-    ClientStats,
+    TedarikStats,
     ClientQuickOps,
-    ClientInfoSection,
-    ClientOfferTable
+    ClientInfoSection
   },
   data() {
     const authStore = useAuthStore();

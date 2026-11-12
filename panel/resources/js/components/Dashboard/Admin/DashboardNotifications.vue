@@ -23,7 +23,7 @@
 <script>
 import { useAuthStore } from '@/stores/auth';
 import { useNavigationStore } from '@/stores/navigation';
-import { buildNotificationRows, isFileCat, isPlanlamaCat } from '@/lib/notificationHelpers';
+import { buildNotificationRows, isFileCat, isPlanlamaCat, isTenderCat } from '@/lib/notificationHelpers';
 import { getCatMeta } from '@/lib/notificationMaps';
 
 export default {
@@ -73,6 +73,8 @@ export default {
           let onclick;
           if (isFileCat(r.cat)) onclick = () => this.$router.push({ name: 'DForm', params: { id: r.qnid } });
           else if (isPlanlamaCat(r.cat)) onclick = () => this.$router.push({ name: 'PlanlamaFFormAdmin', params: { id: r.qnid } });
+          else if (isTenderCat(r.cat) && ['ihale-01','ihale-02'].includes(r.cat)) onclick = () => this.$router.push({ name: 'IhList' });
+          else if (isTenderCat(r.cat)) onclick = () => this.$router.push({ name: 'IhOffer', params: { id: r.qnid } });
           else onclick = () => this.$router.push({ name: 'OrderForm', params: { id: r.qnid } });
           return {
             id: r.id,

@@ -61,6 +61,32 @@ class DocumentController extends Controller
     private const OFFER_KEYS = ['op-doc-ihale-offer', 'op-doc-ihale-offer-item'];
 
     /**
+     * Temp-upload reference IDs are global sequence values. Refuse references
+     * created by another user (legacy rows with uploaded_by=0 are tolerated).
+     */
+    private function assertTempReferencesOwned(array $files): ?\Illuminate\Http\JsonResponse
+    {
+        $uid = (int) (auth()->id() ?? 0);
+        if ($uid <= 0) return null;
+
+        foreach ($files as $value) {
+            if (! is_string($value)) continue;
+            try { $ref = json_decode($value, true); } catch (\Throwable $e) { continue; }
+            $refId = (int) ($ref['reference_id'] ?? 0);
+            if ($refId <= 0) continue;
+
+            $owner = (int) \App\Models\Document_files::where('id', $refId)->value('uploaded_by');
+            if ($owner > 0 && $owner !== $uid) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Bu dosya referansı başka bir kullanıcıya ait.',
+                ], 403);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Supplier ownership for tender offers. Resellers may only touch offers whose
      * supplier_qnid is one of their bound clients (session clientQnidList).
      * Admins (non-reseller) bypass. Fail-closed: unknown supplier → 403.
@@ -128,6 +154,34 @@ class DocumentController extends Controller
         }
         $form = $this->docs->getFormData($request->id);
         return $form['document']->op_key ?? null;
+    }
+
+    private function tenderNotificationPayload(string $tenderQnid, ?string $offerQnid = null): array
+    {
+        $payload = ['ihale_qnid' => $tenderQnid, 'qnid' => $tenderQnid, 'ihale_kodu' => '-'];
+        try {
+            $detail = $this->docs->getFormData($tenderQnid);
+            $ff = $detail['formFormat']['op-doc-ihale-form'] ?? [];
+            $e = [];
+            foreach ($ff as $row) {
+                foreach (($row['entities'] ?? []) as $k => $v) if (!isset($e[$k])) $e[$k] = $v;
+            }
+            $payload['ihale_kodu'] = $e['ihale_kodu'] ?? '-';
+            $payload['teklif_son_tarihi'] = $e['teklif_son_tarihi'] ?? '-';
+            $payload['product_count'] = count(array_filter(array_keys($e), fn($k) => str_starts_with($k, 'product_qnid**ihale_product_rows')));
+        } catch (\Throwable $e) {}
+
+        if ($offerQnid) {
+            $payload['offer_qnid'] = $offerQnid;
+            try {
+                $ctx = $this->offerContext($offerQnid);
+                if ($ctx) {
+                    $payload['supplier_qnid'] = $ctx['supplier_qnid'];
+                    $payload['supplier_title'] = $ctx['supplier_title'];
+                }
+            } catch (\Throwable $e) {}
+        }
+        return $payload;
     }
 
     private function buildOrderNotifPayload(string $orderQnid, array $extra = []): array
@@ -239,6 +293,11 @@ class DocumentController extends Controller
         $offerGuard = $this->assertOfferOwnership($key, $method, $request, $offerGuardDecoded);
         if ($offerGuard !== true) return $offerGuard;
 
+        // Server-side terminal lock. UI hides edit/delete for closed tenders, but
+        // the API must enforce it independently of the payload (typeKey/ihale_qnid).
+        $lockError = $this->lockedTenderWriteError($key, $method, $request->id);
+        if ($lockError) return $lockError;
+
         return match($method) {
             'GET'    => $this->handleShow($request),
             'POST'   => $this->handleStore($request, $decodedData, $key),
@@ -258,8 +317,57 @@ class DocumentController extends Controller
     {
         $files = $request->files->all();
         $this->mergeTempUploadReferences($request->all(), $files);
+        $refError = $this->assertTempReferencesOwned($files);
+        if ($refError) return $refError;
         $this->stripResellerGorus($key, $files, $decoded);
+
+        // Tender creation is server-validated: the UI requires these, but the API
+        // must not be able to create an empty tender header.
+        if ($key === 'op-doc-ihale') {
+            $hasCode = false;
+            $hasProduct = false;
+            foreach (($decoded['dynamicF'] ?? []) as $row) {
+                foreach (($row['entities'] ?? []) as $k => $v) {
+                    if ($k === 'ihale_kodu' && trim((string) $v) !== '') $hasCode = true;
+                    if (str_starts_with((string) $k, 'product_qnid**ihale_product_rows') && trim((string) $v) !== '') {
+                        $hasProduct = true;
+                    }
+                }
+            }
+            $hasSpec = false;
+            foreach ($files as $fileKey => $fileValue) {
+                if (str_contains((string) $fileKey, 'ihale_spec_file')) { $hasSpec = true; break; }
+            }
+            if (! $hasCode || ! $hasProduct || ! $hasSpec) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'İhale kodu, en az bir ürün ve teknik şartname dosyası zorunludur.',
+                ], 422);
+            }
+        }
+
+        if ($key === 'op-doc-ihale-offer') {
+            $offerError = $this->validateOfferPayload($decoded);
+            if ($offerError) {
+                return response()->json(['success' => false, 'msg' => $offerError], 422);
+            }
+            $fileError = $this->validateOfferFiles($decoded);
+            if ($fileError) {
+                return response()->json(['success' => false, 'msg' => $fileError], 422);
+            }
+        }
+
         $res = $this->docs->registerContent(0, $decoded, $files);
+        if ($key === 'op-doc-ihale-offer' && ($res['id'] ?? 0) > 0) {
+            try {
+                $tenderQnid = $this->offerTenderQnid($decoded);
+                if ($tenderQnid) {
+                    $this->emails->sendOfferSubmitted($this->tenderNotificationPayload($tenderQnid, $res['qnid'] ?? null));
+                }
+            } catch (\Throwable $e) {
+                Log::warning('offer-01 dispatch failed', ['msg' => $e->getMessage()]);
+            }
+        }
         // Pipeline step 2: new Talep Dökümanı → notify Müdürlük Talep Onay (05-01 group, planlama-01)
         if ($key === 'op-doc-requestf' && (($res['id'] ?? 0) > 0)) {
             try {
@@ -282,7 +390,8 @@ class DocumentController extends Controller
                 Log::warning('planlama-01 dispatch failed', ['msg' => $e->getMessage()]);
             }
         }
-        return response()->json(['success'=>($res['id'] ?? 0) > 0, 'data'=>$res]);
+        $ok = ($res['id'] ?? 0) > 0 && ($res['success'] ?? true);
+        return response()->json(['success'=>$ok, 'data'=>$res], $ok ? 200 : 422);
     }
 
     private function handleUpdate(Request $request, ?string $key)
@@ -301,9 +410,32 @@ class DocumentController extends Controller
 
         $files = $request->files->all();
         $this->mergeTempUploadReferences($data, $files);
+        $refError = $this->assertTempReferencesOwned($files);
+        if ($refError) return $refError;
         $this->stripResellerGorus($key, $files, $decoded);
 
+        if ($key === 'op-doc-ihale-offer') {
+            $offerError = $this->validateOfferPayload($decoded, $request->id);
+            if ($offerError) {
+                return response()->json(['success' => false, 'msg' => $offerError], 422);
+            }
+            $fileError = $this->validateOfferFiles($decoded, $request->id);
+            if ($fileError) {
+                return response()->json(['success' => false, 'msg' => $fileError], 422);
+            }
+        }
+
         $res = $this->docs->registerContent($request->id, $decoded, $files);
+        if ($key === 'op-doc-ihale-offer' && ($res['id'] ?? 0) > 0) {
+            try {
+                $tenderQnid = $this->offerTenderQnid($decoded, $request->id);
+                if ($tenderQnid) {
+                    $this->emails->sendOfferSubmitted($this->tenderNotificationPayload($tenderQnid, $request->id));
+                }
+            } catch (\Throwable $e) {
+                Log::warning('offer-01 update dispatch failed', ['msg' => $e->getMessage()]);
+            }
+        }
 
         // Talep Dökümanı update hardening: firma_adi is display text derived from the
         // bound müdürlük (mudur_qnid) — never trust it from the payload on edits.
@@ -445,6 +577,17 @@ class DocumentController extends Controller
         $docOpKey = $formTmp['document']->op_key ?? null;
         if (!$docOpKey) {
             return response()->json(['success'=>false,'msg'=>'Belge bulunamadı'],404);
+        }
+
+        // Tender lifecycle is owned by dedicated endpoints: activate/complete,
+        // offer accept/reject/file-reject. The generic set-status route must not
+        // be able to forge offer-accepted/tender-complated without winner checks,
+        // snapshots, or ownership validation.
+        if (in_array($docOpKey, ['op-doc-ihale', 'op-doc-ihale-offer', 'op-doc-ihale-offer-item'], true)) {
+            return response()->json([
+                'success' => false,
+                'msg'     => 'İhale ve teklif durumları yalnızca kendi işlem uçlarından değiştirilebilir.',
+            ], 422);
         }
 
         // Talep Dökümanı approval chain — per-key permission (generic docPermCheck 'status' does not cover these):
@@ -876,14 +1019,7 @@ class DocumentController extends Controller
         $files = \App\Models\Document_files::whereIn('id', $fileIds)->orderByDesc('id')->get();
 
         // latest file transaction per file in ONE query (DISTINCT ON, newest first)
-        $in = implode(',', $fileIds->map(fn($v) => (int)$v)->toArray());
-        $lastRows = \Illuminate\Support\Facades\DB::select(
-            "SELECT DISTINCT ON (t.target_id) t.target_id, so.op_key, so.title, t.created_at, t.note
-             FROM transactions as t
-             inner join sys_options as so on so.id = t.type_id
-             WHERE t.target_id IN ($in) AND t.op_id = 1
-             ORDER BY t.target_id, t.id DESC"
-        );
+        $lastRows = $this->docs->latestFileTransactions($fileIds->all());
         $lastMap = [];
         foreach($lastRows as $lr) $lastMap[(int)$lr->target_id] = $lr;
 
@@ -918,22 +1054,8 @@ class DocumentController extends Controller
 
     private function currentSupplierList(): array
     {
-        $list = session('currentStatus')['clientQnidList'] ?? [];
-        if (! empty($list)) return $list;
-
-        // Bearer-token requests have no session currentStatus — fall back to the
-        // bound client entities of the authenticated person (fails closed).
-        $u = auth('sanctum')->user() ?? auth()->user();
-        if (! $u) return [];
-        $formId = \App\Models\Sys_options::where('op_key', 'op-doc-user-client-form')->value('id');
-
-        return \Illuminate\Support\Facades\DB::table('sys_con_entities as se')
-            ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
-            ->where('so.main_id', $u->person_id)
-            ->where('so.type_id', $formId)
-            ->where('se.entity_tag', 'like', 'cliid%')
-            ->pluck('se.entity_value')
-            ->all();
+        // Shared helper keeps session + Bearer-token fallback in one place.
+        return currentSupplierQnidList();
     }
 
     private function isReseller(): bool
@@ -988,6 +1110,11 @@ class DocumentController extends Controller
         }
         if (! is_array($reference)) {
             return response()->json(['success' => false, 'msg' => 'Geçersiz dosya referansı'], 422);
+        }
+        $refId = (int) ($reference['reference_id'] ?? 0);
+        $refOwner = $refId > 0 ? (int) \App\Models\Document_files::where('id', $refId)->value('uploaded_by') : 0;
+        if ($refOwner > 0 && $refOwner !== (int) (auth()->id() ?? 0)) {
+            return response()->json(['success' => false, 'msg' => 'Bu dosya referansı başka bir kullanıcıya ait.'], 403);
         }
 
         $svc = new ClientDocsService();
@@ -1118,6 +1245,206 @@ class DocumentController extends Controller
         ]);
     }
 
+    /** Tender product rows keyed by product qnid — server-side offer validation source. */
+    private function tenderRowsForValidation(string $tenderQnid): array
+    {
+        $doc = \App\Models\Documents::where('qnid', $tenderQnid)->first();
+        if (! $doc) return [];
+        $type = \App\Models\Sys_options::where('id', $doc->type_id)->value('op_key');
+        if ($type !== 'op-doc-ihale') return [];
+
+        $formId = \App\Models\Sys_options::where('op_key', 'op-doc-ihale-form')->value('id');
+        $connId = \App\Models\Sys_con_ops::where('main_id', $doc->id)
+            ->where('type_id', $formId)->where('conn_id', 0)->value('id');
+        if (! $connId) return [];
+
+        $entities = \App\Models\Sys_con_entities::where('conn_id', $connId)
+            ->where('entity_tag', 'like', '%**ihale_product_rows**%')
+            ->get(['entity_tag', 'entity_value']);
+
+        $rows = [];
+        foreach ($entities as $e) {
+            $parts = explode('**', $e->entity_tag);
+            if (count($parts) < 3) continue;
+            $rows[$parts[2]][$parts[0]] = $e->entity_value;
+        }
+
+        $out = [];
+        foreach ($rows as $r) {
+            $p = trim((string) ($r['product_qnid'] ?? ''));
+            if ($p === '') continue;
+            $out[$p] = [
+                'product_qnid' => $p,
+                'product_title' => $r['product_title'] ?? $p,
+                'quantity' => trim((string) ($r['quantity'] ?? '')),
+                'unit' => trim((string) ($r['unit'] ?? '')),
+            ];
+        }
+        return $out;
+    }
+
+    /** Category file-definition rows (pointer templates, no file bytes). */
+    private function categoryFileTemplates(string $categoryQnid): array
+    {
+        try {
+            $detail = $this->docs->getFormData($categoryQnid);
+            $ff = $detail['formFormat']['op-doc-product-category-form'] ?? [];
+            $rows = [];
+            foreach ($ff as $row) {
+                foreach (($row['entities'] ?? []) as $tag => $value) {
+                    $parts = explode('**', (string) $tag);
+                    if (count($parts) < 3 || $parts[1] !== 'category_files') continue;
+                    $rows[$parts[2]][$parts[0]] = $value;
+                }
+            }
+            $out = [];
+            foreach ($rows as $r) {
+                $title = trim((string) ($r['file_title'] ?? ''));
+                if ($title === '') continue;
+                $kva = json_decode((string) ($r['kva'] ?? '[]'), true);
+                if (!is_array($kva)) $kva = [];
+                $out[] = [
+                    'standard' => trim((string) ($r['standard'] ?? '')),
+                    'file_title' => $title,
+                    'kva' => array_values(array_map('strval', $kva)),
+                ];
+            }
+            return $out;
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    private function offerSupplierQnid(?array $decoded, ?string $offerQnid = null): ?string
+    {
+        foreach (($decoded['dynamicF'] ?? []) as $row) {
+            $v = $row['entities']['supplier_qnid'] ?? null;
+            if (is_string($v) && $v !== '') return $v;
+        }
+        if ($offerQnid) {
+            $ctx = $this->offerContext($offerQnid);
+            if ($ctx && !empty($ctx['supplier_qnid'])) return (string) $ctx['supplier_qnid'];
+        }
+        return null;
+    }
+
+    /**
+     * Every category file requirement in the tender must exist in the supplier's
+     * shared library as a non-expired active version.
+     */
+    private function validateOfferFiles(?array $decoded, ?string $offerQnid = null): ?string
+    {
+        $tenderQnid = $this->offerTenderQnid($decoded, $offerQnid);
+        $supplierQnid = $this->offerSupplierQnid($decoded, $offerQnid);
+        if (! $tenderQnid || ! $supplierQnid) return null;
+
+        $tenderRows = $this->tenderRowsForValidation($tenderQnid);
+        if (empty($tenderRows)) return null;
+
+        $svc = new ClientDocsService();
+        $listing = $svc->listing($supplierQnid);
+        $available = [];
+        foreach (($listing['data']['slots'] ?? []) as $slot) {
+            if (empty($slot['file']) || !empty($slot['expired'])) continue;
+            $available[(string) ($slot['match_key'] ?? '')] = true;
+        }
+
+        foreach ($tenderRows as $productQnid => $row) {
+            try {
+                $pdetail = $this->docs->getFormData($productQnid);
+                $pff = $pdetail['formFormat']['op-doc-product-form'] ?? [];
+                $pe = (array_values($pff)[0] ?? [])['entities'] ?? [];
+                $categoryQnid = (string) ($pe['category_qnid'] ?? '');
+                $prodCode = (string) ($pe['prod_code'] ?? '');
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if ($categoryQnid === '') continue;
+
+            foreach ($this->categoryFileTemplates($categoryQnid) as $tpl) {
+                $kvas = $tpl['kva'] ?: ['all'];
+                foreach ($kvas as $kva) {
+                    $key = $prodCode.'||'.$tpl['standard'].'||'.$tpl['file_title'].'||'.$kva;
+                    if (! isset($available[$key])) {
+                        return 'Eksik veya süresi dolmuş evrak: '.$tpl['file_title'].' ('.$row['product_title'].')';
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Resolve the tender of an offer from payload first, stored header second. */
+    private function offerTenderQnid(?array $decoded, ?string $offerQnid = null): ?string
+    {
+        foreach (($decoded['dynamicF'] ?? []) as $row) {
+            $v = $row['entities']['ihale_qnid'] ?? null;
+            if (is_string($v) && $v !== '') return $v;
+        }
+
+        if ($offerQnid) {
+            $doc = \App\Models\Documents::where('qnid', $offerQnid)->first();
+            if (! $doc) return null;
+            $formId = \App\Models\Sys_options::where('op_key', 'op-doc-ihale-offer-form')->value('id');
+            $connId = \App\Models\Sys_con_ops::where('main_id', $doc->id)
+                ->where('type_id', $formId)->where('conn_id', 0)->value('id');
+            if ($connId) {
+                $v = \App\Models\Sys_con_entities::where('conn_id', $connId)
+                    ->where('entity_tag', 'ihale_qnid')->value('entity_value');
+                if (is_string($v) && $v !== '') return $v;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Reject tampered offers: every tender product must appear exactly once,
+     * with matching quantity, manufacturer and brand. Files are validated by
+     * the shared library/expiry flow; matrix completeness remains UI-guided.
+     */
+    private function validateOfferPayload(?array $decoded, ?string $offerQnid = null): ?string
+    {
+        $tenderQnid = $this->offerTenderQnid($decoded, $offerQnid);
+        if (! $tenderQnid) return 'Teklifin bağlı olduğu ihale bulunamadı.';
+
+        $tenderRows = $this->tenderRowsForValidation($tenderQnid);
+        if (empty($tenderRows)) return 'İhale ürün listesi boş veya geçersiz.';
+
+        $items = [];
+        foreach (($decoded['dynamicF'] ?? []) as $row) {
+            $e = $row['entities'] ?? [];
+            if (empty($e['product_qnid'])) continue;
+            $items[] = $e;
+        }
+
+        if (count($items) !== count($tenderRows)) {
+            return 'Teklif, ihaledeki tüm ürünleri içermelidir.';
+        }
+
+        $seen = [];
+        foreach ($items as $e) {
+            $p = (string) ($e['product_qnid'] ?? '');
+            if (! isset($tenderRows[$p])) return 'Teklifte ihaleye ait olmayan bir ürün var.';
+            if (isset($seen[$p])) return 'Aynı ürün teklifte birden fazla kez yer alamaz.';
+            $seen[$p] = true;
+
+            $expected = $tenderRows[$p]['quantity'];
+            $actual = trim((string) ($e['quantity'] ?? ''));
+            if ($expected !== '' && is_numeric($expected) && is_numeric($actual)
+                && abs((float) $expected - (float) $actual) > 0.0001) {
+                return 'Ürün miktarı ihale miktarıyla eşleşmiyor: '.$tenderRows[$p]['product_title'];
+            }
+            if (trim((string) ($e['imalatci_firma_adi'] ?? '')) === '') {
+                return 'İmalatçı firma adı zorunludur: '.$tenderRows[$p]['product_title'];
+            }
+            if (trim((string) ($e['urun_markasi'] ?? '')) === '') {
+                return 'Ürün markası zorunludur: '.$tenderRows[$p]['product_title'];
+            }
+        }
+
+        return null;
+    }
+
     private function tenderLastStatus(int $docId): ?string
     {
         return \Illuminate\Support\Facades\DB::table('transactions as t')
@@ -1152,6 +1479,11 @@ class DocumentController extends Controller
         }
 
         $status = $this->docs->setStatus($qnid, 'tender-activated', 'İhale aktif edildi — teklif alımı açıldı');
+        if (! empty($status['success'])) {
+            try { $this->emails->sendIhaleActivated($this->tenderNotificationPayload($qnid)); } catch (\Throwable $e) {
+                Log::warning('ihale-01 dispatch failed', ['msg' => $e->getMessage()]);
+            }
+        }
 
         return response()->json([
             'success' => ! empty($status['success']),
@@ -1187,7 +1519,7 @@ class DocumentController extends Controller
     }
 
     /** Shared completion: winner entities + offer snapshots + tender-complated */
-    private function completeTenderWithWinner(\App\Models\Documents $doc, string $winnerQnid, string $winnerTitle)
+    private function completeTenderWithWinner(\App\Models\Documents $doc, string $winnerQnid, string $winnerTitle, ?string $acceptedOfferQnid = null)
     {
         $last = $this->tenderLastStatus((int) $doc->id);
         if ($last === 'tender-complated') {
@@ -1212,48 +1544,117 @@ class DocumentController extends Controller
             ->values();
 
         $winnerOfferQnid = null;
-        foreach ($offers as $offerQnid) {
-            $details = $svc->offerSupplier($offerQnid);
-            if ($details && $details['supplier_qnid'] === $winnerQnid) {
+
+        // Accept endpoint already validated this exact offer — use it, not a sibling.
+        if ($acceptedOfferQnid) {
+            $acceptedCtx = $this->offerContext($acceptedOfferQnid);
+            $acceptedDetails = $svc->offerSupplier($acceptedOfferQnid);
+            if ($acceptedCtx && $acceptedDetails
+                && $acceptedDetails['supplier_qnid'] === $winnerQnid
+                && ($acceptedCtx['status'] ?? null) !== 'offer-rejected') {
+                $winnerOfferQnid = $acceptedOfferQnid;
+            }
+        }
+
+        if (! $winnerOfferQnid) {
+            foreach ($offers as $offerQnid) {
+                $details = $svc->offerSupplier($offerQnid);
+                if (! $details || $details['supplier_qnid'] !== $winnerQnid) continue;
+
+                // A rejected offer must be revised/resubmitted before it can win.
+                $offerCtx = $this->offerContext($offerQnid);
+                $offerStatus = $offerCtx['status'] ?? null;
+                if ($offerStatus === 'offer-rejected') continue;
+
                 $winnerOfferQnid = $offerQnid;
                 break;
             }
         }
         if (! $winnerOfferQnid) {
-            return response()->json(['success' => false, 'msg' => 'Seçilen tedarikçinin bu ihaleye teklifi yok'], 422);
+            return response()->json([
+                'success' => false,
+                'msg'     => 'Seçilen tedarikçinin bu ihaleye geçerli (reddedilmemiş) teklifi yok.',
+            ], 422);
         }
 
         if ($winnerTitle === '') {
             $winnerTitle = (string) \Illuminate\Support\Facades\DB::table('documents')->where('qnid', $winnerQnid)->value('title');
         }
 
-        // Freeze winner on the tender header (EAV)
-        $formId = \App\Models\Sys_options::where('op_key', 'op-doc-ihale-form')->value('id');
-        $connId = \App\Models\Sys_con_ops::where('main_id', $doc->id)->where('type_id', $formId)->where('conn_id', 0)->value('id');
-        if ($connId) {
-            foreach ([
-                'winner_supplier_qnid' => $winnerQnid,
-                'winner_supplier_title' => $winnerTitle,
-                'winner_offer_qnid' => $winnerOfferQnid,
-            ] as $tag => $value) {
-                \Illuminate\Support\Facades\DB::table('sys_con_entities')->updateOrInsert(
-                    ['conn_id' => $connId, 'entity_tag' => $tag, 'table_tag' => 'sys_con_ops'],
-                    ['entity_value' => (string) $value, 'updated_at' => now(), 'created_at' => now()]
-                );
+        // Winner entities + snapshots + terminal status must land together.
+        // The inner setStatus() opens a nested transaction; a failure rolls the
+        // outer one back so a tender can never end up "winner, no lock".
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            // Freeze winner on the tender header (EAV)
+            $formId = \App\Models\Sys_options::where('op_key', 'op-doc-ihale-form')->value('id');
+            $connId = \App\Models\Sys_con_ops::where('main_id', $doc->id)->where('type_id', $formId)->where('conn_id', 0)->value('id');
+            if ($connId) {
+                foreach ([
+                    'winner_supplier_qnid' => $winnerQnid,
+                    'winner_supplier_title' => $winnerTitle,
+                    'winner_offer_qnid' => $winnerOfferQnid,
+                ] as $tag => $value) {
+                    \Illuminate\Support\Facades\DB::table('sys_con_entities')->updateOrInsert(
+                        ['conn_id' => $connId, 'entity_tag' => $tag, 'table_tag' => 'sys_con_ops'],
+                        ['entity_value' => (string) $value, 'updated_at' => now(), 'created_at' => now()]
+                    );
+                }
             }
+
+            $snap = $svc->snapshotOffers($doc->qnid);
+            $status = $this->docs->setStatus($doc->qnid, 'tender-complated', 'İhale tamamlandı — kazanan: '.$winnerTitle.'; teklifler kilitlendi');
+
+            if (empty($status['success'])) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'msg' => $status['msg'] ?? 'İhale tamamlanamadı.',
+                ], 422);
+            }
+
+            // Accept flow: lock the winning offer in the same transaction as the
+            // tender, so a failure cannot leave "tender completed, offer pending".
+            if ($acceptedOfferQnid) {
+                $offerStatus = $this->docs->setStatus($acceptedOfferQnid, 'offer-accepted', 'Teklif kabul edildi — kazanan seçildi');
+                if (empty($offerStatus['success'])) {
+                    \Illuminate\Support\Facades\DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'msg'     => $offerStatus['msg'] ?? 'Teklif kabul durumu yazılamadı, işlem geri alındı.',
+                    ], 422);
+                }
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            try {
+                $notif = $this->tenderNotificationPayload($doc->qnid);
+                $notif['winner_supplier_title'] = $winnerTitle;
+                $this->emails->sendIhaleCompleted($notif);
+            } catch (\Throwable $e) {
+                Log::warning('ihale-02 dispatch failed', ['msg' => $e->getMessage()]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            Log::error('tender completion failed', [
+                'tender' => $doc->qnid,
+                'winner' => $winnerQnid,
+                'msg'    => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'msg'     => 'İhale tamamlanamadı, işlem geri alındı.',
+            ], 500);
         }
 
-        $snap = $svc->snapshotOffers($doc->qnid);
-        $status = $this->docs->setStatus($doc->qnid, 'tender-complated', 'İhale tamamlandı — kazanan: '.$winnerTitle.'; teklifler kilitlendi');
-
         return response()->json([
-            'success' => ! empty($status['success']),
-            'msg' => $status['msg'] ?? null,
+            'success' => true,
             'winner_offer_qnid' => $winnerOfferQnid,
             'winner_supplier_qnid' => $winnerQnid,
             'winner_supplier_title' => $winnerTitle,
             'snapshot' => $snap,
-        ], ! empty($status['success']) ? 200 : 422);
+        ], 200);
     }
 
     /** Offer header context: tender, supplier, current offer status */
@@ -1294,6 +1695,47 @@ class DocumentController extends Controller
         ];
     }
 
+    /**
+     * Returns a 422 response when a tender/offer is already terminal.
+     * Uses the stored document type/state, never the client-provided typeKey.
+     */
+    private function lockedTenderWriteError(?string $key, string $method, ?string $id): ?\Illuminate\Http\JsonResponse
+    {
+        if (! in_array($method, ['PUT', 'DELETE'], true) || empty($id)) return null;
+
+        if ($key === 'op-doc-ihale') {
+            $docId = \App\Models\Documents::where('qnid', $id)->value('id');
+            if ($docId && $this->tenderLastStatus((int) $docId) === 'tender-complated') {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'İhale tamamlandı — düzenlenemez veya silinemez.',
+                ], 422);
+            }
+        }
+
+        if ($key === 'op-doc-ihale-offer') {
+            $ctx = $this->offerContext($id);
+            if (! $ctx) return null;
+
+            if (($ctx['status'] ?? null) === 'offer-accepted') {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Kabul edilmiş teklif değiştirilemez veya silinemez.',
+                ], 422);
+            }
+
+            $tenderId = \App\Models\Documents::where('qnid', $ctx['ihale_qnid'])->value('id');
+            if ($tenderId && $this->tenderLastStatus((int) $tenderId) === 'tender-complated') {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'İhale tamamlandı — teklif kilitli.',
+                ], 422);
+            }
+        }
+
+        return null;
+    }
+
     /** POST /v1/offers/accept — offer-accepted + tender-complated (winner = offer supplier) */
     public function acceptOffer(Request $request)
     {
@@ -1313,6 +1755,12 @@ class DocumentController extends Controller
         if ($ctx['status'] === 'offer-accepted') {
             return response()->json(['success' => false, 'msg' => 'Teklif zaten kabul edilmiş.'], 422);
         }
+        if ($ctx['status'] !== 'offer-sended') {
+            return response()->json([
+                'success' => false,
+                'msg'     => 'Yalnızca gönderilmiş teklifler kabul edilebilir. Önce teklifin revize edilip yeniden gönderilmesi gerekir.',
+            ], 422);
+        }
 
         $tender = \App\Models\Documents::where('qnid', $ctx['ihale_qnid'])->first();
         if (! $tender) {
@@ -1322,20 +1770,31 @@ class DocumentController extends Controller
             return response()->json(['success' => false, 'msg' => 'İhale aktif değil veya zaten tamamlanmış.'], 422);
         }
 
-        // Accepting an offer completes the tender with that supplier as winner
-        $complete = $this->completeTenderWithWinner($tender, (string) $ctx['supplier_qnid'], (string) $ctx['supplier_title']);
+        // Accepting an offer completes the tender and locks this exact offer
+        // inside the same transaction (winner + snapshot + both statuses).
+        $complete = $this->completeTenderWithWinner(
+            $tender,
+            (string) $ctx['supplier_qnid'],
+            (string) $ctx['supplier_title'],
+            $qnid
+        );
         $cdata = $complete->getData(true);
         if (empty($cdata['success'])) {
             return $complete;
         }
 
-        $status = $this->docs->setStatus($qnid, 'offer-accepted', 'Teklif kabul edildi — kazanan seçildi');
+        try {
+            $notif = $this->tenderNotificationPayload($ctx['ihale_qnid'], $qnid);
+            $this->emails->sendOfferAccepted($notif);
+        } catch (\Throwable $e) {
+            Log::warning('offer-03 dispatch failed', ['msg' => $e->getMessage()]);
+        }
 
         return response()->json([
-            'success' => ! empty($status['success']),
-            'msg' => $status['msg'] ?? null,
-            'tender' => $cdata,
-        ], ! empty($status['success']) ? 200 : 422);
+            'success' => true,
+            'msg'     => 'Teklif kabul edildi, ihale tamamlandı.',
+            'tender'  => $cdata,
+        ], 200);
     }
 
     /** POST /v1/offers/reject — offer-rejected with reason (supplier may fix and resend) */
@@ -1368,6 +1827,15 @@ class DocumentController extends Controller
         }
 
         $status = $this->docs->setStatus($qnid, 'offer-rejected', $note);
+        if (! empty($status['success'])) {
+            try {
+                $notif = $this->tenderNotificationPayload($ctx['ihale_qnid'], $qnid);
+                $notif['note'] = $note;
+                $this->emails->sendOfferRejected($notif);
+            } catch (\Throwable $e) {
+                Log::warning('offer-02 dispatch failed', ['msg' => $e->getMessage()]);
+            }
+        }
 
         return response()->json([
             'success' => ! empty($status['success']),
@@ -1459,6 +1927,15 @@ class DocumentController extends Controller
 
         // Auto-reject the offer with the same explanation
         $status = $this->docs->setStatus($offerQnid, 'offer-rejected', 'Dosya reddedildi: '.$note);
+        if (! empty($status['success'])) {
+            try {
+                $notif = $this->tenderNotificationPayload($ctx['ihale_qnid'], $offerQnid);
+                $notif['note'] = 'Dosya reddedildi: '.$note;
+                $this->emails->sendOfferRejected($notif);
+            } catch (\Throwable $e) {
+                Log::warning('offer-02 file dispatch failed', ['msg' => $e->getMessage()]);
+            }
+        }
 
         return response()->json([
             'success' => ! empty($status['success']),
@@ -1466,6 +1943,93 @@ class DocumentController extends Controller
             'file_id' => $fileId,
             'note' => $note,
         ], ! empty($status['success']) ? 200 : 422);
+    }
+
+    /** POST /v1/offers/file-accept — approve one shared-library file version */
+    public function acceptOfferFile(Request $request)
+    {
+        $auth = auth('sanctum')->user() ?? auth()->user();
+        $offerQnid = (string) $request->input('id', '');
+        $fileQnid = (string) $request->input('file_qnid', '');
+        $fileIdIn = (int) $request->input('file_id', 0);
+        $note = trim((string) $request->input('note', ''));
+
+        if (! $this->isValidUuid($offerQnid)) {
+            return response()->json(['success' => false, 'msg' => 'Geçersiz teklif kimliği'], 422);
+        }
+        if (! $auth || ! $this->perms->has($auth, 'per-041-03')) {
+            return response()->json(['success' => false, 'msg' => 'Dosya değerlendirme yetkiniz yok.'], 403);
+        }
+
+        $ctx = $this->offerContext($offerQnid);
+        if (! $ctx) return response()->json(['success' => false, 'msg' => 'Teklif bulunamadı'], 404);
+        if ($ctx['status'] === 'offer-accepted') {
+            return response()->json(['success' => false, 'msg' => 'Kabul edilmiş teklifin dosyası değiştirilemez.'], 422);
+        }
+
+        $tender = \App\Models\Documents::where('qnid', $ctx['ihale_qnid'])->first();
+        if (! $tender || $this->tenderLastStatus((int) $tender->id) !== 'tender-activated') {
+            return response()->json(['success' => false, 'msg' => 'İhale aktif değil veya zaten tamamlanmış.'], 422);
+        }
+
+        $fileId = $fileIdIn;
+        if (! $fileId && $fileQnid !== '') {
+            $fileId = (int) \App\Models\Document_files::where('qnid', $fileQnid)->value('id');
+        }
+        if (! $fileId) return response()->json(['success' => false, 'msg' => 'Dosya bulunamadı'], 404);
+
+        $fileRow = \App\Models\Document_files::find($fileId);
+        if ($fileRow && $fileRow->valid_until && strtotime((string) $fileRow->valid_until) < strtotime(date('Y-m-d'))) {
+            return response()->json(['success' => false, 'msg' => 'Süresi dolmuş dosya kabul edilemez.'], 422);
+        }
+
+        $svc = new ClientDocsService();
+        $registry = $svc->registryDoc((string) $ctx['supplier_qnid']);
+        $connId = $svc->connId($registry);
+        $belongs = $connId && \Illuminate\Support\Facades\DB::table('sys_con_entities')
+            ->where('conn_id', $connId)
+            ->where('table_tag', 'document_files')
+            ->where('entity_value', (string) $fileId)
+            ->exists();
+        if (! $belongs) {
+            return response()->json(['success' => false, 'msg' => 'Bu dosya tedarikçinin evrak kütüphanesinde değil'], 422);
+        }
+
+        $typeId = \App\Models\Sys_options::where('op_key', 'offer-file-accepted')->value('id');
+        if (! $typeId) {
+            return response()->json(['success' => false, 'msg' => 'offer-file-accepted durumu tanımlı değil'], 422);
+        }
+
+        $actor = \App\Services\AuditService::actor();
+        $log = \App\Models\UserLog::create([
+            'user_id' => $actor['user_id'] ?? ($auth->id ?? 0),
+            'sys_code' => $GLOBALS['SYS_CODE'] ?? $actor['sys_code'] ?? 'GDZ',
+            'relation' => 'documents',
+            'relation_id' => $ctx['doc_id'],
+            'type_id' => $typeId,
+            'description' => json_encode([
+                'file_id' => $fileId,
+                'file_qnid' => $fileQnid,
+                'actor' => $actor,
+                'desc' => 'Teklif dosyası kabul edildi',
+                'note' => $note !== '' ? $note : '-',
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
+
+        \App\Models\Transactions::create([
+            'op_id' => 1,
+            'type_id' => $typeId,
+            'log_id' => $log->id,
+            'target_id' => $fileId,
+            'note' => mb_substr($note !== '' ? $note : '-', 0, 300),
+            'description' => mb_substr(($actor['name'] ?? '').' <'.($actor['email'] ?? '').'> | '.($note !== '' ? $note : 'Dosya kabul edildi'), 0, 300),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'file_id' => $fileId,
+            'note' => $note,
+        ]);
     }
 
 }

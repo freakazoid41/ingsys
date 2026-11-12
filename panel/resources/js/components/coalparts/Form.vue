@@ -1331,10 +1331,19 @@
                                         class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'ihale_kodu',
-                                        col      : 12,
+                                        col      : 6,
                                         required : true,
                                         label : 'İhale Kodu',
                                         placeholder : 'örn. IHL-2026-001',
+                                        oninput : (e) => this.submitDynamicChanges(e.target)
+                                    },{
+                                        type  : 'text',
+                                        name  : 'teklif_son_tarihi',
+                                        col      : 6,
+                                        isDate   : true,
+                                        required : false,
+                                        label : 'Teklif Son Tarihi',
+                                        placeholder : 'gg.aa.yyyy',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     }
                                 ]

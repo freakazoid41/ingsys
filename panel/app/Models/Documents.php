@@ -74,7 +74,18 @@ class Documents extends Model
             );
         }
 
-
+        // Defense in depth for tender/offer table reads (SystemController checks
+        // too, but tableList can be called directly by other code paths).
+        if (in_array($formType, ['op-doc-ihale', 'op-doc-ihale-offer', 'op-doc-ihale-offer-item'], true)
+            && ! docPermCheck($formType, 'read')) {
+            return array(
+                'data'          => [],
+                'pageCount'     => 0,
+                'totalCount'    => 0,
+                'filteredCount' => 0,
+                'last_page'     => 0,
+            );
+        }
 
         $columns = array(
             'main_id'      => 'i.id  as  main_id',
@@ -246,6 +257,37 @@ class Documents extends Model
                 );
             }
         }
+        // Tender offers are supplier-private. The base reseller block above only
+        // runs for SPA sessions (currentStatus); this second guard also covers
+        // Bearer-token requests and fails closed when no client is bound.
+        $isResellerUser = session('type_key') === 'op-pert-reseller'
+            || (auth()->check() && auth()->user()->role === 'immutable-reseller')
+            || (auth('sanctum')->check() && auth('sanctum')->user()->role === 'immutable-reseller');
+
+        if ($isResellerUser && $formType === 'op-doc-ihale-offer') {
+            $supplierList = currentSupplierQnidList();
+            if (empty($supplierList)) {
+                return array(
+                    'data'          => [],
+                    'pageCount'     => 0,
+                    'totalCount'    => 0,
+                    'filteredCount' => 0,
+                    'last_page'     => 0,
+                );
+            }
+            $supplierIn = "'".implode("','", array_map('noInject', $supplierList))."'";
+            $where .= " and exists (
+                            select 1
+                            from sys_con_ops so8
+                            inner join sys_con_entities se8 on se8.conn_id = so8.id
+                            where so8.main_id = i.id
+                              and so8.conn_id = 0
+                              and se8.entity_tag = 'supplier_qnid'
+                              and se8.table_tag = 'sys_con_ops'
+                              and se8.entity_value in ($supplierIn)
+                        ) ";
+        }
+
         //here we want to show some datas  for just spesific system
         switch($formType){
             case 'op-doc-request':
@@ -447,7 +489,7 @@ class Documents extends Model
                         $needsEntityJoin = true;
                         $where .= " and (
                                         se.entity_value ilike '%".$f['value']."%'
-                                        and se.entity_tag like '%".$f['type']."%'
+                                        and se.entity_tag like '%".($f['type'] ?? '')."%'
                                     ) ";
                         break;
                     case 'month-period':
@@ -605,7 +647,7 @@ class Documents extends Model
                         $pos = strripos($tmpCol, ' as ');
                         $column = $pos !== false ? trim(substr($tmpCol, 0, $pos)) : trim($tmpCol);
                         if(trim($f['value']) != ''){
-                            if($f['type'] != 'like'){
+                            if(($f['type'] ?? '=') != 'like'){
                                 $where .= " and $column = '".$f['value']."' ";
                             }else{
                                 $where .= " and $column::text ilike '%".$f['value']."%' ";

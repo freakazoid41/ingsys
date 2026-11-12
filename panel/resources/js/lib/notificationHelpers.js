@@ -25,8 +25,10 @@ function parseRequest(o) {
     const arr = JSON.parse(o.main_attr || '[]');
     arr.forEach(d => {
       if (d.Key === 'title' && !title) title = d.Value;
+      if (d.Key === 'ihale_kodu' && !title) title = d.Value;
       if (d.Key === 'request_no' && !requestNo) requestNo = d.Value;
       if (d.Key === 'firma_adi' && !mudur) mudur = d.Value;
+      if (d.Key === 'supplier_title' && !mudur) mudur = d.Value;
     });
   } catch {}
   const statusAt = o.last_trans_at || o.created_at || '';
@@ -72,7 +74,7 @@ function makeRow(cat, orderNo, ctitle, qnid, created_at, main_id, docTitle) {
 }
 
 /**
- * Single entry for all 7 TEDARIK feeds.
+ * Single entry for all 15 live feeds (TEDARIK 7 + PLANLAMA 3 + TENDER 5).
  * @param {object} notifications - response from GET /api/v1/notifications
  * @param {Array} rejectedFiles - authStore.currentStatus.rejectedFiles
  * @returns {Array} sorted newest-first
@@ -115,6 +117,20 @@ export function buildNotificationRows(notifications, rejectedFiles = []) {
   addRequests(n.planlamaRejected, 'planlama-02');
   addRequests(n.planlamaApproved, 'planlama-03');
 
+  // Tender events use the same header shape (ihale_kodu / supplier_title)
+  const addTender = (arr, cat) => {
+    if (!Array.isArray(arr)) return;
+    arr.forEach(o => {
+      const m = parseRequest(o);
+      rows.push(makeRow(cat, m.orderNo, m.ctitle, m.qnid, m.created_at || o.created_at, m.main_id || o.main_id));
+    });
+  };
+  addTender(n.tenderActivated, 'ihale-01');
+  addTender(n.tenderCompleted, 'ihale-02');
+  addTender(n.offerSubmitted, 'offer-01');
+  addTender(n.offerRejected, 'offer-02');
+  addTender(n.offerAccepted, 'offer-03');
+
   (rejectedFiles || []).forEach(fl => {
     rows.push(makeRow('rejected', fl.cli_id || '', '', fl.cli_id || '', fl.created_at || '', 0));
   });
@@ -139,3 +155,7 @@ export function isFileCat(cat) { return FILE_CATS.includes(cat); }
 // planlama request cats route to the Talep Dökümanı form (own panel)
 export const PLANLAMA_CATS = ['planlama-01', 'planlama-02', 'planlama-03'];
 export function isPlanlamaCat(cat) { return PLANLAMA_CATS.includes(cat); }
+
+// Tender/offer cats route to the tender list or offer screen (panel-aware in the component)
+export const TENDER_CATS = ['ihale-01', 'ihale-02', 'offer-01', 'offer-02', 'offer-03'];
+export function isTenderCat(cat) { return TENDER_CATS.includes(cat); }

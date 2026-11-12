@@ -28,7 +28,7 @@ class NotificationMailTest extends TestCase
 
         $log = NotificationLog::latest('id')->first();
         $this->assertNotNull($log, 'Aktivasyon maili hiç oluşturulmadı');
-        $this->assertStringContainsString('gdz.jpg', $log->body);
+        $this->assertStringContainsString(\App\Services\TedarikMailHelper::logoUrl('GDZ'), $log->body);
     }
 
     public function test_client_activation_mail_uses_the_adm_logo_for_the_other_tenant(): void
@@ -43,7 +43,7 @@ class NotificationMailTest extends TestCase
 
         $log = NotificationLog::latest('id')->first();
         $this->assertNotNull($log);
-        $this->assertStringContainsString('adm.jpg', $log->body);
+        $this->assertStringContainsString(\App\Services\TedarikMailHelper::logoUrl('ADM'), $log->body);
     }
 
     /**

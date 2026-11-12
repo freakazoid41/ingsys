@@ -26,7 +26,7 @@ Both doc families share pages across panels via route prefix (`/coalpanel/planla
 | `op-doc-requestf` / `op-doc-requestf-item` | `op-doc` | Talep header / item (display: Talep Dökümanı…) |
 | `op-doc-requestf-form` / `op-doc-requestf-item-form` | `op-doc-forms` | Their form blocks |
 | `tr-request-man-awaiting` | `op-trans-op-doc-requestf` | Birth, auto-set on create (`DocumentServiceProvider::$birthMap`) |
-| `tr-request-man-approved` / `tr-request-man-rejected` | same | Müdürlük decision (terminal: rejected) |
+| `tr-request-man-approved` / `tr-request-man-rejected` | same | Müdürlük decision; rejected is re-openable by revision |
 | `tr-request-std-approved` | same | Standardizasyon decision (terminal), SAP release |
 | `op-talep_excel_file` | `op-file-types` | File-type dict row for the attached Excel (titles in logs/lists) |
 
@@ -52,7 +52,7 @@ Module gate: `per-041-05 Malzeme Planlama` (module switcher, panel route guards,
 awaiting → approved | rejected
 approved → std-approved
 rejected → awaiting            (re-submit after revision re-queues it)
-terminal: man-rejected, std-approved
+terminal: std-approved; man-rejected may return to awaiting after revision
 ```
 
 **Test users** (`PlanlamaTestUsersSeeder.php`, idempotent union — never removes perms):
@@ -105,7 +105,7 @@ Types (`notification_details.json`, auto-listed in Bildirim Şablonları): `plan
 | 3 — man-rejected | `setStatus` requestf branch | direct to uploader (`users.email` via `documents.person_id`) | `planlama-02`, **owner-scoped** (`person_id == session`, fail-closed without session) |
 | 3 — man-approved | `setStatus` requestf branch | `planlama-03` group (fallback: all `05-04` holders) | same key, group-gated |
 
-Mail cards: `tedarikCard` + `TedarikMailHelper::gateway('/planlamapanel/talep-dokumanlari/form/{qnid}')` (gateway regexes extended to `/planlamapanel` in `AuthController`, `tedariklogin/page.js`; `?next=` survives 2FA). Bell rows reuse shared libs (`notificationMaps` CAT_META+chips, `notificationHelpers` parse+build+`isPlanlamaCat`) in **all four surfaces**: admin bell, tedarik bell, planlama bell (own dropdown), Bilgilendirmeler (chips auto). Dashboards (`TedarikActivity`, `DashboardNotifications`) are built from the **same** `buildNotificationRows` feed — never from `user_logs` — so toolbar == dashboard by construction.
+Mail cards: `tedarikCard` + `TedarikMailHelper::gateway('/planlamapanel/talep-dokumanlari/form/{qnid}')` (gateway regexes extended to `/planlamapanel` in `AuthController`, `tedariklogin/page.js`; `?next=` survives 2FA). Tedarik bell, planlama bell and Bilgilendirmeler share `notificationMaps` CAT_META + `buildNotificationRows`; the admin `coalparts/Header.vue` consumes the same API/category keys but keeps its own mapping. Dashboards (`TedarikActivity`, `DashboardNotifications`) are built from the notification feed — never from `user_logs`.
 
 Requeue: editing a rejected Talep auto-transitions to `awaiting` + re-fires step-2 mail. Response detail is refreshed post-transition (no stale pill).
 

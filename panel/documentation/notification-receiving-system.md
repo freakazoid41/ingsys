@@ -1,5 +1,7 @@
 # Notification Receiving System Analysis
 
+> **Current (2026-11-12):** the live feed is **15 types** — `tedarik-01..07` + `planlama-01..03` + `ihale-01/02` + `offer-01..03` — consumed by four surfaces (admin bell, tedarik bell, planlama bell, Bilgilendirmeler) through `buildNotificationRows`. Legacy `notif-00..03` / `awaitingUsers` / `clientChanges` sections below are historical; do not use them for new work.
+
 ## 1. System Overview
 
 The notification system is a multi-layer architecture that receives notifications from the backend and displays them to the user in the Header component. It integrates two data sources and processes multiple notification types.
@@ -474,7 +476,7 @@ Legacy `getAwaitingUserRequests()` / `getAwaitingClientFiles()` / `getOffers()` 
   onclick: () => router.push({ name: 'OrderForm', params: { id: u.qnid } })
 }
 ```
-**Backend**: `getTedarikOrders('doc_trans_order_approved')` — `acceptAllOrderFiles()` `per-05-03 ONLY`
+**Backend**: `getTedarikOrders('doc_trans_order_approved')` — `acceptAllOrderFiles()` `per-07-02` (file approver)
 
 ### tedarik-07 — Sipariş Reddedildi
 ```javascript

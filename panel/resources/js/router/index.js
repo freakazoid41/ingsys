@@ -111,6 +111,8 @@ const router = createRouter({
         { path: "/tedarikpanel/bilgilendirmeler", name: 'TedarikBilgilendirmeler', component: TedarikBilgilendirmeler },
         { path: "/tedarikpanel/orders", name: 'TedarikOrderList', component: OrderList },
         { path: "/tedarikpanel/orders/form/:id?", name: 'TedarikOrderForm', component: OrderForm },
+        { path: "/tedarikpanel/ihaleler", name: 'TedarikIhList', component: IhList },
+        { path: "/tedarikpanel/ihaleler/teklif/:id?", name: 'TedarikIhOffer', component: IhOffer },
         { path: "/tedarikpanel/documents", name: 'TedarikDList', component: DList },
         { path: "/tedarikpanel/documents/:id", name: 'TedarikDForm', component: DForm },
       ]
@@ -174,16 +176,23 @@ router.beforeEach((to, from, next) => {
             if (!hasOrder) return next('/tedarikpanel');
         }
         // İhale module: management (03) or offer creation (03-01) may enter the list
-        if (to.path.startsWith('/coalpanel/ihaleler') && perms.length) {
-            if (!perms.includes('per-041-03') && !perms.includes('per-041-03-01')) return next('/coalpanel');
+        const inIhaleList = to.path.startsWith('/coalpanel/ihaleler') || to.path.startsWith('/tedarikpanel/ihaleler');
+        if (inIhaleList && perms.length) {
+            if (!perms.includes('per-041-03') && !perms.includes('per-041-03-01')) {
+                return next(to.path.startsWith('/tedarikpanel') ? '/tedarikpanel' : '/coalpanel');
+            }
         }
-        // Teklifler review queue: management only
+        // Teklifler review queue: management only (no supplier review queue)
         if (to.path.includes('/ihaleler/teklifler') && perms.length) {
-            if (!perms.includes('per-041-03')) return next('/coalpanel');
+            if (!perms.includes('per-041-03')) {
+                return next(to.path.startsWith('/tedarikpanel') ? '/tedarikpanel' : '/coalpanel');
+            }
         }
         // Teklif screen: create (03-01) or management inspect (03)
         if (to.path.includes('/ihaleler/teklif') && !to.path.includes('/ihaleler/teklifler') && perms.length) {
-            if (!perms.includes('per-041-03-01') && !perms.includes('per-041-03')) return next('/coalpanel');
+            if (!perms.includes('per-041-03-01') && !perms.includes('per-041-03')) {
+                return next(to.path.startsWith('/tedarikpanel') ? '/tedarikpanel' : '/coalpanel');
+            }
         }
         // Planlama guard: per-041-05 required
         if ((to.path.startsWith('/planlamapanel') || to.path.startsWith('/coalpanel/planlama')) && perms.length) {

@@ -62,6 +62,11 @@ export default {
       if(Array.isArray(notifs.planlamaSent)) count += notifs.planlamaSent.length;
       if(Array.isArray(notifs.planlamaRejected)) count += notifs.planlamaRejected.length;
       if(Array.isArray(notifs.planlamaApproved)) count += notifs.planlamaApproved.length;
+      if(Array.isArray(notifs.tenderActivated)) count += notifs.tenderActivated.length;
+      if(Array.isArray(notifs.tenderCompleted)) count += notifs.tenderCompleted.length;
+      if(Array.isArray(notifs.offerSubmitted)) count += notifs.offerSubmitted.length;
+      if(Array.isArray(notifs.offerRejected)) count += notifs.offerRejected.length;
+      if(Array.isArray(notifs.offerAccepted)) count += notifs.offerAccepted.length;
       count += (this.notifications || []).length;
       return count;
     },
@@ -148,8 +153,13 @@ export default {
         planlamaSent: { cat:'planlama-01', opKey:'planlama-01', label:'Talep Onaya Gönderildi' },
         planlamaRejected: { cat:'planlama-02', opKey:'planlama-02', label:'Talep Reddedildi' },
         planlamaApproved: { cat:'planlama-03', opKey:'planlama-03', label:'Müdürlük Onayı' },
+        tenderActivated: { cat:'ihale-01', opKey:'ihale-01', label:'İhale Aktif' },
+        tenderCompleted: { cat:'ihale-02', opKey:'ihale-02', label:'İhale Tamamlandı' },
+        offerSubmitted: { cat:'offer-01', opKey:'offer-01', label:'Yeni Teklif' },
+        offerRejected: { cat:'offer-02', opKey:'offer-02', label:'Teklif Reddedildi' },
+        offerAccepted: { cat:'offer-03', opKey:'offer-03', label:'Teklif Kabul Edildi' },
       };
-      const parseRequest = (o) => { let title='',requestNo='',mudur=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='title'&&!title) title=d.Value; if(d.Key==='request_no'&&!requestNo) requestNo=d.Value; if(d.Key==='firma_adi'&&!mudur) mudur=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return { orderNo: title||requestNo||o.qnid||o.id||'-', ctitle:mudur, qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt }; };
+      const parseRequest = (o) => { let title='',requestNo='',mudur=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='title'&&!title) title=d.Value; if(d.Key==='ihale_kodu'&&!title) title=d.Value; if(d.Key==='request_no'&&!requestNo) requestNo=d.Value; if(d.Key==='firma_adi'&&!mudur) mudur=d.Value; if(d.Key==='supplier_title'&&!mudur) mudur=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return { orderNo: title||requestNo||o.qnid||o.id||'-', ctitle:mudur, qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt }; };
       for(let key in this.addNotifications){
         if(key==='blink' || !(key in catMap)) continue;
         const rows = this.addNotifications[key] || [];
@@ -177,6 +187,15 @@ export default {
               else if(key==='planlamaRejected'){ title=`Talep Reddedildi — ${pm.orderNo}`; message=pm.orderNo; }
               else { title=`Müdürlük Onayı — ${pm.orderNo}`; message=pm.orderNo; }
               cb=()=> this.$router.push({ name: 'PlanlamaFFormAdmin', params:{ id:pm.qnid }});
+            }
+            else if(['tenderActivated','tenderCompleted','offerSubmitted','offerRejected','offerAccepted'].includes(key)){
+              const pm = parseRequest(offr);
+              qnid=pm.qnid; created_at=pm.created_at; orderNo=pm.orderNo; sub=pm.ctitle;
+              if(key==='tenderActivated'){ title=`İhale Aktif — ${pm.orderNo}`; message=pm.orderNo; cb=()=> this.$router.push({ name:'IhList' }); }
+              else if(key==='tenderCompleted'){ title=`İhale Tamamlandı — ${pm.orderNo}`; message=pm.orderNo; cb=()=> this.$router.push({ name:'IhList' }); }
+              else if(key==='offerSubmitted'){ title=`Yeni Teklif — ${pm.orderNo}`; message=pm.orderNo; cb=()=> this.$router.push({ name:'IhOfferList' }); }
+              else if(key==='offerRejected'){ title=`Teklif Reddedildi — ${pm.orderNo}`; message=pm.orderNo; cb=()=> this.$router.push({ name:'IhOffer', params:{ id:pm.qnid } }); }
+              else { title=`Teklif Kabul Edildi — ${pm.orderNo}`; message=pm.orderNo; cb=()=> this.$router.push({ name:'IhOffer', params:{ id:pm.qnid } }); }
             }
             if(!cb) cb=()=> this.$router.push({ name: 'OrderForm', params:{ id:m.qnid }});
           }

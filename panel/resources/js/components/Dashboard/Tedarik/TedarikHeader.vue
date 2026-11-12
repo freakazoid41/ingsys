@@ -89,9 +89,11 @@ export default {
       if (Array.isArray(notifs.planlamaSent)) count += notifs.planlamaSent.length;
       if (Array.isArray(notifs.planlamaRejected)) count += notifs.planlamaRejected.length;
       if (Array.isArray(notifs.planlamaApproved)) count += notifs.planlamaApproved.length;
-      if (Array.isArray(notifs.planlamaSent)) count += notifs.planlamaSent.length;
-      if (Array.isArray(notifs.planlamaRejected)) count += notifs.planlamaRejected.length;
-      if (Array.isArray(notifs.planlamaApproved)) count += notifs.planlamaApproved.length;
+      if (Array.isArray(notifs.tenderActivated)) count += notifs.tenderActivated.length;
+      if (Array.isArray(notifs.tenderCompleted)) count += notifs.tenderCompleted.length;
+      if (Array.isArray(notifs.offerSubmitted)) count += notifs.offerSubmitted.length;
+      if (Array.isArray(notifs.offerRejected)) count += notifs.offerRejected.length;
+      if (Array.isArray(notifs.offerAccepted)) count += notifs.offerAccepted.length;
       count += (this.authStore.currentStatus?.rejectedFiles || []).length;
       this.notifCount = count;
     },
@@ -111,7 +113,7 @@ export default {
       const notifs = this.navigationStore?.notifications || {};
       const items = [];
       const parseOrder = (o)=>{ let orderNo=o.order_no||o.group_key||''; let ctitle=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='order_no'&&!orderNo) orderNo=d.Value; if(d.Key==='ctitle'&&!ctitle) ctitle=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return {orderNo:orderNo||o.qnid||o.id||'-',ctitle,qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt}; };
-      const parseRequest = (o)=>{ let title='',requestNo='',mudur=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='title'&&!title) title=d.Value; if(d.Key==='request_no'&&!requestNo) requestNo=d.Value; if(d.Key==='firma_adi'&&!mudur) mudur=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return {orderNo:title||requestNo||o.qnid||o.id||'-',ctitle:mudur,qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt}; };
+      const parseRequest = (o)=>{ let title='',requestNo='',mudur=''; try{ JSON.parse(o.main_attr||'[]').forEach(d=>{ if(d.Key==='title'&&!title) title=d.Value; if(d.Key==='ihale_kodu'&&!title) title=d.Value; if(d.Key==='request_no'&&!requestNo) requestNo=d.Value; if(d.Key==='firma_adi'&&!mudur) mudur=d.Value; if(d.Key==='supplier_title'&&!mudur) mudur=d.Value; }); }catch(e){} const statusAt = o.last_trans_at || o.created_at || ''; return {orderNo:title||requestNo||o.qnid||o.id||'-',ctitle:mudur,qnid:o.qnid||o.id||o.relation_qnid, main_id:o.main_id||0, created_at:statusAt}; };
       const parseFile = (f)=> { let sAt = f.last_trans_at || ''; if(!sAt && f.last_status){ try{ const j = typeof f.last_status==='string'?JSON.parse(f.last_status):f.last_status; sAt = j.created_at || ''; }catch{} } sAt = sAt || f.created_at || ''; return {orderNo:f.group_key||'-',title:f.type_title||f.file_type||'Dosya',qnid:f.qnid||f.id||f.relation_qnid, main_id:f.main_id||0, created_at:sAt}; };
       const push = (obj, cat, opKey, title) => {
         const meta = getCatMeta(cat);
@@ -137,6 +139,11 @@ export default {
       if (Array.isArray(notifs.planlamaSent)) notifs.planlamaSent.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-01', 'planlama-01', `Talep Onaya Gönderildi — ${m.orderNo}`); });
       if (Array.isArray(notifs.planlamaRejected)) notifs.planlamaRejected.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-02', 'planlama-02', `Talep Reddedildi — ${m.orderNo}`); });
       if (Array.isArray(notifs.planlamaApproved)) notifs.planlamaApproved.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-03', 'planlama-03', `Müdürlük Onayı — ${m.orderNo}`); });
+      if (Array.isArray(notifs.tenderActivated)) notifs.tenderActivated.forEach(o=>{ const m=parseRequest(o); push(m, 'ihale-01', 'ihale-01', `İhale Aktif — ${m.orderNo}`); });
+      if (Array.isArray(notifs.tenderCompleted)) notifs.tenderCompleted.forEach(o=>{ const m=parseRequest(o); push(m, 'ihale-02', 'ihale-02', `İhale Tamamlandı — ${m.orderNo}`); });
+      if (Array.isArray(notifs.offerSubmitted)) notifs.offerSubmitted.forEach(o=>{ const m=parseRequest(o); push(m, 'offer-01', 'offer-01', `Yeni Teklif — ${m.orderNo}`); });
+      if (Array.isArray(notifs.offerRejected)) notifs.offerRejected.forEach(o=>{ const m=parseRequest(o); push(m, 'offer-02', 'offer-02', `Teklif Reddedildi — ${m.orderNo}`); });
+      if (Array.isArray(notifs.offerAccepted)) notifs.offerAccepted.forEach(o=>{ const m=parseRequest(o); push(m, 'offer-03', 'offer-03', `Teklif Kabul Edildi — ${m.orderNo}`); });
 
       const sortByNewest = (a,b)=>{
         const aT = a.rawTime ? new Date(a.rawTime).getTime() : 0;
@@ -230,8 +237,12 @@ export default {
               if(item?.targetQnid){
                 const isFile = ['tedarik-03','tedarik-04','tedarik-05'].includes(item.cat);
                 const isPlanlama = ['planlama-01','planlama-02','planlama-03'].includes(item.cat);
+                const isTenderList = ['ihale-01','ihale-02'].includes(item.cat);
+                const isOffer = ['offer-01','offer-02','offer-03'].includes(item.cat);
                 if(isFile) this.$router.push({ name: 'TedarikDForm', params: { id: item.targetQnid } }).catch(()=>{});
                 else if(isPlanlama) this.$router.push({ name: 'PlanlamaFForm', params: { id: item.targetQnid } }).catch(()=>{});
+                else if(isTenderList) this.$router.push({ name: 'TedarikIhList' }).catch(()=>{});
+                else if(isOffer) this.$router.push({ name: 'TedarikIhOffer', params: { id: item.targetQnid } }).catch(()=>{});
                 else this.$router.push({ name: 'TedarikOrderForm', params: { id: item.targetQnid } }).catch(()=>{});
               }
               Swal.close();

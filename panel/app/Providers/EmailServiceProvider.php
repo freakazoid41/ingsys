@@ -123,6 +123,13 @@ class EmailServiceProvider extends ServiceProvider
     public function sendPlanlamaTalepRejected($payload){ $this->dispatchTedarik('planlamaTalepRejected', $payload); }
     public function sendPlanlamaTalepApproved($payload){ $this->dispatchTedarik('planlamaTalepApproved', $payload); }
 
+    // ── TENDER 5 dispatchers ──
+    public function sendIhaleActivated($payload){ $this->dispatchTedarik('ihaleActivated', $payload); }
+    public function sendIhaleCompleted($payload){ $this->dispatchTedarik('ihaleCompleted', $payload); }
+    public function sendOfferSubmitted($payload){ $this->dispatchTedarik('offerSubmitted', $payload); }
+    public function sendOfferRejected($payload){ $this->dispatchTedarik('offerRejected', $payload); }
+    public function sendOfferAccepted($payload){ $this->dispatchTedarik('offerAccepted', $payload); }
+
     private function dispatchTedarik($type, $payload){
         try{
             $payload['type'] = $type;

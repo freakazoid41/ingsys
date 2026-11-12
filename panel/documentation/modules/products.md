@@ -117,7 +117,7 @@ Generic tag-input used today for per-row kVA selection; reusable for any multi-p
 ## 10. Listing & Export
 
 - `PList` (`/coalpanel/products`, Ürün submenu, per-09-01 gate; create/delete per-09-02): `POST /v1/table/documents` with `form-type` + `type` filters, `rowFormatter` flattens `main_attr` → `prod_code/short_name/unit/category_title`. `PCList` uses **per-09-03** for create/delete, `KvList` per-09-02.
-- No status pills — products/categories have only birth transactions (`doc_trans_created` fallback in `DocumentServiceProvider`), no state machine.
+- No status pills — products/categories have no state machine. Seeder-inserted rows bypass `registerContent`, so they may have no birth transaction; UI-created rows go through `registerContent` and get `doc_trans_created`.
 - Export: `POST /v1/export/products|productcategories|kvas` (`ExportController` branches mirror the clients pattern; `rowCallback` formats dates).
 
 ---
@@ -136,7 +136,7 @@ Sidebar: Ürün section (gated `per-09-01`) → Ürün Kategorileri, Güç Tanı
 
 ## 12. How To Test (E2E Scripts in `panel/tests/e2e/`)
 
-Users: admin `redv@kontent.com.tr` (all 35 perms incl. per-09) for create/edit; reseller `kbbozat41@hotmail.com` must get **403** on `POST /v1/document` with `typeKey: op-doc-product*`.
+Users: admin `redv@kontent.com.tr` (all 37 perms incl. per-09) for create/edit; reseller `kbbozat41@hotmail.com` must get **403** on `POST /v1/document` with `typeKey: op-doc-product*`.
 - `pc.run.js` — category create + list readback.
 - `p.run.mjs` — product create via modal picker (search + Seç) + list readback shows `category_title`.
 - Category file defs + kVA picks: edit category → add rows (evrak_no/title/group/types) → pick kVAs from tagbox → save → `GET /v1/document/{qnid}` → `formFormat['op-doc-product-category-form']` entities contain `kva**category_files**{rowId} = ["250",...]`.

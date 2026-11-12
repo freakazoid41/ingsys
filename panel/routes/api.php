@@ -40,6 +40,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     Route::post('/v1/offers/accept',                    [DocumentController::class, 'acceptOffer']);
     Route::post('/v1/offers/reject',                    [DocumentController::class, 'rejectOffer']);
     Route::post('/v1/offers/file-reject',               [DocumentController::class, 'rejectOfferFile']);
+    Route::post('/v1/offers/file-accept',               [DocumentController::class, 'acceptOfferFile']);
     Route::post('/v1/tender-products',                  [DocumentController::class, 'tenderProducts']);
     Route::get('/v1/get-apartments',                   [DocumentController::class, 'getAparments']);
     Route::post('/v1/set-apartments',                  [DocumentController::class, 'setAparments']);

@@ -81,6 +81,47 @@ class DocumentServiceProvider extends ServiceProvider
                     break;
                 }
             }
+            // New offers must always be attached to a tender; updates use the
+            // stored ihale_qnid guard below (payload omission cannot unlock them).
+            if (! $ihaleQnid && empty($id)) {
+                return ['success' => false, 'msg' => 'Teklif için ihale seçilmedi.'];
+            }
+
+            // One offer per supplier + tender. The UI lookup is not a security
+            // boundary; a second tab / direct POST must not create duplicates.
+            if ($ihaleQnid && empty($id)) {
+                $supplierQnid = null;
+                foreach ($dynamicF as $row) {
+                    if (! empty($row['entities']['supplier_qnid'])) {
+                        $supplierQnid = (string) $row['entities']['supplier_qnid'];
+                        break;
+                    }
+                }
+                if ($supplierQnid) {
+                    $offerDocIds = DB::table('sys_con_entities as se')
+                        ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                        ->join('documents as d', 'd.id', '=', 'so.main_id')
+                        ->join('sys_options as sp', 'sp.id', '=', 'd.type_id')
+                        ->where('sp.op_key', 'op-doc-ihale-offer')
+                        ->where('so.conn_id', 0)
+                        ->where('se.entity_tag', 'ihale_qnid')
+                        ->where('se.entity_value', $ihaleQnid)
+                        ->pluck('d.id');
+
+                    foreach ($offerDocIds as $offerDocId) {
+                        $duplicate = DB::table('sys_con_entities as se2')
+                            ->join('sys_con_ops as so2', 'so2.id', '=', 'se2.conn_id')
+                            ->where('so2.main_id', $offerDocId)
+                            ->where('so2.conn_id', 0)
+                            ->where('se2.entity_tag', 'supplier_qnid')
+                            ->where('se2.entity_value', $supplierQnid)
+                            ->exists();
+                        if ($duplicate) {
+                            return ['success' => false, 'msg' => 'Bu ihale için bu tedarikçinin teklifi zaten var.'];
+                        }
+                    }
+                }
+            }
             if ($ihaleQnid) {
                 $ihaleDocId = Documents::where('qnid', $ihaleQnid)->value('id');
                 $lastTenderStatus = $ihaleDocId ? DB::table('transactions as t')
@@ -95,6 +136,18 @@ class DocumentServiceProvider extends ServiceProvider
                 }
                 if ($lastTenderStatus !== 'tender-activated') {
                     return ['success' => false, 'msg' => 'İhale henüz aktif değil — teklif hazırlanamaz.'];
+                }
+
+                $deadline = DB::table('sys_con_entities as se')
+                    ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                    ->where('so.main_id', $ihaleDocId)
+                    ->where('so.conn_id', 0)
+                    ->where('se.entity_tag', 'teklif_son_tarihi')
+                    ->value('se.entity_value');
+
+                $deadlineTs = $deadline ? strtotime((string) $deadline) : false;
+                if ($deadlineTs !== false && $deadlineTs < strtotime(date('Y-m-d'))) {
+                    return ['success' => false, 'msg' => 'Teklif süresi doldu — bu ihaleye teklif kaydedilemez.'];
                 }
             }
         }
@@ -176,6 +229,73 @@ class DocumentServiceProvider extends ServiceProvider
                                     if (isset($dynamicF[$dfKey]['entities']['order_desc'])) unset($dynamicF[$dfKey]['entities']['order_desc']);
                                     if (isset($dynamicF[$dfKey]['entities']['imalatci_firma_adi'])) unset($dynamicF[$dfKey]['entities']['imalatci_firma_adi']);
                                 }
+                            }
+                        }
+                    }
+                }
+
+                // Tender lock is derived from the STORED document, never from the
+                // client payload. Closing a tender (or accepting an offer) is terminal
+                // even if the caller omits ihale_qnid or changes typeKey.
+                if ($document) {
+                    $docOpForTenderGuard = Sys_options::where('id', $document->type_id)->value('op_key');
+
+                    if ($docOpForTenderGuard === 'op-doc-ihale') {
+                        $lastTenderGuard = DB::table('transactions as t')
+                            ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                            ->where('t.target_id', $document->id)
+                            ->where('so.group_key', 'op-trans-op-doc-ihale')
+                            ->orderBy('t.id', 'desc')
+                            ->value('so.op_key');
+                        if ($lastTenderGuard === 'tender-complated') {
+                            DB::rollBack();
+                            return ['success' => false, 'msg' => 'İhale tamamlandı — düzenlenemez veya silinemez.'];
+                        }
+                    }
+
+                    if ($docOpForTenderGuard === 'op-doc-ihale-offer') {
+                        $lastOfferGuard = DB::table('transactions as t')
+                            ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                            ->where('t.target_id', $document->id)
+                            ->where('so.group_key', 'op-trans-op-doc-ihale-offer')
+                            ->orderBy('t.id', 'desc')
+                            ->value('so.op_key');
+                        if ($lastOfferGuard === 'offer-accepted') {
+                            DB::rollBack();
+                            return ['success' => false, 'msg' => 'Kabul edilmiş teklif değiştirilemez.'];
+                        }
+
+                        $tenderQnidGuard = DB::table('sys_con_entities as se')
+                            ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                            ->where('so.main_id', $document->id)
+                            ->where('so.conn_id', 0)
+                            ->where('se.entity_tag', 'ihale_qnid')
+                            ->value('se.entity_value');
+
+                        if ($tenderQnidGuard) {
+                            $tenderIdGuard = Documents::where('qnid', $tenderQnidGuard)->value('id');
+                            $lastTenderGuard = $tenderIdGuard ? DB::table('transactions as t')
+                                ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                                ->where('t.target_id', $tenderIdGuard)
+                                ->where('so.group_key', 'op-trans-op-doc-ihale')
+                                ->orderBy('t.id', 'desc')
+                                ->value('so.op_key') : null;
+
+                            if ($lastTenderGuard === 'tender-complated') {
+                                DB::rollBack();
+                                return ['success' => false, 'msg' => 'İhale tamamlandı — teklif kilitli, düzenlenemez.'];
+                            }
+
+                            $deadlineGuard = DB::table('sys_con_entities as se')
+                                ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                                ->where('so.main_id', $tenderIdGuard)
+                                ->where('so.conn_id', 0)
+                                ->where('se.entity_tag', 'teklif_son_tarihi')
+                                ->value('se.entity_value');
+                            $deadlineTs = $deadlineGuard ? strtotime((string) $deadlineGuard) : false;
+                            if ($deadlineTs !== false && $deadlineTs < strtotime(date('Y-m-d'))) {
+                                DB::rollBack();
+                                return ['success' => false, 'msg' => 'Teklif süresi doldu — teklif değiştirilemez.'];
                             }
                         }
                     }
@@ -814,6 +934,51 @@ class DocumentServiceProvider extends ServiceProvider
         $document = Documents::where('qnid', $id)->first();
         if (empty($document)) return ['success' => false, 'msg' => 'Belge bulunamadı'];
         $docTypeKey = Sys_options::where('id', $document->type_id)->value('op_key');
+
+        // Terminal tender/offer documents cannot be passivated, regardless of caller.
+        if ($docTypeKey === 'op-doc-ihale') {
+            $lastTenderOp = DB::table('transactions as t')
+                ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                ->where('t.target_id', $document->id)
+                ->where('so.group_key', 'op-trans-op-doc-ihale')
+                ->orderByDesc('t.id')
+                ->value('so.op_key');
+            if ($lastTenderOp === 'tender-complated') {
+                return ['success' => false, 'msg' => 'İhale tamamlandı — silinemez.'];
+            }
+        }
+
+        if ($docTypeKey === 'op-doc-ihale-offer') {
+            $lastOfferOp = DB::table('transactions as t')
+                ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                ->where('t.target_id', $document->id)
+                ->where('so.group_key', 'op-trans-op-doc-ihale-offer')
+                ->orderByDesc('t.id')
+                ->value('so.op_key');
+            if ($lastOfferOp === 'offer-accepted') {
+                return ['success' => false, 'msg' => 'Kabul edilmiş teklif silinemez.'];
+            }
+
+            $tenderQnid = DB::table('sys_con_entities as se')
+                ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                ->where('so.main_id', $document->id)
+                ->where('so.conn_id', 0)
+                ->where('se.entity_tag', 'ihale_qnid')
+                ->value('se.entity_value');
+            if ($tenderQnid) {
+                $tenderId = Documents::where('qnid', $tenderQnid)->value('id');
+                $lastTenderOp = $tenderId ? DB::table('transactions as t')
+                    ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                    ->where('t.target_id', $tenderId)
+                    ->where('so.group_key', 'op-trans-op-doc-ihale')
+                    ->orderByDesc('t.id')
+                    ->value('so.op_key') : null;
+                if ($lastTenderOp === 'tender-complated') {
+                    return ['success' => false, 'msg' => 'İhale tamamlandı — teklif silinemez.'];
+                }
+            }
+        }
+
         // System clients are enums — not deletable
         if ($docTypeKey === 'op-doc-client') {
             $isSys = DB::table('sys_con_entities as se')
@@ -1129,6 +1294,31 @@ class DocumentServiceProvider extends ServiceProvider
                             'msg' => 'Bu durum geçişine izin verilmiyor: '.$lastFOpKey.' → '.$statusKey,
                         ];
                     }
+                }
+            }
+
+            // Offer chain: submitted → rejected (revise) → submitted; accepted is terminal.
+            // File-level rejection may run twice, so rejected → rejected is idempotent.
+            if (($documentType->op_key ?? null) === 'op-doc-ihale-offer') {
+                $allowedOfferStatuses = [
+                    'offer-sended'   => ['offer-rejected', 'offer-accepted'],
+                    'offer-rejected' => ['offer-sended', 'offer-rejected'],
+                    'offer-accepted' => [],
+                ];
+                $lastOfferOpKey = DB::table('transactions as t')
+                    ->join('sys_options as so', 'so.id', '=', 't.type_id')
+                    ->where('t.target_id', $document->id)
+                    ->where('so.group_key', 'op-trans-op-doc-ihale-offer')
+                    ->orderByDesc('t.id')
+                    ->value('so.op_key');
+
+                $offerFrom = $lastOfferOpKey ?: 'offer-sended';
+                $offerNext = $allowedOfferStatuses[$offerFrom] ?? null;
+                if ($offerNext === null || ! in_array($statusKey, $offerNext, true)) {
+                    return [
+                        'success' => false,
+                        'msg'     => 'Bu teklif durum geçişine izin verilmiyor: '.$offerFrom.' → '.$statusKey,
+                    ];
                 }
             }
 
@@ -2515,6 +2705,26 @@ class DocumentServiceProvider extends ServiceProvider
     /**
      * this method will return rejected file warnings for client users
      */
+    /**
+     * Latest file-level transaction per file id (DISTINCT ON, one round-trip).
+     * Used by the request Excel history endpoint; kept here so HTTP controllers
+     * stay free of raw SQL.
+     */
+    public function latestFileTransactions(array $fileIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $fileIds))));
+        if (empty($ids)) return [];
+
+        $in = implode(',', $ids);
+        return DB::select(
+            "SELECT DISTINCT ON (t.target_id) t.target_id, so.op_key, so.title, t.created_at, t.note
+             FROM transactions as t
+             inner join sys_options as so on so.id = t.type_id
+             WHERE t.target_id IN ($in) AND t.op_id = 1
+             ORDER BY t.target_id, t.id DESC"
+        );
+    }
+
     public function getDocumentFiles($documentId)
     {
         $sql = "SELECT 

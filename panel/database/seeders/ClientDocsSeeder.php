@@ -30,6 +30,7 @@ class ClientDocsSeeder extends Seeder
             ['op_key' => 'offer-accepted',          'group_key' => 'op-trans-op-doc-ihale-offer', 'title' => 'Teklif Kabul Edildi', 'ttitle' => '-', 'ctitle' => 'type_id', 'parent_id' => 0],
             ['op_key' => 'offer-rejected',          'group_key' => 'op-trans-op-doc-ihale-offer', 'title' => 'Teklif Reddedildi', 'ttitle' => '-', 'ctitle' => 'type_id', 'parent_id' => 0],
             ['op_key' => 'offer-file-rejected',      'group_key' => 'op-trans-op-doc-ihale-offer', 'title' => 'Dosya Reddedildi', 'ttitle' => '-', 'ctitle' => 'type_id', 'parent_id' => 0],
+            ['op_key' => 'offer-file-accepted',      'group_key' => 'op-trans-op-doc-ihale-offer', 'title' => 'Dosya Kabul Edildi', 'ttitle' => '-', 'ctitle' => 'type_id', 'parent_id' => 0],
         ];
 
         foreach ($items as $item) {

@@ -40,6 +40,11 @@ class SmsServiceTest extends TestCase
         Config::set('services.iletisimmakinesi.log_only', false);
         Config::set('services.iletisimmakinesi.base_url', 'https://mock.test/api/UserGatewayWS/functions');
         Config::set('services.iletisimmakinesi.originator_id', '1');
+        Config::set('services.iletisimmakinesi.username', 'user');
+        Config::set('services.iletisimmakinesi.password', 'pass');
+        Config::set('services.iletisimmakinesi.vendor_id', 'vendor');
+        Config::set('services.iletisimmakinesi.api_key', 'apikey');
+        Config::set('services.iletisimmakinesi.customer_code', 'customer');
 
         Http::fake(function ($request) {
             if (str_contains($request->url(), '/authenticate')) {

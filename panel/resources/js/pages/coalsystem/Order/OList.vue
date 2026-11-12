@@ -782,7 +782,7 @@
                             wrap.style.flexWrap='wrap';
                             if(this.isTedarik){
                                 const _perms = this.authStore.permissions || [];
-                                const canKalite = _perms.includes('per-05-03');
+                                const canKalite = _perms.includes('per-07-02');
                                 const canRename = _perms.includes('per-05-05');
                                 const canCancel = _perms.includes('per-05-04');
                                 const hasAny = canKalite || canRename || canCancel;

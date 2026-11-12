@@ -9,7 +9,7 @@
 cd panel
 # DB tedarikNewApp @ 127.0.0.1:5431, .env IS_TEST=true (111111 SMS, recaptcha bypass)
 docker start tedarikNewApp || true
-php artisan migrate:status # 23 done
+php artisan migrate:status # 27 done
 npm run build # after any Vue change
 php artisan serve --host=127.0.0.1 --port=8000
 # base: http://localhost:8000/tedarik
@@ -20,12 +20,12 @@ php artisan serve --host=127.0.0.1 --port=8000
 | User | Email | Perms | Use |
 |---|---|---|---|
 | Admin | `kadir@kontent.com.tr` | `per-00` all | SAP view, file approve `per-07-02`, Kalite `per-07-02`, cancel `per-05-04` |
-| Supplier YILDIZ | `kbbozat41@hotmail.com` | `05+05-03` loader pattern | Tedarik send `transfer_sent` as reseller — bound lifnrs via `clientQnidList` |
+| Supplier YILDIZ | `kbbozat41@hotmail.com` | `05 + 05-01/02` loader pattern | Tedarik send via `PUT /v1/document` edit permission — bound lifnrs via `clientQnidList` |
 | Approver | reseller bound to order lifnr, e.g. `0000300184` | `per-05-01/02` | Find via `persons` → `clientQnidList` → `lifnr`. Admin sees all |
 
 ## 2b. How many users + who needs what (minimum 2, recommended 4)
 
-- **Supplier (reseller)** — sends: `per-041-02` (Tedarik module) + `per-05-01` (read orders) + `per-05-02` (edit/upload) + `per-05-03` (send `transfer_sent` only) + `per-06` (firma) + bound `cliid → lifnr` via `clientQnidList`. No `07-02`, no `05-04/05`. Cannot approve own order (backend `per-07-02` gate).
+- **Supplier (reseller)** — sends via `PUT /v1/document` (`per-05-02` edit/upload); `per-041-02` (Tedarik module) + `per-05-01` (read orders) + `per-06` (firma) + bound `cliid → lifnr` via `clientQnidList`. No `07-02`, no `05-04/05`. Cannot approve own order (backend `per-07-02` gate).
 - **Admin (keyuser)** — reviews: `per-041-01` + `per-05-01` + `per-07` + `per-07-01` (file list) + `per-07-02` (file accept/reject + Kalite `approved/rejected`) + `per-05-04` (cancel `orders/cancel` + `DELETE`) + `per-05-05` (rename). Plus notif groups `tedarik-02/03/04`.
 - **+2nd supplier** (different `lifnr`) — proves LIFNR+SYSTEM isolation, no cross-see.
 - **+2nd admin** (`ADM` vs `GDZ`, `grp_code BOTH` for kadir covers both) — proves BUKRS gate `4000→GDZ / 5000→ADM` for `tedarik-01..07`.

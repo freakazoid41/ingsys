@@ -46,6 +46,8 @@
         },
         computed: {
             isReseller(){ return this.authStore.typeKey === 'op-pert-reseller'; },
+            isTedarik(){ return this.$route.path.startsWith('/tedarikpanel'); },
+            offerRouteName(){ return this.isTedarik ? 'TedarikIhOffer' : 'IhOffer'; },
             canManage(){ return this.authStore.permissions?.includes('per-041-03') && !this.isReseller; },
         },
         methods: {
@@ -140,6 +142,8 @@
 
                 const map = new Map();
                 rows.forEach((r) => {
+                    // Rejected offers cannot win; hide those suppliers from the picker.
+                    if (String(r.status || '').split('**')[0] === 'offer-rejected') return;
                     let attrs = [];
                     try { attrs = JSON.parse(r.main_attr || '[]'); } catch(e) {}
                     const g = (k) => (attrs.find(x => x.Key === k) || {}).Value;
@@ -292,6 +296,18 @@
                             return wrap;
                         }
                     },{
+                        title : 'Son Teklif',
+                        key   : 'teklif_son_tarihi',
+                        order : false,
+                        colAlign : 'center',
+                        type  : 'string',
+                        columnFormatter : (elm, rowData) => {
+                            const b = document.createElement('span');
+                            b.className = 'ih-pill ih-pill--muted';
+                            b.textContent = rowData.teklif_son_tarihi || '—';
+                            return b;
+                        }
+                    },{
                         title : 'Oluşturulma',
                         key   : 'created_at_fmt',
                         order : false,
@@ -320,19 +336,21 @@
                                 span.appendChild(editBtn);
                             }
 
-                            const offersBtn = document.createElement('button');
-                            offersBtn.classList.add('btn','btn-secondary','action-icon-btn');
-                            offersBtn.title = 'Teklifleri Gör';
-                            offersBtn.innerHTML = '<i class="ki-outline ki-document fs-2"></i>';
-                            offersBtn.onclick = () => this.openOffers(columnData);
-                            span.appendChild(offersBtn);
+                            if(this.canManage){
+                                const offersBtn = document.createElement('button');
+                                offersBtn.classList.add('btn','btn-secondary','action-icon-btn');
+                                offersBtn.title = 'Teklifleri Gör';
+                                offersBtn.innerHTML = '<i class="ki-outline ki-document fs-2"></i>';
+                                offersBtn.onclick = () => this.openOffers(columnData);
+                                span.appendChild(offersBtn);
+                            }
 
                             if(isActive && this.authStore.permissions?.includes('per-041-03-01')){
                                 const offerBtn = document.createElement('button');
                                 offerBtn.classList.add('btn','btn-secondary','action-icon-btn');
                                 offerBtn.title = 'Teklif Ver';
                                 offerBtn.innerHTML = '<i class="ki-outline ki-entrance-right fs-2"></i>';
-                                offerBtn.onclick = () => this.router.push({ name : 'IhOffer', query : { ihale : columnData } });
+                                offerBtn.onclick = () => this.router.push({ name : this.offerRouteName, query : { ihale : columnData } });
                                 span.appendChild(offerBtn);
                             }
 
@@ -393,10 +411,13 @@
                         let spec = 0;
                         attrs.forEach(a => {
                             const tag = a.Key || '';
-                            if(tag.startsWith('product_qnid**ihale_product_rows')) prodRows.add((tag.split('**')[2] || '').split('-')[0]);
+                            // Count full row keys. Form-engine ids are `new-<timestamp>`,
+                            // so splitting on '-' collapses every new row into "new".
+                            if(tag.startsWith('product_qnid**ihale_product_rows')) prodRows.add(tag.split('**')[2] || '');
                             if(tag.startsWith('ihale_spec_file**ihale_spec')) spec++;
                         });
-                        data.product_count = prodRows.size;
+                        // Server-side row_count is authoritative; fall back to parsed rows.
+                        data.product_count = Number(data.row_count) > 0 ? Number(data.row_count) : prodRows.size;
                         data.spec_count = spec;
                         data.created_at_fmt = fmtDateTime(data.created_at);
                         return data;

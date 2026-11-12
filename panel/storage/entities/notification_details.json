@@ -59,5 +59,35 @@
         "group_key": "op-notif",
         "op_key": "planlama-03",
         "childs": []
+    },{
+        "parent_id": 0,
+        "title": "İhale Teklife Açıldı",
+        "group_key": "op-notif",
+        "op_key": "ihale-01",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "İhale Tamamlandı",
+        "group_key": "op-notif",
+        "op_key": "ihale-02",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Yeni Teklif Gönderildi",
+        "group_key": "op-notif",
+        "op_key": "offer-01",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Teklif Reddedildi",
+        "group_key": "op-notif",
+        "op_key": "offer-02",
+        "childs": []
+    },{
+        "parent_id": 0,
+        "title": "Teklif Kabul Edildi",
+        "group_key": "op-notif",
+        "op_key": "offer-03",
+        "childs": []
     }
 ]

@@ -24,12 +24,15 @@ class SmsService
     public function __construct()
     {
         $this->baseUrl = rtrim(Config::get('services.iletisimmakinesi.base_url', 'https://live.iletisimmakinesi.com/api/UserGatewayWS/functions'), '/');
-        $this->username = Config::get('services.iletisimmakinesi.username');
-        $this->password = Config::get('services.iletisimmakinesi.password');
-        $this->vendorId = Config::get('services.iletisimmakinesi.vendor_id');
-        $this->apiKey = Config::get('services.iletisimmakinesi.api_key');
-        $this->customerCode = Config::get('services.iletisimmakinesi.customer_code');
-        $this->serviceId = Config::get('services.iletisimmakinesi.service_id', '7');
+        // Typed string properties must not receive null when credentials are
+        // absent (log-only mode, tests, fresh installs). validateConfig() still
+        // fails closed on the first real gateway call.
+        $this->username = (string) (Config::get('services.iletisimmakinesi.username') ?? '');
+        $this->password = (string) (Config::get('services.iletisimmakinesi.password') ?? '');
+        $this->vendorId = (string) (Config::get('services.iletisimmakinesi.vendor_id') ?? '');
+        $this->apiKey = (string) (Config::get('services.iletisimmakinesi.api_key') ?? '');
+        $this->customerCode = (string) (Config::get('services.iletisimmakinesi.customer_code') ?? '');
+        $this->serviceId = (string) (Config::get('services.iletisimmakinesi.service_id', '7') ?? '7');
         $this->originatorId = Config::get('services.iletisimmakinesi.originator_id');
         $this->clientId = Config::get('services.iletisimmakinesi.client_id');
 

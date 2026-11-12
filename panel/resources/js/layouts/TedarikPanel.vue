@@ -33,12 +33,11 @@ export default {
                 {
                     key: 'ihale',
                     title: 'İhale',
-                    desc: 'İhale süreçleri — Yakında',
+                    desc: 'İhale ve teklif süreçleri',
                     icon: 'ki-outline ki-chart-simple',
-                    path: '/coalpanel',
+                    path: '/tedarikpanel/ihaleler',
                     color: '#059669',
-                    perm: 'per-041-03',
-                    disabled: true,
+                    perm: 'per-041-03-01',
                 },
                 {
                     key: 'fabrika',
@@ -116,6 +115,7 @@ export default {
         tenantLogo() { return (String(this.sysCode || '').toUpperCase() === 'ADM') ? '/coaltheme/adm-logo.svg' : '/coaltheme/GDZ.svg'; },
         userName() { return this.authStore.userName || this.authStore.currentStatus?.main_name || ''; },
         isOrdersActive() { return this.$route.path.includes('/orders'); },
+        isIhaleActive() { return this.$route.path.includes('/ihaleler'); },
         isDokumanActive() { return this.$route.path.includes('/document'); },
         isDashboardActive() { return this.$route.path === '/tedarikpanel' || this.$route.path === '/tedarikpanel/'; },
         isBilgilendirmelerActive() { return this.$route.path.includes('/bilgilendirmeler'); },
@@ -148,6 +148,18 @@ export default {
             if(!mod||!mod.path) return;
             const cur=window.location.pathname;
             if(cur.startsWith(mod.path)) return;
+
+            // Cross-shell modules (coalpanel / planlamapanel) live in a different
+            // SPA entry point. Vue Router inside the Tedarik shell cannot resolve
+            // those paths, so do a full-page navigation for them.
+            const targetShell = mod.path.startsWith('/coalpanel')
+                ? '/coalpanel'
+                : (mod.path.startsWith('/planlamapanel') ? '/planlamapanel' : null);
+            if (targetShell && !cur.startsWith(targetShell)) {
+                window.location.href = mod.path;
+                return;
+            }
+
             try{ if(this.$router&&this.$router.push){ this.$router.push(mod.path); return; } }catch(e){}
             window.location.href=mod.path;
         },
@@ -234,6 +246,13 @@ export default {
                         <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isOrdersActive }]">
                             <i class="ki-outline ki-document tedarik-menu-icon"></i>
                             <span>Siparişler</span>
+                            <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                        </a>
+                    </router-link>
+                    <router-link v-if="authStore.permissions?.includes('per-041-03-01') || authStore.permissions?.includes('per-041-03')" to="/tedarikpanel/ihaleler" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isIhaleActive }]">
+                            <i class="ki-outline ki-chart-simple tedarik-menu-icon"></i>
+                            <span>İhaleler</span>
                             <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                         </a>
                     </router-link>

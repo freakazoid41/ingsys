@@ -69,6 +69,7 @@ document_files (
     relation_id  int    default 0,          -- documents.id (0 if temp)
     type_id      int,                        -- sys_options (form-file etc)
     status       smallint default 1,         -- 1 active, 0 passive (version history)
+    uploaded_by  bigint default 0,           -- auth user who created the temp upload (ownership guard)
     replaced_id  int    default 0,           -- NEW file: previous version's id
     created_at / updated_at
 )

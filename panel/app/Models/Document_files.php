@@ -22,6 +22,7 @@ class Document_files extends Model
         'description',
         'replaced_id',
         'valid_until',
+        'uploaded_by',
         'type_id',
         'selected_at',
         'title',
@@ -180,7 +181,7 @@ class Document_files extends Model
                         $lifList = "'" . implode("','", array_map('noInject', $bySys[$sys])) . "'";
                         $sysVals = $sys==='GDZ' ? "'GDZ','4000','1000','G4000'" : "'ADM','5000','A5000'";
                         // spec_code on d (order) + sys_code matches client system (single same-conn EXISTS)
-                        $ors[] = "exists (select 1 from sys_con_ops sco3 on sco3.main_id=d.id and sco3.conn_id=0 join sys_con_entities sce3 on sce3.conn_id=sco3.id and sce3.entity_tag='spec_code' and sce3.entity_value IN ($lifList) join sys_con_entities se3 on se3.conn_id=sco3.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%\))";
+                        $ors[] = "exists (select 1 from sys_con_ops sco3 join sys_con_entities sce3 on sce3.conn_id=sco3.id and sce3.entity_tag='spec_code' and sce3.entity_value IN ($lifList) join sys_con_entities se3 on se3.conn_id=sco3.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%') where sco3.main_id=d.id and sco3.conn_id=0)";
                         // spec_code on parent order (for item files)
                         $ors[] = "exists (select 1 from documents pd join sys_con_ops sco_p on sco_p.main_id=pd.id and sco_p.conn_id=0 join sys_con_entities sce_p on sce_p.conn_id=sco_p.id and sce_p.entity_tag='spec_code' and sce_p.entity_value IN ($lifList) join sys_con_entities se3 on se3.conn_id=sco_p.id and se3.entity_tag='sys_code' and (se3.entity_value in ($sysVals) or se3.entity_value ilike '%$sys%') where pd.id = d.parent_id and pd.status=1)";
                         // direct lifnr on d (client docs themselves)
@@ -351,7 +352,7 @@ class Document_files extends Model
                     default:
                         $column = explode('  as  ',$columns[$f['key']] ?? $columns['relation_detail'])[0];
                         if(trim($f['value']) != ''){
-                            if($f['type'] != 'like'){
+                            if(($f['type'] ?? '=') != 'like'){
                                 $where.=" and ".$column." ='".$f['value']."' ";
                             }else{
                                 $where.=" and ".$column."::text ilike '%".$f['value']."%' ";

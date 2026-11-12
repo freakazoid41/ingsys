@@ -496,6 +496,7 @@ if(!function_exists('tempUploadFile')){
                 $docFile->type_id = $fileType->id ?? 0;
                 $docFile->description = $encryptedName;
                 $docFile->status = 1;
+                try { $docFile->uploaded_by = auth()->id() ?? 0; } catch (\Throwable $e) { $docFile->uploaded_by = 0; }
                 if (! empty($validUntil)) {
                     try { $docFile->valid_until = \Carbon\Carbon::parse($validUntil)->toDateString(); } catch (\Throwable $e) {}
                 }

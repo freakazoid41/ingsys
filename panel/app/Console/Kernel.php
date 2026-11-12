@@ -6,6 +6,7 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use App\Console\Commands\RetryNotificationSend;
 use App\Console\Commands\RequestAutoclose;
 use App\Console\Commands\CleanActiveSessions;
+use App\Console\Commands\RepairPlanlamaStatuses;
 use App\Console\Commands\SendTestMail;
 use App\Console\Commands\SendTestSms;
 use App\Console\Commands\VerifyRecaptcha;
@@ -23,6 +24,7 @@ class Kernel extends ConsoleKernel
         RetryNotificationSend::class,
         RequestAutoclose::class,
         CleanActiveSessions::class,
+        RepairPlanlamaStatuses::class,
         VerifyRecaptcha::class,
     ];
 

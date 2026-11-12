@@ -33,6 +33,22 @@ class SystemController extends Controller
         $permissionService = new PermissionService();
         $authUser = auth()->user();
 
+        // Tender/offer tables carry commercially sensitive data. Enforce the
+        // document read permission before TableList; Documents::tableList also
+        // scopes reseller offers to their own bound clients.
+        $tableReq = json_decode((string) ($req['tableReq'] ?? '{}'), true);
+        if (! is_array($tableReq)) $tableReq = [];
+        $sensitiveDocTypes = ['op-doc-ihale', 'op-doc-ihale-offer', 'op-doc-ihale-offer-item'];
+        foreach (($tableReq['filter'] ?? []) as $f) {
+            if (($f['key'] ?? '') !== 'type') continue;
+            $docType = (string) ($f['value'] ?? '');
+            // Check every type filter: TableList uses the last one, so a caller
+            // must not be able to hide a tender/offer type behind a permitted one.
+            if (in_array($docType, $sensitiveDocTypes, true) && ! docPermCheck($docType, 'read')) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        }
+
         //here make little permission check for data listing request
         switch($model){
             case 'user':
@@ -133,6 +149,32 @@ class SystemController extends Controller
         $response['unreadTotal'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
+        // ── TENDER 5 ──
+        $r = $provider->getAdminNotifications('ihale-01', $limit);
+        $response['tenderActivated'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
+        $r = $provider->getAdminNotifications('ihale-02', $limit);
+        $response['tenderCompleted'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
+        $r = $provider->getAdminNotifications('offer-01', $limit);
+        $response['offerSubmitted'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
+        $r = $provider->getAdminNotifications('offer-02', $limit);
+        $response['offerRejected'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
+        $r = $provider->getAdminNotifications('offer-03', $limit);
+        $response['offerAccepted'] = $r['data'];
+        $response['unreadTotal'] += $r['total'];
+        if($r['total'] > 0) $response['blink'] = 1;
+
         return $response;
 
     }
@@ -160,7 +202,7 @@ class SystemController extends Controller
         $userId = auth()->id();
         if(!$userId) return response()->json(['success'=>false,'msg'=>'Unauthorized'], 401);
 
-        $opKeys = ['tedarik-01','tedarik-02','tedarik-03','tedarik-04','tedarik-05','tedarik-06','tedarik-07','planlama-01','planlama-02','planlama-03'];
+        $opKeys = ['tedarik-01','tedarik-02','tedarik-03','tedarik-04','tedarik-05','tedarik-06','tedarik-07','planlama-01','planlama-02','planlama-03','ihale-01','ihale-02','offer-01','offer-02','offer-03'];
         foreach($opKeys as $opKey){
             $provider = new ReportServiceProvider();
             $result = $provider->getAdminNotifications($opKey);

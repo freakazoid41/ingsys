@@ -95,9 +95,9 @@ php artisan orders:sync --json=/tmp/sap_fresh_payload.json
 
 **From existing test data:** The file at `/tmp/sap_payload.json` (copied to `/tmp/sap_fresh_payload.json` for sync) has **8 orders, 21 items, 8 clients** (3510004200, 3510004300×2, 3510004400×4, 3510004500×2, 3510004600×3, 3510001793×2, 3510002100×3, 3510003500×4). Reuse or modify.
 
-## 5. Current Live Data
+## 5. Fresh-sync target (not current live)
 
-**Authoritative snapshot lives in `memory/05-order-system-state.md` §8.** As of the last fresh sync (2026-09-07 12:47, `php artisan orders:reset` → same payload `/tmp/sap_fresh_payload.json` 21 rows → 8 EBELN): **8 orders, 21 items, 8 clients, 0 files, 0 serials, 39 transactions** — all ST < 300, mixed ST/KG/M, clean slate. **USE `orders:reset` ALWAYS — no manual `cp`/`tinker`/`rm -rf` needed.** Prev 2026-09-01 12:25 was `cp /tmp/sap_payload.json /tmp/sap_fresh_payload.json && php artisan orders:sync --json=/tmp/sap_fresh_payload.json --fresh` + manual wipe.
+**Authoritative live snapshot lives in `memory/05-order-system-state.md` §8.** This section documents the **SAP demo reset target**, not the current production-shaped DB: `orders:reset` → `/tmp/sap_fresh_payload.json` 21 rows → **8 orders, 21 items, 8 clients, 0 files, 0 serials, ~39 transactions**. The current imported DB has 10,591 orders / 44,042 items / 154,066 serials, so use `orders:reset` only when you intentionally want the small demo set. Prev 2026-09-01 used `cp` + `orders:sync --fresh`; use `orders:reset` now.
 
 ## 6. Important Notes
 

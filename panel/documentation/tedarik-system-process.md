@@ -34,16 +34,17 @@
 
 **Tenants:** `public/index.php:11` `Host contains adm ? ADM : GDZ` (ex `yatagantermik ? YATAGAN : CATES`) → `$GLOBALS['SYS_CODE']` → `documents.grp_code`, `user_logs.sys_code`. `GDZ.svg/ADM.svg`, `gdz.jpg/adm.jpg`, `GDZ Sistem` in `sys_options`.
 
-**Roles (4 immutable, `SysRoleTemplateSeeder.php:168`, 27 perms `sys_permission_catalogs`):**
+**Roles (5 templates, `SysRoleTemplateSeeder`, 37 perms `sys_permission_catalogs`):**
 
 | Role | `op_key` | Perms |
 |------|----------|-------|
-| Admin | `immutable-admin` | 27 perms all |
-| Supplier | `immutable-reseller` | `per-041-02`(Tedarik modül) + `per-041-03` + `per-05-01,02` (Sipariş gör/düzenle) + `per-06` (Firma) |
-| Rapor Personeli | `immutable-rapor-personeli` | `per-041-01` + `per-05-02` + `per-061-01` (view only) |
-| Satınalma Keyuser | `immutable-satınalma-keyuser` | `per-041-01,03` + `per-05 01-05` + `per-06-01` + `per-07-01` |
+| Admin | `immutable-admin` | 37 perms all |
+| Supplier | `immutable-reseller` | `per-041-01` (coalpanel) + `per-041-02` (Tedarik) + `per-041-03-01` (offers) + `per-05,05-01,05-02` + `per-06,06-01,06-02` |
+| Rapor Personeli | `immutable-rapor-personeli` | `per-041-01` + `per-061,061-01,061-02` (view only) |
+| İş Birimi | `immutable-satınalma-keyuser` | `per-041-01,02,03,04` + `per-05,05-01..03` + `per-07,07-01,07-02` + `per-061,061-01,061-02` |
+| Ürün Kategori Yöneticisi | `immutable-product-manager` | `per-041-01` + `per-09,09-01,09-02,09-03` |
 
-Strict guards 2026-09-04: `cancelOrder → per-05-04 ONLY`, `renameOrder → per-05-05 ONLY`, `Kalite Onayı (acceptAllOrderFiles) → per-05-03 ONLY`, file status `per-07-02`, file list `per-07-01 && per-07` `SystemController.php:41`, tedarik routes guarded `router/index.js:103` `/tedarikpanel/documents` requires `per-07-01`, `/tedarikpanel/orders` requires `per-05-01`.
+Strict guards: `cancelOrder → per-05-04 ONLY`, `renameOrder → per-05-05 ONLY`, `Kalite Onayı (acceptAllOrderFiles)` + file status `→ per-07-02` (backend + `OForm`, and `OList` now matches), file list `per-07-01 && per-07` `SystemController.php:41`, tedarik routes guarded `router/index.js:103` `/tedarikpanel/documents` requires `per-07-01`, `/tedarikpanel/orders` requires `per-05-01`.
 
 ---
 
@@ -124,7 +125,7 @@ Mapping: `LIFNR→spec_code`, `EBELN→order_no+transfer_no`, `EBELP appended MA
 - **Detailed search `OList.vue:52` hover `absolute top:52 z40` 3×3 `tedarik-detailed-panel`:** 9 keys `stok_kodu(prod_code EXISTS item)` `siparis_kodu(order_no)` `alim_kodu(buying_no)` `seri_no/uretim_tarihi(EXISTS serial via item)` `sirket/tedarikci(spec_code/ctitle)` `onay_durumu(transactions)` `tarih_araligi(i.created_at or created_at entity)` via `Documents::tableList` EXISTS + lateral `prod_code` for order filter. `Filtrele/Sıfırla/Excel` → `table.setFilter([])`.
 - **Filtreler dropdown `OList.vue` 2026-09-02 late:** `Filtreler 280px 9 radios` (`seri_no/tarihe_gore/tarih_araligi/alim/siparis/beklemede/dosya/tamamlanan/hepsi`) + `Şirkete Göre Arama FF4713` → `client-modal 720px PickleTable localData 200` lazy `modalClients` `hardFallback 8` + `flatpickr range Y-m-d → tarih_araligi '|'`, `Detaylı twin Şirket/Tedarikçi readonly → same modal single`, `dropdownPos fixed z9999` teleport to body escaping `tedarik-main overflow:hidden`. Filter ordering: `alim_kodu→buying_no`, `siparis_kodu→order_no`, `stok_kodu→prod_code` lateral, `transactions IN` for `beklemede/tamamlanan` comma, `sirket multi OR lifnr/title`, `tarih_araligi to_date(entity_value,'DD/MM/YYYY')` for `BEDAT` vs `i.created_at Y-m-d`.
 - **Rows:** card-rows `border-collapse:separate 0 7px auto 13/13.5px` solid pills + bottom note, hidden `mainSearch`, `clone EBELN-X` shows `3510001793'den ayrıldı` link `findAndNavigateToOrder` via `POST /v1/table/documents all=base`, `Parçayı Sil` for clones vs `İptal Et`.
-- **Actions `OList.vue:1005`:** `Aksiyonlar grey + Detaylar teal → Kalite Onayı Ver ve Kapat (per-05-03)` + `Sipariş Numarasını Düzenle clones only -X` suffix-only input `OList.vue:205`. Status pill disabled for tedarik `cursor default`.
+- **Actions `OList.vue:1005`:** `Aksiyonlar grey + Detaylar teal → Kalite Onayı Ver ve Kapat (per-07-02)` + `Sipariş Numarasını Düzenle clones only -X` suffix-only input `OList.vue:205`. Status pill disabled for tedarik `cursor default`.
 - **Height `OList.vue:1005 2026-09-04`:** `.tedarik-main .tedarik-card .pickletable:not(.pt-auto-height) .divTable` + inline `height:90% !important overflow:auto`, pagination stays bottom `75vh/calc(75vh-280px)`.
 
 ---
@@ -265,7 +266,7 @@ Called from `DocumentController.php` after `registerContent` with `transfer_mode
 
 **Bulk:** `POST /v1/trans/set-file-status-all` `DocumentController:642` (per-07-02, id=order_qnid) → `getDocumentFiles` → loop `documentFileStatus` + `cliFileStatus` per file + **bulk tedarik-04/05 `660` collect `tedarikPending[order_qnid]` with `fileTitles[]` + after loop 1 mail per order `3 dosya: A,B...` via `EmailServiceProvider:116` BUKRS+LIFNR, not 0 as before; `refreshAllUserPermissions` once. Use when `Tümünü Onayla` in `DForm`. File `doc_file_refreshed` (re-upload after reject, `DocumentHelpers:599`) also counts as `İnceleme Bekliyor` via `tedarik-03` `waiting,refreshed` IN (`ReportServiceProvider:136`).
 
-**Bulk Kalite:** `POST /v1/trans/set-status doc_trans_order_approved` from `OList.vue Kalite Onayı` checks `canKalite per-05-03 ONLY` not ended → `acceptAllOrderFiles:1069` loops order+item files where `status1` not already accepted → `doc_file_accepted per file` enriched.
+**Bulk Kalite:** `POST /v1/trans/set-status doc_trans_order_approved` from `OList.vue Kalite Onayı` checks `canKalite per-07-02` not ended → `acceptAllOrderFiles:1069` loops order+item files where `status1` not already accepted → `doc_file_accepted per file` enriched.
 
 **Auto `syncOrderStatusFromFiles:1346` N+1→1 batch `AuditService.php:346`:**
 - `SELECT DISTINCT ON (target_id) … WHERE target_id IN (fileIds) ORDER BY target_id, id DESC` → `lastMap`.
@@ -304,7 +305,7 @@ Called from `DocumentController.php` after `registerContent` with `transfer_mode
 **Prereq:**
 ```bash
 docker start tedarikNewApp || docker run --name tedarikNewApp -e POSTGRES_USER=tedarikNewApp -e POSTGRES_DB=tedarikNewApp -e POSTGRES_PASSWORD=tedarikNewApp -p 5431:5432 -d postgres:latest
-cd panel && php artisan migrate:status # 23 done
+cd panel && php artisan migrate:status # 27 done
 npm run build # after any Vue change → app-*.js
 php artisan serve --host=127.0.0.1 --port=8000
 # logins: kadir@kontent.com.tr / Kadir412. → 111111 → /coalpanel or /tedarik
@@ -345,7 +346,7 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 **Test E — Both Panels Parity:**
 - Every `OList/OForm/DList/DForm` check `isTedarik` panel-aware routes: clone/back/list stays in same panel (`TedarikOrderForm` vs `OrderForm`).
-- Permissions: supplier without `per-05-03` should NOT see `Kalite` button; without `per-07-01` should NOT access `/tedarikpanel/documents` (router `beforeEach` blocks).
+- Permissions: user without `per-07-02` should NOT see the `Kalite` button; without `per-07-01` should NOT access `/tedarikpanel/documents` (router `beforeEach` blocks).
 - Typewriter scroll: tedarik docs `height:auto body ''` vs admin `75vh`, no 460px blank `TedarikPanel.vue:100`.
 
 **Expected counts after fresh + manual Test A+B:** 8 base + 1 clone = 9 orders, 21 + 2 clone items = 23 items, serials created, 4+ files, `user_logs` + `transactions` enriched with `actor/document/file` frozen.

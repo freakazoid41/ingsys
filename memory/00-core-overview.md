@@ -4,11 +4,12 @@
 > **Read order for new sessions: `00` → `05` → `06` → mechanic bibles as needed. `panel/docs/*` is STALE coal mapping (2026-08-01), reference only.**
 
 ## 1. What This App Is
-Tedarik Yönetim Sistemi — Order Management System (converted from KomurTedarik coal ERP). Generic EAV document engine wearing order-management skin. 4 role templates, one DB:
-- **Admin** `immutable-admin` (27 perms) — orders, clients, file approvals, users, roles, reports
-- **Supplier** `immutable-reseller` (per-041-02,03 + per-05-01,02 + per-06) — firm form + uploads, bound to client(s)
-- **Rapor Personeli** `immutable-rapor-personeli` (per-041-01 + per-05-02 + per-061-01) — read-only orders
-- **Satınalma Keyuser** `immutable-satınalma-keyuser` (per-041-01,03 + per-05 01-05 + per-06-01 + per-07-01) — full IB control
+Tedarik Yönetim Sistemi — Order Management System (converted from KomurTedarik coal ERP). Generic EAV document engine wearing order-management skin. 5 role templates, one DB:
+- **Admin** `immutable-admin` (37 perms) — orders, clients, file approvals, users, roles, reports, products, tenders
+- **Supplier** `immutable-reseller` (per-041-01,02,03-01 + per-05,05-01,05-02 + per-06,06-01,06-02) — firm form + uploads, bound to client(s)
+- **Rapor Personeli** `immutable-rapor-personeli` (per-041-01 + per-061,061-01,061-02) — read-only reporting
+- **İş Birimi** `immutable-satınalma-keyuser` (per-041-01,02,03,04 + per-05,05-01..03 + per-07,07-01,07-02 + per-061) — full IB control
+- **Ürün Kategori Yöneticisi** `immutable-product-manager` (per-041-01 + per-09,09-01,09-02,09-03) — catalogue only
 
 Multi-tenant via `panel/public/index.php:11-15` → `Host contains adm ? ADM : GDZ` → `$GLOBALS['SYS_CODE']` → `documents.grp_code`, `user_logs.sys_code`. Users split `GDZ/ADM/BOTH` — `Form.vue:323` select, `UList.vue:115` pill + tri-filter, `AuthController.php:280` login split (list shows all, login enforces).
 
@@ -52,15 +53,17 @@ sys_con_entities  — field value: conn_id→sys_con_ops, entity_tag = field**gr
 - Detail: `memory/02-eav-dictionary.md` + `panel/documentation/form-system-mechanics.md`
 
 ## 6. Document Types & State Machines
-`sys_options group op-doc`: `op-doc-order` (header), `op-doc-order-item` (parent_id=order), `op-doc-order-serial` (parent_id=item), `op-doc-client` (Cari). `op-doc-transfer` + `op-doc-request/offer` **PURGED** — clones are `op-doc-order` with `transfer_no=EBELN-X`.
+`sys_options group op-doc` live: order family (`op-doc-order`/`-item`/`-serial`), `op-doc-client`, planlama (`op-doc-request`/`-item` + `op-doc-requestf`/`-item`), products (`op-doc-product`, `op-doc-product-category`, `op-doc-kva`), tender (`op-doc-ihale`, `op-doc-ihale-offer`, `op-doc-client-docs`). Legacy `op-doc-flat`/`op-doc-offer` rows remain unused in the dictionary; no documents.
 
 - **Order:** `created → transfer_sent → ready_for_shipment → approved/rejected` + `files_rejected`. Kalite `approved` from **ANY** status.
-- **File:** `waiting → accepted | rejected → refreshed`
-- **Serial:** `op-doc-order-serial` parented to items. Entities: `serial_no`, `production_date` (YYYY-MM-01), `quantity`, `unit`
+- **Planlama:** Talep `awaiting → man-approved/man-rejected`; `man-approved → std-approved`; `man-rejected → awaiting` (revise).
+- **Tender:** `tender-created → tender-activated → tender-complated`; offer `offer-sended ↔ offer-rejected`, `offer-accepted` terminal.
+- **File:** `waiting → accepted | rejected → refreshed`; tender files also carry `offer-file-rejected`.
+- **Serial:** `op-doc-order-serial` parented to items. Entities: `serial_no`, `production_date` (YYYY-MM-01), `quantity`, `unit`.
 
-## 7. Routing — 11 web + ~31 api
+## 7. Routing — 74 registered routes (`php artisan route:list` is authoritative)
 **Web** `routes/web.php`: `/`, `/tedarik`, `/register`, `/logout`, `/smscallback`, `/module-select`, `/auth/passwordreset/{code}`, `POST /auth/passchange`, `/coalpanel{any}` (`coalAuth` → `per-041-01`), `/tedarikpanel{any}` (`tedarikAuth` → `per-041-02`), `/order-file/{doc}`, `POST /export/*`, `GET /export/{model}/{type?}`
-**API** `routes/api.php`: `auth/checkcode|sendmail|resend-code`, `POST /v1/auth/login/{type?}`, `POST /v1/auth/register`, `POST /v1/auth/resetusercradentals` (PUBLIC!), `GET /v1/me`, `GET /v1/modules`, `ANY /v1/document/{id?}`, `ANY /v1/transaction`, `POST /v1/temp-upload`, `POST /v1/table/{model}`, `POST /v1/export/malzeme-kabul|malzeme-cins-miktar-kabul` (before wildcard), `POST /v1/export/{model}`, `ANY /v1/users|persons`, `GET /v1/notifications`, `POST /v1/trans/set-status|set-file-status*|disable-document|orders/cancel|orders/rename`, `ANY /v1/dashboard/{type}/{period?}`, `GET /v1/getpermissions`
+**API** `routes/api.php`: auth (`checkcode|sendmail|resend-code`, login/register, reset), `GET /v1/me|modules`, `ANY /v1/document/{id?}`, `ANY /v1/transaction`, `POST /v1/temp-upload`, `POST /v1/table/{model}`, exports (Kabul/Cins PDFs before wildcard), `ANY /v1/users|persons`, `GET /v1/notifications|notification-users`, reads (`POST /v1/notifications/read|read-all`), roles/notification settings, `POST /v1/trans/set-status|set-file-status*|disable-document|orders/cancel|orders/rename`, order file reads (`GET /v1/order/{qnid}/files|download-all`, `GET /v1/file-detail/{id}`), Planlama file history (`GET /v1/request/{qnid}/files`), tender (`GET /v1/client-docs/{supplier}`, `POST /v1/client-docs/slot`, `POST /v1/tenders/activate|complete`, `POST /v1/offers/accept|reject|file-reject`, `POST /v1/tender-products`), `ANY /v1/dashboard/{type}/{period?}`, `GET /v1/getpermissions`.
 
 ## 8. Auth & Session
 Single orange login `GET /` or `GET /tedarik` → `tedariklogin` → `POST /v1/auth/login/tedarik` (reCAPTCHA + 5×15min lock → `Auth::attempt` → 6-digit to `storage/app/*.txt` + Mail/SMS → `GET /smscallback` → `POST auth/checkcode` 120s TTL). Post-2FA: both perms → `/module-select`, else auto-redirect.
@@ -68,9 +71,9 @@ Middleware `coalAuth` (`per-041-01`), `tedarikAuth` (`per-041-02`), `CheckPermis
 Detail: `panel/documentation/session-and-login-mechanics.md` + `single-session-enforcement-system.md`
 
 ## 9. Permission System
-`sys_permission_catalogs` (27 entries) → `sys_role_templates` (4 immutable) → `sys_notification_types` (`tedarik-01..07`) → audit. Read tracking via `notification_reads`.
-Tree: `per-00`, `per-041` (01-04), `per-04` (01-04), `per-05` (01-05), `per-06` (01-02), `per-07` (01-02), `per-061` (01-02). `per-08`, `per-04-05` dead.
-Roles: `immutable-admin` (27), `immutable-reseller` (041-02,03 + 05-01,02 + 06), `immutable-rapor-personeli`, `immutable-satınalma-keyuser`. Old super-admin/satınalma-personeli DELETED.
+`sys_permission_catalogs` (37 entries) → `sys_role_templates` (5 immutable: admin, reseller, İB görüntüleme, İş Birimi, Ürün Kategori Yöneticisi) → `sys_notification_types` (`tedarik-01..07` + `planlama-01..03` + `ihale-01/02` + `offer-01..03` = 15) → audit. Read tracking via `notification_reads`.
+Tree: `per-00`, `per-041` (01-05 + `03-01`), `per-04` (01-04), `per-05` (01-05), `per-06` (01-02), `per-07` (01-02), `per-061` (01-02), `per-09` (01-03). `per-08`, `per-04-05` dead.
+Roles: `immutable-admin` (37), `immutable-reseller` (041-01,02,03-01 + 05,05-01,05-02 + 06,06-01,06-02), `immutable-rapor-personeli` (041-01 + 061), `immutable-satınalma-keyuser` (İş Birimi: 041-01/02/03/04 + 05/07/061), `immutable-product-manager` (041-01 + 09/09-01/02/03). Old super-admin/satınalma-personeli DELETED.
 Runtime: `PermissionService::has()` → session `sper-*` → file cache. Helpers `checkPerm()`, `docPermCheck()` in `PermissionHelpers.php:215`.
 Detail: `panel/documentation/permission-system-analysis.md`
 

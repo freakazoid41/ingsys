@@ -91,6 +91,9 @@
             };
         },
         computed: {
+            isTedarik(){ return this.$route.path.startsWith('/tedarikpanel'); },
+            listRouteName(){ return this.isTedarik ? 'TedarikIhList' : 'IhList'; },
+            offerRouteName(){ return this.isTedarik ? 'TedarikIhOffer' : 'IhOffer'; },
             itemsDoneCount(){
                 try { return (this.items || []).filter(it => this.itemMissing(it) === 0).length; }
                 catch(e) { return 0; }
@@ -117,6 +120,11 @@
                     const p = this.authStore.permissions || [];
                     return p.includes('per-041-03');
                 } catch(e) { return false; }
+            },
+            deadlinePassed(){
+                if (!this.ihale?.deadline) return false;
+                const t = new Date(this.ihale.deadline + 'T23:59:59').getTime();
+                return Number.isFinite(t) && t < Date.now();
             },
         },
         methods: {
@@ -148,7 +156,7 @@
                 } else if (this.ihaleQnid) {
                     const existing = await this.lookupExistingOffer(this.ihaleQnid, this.supplierQnid);
                     if (existing) {
-                        window.location.href = '/coalpanel/ihaleler/teklif/' + existing;
+                        this.$router.push({ name : this.offerRouteName, params : { id : existing } }).catch(()=>{});
                         return;
                     }
                     await this.loadIhale(this.ihaleQnid, {});
@@ -256,7 +264,7 @@
                 try {
                     const existing = await this.lookupExistingOffer(qnid, this.supplierQnid);
                     if (existing) {
-                        window.location.href = '/coalpanel/ihaleler/teklif/' + existing;
+                        this.$router.push({ name : this.offerRouteName, params : { id : existing } }).catch(()=>{});
                         return;
                     }
                     await this.loadIhale(qnid, {});
@@ -342,6 +350,7 @@
                     kodu : ents.ihale_kodu || '',
                     spec_title : ents.spec_title || '',
                     spec_file_qnid : specFileQnid,
+                    deadline : ents.teklif_son_tarihi || '',
                     products,
                 };
                 await this.buildItems(products, savedByProduct || {});
@@ -683,9 +692,12 @@
                 const hEntry = Object.entries(ff)[0] || [];
                 const hConn = hEntry[0] || null;
                 const hEnts = (hEntry[1] || {}).entities || {};
-                if (!hEnts.supplier_qnid || !(this.authStore.currentStatus?.clientQnidList || []).includes(hEnts.supplier_qnid)) {
+                const ownsOffer = (this.authStore.currentStatus?.clientQnidList || []).includes(hEnts.supplier_qnid);
+                // Office reviewers (per-041-03) inspect read-only without a client binding.
+                const officeInspect = this.canReview && this.authStore.typeKey !== 'op-pert-reseller';
+                if (!hEnts.supplier_qnid || (!ownsOffer && !officeInspect)) {
                     this.plib.toast(this.Swal, 'error', 'Bu teklif sizin firmanıza ait değil.');
-                    this.$router.push({ name : 'IhList' }).catch(()=>{});
+                    this.$router.push({ name : this.listRouteName }).catch(()=>{});
                     return;
                 }
                 this.headerConnId = hConn;
@@ -739,7 +751,10 @@
                 return [prodCode || '', standard || '', fileTitle || '', kva || ''].join('||');
             },
             applyLibrary(cells, prodCode){
-                const source = (this.tenderLocked && this.snapshotSlots.length) ? this.snapshotSlots : this.registrySlots;
+                // A closed tender must read ONLY its frozen snapshot, even when the
+                // snapshot has zero slots. Falling back to registrySlots lets a
+                // post-completion library upload appear inside a locked tender.
+                const source = this.tenderLocked ? this.snapshotSlots : this.registrySlots;
                 if (!source || !source.length) return;
                 for (const ck in cells) {
                     const c = cells[ck];
@@ -814,8 +829,8 @@
                 const f = ev?.target?.files?.[0];
                 if (ev?.target) ev.target.value = '';
                 if (!f) return;
-                if (this.tenderLocked || this.tenderInactive) {
-                    this.plib.toast(this.Swal, 'info', this.tenderLocked ? 'İhale tamamlandı — dosyalar kilitli.' : 'İhale henüz aktif değil — dosya yüklenemez.');
+                if (this.tenderLocked || this.tenderInactive || this.deadlinePassed) {
+                    this.plib.toast(this.Swal, 'info', this.tenderLocked ? 'İhale tamamlandı — dosyalar kilitli.' : (this.deadlinePassed ? 'Teklif süresi doldu — dosya yüklenemez.' : 'İhale henüz aktif değil — dosya yüklenemez.'));
                     return;
                 }
                 const ext = (f.name.split('.').pop() || '').toLowerCase();
@@ -904,11 +919,11 @@
                 const reqTitle = (cell.evrak_no ? cell.evrak_no + ' — ' : '') + (cell.file_title || 'Dosya');
                 const kvaLabel = cell.kva === 'all' ? 'Tüm güçler' : (cell.kva + ' kVA');
                 const created = cell.savedFile?.created_at ? String(cell.savedFile.created_at).slice(0, 19) : '—';
-                const canRenew = !this.tenderLocked && !this.tenderInactive;
+                const canRenew = !this.tenderLocked && !this.tenderInactive && !this.deadlinePassed;
                 const canReviewFile = this.canReview && !this.tenderLocked && !!cell.savedFile?.id;
                 const accept = this.acceptFor(cell.file_types);
-                const noteBg = opKey === 'doc_file_rejected' ? '#fef2f2' : (cell.expired ? '#fff7ed' : '#fffbeb');
-                const noteBd = opKey === 'doc_file_rejected' ? '#fecaca' : (cell.expired ? '#fed7aa' : '#fde68a');
+                const noteBg = (opKey === 'doc_file_rejected' || opKey === 'offer-file-rejected') ? '#fef2f2' : (cell.expired ? '#fff7ed' : '#fffbeb');
+                const noteBd = (opKey === 'doc_file_rejected' || opKey === 'offer-file-rejected') ? '#fecaca' : (cell.expired ? '#fed7aa' : '#fde68a');
 
                 const html = `
                     <div style="text-align:left;">
@@ -949,6 +964,7 @@
                             <button type="button" id="iho_cm_preview" style="border:1px solid #e2e8f0;background:#fff;color:#0f172a;border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;">Önizle</button>
                             <button type="button" id="iho_cm_hist" style="border:1px solid #e2e8f0;background:#fff;color:#0f172a;border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;">Geçmiş (${history.length})</button>
                             ${canRenew ? '<label for="iho_cm_file" style="border:1px solid #FF5A1F;background:#FF5A1F;color:#fff;border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;margin:0;">Yenile</label><input id="iho_cm_file" type="file" accept="' + accept + '" style="display:none;">' : ''}
+                            ${canReviewFile && opKey !== 'offer-file-accepted' && opKey !== 'doc_file_accepted' ? '<button type="button" id="iho_cm_accept" style="border:1px solid #bbf7d0;background:#f0fdf4;color:#15803d;border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;">Dosyayı Kabul Et</button>' : ''}
                             ${canReviewFile ? '<button type="button" id="iho_cm_reject" style="border:1px solid #fecaca;background:#fff;color:#b91c1c;border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;">Dosyayı Reddet</button>' : ''}
                             <button type="button" id="iho_cm_done" style="border:1px solid #0f172a;background:#0f172a;color:#fff;border-radius:9px;padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;">Kapat</button>
                         </div>
@@ -975,12 +991,37 @@
                             this.Swal.close();
                             this.onCellFile(cell, item, ev);
                         });
+                        q('iho_cm_accept')?.addEventListener('click', () => {
+                            this.Swal.close();
+                            this.acceptCellFile(cell);
+                        });
                         q('iho_cm_reject')?.addEventListener('click', () => {
                             this.Swal.close();
                             this.rejectCellFile(cell);
                         });
                     },
                 });
+            },
+            async acceptCellFile(cell){
+                if(!this.id){
+                    this.plib.toast(this.Swal, 'info', 'Dosya kabulü için teklif kaydedilmiş olmalı.');
+                    return;
+                }
+                this.navigationStore.toggle(true);
+                const fd = new FormData();
+                fd.append('id', this.id);
+                fd.append('file_qnid', cell.savedFile?.qnid || '');
+                fd.append('file_id', String(cell.savedFile?.id || 0));
+                const rsp = await this.plib.request({ url : '/api/v1/offers/file-accept', method : 'POST' }, null, fd);
+                this.navigationStore.toggle(false);
+
+                if(rsp?.success){
+                    cell.fileStatus = 'offer-file-accepted';
+                    cell.savedFile = { ...(cell.savedFile || {}), last_status : { op_key : 'offer-file-accepted', title : 'Dosya Kabul Edildi' } };
+                    this.plib.toast(this.Swal, 'success', 'Dosya kabul edildi.');
+                } else {
+                    this.plib.toast(this.Swal, 'error', rsp?.msg || 'Dosya kabul edilemedi.');
+                }
             },
             async rejectCellFile(cell){
                 if(!this.id){
@@ -1139,8 +1180,8 @@
             statusPill(c){
                 if (c?.expired || this.isPast(c?.savedFile?.valid_until)) return { t : 'Süresi doldu', c : '#dc2626' };
                 const op = c?.savedFile?.last_status?.op_key || '';
-                if (op === 'doc_file_accepted') return { t : 'Onaylandı', c : '#16a34a' };
-                if (op === 'doc_file_rejected') return { t : 'Reddedildi', c : '#dc2626' };
+                if (op === 'doc_file_accepted' || op === 'offer-file-accepted') return { t : 'Onaylandı', c : '#16a34a' };
+                if (op === 'doc_file_rejected' || op === 'offer-file-rejected') return { t : 'Reddedildi', c : '#dc2626' };
                 if (op === 'doc_file_refreshed') return { t : 'Yenilendi', c : '#2563eb' };
                 if (c?.shared || c?.savedFile?.valid_until) return { t : 'Yüklendi', c : '#0ea5e9' };
                 return { t : 'İncelemede', c : '#d97706' };
@@ -1221,8 +1262,8 @@
             },
             async save(){
                 if (this.saving) return;
-                if (this.tenderLocked || this.tenderInactive) {
-                    this.plib.toast(this.Swal, 'info', this.tenderLocked ? 'İhale tamamlandı — teklif kilitli.' : 'İhale henüz aktif değil — teklif kaydedilemez.');
+                if (this.tenderLocked || this.tenderInactive || this.deadlinePassed) {
+                    this.plib.toast(this.Swal, 'info', this.tenderLocked ? 'İhale tamamlandı — teklif kilitli.' : (this.deadlinePassed ? 'Teklif süresi doldu — teklif kaydedilemez.' : 'İhale henüz aktif değil — teklif kaydedilemez.'));
                     return;
                 }
                 if (!this.ihaleQnid || !this.supplierQnid) {
@@ -1251,8 +1292,11 @@
                     }
                     const qnid = rsp?.data?.qnid || this.id;
                     this.plib.toast(this.Swal, 'success', 'Teklif kaydedildi.', () => {
-                        if (!this.id && qnid) window.location.href = '/coalpanel/ihaleler/teklif/' + qnid;
-                        else window.location.reload();
+                        if (!this.id && qnid) {
+                            this.$router.push({ name : this.offerRouteName, params : { id : qnid } }).catch(()=>{});
+                        } else {
+                            window.location.reload();
+                        }
                     });
                 } finally {
                     this.saving = false;
@@ -1292,18 +1336,29 @@
                             </select>
                             <input v-else type="text" class="form-control" :value="supplierTitle()" readonly />
                         </div>
-                        <div class="col-md-3 text-end" v-if="canWrite && !tenderLocked && !tenderInactive">
+                        <div class="col-md-3 text-end" v-if="canWrite && !tenderLocked && !tenderInactive && !deadlinePassed">
                             <button type="button" class="btn btn-success" :disabled="saving || !ihale" @click="save">
                                 <span v-if="saving">Kaydediliyor...</span>
                                 <span v-else>Teklifi Kaydet</span>
                             </button>
                         </div>
                     </div>
+                    <div v-if="ihale && ihale.deadline" class="small mt-3" :class="deadlinePassed ? 'text-danger' : 'text-muted'">
+                        <i class="ki-outline ki-time fs-6"></i>
+                        Teklif son tarihi: <b>{{ ihale.deadline }}</b>
+                    </div>
                     <div v-if="tenderInactive" class="alert alert-info d-flex align-items-center gap-2 mt-3 mb-0">
                         <i class="ki-outline ki-information-5 fs-3"></i>
                         <div>
                             <strong>İhale henüz aktif değil.</strong>
                             Teklif hazırlamak ve dosya yüklemek için ihale yöneticisinin ihaleyi aktif etmesi gerekir.
+                        </div>
+                    </div>
+                    <div v-if="deadlinePassed && !tenderLocked" class="alert alert-danger d-flex align-items-center gap-2 mt-3 mb-0">
+                        <i class="ki-outline ki-time fs-3"></i>
+                        <div>
+                            <strong>Teklif süresi doldu.</strong>
+                            Bu ihaleye yeni teklif kaydedilemez veya dosya yüklenemez.
                         </div>
                     </div>
                     <div v-if="tenderLocked" class="alert alert-warning d-flex align-items-center gap-2 mt-3 mb-0">
@@ -1513,7 +1568,7 @@
                                     <td :colspan="kvaColsB.length || 1">
                                         <IhFileCell
                                             :cell="row.span"
-                                            :locked="tenderLocked || tenderInactive"
+                                            :locked="tenderLocked || tenderInactive || deadlinePassed"
                                             :accept="acceptFor(row.span.file_types)"
                                             @pick="(ev)=>onCellFile(row.span, it, ev)"
                                             @open="openCellModal(row.span, it)"
@@ -1528,7 +1583,7 @@
                                         <span v-if="row.perKv[kv]">
                                             <IhFileCell
                                                 :cell="row.perKv[kv]"
-                                                :locked="tenderLocked || tenderInactive"
+                                                :locked="tenderLocked || tenderInactive || deadlinePassed"
                                                 :accept="acceptFor(row.perKv[kv].file_types)"
                                                 @pick="(ev)=>onCellFile(row.perKv[kv], it, ev)"
                                                 @open="openCellModal(row.perKv[kv], it)"
@@ -1568,7 +1623,7 @@
                                     <td :colspan="kvaColsC.length || 1">
                                         <IhFileCell
                                             :cell="row.span"
-                                            :locked="tenderLocked || tenderInactive"
+                                            :locked="tenderLocked || tenderInactive || deadlinePassed"
                                             :accept="acceptFor(row.span.file_types)"
                                             @pick="(ev)=>onCellFile(row.span, it, ev)"
                                             @open="openCellModal(row.span, it)"
@@ -1583,7 +1638,7 @@
                                         <span v-if="row.perKv[kv]">
                                             <IhFileCell
                                                 :cell="row.perKv[kv]"
-                                                :locked="tenderLocked || tenderInactive"
+                                                :locked="tenderLocked || tenderInactive || deadlinePassed"
                                                 :accept="acceptFor(row.perKv[kv].file_types)"
                                                 @pick="(ev)=>onCellFile(row.perKv[kv], it, ev)"
                                                 @open="openCellModal(row.perKv[kv], it)"

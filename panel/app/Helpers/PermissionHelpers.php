@@ -143,6 +143,38 @@ if(!function_exists('checkPerm')){
     }
 
     /**
+     * Bound client qnids for the authenticated supplier.
+     *
+     * SPA sessions carry currentStatus.clientQnidList. Pure Bearer-token requests
+     * have no session, so fall back to the person's cliid entities. Fails closed
+     * with an empty array when the role is unknown or no client is bound.
+     */
+    function currentSupplierQnidList(){
+        $list = session('currentStatus')['clientQnidList'] ?? [];
+        if (is_array($list)) {
+            $list = array_values(array_filter(array_map('strval', $list)));
+            if (!empty($list)) return $list;
+        }
+
+        $u = auth('sanctum')->user() ?? auth()->user();
+        if (! $u || empty($u->person_id)) return [];
+
+        $formId = \App\Models\Sys_options::where('op_key', 'op-doc-user-client-form')->value('id');
+        if (! $formId) return [];
+
+        return \Illuminate\Support\Facades\DB::table('sys_con_entities as se')
+            ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+            ->where('so.main_id', $u->person_id)
+            ->where('so.type_id', $formId)
+            ->where('so.conn_id', 0)
+            ->where('se.entity_tag', 'like', 'cliid%')
+            ->pluck('se.entity_value')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
      * Suppliers may only touch offers belonging to the companies bound to their session.
      * The reseller-only scoping mirrors Documents::tableList, which applies the client filter
      * for 'op-pert-reseller' sessions only — admins stay limited by their offer permission alone.

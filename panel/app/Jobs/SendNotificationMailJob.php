@@ -93,6 +93,22 @@ class SendNotificationMailJob implements ShouldQueue
             case 'planlamaTalepApproved':
                 $this->planlamaTalepApproved($this->payload);
                 break;
+            // ── TENDER 5 ──
+            case 'ihaleActivated':
+                $this->ihaleActivated($this->payload);
+                break;
+            case 'ihaleCompleted':
+                $this->ihaleCompleted($this->payload);
+                break;
+            case 'offerSubmitted':
+                $this->offerSubmitted($this->payload);
+                break;
+            case 'offerRejected':
+                $this->offerRejected($this->payload);
+                break;
+            case 'offerAccepted':
+                $this->offerAccepted($this->payload);
+                break;
             default:
                 $this->log('warning', 'SendNotificationMailJob received unknown type', ['type' => $this->payload['type'] ?? null]);
                 break;
@@ -1049,6 +1065,109 @@ class SendNotificationMailJob implements ShouldQueue
         }
         $this->log('info', 'planlama fallback recipients by perm', ['perm' => $permCode, 'sent' => $sent]);
         return $sent;
+    }
+
+    /** Supplier/client contact email for direct offer notifications. */
+    protected function supplierEmail(?string $supplierQnid): ?string
+    {
+        if (empty($supplierQnid)) return null;
+        try {
+            $doc = \App\Models\Documents::where('qnid', $supplierQnid)->first();
+            if (! $doc) return null;
+            $formId = \App\Models\Sys_options::where('op_key', 'op-doc-client-form')->value('id');
+            $connId = \App\Models\Sys_con_ops::where('main_id', $doc->id)->where('type_id', $formId)->where('conn_id', 0)->value('id');
+            if (! $connId) return null;
+            $email = \App\Models\Sys_con_entities::where('conn_id', $connId)
+                ->where('table_tag', 'sys_con_ops')
+                ->where(function ($q) {
+                    $q->where('entity_tag', 'like', 'contmail%')
+                      ->orWhere('entity_tag', 'like', 'cont_email%');
+                })
+                ->value('entity_value');
+            return $email && str_contains((string) $email, '@') ? (string) $email : null;
+        } catch (\Throwable $e) {
+            $this->log('warning', 'supplierEmail lookup failed', ['e' => $e->getMessage(), 'supplier' => $supplierQnid]);
+            return null;
+        }
+    }
+
+    // ── TENDER 5 ──
+    public function ihaleActivated(array $payload){
+        $title = $payload['ihale_kodu'] ?? $payload['title'] ?? '-';
+        $subject = 'İhale Teklife Açıldı: ' . $title;
+        $html = $this->tedarikCard('ihaleActivated', $subject, [
+            ['İhale', e($title)],
+            ['Son Teklif', e($payload['teklif_son_tarihi'] ?? '-')],
+            ['Ürün Sayısı', e((string)($payload['product_count'] ?? '-'))],
+        ], $this->tenderLink($payload, false), 'İhaleyi Aç', null, ['intro' => 'İhale teklif almaya açıldı.']);
+        $group = $this->personProvider->getNotificationUsers('ihale-01');
+        if (empty($group['ihale-01'])) {
+            $this->sendPlanlamaToPermHolders($subject, $html, 'per-041-03-01');
+            return;
+        }
+        $this->informSystemUsers($subject, $html, 'ihale-01');
+    }
+
+    public function ihaleCompleted(array $payload){
+        $title = $payload['ihale_kodu'] ?? $payload['title'] ?? '-';
+        $subject = 'İhale Tamamlandı: ' . $title;
+        $html = $this->tedarikCard('ihaleCompleted', $subject, [
+            ['İhale', e($title)],
+            ['Kazanan', e($payload['winner_supplier_title'] ?? '-')],
+        ], $this->tenderLink($payload, false), 'İhaleyi Aç', null, ['intro' => 'İhale tamamlandı ve teklifler kilitlendi.']);
+        $group = $this->personProvider->getNotificationUsers('ihale-02');
+        if (empty($group['ihale-02'])) {
+            $this->sendPlanlamaToPermHolders($subject, $html, 'per-041-03-01');
+            return;
+        }
+        $this->informSystemUsers($subject, $html, 'ihale-02');
+    }
+
+    public function offerSubmitted(array $payload){
+        $title = $payload['ihale_kodu'] ?? $payload['title'] ?? '-';
+        $subject = 'Yeni Teklif: ' . $title;
+        $html = $this->tedarikCard('offerSubmitted', $subject, [
+            ['İhale', e($title)],
+            ['Tedarikçi', e($payload['supplier_title'] ?? '-')],
+        ], $this->tenderLink($payload, false), 'Teklifleri Gör', $payload['note'] ?? null, ['intro' => 'İhaleye yeni bir teklif gönderildi.']);
+        $group = $this->personProvider->getNotificationUsers('offer-01');
+        if (empty($group['offer-01'])) {
+            $this->sendPlanlamaToPermHolders($subject, $html, 'per-041-03');
+            return;
+        }
+        $this->informSystemUsers($subject, $html, 'offer-01');
+    }
+
+    public function offerRejected(array $payload){
+        $title = $payload['ihale_kodu'] ?? $payload['title'] ?? '-';
+        $subject = 'Teklifiniz Reddedildi: ' . $title;
+        $html = $this->tedarikCard('offerRejected', $subject, [
+            ['İhale', e($title)],
+            ['Tedarikçi', e($payload['supplier_title'] ?? '-')],
+            ['Neden', e($payload['note'] ?? '-')],
+        ], $this->tenderLink($payload, true), 'Teklifi Gör', $payload['note'] ?? null, ['intro' => 'Teklifiniz reddedildi. Düzeltip yeniden gönderebilirsiniz.']);
+        $to = $this->supplierEmail($payload['supplier_qnid'] ?? null);
+        if (! $to) { $this->log('info', 'offerRejected: no supplier email'); return; }
+        (new \App\Services\MailService())->sendMail(['to' => $to, 'subject' => $subject, 'html' => $html, 'sys_code' => $this->payload['sys_code'] ?? null]);
+    }
+
+    public function offerAccepted(array $payload){
+        $title = $payload['ihale_kodu'] ?? $payload['title'] ?? '-';
+        $subject = 'Teklifiniz Kabul Edildi: ' . $title;
+        $html = $this->tedarikCard('offerAccepted', $subject, [
+            ['İhale', e($title)],
+            ['Tedarikçi', e($payload['supplier_title'] ?? '-')],
+        ], $this->tenderLink($payload, true), 'Teklifi Gör', null, ['intro' => 'Teklifiniz kabul edildi — tebrikler.']);
+        $to = $this->supplierEmail($payload['supplier_qnid'] ?? null);
+        if (! $to) { $this->log('info', 'offerAccepted: no supplier email'); return; }
+        (new \App\Services\MailService())->sendMail(['to' => $to, 'subject' => $subject, 'html' => $html, 'sys_code' => $this->payload['sys_code'] ?? null]);
+    }
+
+    protected function tenderLink(array $payload, bool $offer): string
+    {
+        $qnid = $payload['offer_qnid'] ?? $payload['ihale_qnid'] ?? $payload['qnid'] ?? null;
+        $path = $offer && $qnid ? '/tedarikpanel/ihaleler/teklif/'.$qnid : '/tedarikpanel/ihaleler';
+        return \App\Services\TedarikMailHelper::gateway($path);
     }
 
     // ── PLANLAMA 3 ── (Talep Dökümanı approval chain, no BUKRS — single-system flow)

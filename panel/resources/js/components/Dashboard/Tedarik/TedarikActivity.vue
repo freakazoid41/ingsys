@@ -23,7 +23,7 @@
 </template>
 <script>
 import { useNavigationStore } from '@/stores/navigation';
-import { buildNotificationRows, isFileCat, isPlanlamaCat } from '@/lib/notificationHelpers';
+import { buildNotificationRows, isFileCat, isPlanlamaCat, isTenderCat } from '@/lib/notificationHelpers';
 import { getCatMeta } from '@/lib/notificationMaps';
 export default {
   name: 'TedarikActivity',
@@ -89,6 +89,8 @@ export default {
       this.navigationStore.markNotificationRead(a.cat, a.qnid).catch(() => {});
       if (isFileCat(a.cat)) this.$router.push({ name: 'TedarikDList' }).catch(() => {});
       else if (isPlanlamaCat(a.cat)) this.$router.push({ name: 'PlanlamaFForm', params: { id: a.qnid } }).catch(() => {});
+      else if (isTenderCat(a.cat) && ['ihale-01','ihale-02'].includes(a.cat)) this.$router.push({ name: 'TedarikIhList' }).catch(() => {});
+      else if (isTenderCat(a.cat)) this.$router.push({ name: 'TedarikIhOffer', params: { id: a.qnid } }).catch(() => {});
       else this.$router.push({ name: 'TedarikOrderForm', params: { id: a.qnid } }).catch(() => {});
     },
   }

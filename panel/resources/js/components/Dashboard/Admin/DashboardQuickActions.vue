@@ -25,7 +25,7 @@ export default {
   data() {
     return {
       quickActions: [
-        { id: 1, label: 'Yeni Talep Oluştur', color: '#0d6efd', iconClass: 'ki-outline ki-document' },
+        { id: 1, label: 'Siparişleri Aç', color: '#0d6efd', iconClass: 'ki-outline ki-delivery' },
         { id: 4, label: 'Kullanıcı Ekle', color: '#ffc107', iconClass: 'ki-outline ki-user' }
       ]
     };
@@ -35,13 +35,7 @@ export default {
       try {
         switch (action.id) {
           case 1:
-            this.$router.push({ name: 'RequestForm' });
-            break;
-          case 2:
-            this.$router.push({ name: 'AnnouncementCreate' });
-            break;
-          case 3:
-            this.$router.push({ name: 'ReportBuilder' });
+            this.$router.push({ name: 'OrderList' });
             break;
           case 4:
             this.$router.push({ name: 'UForm' });

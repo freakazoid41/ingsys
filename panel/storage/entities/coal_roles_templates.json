@@ -4,6 +4,7 @@
         "name": "Tedarikçi",
         "description": "Sistem sabit rolü",
         "permissions": [
+            "per-041-01",
             "per-041-02",
             "per-05",
             "per-05-01",

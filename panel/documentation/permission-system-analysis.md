@@ -27,18 +27,19 @@ Key permission areas:
   - `per-04-01`: User listing
   - `per-04-02`: User create/edit
   - `per-04-03`: Role & permission management
-- `per-05`: Request management
-  - `per-05-01`: Request listing
-  - `per-05-02`: Request create/edit
-- `per-06`: Company management
-  - `per-06-01`: Company listing
-  - `per-06-02`: Company create/edit
-- `per-07`: Documents
-  - `per-07-01`: Document listing
-  - `per-07-02`: Document edit
-- `per-08`: Offers
-  - `per-08-01`: Offer listing
-  - `per-08-02`: Offer edit
+  - `per-04-04`: Background/theme administration
+- `per-041`: Module access
+  - `per-041-01`: Yönetim Paneli (`/coalpanel`)
+  - `per-041-02`: Tedarik paneli (`/tedarikpanel`)
+  - `per-041-03`: İhale oluşturma/yönetme; `per-041-03-01`: teklif oluşturma
+  - `per-041-04`: Fabrika Kabul (reserved)
+  - `per-041-05`: Malzeme Planlama; `05-01` müdürlük onay, `05-02` ihtiyaç oluşturma, `05-03` talep yükleme, `05-04` standardizasyon
+- `per-05`: Orders (01 list, 02 create/edit, 03 status/transfer, 04 cancel, 05 rename)
+- `per-06`: Clients (01 list, 02 create/edit)
+- `per-07`: Documents/files (01 list, 02 evaluate/accept/reject)
+- `per-061`: Reports (01 list, 02 view)
+- `per-09`: Products (01 list, 02 product create/edit, 03 category create/edit)
+- `per-08`: removed — no offer document family in the new system; use `op-doc-ihale-offer` under `per-041-03-01`
 
 These codes are used both in backend authorization checks and frontend UI gating.
 
@@ -469,10 +470,10 @@ private function getPermissionChildren($parentCode, $allPerms): array {
    - Clears application cache
    - Ready for use
 
-**Data Integrity:**
-- ✅ 27 permissions (new: `per-05-01..05`, `per-041`, `per-061` etc.) with proper hierarchies — legacy `per-08` purged
-- ✅ 4 role templates (`immutable-admin`/`reseller`/`rapor-personeli`/`satınalma-keyuser`) migrated with permission assignments
-- ✅ All 4 notification types migrated
+**Data Integrity (2026-11-12):**
+- ✅ **37** permission codes (`per-00/04/041/05/06/07/061/09`) with proper hierarchies — legacy `per-08` purged
+- ✅ **5** role templates (`immutable-admin` 37, `immutable-reseller` 8, `immutable-rapor-personeli` 4, `immutable-satınalma-keyuser` 14, `immutable-product-manager` 5)
+- ✅ **10** notification types (`tedarik-01..07` + `planlama-01..03`)
 - ✅ Metadata preserved (parent codes, group keys, titles)
 
 ### 4.6 Adding New Permissions via CLI

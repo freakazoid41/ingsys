@@ -123,9 +123,17 @@ class ReportServiceProvider extends ServiceProvider
         //means our user is in the group or not
         $permittedUsers = $personsProvider->getNotificationUsers($notifKey,session('person_id'));
         $isReseller = session('type_key') === 'op-pert-reseller';
+        // Tender notifications are permission-driven; offer-02/03 are owner-scoped
+        // by Documents::tableList for resellers, so an empty group is not fatal.
+        $tenderManager = checkPerm('per-041-03');
+        $tenderSupplier = checkPerm('per-041-03-01');
+        $tenderPermitted = ($tenderManager && in_array($notifKey, ['ihale-01','ihale-02','offer-01','offer-02','offer-03'], true))
+            || ($tenderSupplier && in_array($notifKey, ['ihale-01','ihale-02','offer-02','offer-03'], true));
         // tedarik-04/05/06/07: reseller sees own LIFNR items even if not in group
         // planlama-02: rejected docs are owner-scoped (uploader sees own), no group needed
-        if(empty($permittedUsers) && !(in_array($notifKey, ['tedarik-04','tedarik-05','tedarik-06','tedarik-07']) && $isReseller) && $notifKey !== 'planlama-02') return ['data'=>[],'total'=>0];
+        if(empty($permittedUsers) && !$tenderPermitted
+            && !(in_array($notifKey, ['tedarik-04','tedarik-05','tedarik-06','tedarik-07']) && $isReseller)
+            && $notifKey !== 'planlama-02') return ['data'=>[],'total'=>0];
         switch ($notifKey) {
             // ── TEDARIK 7 ──
             case 'tedarik-01': // Sipariş Sisteme Geldi (SAP Üzerinden) — doc_trans_order_created + BUKRS vs user grp_code
@@ -222,6 +230,22 @@ class ReportServiceProvider extends ServiceProvider
             case 'planlama-03': // Müdürlük Onayı Verildi — tr-request-man-approved (group members = 05-04 holders)
                 $data = $this->getPlanlamaRequests('tr-request-man-approved');
                 break;
+            // ── TENDER 5 ──
+            case 'ihale-01':
+                $data = $this->getTenderEvents('tender-activated');
+                break;
+            case 'ihale-02':
+                $data = $this->getTenderEvents('tender-complated');
+                break;
+            case 'offer-01':
+                $data = $this->getOfferEvents('offer-sended');
+                break;
+            case 'offer-02':
+                $data = $this->getOfferEvents('offer-rejected');
+                break;
+            case 'offer-03':
+                $data = $this->getOfferEvents('offer-accepted');
+                break;
             default:
                 # code...
                 break;
@@ -315,6 +339,31 @@ class ReportServiceProvider extends ServiceProvider
                 ['key' => 'transactions', 'type' => '=','value' => $statusKey],
                 ['key' => 'type', 'type' => '=','value' => 'op-doc-requestf'],
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-requestf-form'],
+            ],
+            'order' => ['key' => 'main_id', 'style' => 'desc'],
+        ]);
+        return $data['data'] ?? [];
+    }
+
+    // ── TENDER helpers ──
+    public function getTenderEvents($statusKey){
+        $data = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'transactions', 'type' => '=','value' => $statusKey],
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-ihale'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-ihale-form'],
+            ],
+            'order' => ['key' => 'main_id', 'style' => 'desc'],
+        ]);
+        return $data['data'] ?? [];
+    }
+
+    public function getOfferEvents($statusKey){
+        $data = \App\Models\Documents::tableList([
+            'filter' => [
+                ['key' => 'transactions', 'type' => '=','value' => $statusKey],
+                ['key' => 'type', 'type' => '=','value' => 'op-doc-ihale-offer'],
+                ['key' => 'form-type', 'type' => '=','value' => 'op-doc-ihale-offer-form'],
             ],
             'order' => ['key' => 'main_id', 'style' => 'desc'],
         ]);

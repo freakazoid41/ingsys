@@ -1,4 +1,4 @@
-// lib/notificationMaps.js — TEDARIK 7 + legacy rejected — single source for Bilgilendirmeler, TedarikHeader, Dashboard
+// lib/notificationMaps.js — TEDARIK 7 + PLANLAMA 3 + TENDER 5 + legacy rejected — single source for Bilgilendirmeler, TedarikHeader, Dashboard
 // Mirrors statusMaps.js pattern but for notification op_keys. Import: `import { CAT_META, getCatMeta, CAT_LIST } from '@/lib/notificationMaps'`
 
 export const CAT_META = {
@@ -12,6 +12,11 @@ export const CAT_META = {
   'planlama-01': { label: 'Talep Onaya Gönderildi', icon: 'ki-outline ki-send', color: '#0e7490', bg: '#ecfeff', pillBg: '#0e7490', pillColor: '#fff', pillBorder: '#0e7490' },
   'planlama-02': { label: 'Talep Reddedildi', icon: 'ki-outline ki-cross-circle', color: '#991b1b', bg: '#fee2e2', pillBg: '#ef4444', pillColor: '#fff', pillBorder: '#ef4444' },
   'planlama-03': { label: 'Müdürlük Onayı', icon: 'ki-outline ki-check-circle', color: '#065f46', bg: '#dcfce7', pillBg: '#16a34a', pillColor: '#fff', pillBorder: '#16a34a' },
+  'ihale-01': { label: 'İhale Aktif', icon: 'ki-outline ki-chart-simple', color: '#065f46', bg: '#ecfdf5', pillBg: '#059669', pillColor: '#fff', pillBorder: '#059669' },
+  'ihale-02': { label: 'İhale Tamamlandı', icon: 'ki-outline ki-flag', color: '#1e3a8a', bg: '#eff6ff', pillBg: '#2563eb', pillColor: '#fff', pillBorder: '#2563eb' },
+  'offer-01': { label: 'Yeni Teklif', icon: 'ki-outline ki-document', color: '#9a3412', bg: '#fff7ed', pillBg: '#f97316', pillColor: '#fff', pillBorder: '#f97316' },
+  'offer-02': { label: 'Teklif Reddedildi', icon: 'ki-outline ki-cross-circle', color: '#991b1b', bg: '#fee2e2', pillBg: '#ef4444', pillColor: '#fff', pillBorder: '#ef4444' },
+  'offer-03': { label: 'Teklif Kabul Edildi', icon: 'ki-outline ki-check-circle', color: '#065f46', bg: '#dcfce7', pillBg: '#16a34a', pillColor: '#fff', pillBorder: '#16a34a' },
   'rejected': { label: 'Reddedilen Dosya', icon: 'ki-outline ki-information', color: '#991b1b', bg: '#fee2e2', pillBg: '#ef4444', pillColor: '#fff', pillBorder: '#ef4444' },
 };
 
@@ -34,4 +39,9 @@ export const CHIP_DEFS = [
   { key: 'planlama-01', label: 'Talep Geldi', icon: CAT_META['planlama-01'].icon },
   { key: 'planlama-02', label: 'Talep Red', icon: CAT_META['planlama-02'].icon },
   { key: 'planlama-03', label: 'Müdür Onay', icon: CAT_META['planlama-03'].icon },
+  { key: 'ihale-01', label: 'İhale Aktif', icon: CAT_META['ihale-01'].icon },
+  { key: 'ihale-02', label: 'İhale Bitti', icon: CAT_META['ihale-02'].icon },
+  { key: 'offer-01', label: 'Yeni Teklif', icon: CAT_META['offer-01'].icon },
+  { key: 'offer-02', label: 'Teklif Red', icon: CAT_META['offer-02'].icon },
+  { key: 'offer-03', label: 'Teklif Kabul', icon: CAT_META['offer-03'].icon },
 ];
