@@ -4,6 +4,11 @@ import { useAuthStore } from '@/stores/auth.js'
 
 //coalRoutes
 import CoalPanel from '@/layouts/CoalPanel.vue';
+// Front shells are lazy-loaded: they share a large CSS/JS shell that only the
+// chosen panel needs on first paint.
+const IhalePanel = () => import('@/layouts/IhalePanel.vue');
+const TedarikPanel = () => import('@/layouts/TedarikPanel.vue');
+const PlanlamaPanel = () => import('@/layouts/PlanlamaPanel.vue');
 import CIndex from '@/pages/coalsystem/Dashboard.vue';
 
 import CList from "@/pages/coalsystem/Client/CList.vue";
@@ -31,18 +36,21 @@ import NList from "@/pages/coalsystem/NotificationLogs/NList.vue";
 // Order Management System (new)
 import OrderList from "@/pages/coalsystem/Order/OList.vue";
 import OrderForm from "@/pages/coalsystem/Order/OForm.vue";
+// İhale Public Panel
+const IhaleDashboard = () => import('@/pages/ihale/Dashboard.vue');
+const IhaleBilgilendirmeler = () => import('@/pages/ihale/Bilgilendirmeler.vue');
 // Tedarik Public Panel
-import TedarikPanel from '@/layouts/TedarikPanel.vue';
-import TedarikDashboard from '@/pages/tedarik/Dashboard.vue';
-import TedarikBilgilendirmeler from '@/pages/tedarik/Bilgilendirmeler.vue';
+
+const TedarikDashboard = () => import('@/pages/tedarik/Dashboard.vue');
+const TedarikBilgilendirmeler = () => import('@/pages/tedarik/Bilgilendirmeler.vue');
 // Malzeme Planlama (empty shell)
-import PlanlamaPanel from '@/layouts/PlanlamaPanel.vue';
-import PlanlamaDashboard from '@/pages/planlama/Dashboard.vue';
+
+const PlanlamaDashboard = () => import('@/pages/planlama/Dashboard.vue');
 import PlanlamaRList from '@/pages/planlama/Request/RList.vue';
 import PlanlamaRForm from '@/pages/planlama/Request/RForm.vue';
 import PlanlamaFList from '@/pages/planlama/TalepDoc/TList.vue';
 import PlanlamaFForm from '@/pages/planlama/TalepDoc/TForm.vue';
-import PlanlamaBilgilendirmeler from '@/pages/planlama/Bilgilendirmeler.vue';
+const PlanlamaBilgilendirmeler = () => import('@/pages/planlama/Bilgilendirmeler.vue');
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -104,6 +112,18 @@ const router = createRouter({
       ]
     },
     {
+      path: '/ihalepanel',
+      component: IhalePanel,
+      children: [
+        { path: "/ihalepanel", name: 'IhalePanelDashboard', component: IhaleDashboard },
+        { path: "/ihalepanel/ihaleler", name: 'IhalePanelIhList', component: IhList },
+        { path: "/ihalepanel/ihaleler/teklifler", name: 'IhalePanelIhOfferList', component: IhOfferList },
+        { path: "/ihalepanel/ihaleler/form/:id?", name: 'IhalePanelIhForm', component: IhForm },
+        { path: "/ihalepanel/ihaleler/teklif/:id?", name: 'IhalePanelIhOffer', component: IhOffer },
+        { path: "/ihalepanel/bilgilendirmeler", name: 'IhalePanelBilgilendirmeler', component: IhaleBilgilendirmeler },
+      ]
+    },
+    {
       path: '/tedarikpanel',
       component: TedarikPanel,
       children: [
@@ -158,10 +178,15 @@ function closeAsideDrawer(){
     document.body.removeAttribute('data-kt-drawer-aside');
     document.querySelectorAll('.drawer-overlay').forEach(el => el.remove());
 }
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
     closeAsideDrawer();
     try {
         const authStore = useAuthStore();
+        // Direct loads resolve the initial route before app.js finishes its
+        // permission fetch; wait for it so panel guards can't be bypassed.
+        if (to.path.startsWith('/ihalepanel') && !(authStore.permissions || []).length && localStorage.getItem('token')) {
+            try { await authStore.getPermissions(); } catch (e) {}
+        }
         const perms = authStore.permissions || [];
         // Tedarik Doküman guard: per-07 required
         if (to.path.startsWith('/tedarikpanel/documents') && perms.length) {
@@ -174,22 +199,35 @@ router.beforeEach((to, from, next) => {
             if (!hasOrder) return next('/tedarikpanel');
         }
         // İhale module: management (03) or offer creation (03-01) may enter the list
-        const inIhaleList = to.path.startsWith('/coalpanel/ihaleler');
+        const ihaleRoot = to.path.startsWith('/ihalepanel') ? '/ihalepanel' : (to.path.startsWith('/tedarikpanel') ? '/tedarikpanel' : '/coalpanel');
+        const inIhaleList = to.path.startsWith('/coalpanel/ihaleler') || to.path.startsWith('/ihalepanel/ihaleler');
         if (inIhaleList && perms.length) {
             if (!perms.includes('per-041-03') && !perms.includes('per-041-03-01')) {
+                return next(ihaleRoot);
+            }
+        }
+        // Tender panel itself: 03 or 03-01 may enter
+        if (to.path.startsWith('/ihalepanel') && perms.length) {
+            if (!perms.includes('per-041-03') && !perms.includes('per-041-03-01')) {
                 return next('/coalpanel');
+            }
+        }
+        // Tender create/edit form: management only
+        if (to.path.includes('/ihaleler/form') && perms.length) {
+            if (!perms.includes('per-041-03')) {
+                return next(ihaleRoot);
             }
         }
         // Teklifler review queue: management only (no supplier review queue)
         if (to.path.includes('/ihaleler/teklifler') && perms.length) {
             if (!perms.includes('per-041-03')) {
-                return next(to.path.startsWith('/tedarikpanel') ? '/tedarikpanel' : '/coalpanel');
+                return next(ihaleRoot);
             }
         }
         // Teklif screen: create (03-01) or management inspect (03)
         if (to.path.includes('/ihaleler/teklif') && !to.path.includes('/ihaleler/teklifler') && perms.length) {
             if (!perms.includes('per-041-03-01') && !perms.includes('per-041-03')) {
-                return next(to.path.startsWith('/tedarikpanel') ? '/tedarikpanel' : '/coalpanel');
+                return next(ihaleRoot);
             }
         }
         // Planlama guard: per-041-05 required

@@ -3,6 +3,7 @@ import { useNavigationStore } from '@/stores/navigation'
 import { useAuthStore } from '@/stores/auth'
 import { useHead } from '@unhead/vue'
 
+import '../../css/front-shell.css';
 export default {
     setup() { return { useNavigationStore, useAuthStore, useHead } },
     data() {
@@ -39,6 +40,16 @@ export default {
                     color: '#7c3aed',
                     perm: 'per-041-04',
                     disabled: true,
+                },
+                {
+                    key: 'ihale',
+                    title: 'İhale Yönetimi',
+                    desc: 'İhaleler ve teklif süreçleri',
+                    icon: 'ki-outline ki-chart-simple',
+                    path: '/ihalepanel',
+                    color: '#059669',
+                    perm: 'per-041-03',
+                    permAny: ['per-041-03', 'per-041-03-01'],
                 },
                 {
                     key: 'planlama',
@@ -112,7 +123,7 @@ export default {
         modules() {
             const perms = this.authStore.permissions || [];
             const hasAll = perms.includes('per-041') || perms.includes('per-00');
-            return this.allModules.filter(m => hasAll || perms.includes(m.perm));
+            return this.allModules.filter(m => hasAll || perms.includes(m.perm) || (m.permAny && m.permAny.some(p => perms.includes(p))));
         },
         bilgilendirmeCount() {
             const n = this.navigationStore?.notifications || {};
@@ -139,13 +150,8 @@ export default {
             const cur=window.location.pathname;
             if(cur.startsWith(mod.path)) return;
 
-            // Cross-shell modules (coalpanel / planlamapanel) live in a different
-            // SPA entry point. Vue Router inside the Tedarik shell cannot resolve
-            // those paths, so do a full-page navigation for them.
-            const targetShell = mod.path.startsWith('/coalpanel')
-                ? '/coalpanel'
-                : (mod.path.startsWith('/planlamapanel') ? '/planlamapanel' : null);
-            if (targetShell && !cur.startsWith(targetShell)) {
+            // Other modules live in separate SPA entry points; use full navigation.
+            if (!mod.path.startsWith('/tedarikpanel')) {
                 window.location.href = mod.path;
                 return;
             }
@@ -313,288 +319,6 @@ export default {
         </div>
     </div>
 </template>
-<style scoped>
-.tedarik-root {
-    background: #f2f2f3;
-    position: fixed;
-    inset: 0;
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
-    padding: 22px 18px 18px 48px;
-    display: flex;
-    justify-content: center;
-    align-items: stretch;
-    box-sizing: border-box;
-}
-.tedarik-frame {
-    width: 100%;
-    max-width: 1360px;
-    height: calc(100vh - 40px);
-    height: calc(100dvh - 40px);
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.07);
-    display: flex;
-    align-items: stretch;
-    overflow: visible;
-    position: relative;
-}
-.tedarik-sidebar {
-    width: 210px;
-    min-width: 210px;
-    background: transparent;
-    padding: 22px 16px 16px 14px;
-    display: flex;
-    flex-direction: column;
-    border-right: none;
-    border-radius: 12px 0 0 12px;
-    overflow: visible;
-    position: relative;
-    z-index: 10;
-    height: 100%;
-    flex-shrink: 0;
-    align-self: stretch;
-}
-.tedarik-logo {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 22px;
-    padding-left: 4px;
-    gap: 8px;
-}
-.tedarik-logo img {
-    height: 68px;
-    width: auto;
-    max-width: 100%;
-    display: block;
-    object-fit: contain;
-}
-.tedarik-logo img.logo-adm { height: 64px; }
-.tedarik-logo-label {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: #6b7280;
-    letter-spacing: 0.3px;
-    line-height: 1;
-    padding-left: 6px;
-    white-space: nowrap;
-    user-select: none;
-}
-.tedarik-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    overflow: visible;
-    flex: 1;
-    justify-content: start;
-    margin: 12px 0;
-}
-.tedarik-menu-item {
-    height: 64px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-    padding: 0 18px 0 20px;
-    font-size: 17px;
-    font-weight: 700;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all .3s cubic-bezier(.4,0,.2,1);
-    background: #8e8e93;
-    color: #ffffff;
-    border: 2px solid transparent;
-    user-select: none;
-    letter-spacing: 0.15px;
-    position: relative;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    margin-left: -52px;
-    width: calc(100% + 52px);
-    transform: scale(1);
-}
-.tedarik-menu-icon {
-    font-size: 20px;
-    opacity: 0.85;
-    flex-shrink: 0;
-    transition: all .3s cubic-bezier(.4,0,.2,1);
-}
-.tedarik-menu-item:hover {
-    background: #7a7a7e;
-    color: #fff;
-    transform: scale(1.03);
-}
-.tedarik-menu-item.active {
-    background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%);
-    color: #fff;
-    height: 70px;
-    font-size: 18px;
-    box-shadow: 0 6px 20px rgba(255,90,31,0.35);
-    transform: scale(1.04);
-    border-color: rgba(255,255,255,0.15);
-}
-.tedarik-menu-item.active .tedarik-menu-icon {
-    font-size: 22px;
-    opacity: 1;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
-}
-.tedarik-menu-arrow {
-    font-size: 22px;
-    opacity: 0.7;
-    width: 20px;
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: auto;
-    flex-shrink: 0;
-    transition: all .3s cubic-bezier(.4,0,.2,1);
-}
-.tedarik-menu-item.active .tedarik-menu-arrow {
-    opacity: 1;
-    transform: translateX(2px);
-}
-.tedarik-bottom {
-    margin-top: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-top: 12px;
-    padding-bottom: 8px;
-}
-.tedarik-info-card {
-    height: 64px;
-    border: 1px solid #e6e6e7;
-    border-radius: 12px;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 18px;
-    text-decoration: none;
-    color: #2f2f33;
-    font-size: 16.5px;
-    font-weight: 600;
-    transition: border-color .15s;
-    margin-left: -52px;
-    width: calc(100% + 52px);
-    position: relative;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-.tedarik-info-card:hover { border-color: #d1d5db; }
-.tedarik-info-card.active { background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%); color:#fff; border-color: rgba(255,255,255,.15); box-shadow: 0 6px 20px rgba(255,90,31,.25); }
-.tedarik-info-card.active .tedarik-info-label{ color:#fff; }
-.tedarik-info-card.has-unread { border-color: #fed7aa; background: #fff7ed; }
-.tedarik-info-card.active.has-unread{ background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%); }
-.tedarik-info-badge {
-    width: 20px;
-    height: 20px;
-    border-radius: 999px;
-    background: #22c55e;
-    color: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-}
-.tedarik-info-badge.is-zero { background: #e5e7eb; color: #6b7280; }
-.tedarik-info-card.has-unread .tedarik-info-badge { background: #FF5A1F; animation: tdk-badge-pulse 1.8s infinite; }
-@keyframes tdk-badge-pulse{
-  0%{ box-shadow: 0 0 0 0 rgba(255,90,31,.45); }
-  60%{ box-shadow: 0 0 0 6px rgba(255,90,31,0); }
-  100%{ box-shadow: 0 0 0 0 rgba(255,90,31,0); }
-}
-.tedarik-logout {
-    height: 64px;
-    border: 1.5px solid #ef3b3b;
-    border-radius: 12px;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 18px;
-    text-decoration: none;
-    color: #2f2f33;
-    font-size: 16.5px;
-    font-weight: 700;
-    transition: background .15s;
-    margin-left: -52px;
-    width: calc(100% + 52px);
-    position: relative;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-.tedarik-logout:hover { background: #fef2f2; }
-.tedarik-logout-icon {
-    width: 20px;
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #ef3b3b;
-    font-size: 16px;
-}
-
-.tedarik-logout-icon i {font-size: 25px;}
-.tedarik-modules-btn{
-    height: 64px; border:1px solid #c7d2fe; border-radius:12px; background:#eef2ff;
-    display:flex; align-items:center; justify-content:space-between; padding:0 18px;
-    text-decoration:none; color:#3730a3; font-size:16.5px; font-weight:700;
-    transition: all .15s; margin-left:-52px; width:calc(100% + 52px); position:relative;
-    box-shadow:0 2px 8px rgba(0,0,0,0.04); cursor:pointer;
-}
-.tedarik-modules-btn:hover{ background:#e0e7ff; border-color:#a5b4fc; }
-.tedarik-modules-icon{ width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:18px; color:#6366f1; }
-.tedarik-module-overlay.module-modal-overlay{ padding: 18px 14px 18px 48px; justify-content: center; }
-.tedarik-main {
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-    height: 100%;
-    background: #ffffff;
-    display: flex;
-    flex-direction: column;
-    overflow: visible;
-    border-left: 1px solid #f2f2f3;
-    border-radius: 0 12px 12px 0;
-    position: relative;
-    z-index: 1;
-    align-self: stretch;
-}
-.tedarik-main-inner {
-    flex: 0 0 auto;
-    min-height: min-content;
-    height: auto;
-    padding: 22px 24px 10px 20px;
-    overflow: visible;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    will-change: transform;
-    background: #ffffff;
-    border-radius: 0 12px 0 0;
-}
-.tedarik-main-inner > * {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    min-height: min-content;
-}
-@media (max-width: 992px) {
-    .tedarik-root { position: relative; inset: auto; height: auto; min-height: 100vh; overflow: visible; align-items: flex-start; padding: 0; }
-    .tedarik-frame { border-radius: 0; height: auto; max-height: none; min-height: 100vh; flex-direction: column; overflow: visible; align-items: stretch; position: relative; }
-    .tedarik-sidebar { position: relative; top: auto; width: 100%; min-width: 0; height: auto; min-height: 0; max-height: none; border-right: none; border-bottom: 1px solid #f1f5f9; overflow: visible; align-self: auto; }
-    .tedarik-main { height: auto; min-height: 0; overflow: visible; align-self: auto; }
-    .tedarik-main-inner { height: auto; min-height: 0; overflow: visible; transform: none !important; will-change: auto; }
-    .tedarik-menu-item { margin-left: 0; width: 100%; }
-    .tedarik-info-card { margin-left: 0; width: 100%; }
-    .tedarik-logout { margin-left: 0; width: 100%; }
-    .tedarik-modules-btn { margin-left: 0; width: 100%; }
-}
-</style>
 <!-- UNSCOPED GLOBAL: override pickletable defaults for entire tedarik panel -->
 <style>
 /* Hide native scrollbar — html has overflow:scroll so ::-webkit-scrollbar applies, width:0 makes it invisible */
@@ -723,4 +447,17 @@ html::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: no
     border-color: #FF5A1F !important;
     font-weight: 700 !important;
 }
+</style>
+
+<style scoped>
+.tedarik-menu-item.active {
+    background: linear-gradient(135deg, #FF5A1F 0%, #ff7a45 100%);
+    color: #fff;
+    height: 70px;
+    font-size: 18px;
+    box-shadow: 0 6px 20px rgba(255,90,31,0.35);
+    transform: scale(1.04);
+    border-color: rgba(255,255,255,0.15);
+}
+.tedarik-info-card.has-unread .tedarik-info-badge { background: #FF5A1F; animation: tdk-badge-pulse 1.8s infinite; }
 </style>

@@ -414,6 +414,14 @@ export default {
         isPlanlamaFront() {
             return typeof this.$route?.path === 'string' && this.$route.path.startsWith('/planlamapanel');
         },
+        isFrontShell() {
+            // Front shells (tedarik/ihale/planlama) fake-scroll via a CSS
+            // transform on the content wrapper. A transformed ancestor turns
+            // `position: fixed` into container-relative positioning, so the
+            // save bar must live on <body> to actually float.
+            const p = typeof this.$route?.path === 'string' ? this.$route.path : '';
+            return p.startsWith('/planlamapanel') || p.startsWith('/ihalepanel') || p.startsWith('/tedarikpanel');
+        },
         isBusy() {
             return this.status === 'loading';
         }
@@ -500,7 +508,7 @@ export default {
 </script>
 <template>
 
-    <Teleport to="body" :disabled="!isPlanlamaFront">
+    <Teleport to="body" :disabled="!isFrontShell">
         <div class="row fab-btns-wrapper" :class="{ 'fab-front': isPlanlamaFront, 'is-bar-hover': barHover, 'is-busy': isBusy }" @mouseenter="barHover = true" @mouseleave="barHover = false; btnHover = ''" v-if="this.fab == 'bar'">
             <template v-if="!isBusy">
                 <button v-if="cancelcallback" class="btn btn-cancel" :class="{ 'is-btn-hover': btnHover === 'cancel' }" @mouseenter="btnHover = 'cancel'" @mouseleave="btnHover = ''" @click="executeCancel"><i class="ki-outline ki-arrow-left fs-2x"></i> İptal</button>

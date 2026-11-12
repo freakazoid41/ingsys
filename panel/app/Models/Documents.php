@@ -362,7 +362,7 @@ class Documents extends Model
 
             if(isset($obj['filterKeys']['form-type'])){
                 $columns['main_attr'] = 'main_attr.main_attr  as  main_attr';
-                $join .= " LEFT JOIN LATERAL (
+                $mainAttrJoin = " LEFT JOIN LATERAL (
                                                 SELECT 
                                                     json_agg(
                                                         json_build_object('Key', se.entity_tag, 'Value', se.entity_value)
@@ -376,6 +376,7 @@ class Documents extends Model
                                                 AND sp2.op_key = '".$obj['filterKeys']['form-type']."' 
                                                 AND so2.main_id = i.id
                                             ) main_attr ON true";
+                $join .= $mainAttrJoin;
                 if($obj['filterKeys']['form-type'] == 'op-doc-offer-form'){
                     $join .= "
                                 -- Request attributes (complex nested part)
@@ -704,8 +705,14 @@ class Documents extends Model
 
         //count query — select-list subqueries (status/main_attr laterals) do not
         //affect count(distinct i.id); dropping them avoids evaluating ~N
-        //correlated subqueries per row on big datasets.
-        $sql = 'select count('.$dist.'i.id) as row from documents as i '.$join.' '. $where;
+        //correlated subqueries per row on big datasets. The main_attr LATERAL is
+        //pure output plumbing: strip it from the count join whenever the WHERE
+        //clause does not reference main_attr.* columns.
+        $countJoin = $join;
+        if (isset($mainAttrJoin) && ! str_contains($where, 'main_attr.')) {
+            $countJoin = str_replace($mainAttrJoin, '', $join);
+        }
+        $sql = 'select count('.$dist.'i.id) as row from documents as i '.$countJoin.' '. $where;
         $total_count = DB::select($sql)[0];
         
         

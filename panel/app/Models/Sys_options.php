@@ -8,6 +8,49 @@ use Illuminate\Support\Facades\DB;
 class Sys_options extends Model
 {
     use HasFactory;
+
+    /** Per-request memo for op_key lookups (id and full row). */
+    private static array $idCache = [];
+    private static array $rowCache = [];
+
+    /**
+     * Memoized id for an op_key. Most hot paths only need the id, and each
+     * request used to run dozens of identical `where('op_key')->value('id')`
+     * queries.
+     */
+    public static function idOf(string $opKey): ?int
+    {
+        // Per-request memo. PHPUnit runs many "requests" in one process against
+        // reset DBs where option ids drift — never share cache across tests.
+        if (app()->runningUnitTests()) {
+            $id = self::where('op_key', $opKey)->value('id');
+            return $id ? (int) $id : null;
+        }
+        if (array_key_exists($opKey, self::$idCache)) {
+            return self::$idCache[$opKey];
+        }
+        $id = self::where('op_key', $opKey)->value('id');
+        return self::$idCache[$opKey] = $id ? (int) $id : null;
+    }
+
+    /** Memoized full row for an op_key. */
+    public static function rowOf(string $opKey): ?self
+    {
+        if (app()->runningUnitTests()) {
+            return self::where('op_key', $opKey)->first();
+        }
+        if (array_key_exists($opKey, self::$rowCache)) {
+            return self::$rowCache[$opKey];
+        }
+        return self::$rowCache[$opKey] = self::where('op_key', $opKey)->first();
+    }
+
+    public static function forgetMemo(): void
+    {
+        self::$idCache = [];
+        self::$rowCache = [];
+    }
+
     protected $fillable = [
         'op_key',
         'group_key',

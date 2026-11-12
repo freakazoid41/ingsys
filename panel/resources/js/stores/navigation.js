@@ -118,13 +118,35 @@ export const useNavigationStore = defineStore('navigation', {
           console.error('Failed to mark notification read:', error);
         }
     },
-    async markAllNotificationsRead(){
+    async markAllNotificationsRead(opKeys = null){
         try {
           await (new Plib).request({
             url      : '/api/v1/notifications/read-all',
             method   : 'POST',
+            data     : Array.isArray(opKeys) && opKeys.length ? { op_keys: opKeys } : {},
           }, null);
-          this.clearNotifications();
+
+          if (Array.isArray(opKeys) && opKeys.length) {
+            const keyMap = {
+              'tedarik-01': 'orderImported', 'tedarik-02': 'orderSent', 'tedarik-03': 'pendingFiles',
+              'tedarik-04': 'fileApproved', 'tedarik-05': 'fileRejected', 'tedarik-06': 'orderApproved', 'tedarik-07': 'orderRejected',
+              'planlama-01': 'planlamaSent', 'planlama-02': 'planlamaRejected', 'planlama-03': 'planlamaApproved',
+              'ihale-01': 'tenderActivated', 'ihale-02': 'tenderCompleted',
+              'offer-01': 'offerSubmitted', 'offer-02': 'offerRejected', 'offer-03': 'offerAccepted',
+            };
+            for (const op of opKeys) {
+              const k = keyMap[op];
+              if (k) this.notifications[k] = [];
+            }
+            let total = 0;
+            for (const k of Object.values(keyMap)) {
+              if (Array.isArray(this.notifications[k])) total += this.notifications[k].length;
+            }
+            this.notifications.unreadTotal = total;
+            this.notifications.blink = total > 0 ? 1 : 0;
+          } else {
+            this.clearNotifications();
+          }
         } catch(error) {
           console.error('Failed to mark all notifications read:', error);
         }

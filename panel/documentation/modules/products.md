@@ -55,7 +55,7 @@ One `sys_con_ops` per form (`conn_id=0`, `sub_type_id=form-main`), scalar entiti
 
 **`op-doc-product-form`** (conn per product doc):
 - `prod_code`, `short_name`, `unit` (`ST|KG|M` select)
-- `category_title` (readonly display), `category_qnid` (hidden link to category doc)
+- `category_title` (readonly display, **required** — label "Malzeme Grubu (listeden seçin)"), `category_qnid` (hidden link to category doc). Server refuses product creation without `category_qnid` (`DocumentController::handleStore`); the tender offer matrix resolves required file templates through this category.
 
 **`op-doc-kva-form`** (conn per kVA doc):
 - `title` (display label, convention: `KVA`), `code` (numeric value as text, e.g. `1600`)

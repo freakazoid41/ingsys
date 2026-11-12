@@ -22,6 +22,11 @@ This is what allows the same `documents` table to hold clients, orders, order it
 
 ---
 
+**Form definitions moved out of Form.vue (2026-11-12, split JS):**
+- `resources/js/forms/formDefinitions.js` — thin registry: `buildFormDefinitions(vm)` builds a `ctx` (submitDynamicChanges, plib, Swal, buildClientTable, pickClient, dayjs, generatePassword, VMasker, stores) and calls each def with it. `applyDefaults()` injects the standard `oninput → ctx.submitDynamicChanges` for fields that carry none.
+- `resources/js/forms/defs/*.js` — **one file per form** (flat, user, client, ihale, product, kva, product-category, offer, order, order-item, request, request-item, requestf, requestf-item). Callbacks live in the same file as their data (plain JS, no JSON limitation) and use `ctx.*`.
+- Adding a new form = create `defs/<form>.js` exporting `(ctx) => ({ ... })` and register it in `DEFS`.
+
 ## 2. The dictionary: `sys_options`
 
 `sys_options` is the beating heart. It stores:
@@ -241,6 +246,13 @@ The generic list endpoint `POST /api/v1/table/{model}` (`SystemController::table
 **Reuse tip:** to add a new document type, you mostly add `sys_options` rows + a form definition in `Form.vue` + (optionally) filter cases. The engine, list, permission map and file machinery are agnostic.
 
 ---
+
+**Listing engine options (2026-11-12):**
+- `noCount => true` skips the COUNT query (notification feeds).
+- `filter key 'target_ids'` accepts an int array — pre-resolved document ids are loaded directly (`IN (...)`).
+- The COUNT query strips the `main_attr` LATERAL join when the WHERE clause does not reference `main_attr.*` — big win on 10k+ row lists.
+- `Sys_options::idOf()/rowOf()` memoize op_key lookups per request.
+- Frontend date serialization lives in `lib/formSerialize.js` (`data-fmt="date"`), replacing the old class-name check in `submitDynamicChanges`.
 
 ## 8. Permission mapping for document types
 

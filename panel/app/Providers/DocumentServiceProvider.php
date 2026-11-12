@@ -164,7 +164,7 @@ class DocumentServiceProvider extends ServiceProvider
                 'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $id,
-                'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+                'type_id' => Sys_options::rowOf('log-tender-update')?->id ?? 0,
                 'description' => [],
             ];
 
@@ -308,7 +308,7 @@ class DocumentServiceProvider extends ServiceProvider
                     'after' => [],
                 ];
             } else {
-                $document->type_id = (Sys_options::where('op_key', $typeKey)->first())->id;
+                $document->type_id = (Sys_options::rowOf($typeKey))->id;
             }
 
             // only descriptive columns may be set through the generic payload. status, identity and
@@ -359,8 +359,8 @@ class DocumentServiceProvider extends ServiceProvider
                     'op-doc-ihale-offer' => 'offer-sended',
                 ];
                 $birthKey = $birthMap[$typeKey] ?? 'doc_trans_created';
-                $birthType = Sys_options::where('op_key', $birthKey)->first();
-                if (!$birthType) $birthType = Sys_options::where('op_key','doc_trans_created')->first();
+                $birthType = Sys_options::rowOf($birthKey);
+                if (!$birthType) $birthType = Sys_options::rowOf('doc_trans_created');
                 Transactions::create([
                     'op_id' => 0,
                     'type_id' => $birthType->id,
@@ -852,7 +852,7 @@ class DocumentServiceProvider extends ServiceProvider
                 'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
-                'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+                'type_id' => Sys_options::rowOf('log-tender-update')?->id ?? 0,
                 'description' => json_encode([
                     'after' => ['document' => ['op_key' => 'op-doc-offer', 'qnid' => $document->qnid]],
                     'desc' => 'Teklif İptal Edildi',
@@ -919,7 +919,7 @@ class DocumentServiceProvider extends ServiceProvider
             'sys_code' => $GLOBALS['SYS_CODE'] ?? 'GDZ',
             'relation' => 'documents',
             'relation_id' => $document->id,
-            'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+            'type_id' => Sys_options::rowOf('log-tender-update')?->id ?? 0,
             'description' => json_encode([
                 'after' => ['document' => ['op_key' => 'op-doc-offer', 'qnid' => $document->qnid]],
                 'desc' => 'Teklif Geri Açıldı',
@@ -1052,7 +1052,7 @@ class DocumentServiceProvider extends ServiceProvider
             'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorRm['sys_code'] ?? 'GDZ',
             'relation' => 'documents',
             'relation_id' => $document->id,
-            'type_id' => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+            'type_id' => Sys_options::rowOf('log-tender-update')?->id ?? 0,
             'description' => json_encode([
                 'before' => $detail,
                 'after' => [],
@@ -1071,7 +1071,7 @@ class DocumentServiceProvider extends ServiceProvider
             'sys_code'    => $GLOBALS['SYS_CODE'] ?? 'GDZ',
             'relation'    => 'documents',
             'relation_id' => $document->id,
-            'type_id'     => Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+            'type_id'     => Sys_options::rowOf('log-tender-update')?->id ?? 0,
             'description' => json_encode([
                 'before' => $this->getFormData($document->qnid),
                 'after'  => [],
@@ -1227,7 +1227,7 @@ class DocumentServiceProvider extends ServiceProvider
             // getirir. Bu yol per-05-02 ile korundugu icin yalnizca yoneticiye acik.
             $revived = ($documentType->op_key ?? null) === 'op-doc-offer' && (int) $document->status === 0;
 
-            $type = Sys_options::where('op_key', $statusKey)->first();
+            $type = Sys_options::rowOf($statusKey);
             if (! $type) {
                 return [
                     'success' => false,
@@ -1363,7 +1363,7 @@ class DocumentServiceProvider extends ServiceProvider
                     'sys_code' => $GLOBALS['SYS_CODE'] ?? $actor['sys_code'] ?? 'GDZ',
                     'relation' => 'documents',
                     'relation_id' => $document->id,
-                    'type_id' => Sys_options::where('op_key', 'log-document-status-update')->first()->id ?? 0,
+                    'type_id' => Sys_options::rowOf('log-document-status-update')?->id ?? 0,
                     'description' => json_encode(
                         [
                             'after' => ['document' => ['op_key' => $documentType->op_key, 'qnid' => $document->qnid]],
@@ -1433,7 +1433,7 @@ class DocumentServiceProvider extends ServiceProvider
     private function acceptAllOrderFiles(int $orderId): void
     {
         try {
-            $acceptedType = Sys_options::where('op_key', 'doc_file_accepted')->first();
+            $acceptedType = Sys_options::rowOf('doc_file_accepted');
             if (empty($acceptedType)) return;
 
             $rows = DB::select(
@@ -1559,7 +1559,7 @@ class DocumentServiceProvider extends ServiceProvider
 
                 // get file
                 $file = Document_files::where('qnid', $id)->first();
-                $type = Sys_options::where('op_key', $statusKey)->first();
+                $type = Sys_options::rowOf($statusKey);
                 $entity = Sys_con_entities::where(['entity_value' => $file->id, 'table_tag' => 'document_files'])->first();
                 $fileTitle = Sys_options::where('op_key', 'op-'.explode('**', $entity->entity_tag)[0])->first()->title ?? 'Dosya';
                 $EntityConnections = Sys_con_entities::where(['conn_id' => $entity->conn_id])->get();
@@ -1784,7 +1784,7 @@ class DocumentServiceProvider extends ServiceProvider
     /** Writes an order status transaction (op-trans-op-doc-order) without changing documents.status. */
     private function applyOrderStatus($doc, $statusKey, $note)
     {
-        $type = Sys_options::where('op_key', $statusKey)->first();
+        $type = Sys_options::rowOf($statusKey);
         if (empty($type)) {
             return;
         }
@@ -1809,8 +1809,8 @@ class DocumentServiceProvider extends ServiceProvider
             'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorA['sys_code'] ?? 'GDZ',
             'relation' => 'documents',
             'relation_id' => $doc->id,
-            'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
-                ?? Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+            'type_id' => Sys_options::rowOf('log-order-update')?->id
+                ?? Sys_options::rowOf('log-tender-update')?->id ?? 0,
             'description' => json_encode([
                 'after' => ['document' => ['op_key' => 'op-doc-order', 'qnid' => $doc->qnid]],
                 'actor' => $actorA,
@@ -2280,9 +2280,9 @@ class DocumentServiceProvider extends ServiceProvider
      */
     private function createSerialEntries(int $parentItemId, array $serials): void
     {
-        $serialTypeId = Sys_options::where('op_key', 'op-doc-order-serial')->first()?->id;
-        $serialFormTypeId = Sys_options::where('op_key', 'op-doc-order-serial-form')->first()?->id;
-        $formMainId = Sys_options::where('op_key', 'form-main')->first()?->id;
+        $serialTypeId = Sys_options::rowOf('op-doc-order-serial')?->id;
+        $serialFormTypeId = Sys_options::rowOf('op-doc-order-serial-form')?->id;
+        $formMainId = Sys_options::rowOf('form-main')?->id;
 
         if (empty($serialTypeId) || empty($serialFormTypeId)) {
             return;
@@ -2307,9 +2307,9 @@ class DocumentServiceProvider extends ServiceProvider
             $doc->save();
 
             // Birth transaction — enriched so LList shows real actor + document + Belge Tipi (Seri Numarası)
-            $birthType = Sys_options::where('op_key', 'doc_trans_created')->first();
+            $birthType = Sys_options::rowOf('doc_trans_created');
             if ($birthType) {
-                $logTypeId = Sys_options::where('op_key', 'log-order-update')->first()?->id ?? 0;
+                $logTypeId = Sys_options::rowOf('log-order-update')?->id ?? 0;
                 $actor = $this->actorSnapshot();
                 $log = UserLog::create([
                     'user_id' => $actor['user_id'] ?? 0,
@@ -2449,8 +2449,8 @@ class DocumentServiceProvider extends ServiceProvider
         if ($originalId === 0) return;
 
         // Find all clone items parented to this clone
-        $itemTypeId = Sys_options::where('op_key','op-doc-order-item')->value('id');
-        $serialTypeId = Sys_options::where('op_key','op-doc-order-serial')->value('id');
+        $itemTypeId = Sys_options::idOf('op-doc-order-item');
+        $serialTypeId = Sys_options::idOf('op-doc-order-serial');
         $cloneItems = Documents::where('parent_id', $cloneDoc->id)
             ->when($itemTypeId, fn($q) => $q->where('type_id', $itemTypeId))
             ->get();
@@ -2494,7 +2494,7 @@ class DocumentServiceProvider extends ServiceProvider
                 $this->incrementItemQuantity($fromQnid, $splitAmt);
             }
             // Deactivate its serials
-            $serialTypeId2 = Sys_options::where('op_key','op-doc-order-serial')->value('id');
+            $serialTypeId2 = Sys_options::idOf('op-doc-order-serial');
             $serials = Documents::where('parent_id', $cloneItemDoc->id)
                 ->when($serialTypeId2, fn($q)=>$q->where('type_id', $serialTypeId2))->get();
             foreach ($serials as $s) { $s->status = 0; $s->save(); }
@@ -2527,7 +2527,7 @@ class DocumentServiceProvider extends ServiceProvider
                 return ['success' => false, 'msg' => 'Sipariş zaten iptal edilmiş.'];
             }
 
-            $type = Sys_options::where('op_key', 'doc_trans_order_rejected')->first();
+            $type = Sys_options::rowOf('doc_trans_order_rejected');
             $actorC = $this->actorSnapshot();
             $docSnapC = $this->orderSnapshot($document);
 
@@ -2536,8 +2536,8 @@ class DocumentServiceProvider extends ServiceProvider
                 'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorC['sys_code'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
-                'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
-                    ?? Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+                'type_id' => Sys_options::rowOf('log-order-update')?->id
+                    ?? Sys_options::rowOf('log-tender-update')?->id ?? 0,
                 'description' => json_encode([
                     'after' => ['document' => ['op_key' => $docType->op_key, 'qnid' => $document->qnid]],
                     'actor' => $actorC,
@@ -2654,8 +2654,8 @@ class DocumentServiceProvider extends ServiceProvider
                 'sys_code' => $GLOBALS['SYS_CODE'] ?? $actorR['sys_code'] ?? 'GDZ',
                 'relation' => 'documents',
                 'relation_id' => $document->id,
-                'type_id' => Sys_options::where('op_key', 'log-order-update')->first()->id
-                    ?? Sys_options::where('op_key', 'log-tender-update')->first()->id ?? 0,
+                'type_id' => Sys_options::rowOf('log-order-update')?->id
+                    ?? Sys_options::rowOf('log-tender-update')?->id ?? 0,
                 'description' => json_encode([
                     'after' => ['document' => ['op_key' => $docType, 'qnid' => $document->qnid]],
                     'actor' => $actorR,

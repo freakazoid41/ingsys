@@ -38,6 +38,8 @@ CoalApp has a custom notification delivery system for email and SMS built on top
 
 ## 3. Notification job flow
 
+**Tender dispatchers (2026-11-12):** `sendIhaleActivated/Completed`, `sendOfferSubmitted/Rejected/Accepted` — under `IS_TEST=true` the mail fan-out is skipped entirely (log-only); in other environments the job is dispatched with `afterResponse()` so the HTTP response returns before SMTP (prefer a real queue worker in production).
+
 ### 3.1 Email notification provider
 
 `panel/app/Providers/EmailServiceProvider.php` dispatches notification jobs for TEDARIK 7 + PLANLAMA 3 + TENDER 5 + legacy:

@@ -31,16 +31,6 @@ export default {
                     perm: 'per-041-02',
                 },
                 {
-                    key: 'ihale',
-                    title: 'İhale',
-                    desc: 'İhale süreçleri — Yakında',
-                    icon: 'ki-outline ki-chart-simple',
-                    path: '/coalpanel',
-                    color: '#059669',
-                    perm: 'per-041-03',
-                    disabled: true,
-                },
-                {
                     key: 'fabrika',
                     title: 'Fabrika Kabul',
                     desc: 'Fabrika kabul — Yakında',
@@ -49,6 +39,16 @@ export default {
                     color: '#7c3aed',
                     perm: 'per-041-04',
                     disabled: true,
+                },
+                {
+                    key: 'ihale',
+                    title: 'İhale Yönetimi',
+                    desc: 'İhaleler ve teklif süreçleri',
+                    icon: 'ki-outline ki-chart-simple',
+                    path: '/ihalepanel',
+                    color: '#059669',
+                    perm: 'per-041-03',
+                    permAny: ['per-041-03', 'per-041-03-01'],
                 },
                 {
                     key: 'planlama',
@@ -122,7 +122,7 @@ export default {
         modules() {
             const perms = this.authStore.permissions || [];
             const hasAll = perms.includes('per-041') || perms.includes('per-00');
-            return this.allModules.filter(m => hasAll || perms.includes(m.perm));
+            return this.allModules.filter(m => hasAll || perms.includes(m.perm) || (m.permAny && m.permAny.some(p => perms.includes(p))));
         },
         bilgilendirmeCount() {
             const n = this.navigationStore?.notifications || {};
@@ -140,6 +140,10 @@ export default {
             if(!mod||!mod.path) return;
             const cur=window.location.pathname;
             if(cur.startsWith(mod.path)) return;
+            if (!mod.path.startsWith('/planlamapanel')) {
+                window.location.href = mod.path;
+                return;
+            }
             try{ if(this.$router&&this.$router.push){ this.$router.push(mod.path); return; } }catch(e){}
             window.location.href=mod.path;
         },

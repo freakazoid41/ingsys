@@ -91,6 +91,9 @@
             };
         },
         computed: {
+            isIhalePanel(){ return this.$route.path.startsWith('/ihalepanel'); },
+            listRouteName(){ return this.isIhalePanel ? 'IhalePanelIhList' : 'IhList'; },
+            offerRouteName(){ return this.isIhalePanel ? 'IhalePanelIhOffer' : 'IhOffer'; },
             itemsDoneCount(){
                 try { return (this.items || []).filter(it => this.itemMissing(it) === 0).length; }
                 catch(e) { return 0; }
@@ -153,7 +156,7 @@
                 } else if (this.ihaleQnid) {
                     const existing = await this.lookupExistingOffer(this.ihaleQnid, this.supplierQnid);
                     if (existing) {
-                        this.$router.push({ name : 'IhOffer', params : { id : existing } }).catch(()=>{});
+                        this.$router.push({ name : this.offerRouteName, params : { id : existing } }).catch(()=>{});
                         return;
                     }
                     await this.loadIhale(this.ihaleQnid, {});
@@ -261,7 +264,7 @@
                 try {
                     const existing = await this.lookupExistingOffer(qnid, this.supplierQnid);
                     if (existing) {
-                        this.$router.push({ name : 'IhOffer', params : { id : existing } }).catch(()=>{});
+                        this.$router.push({ name : this.offerRouteName, params : { id : existing } }).catch(()=>{});
                         return;
                     }
                     await this.loadIhale(qnid, {});
@@ -394,7 +397,7 @@
                     }).filter(t => t.file_title);
                     this._tplCache[categoryQnid] = out;
                     return out;
-                } catch(e) { return []; }
+                } catch(e) { console.warn('[IhOffer] template load failed', categoryQnid, e); return []; }
             },
             async buildItems(products, savedByProduct){
                 const items = [];
@@ -711,7 +714,7 @@
                 const officeInspect = this.canReview && this.authStore.typeKey !== 'op-pert-reseller';
                 if (!hEnts.supplier_qnid || (!ownsOffer && !officeInspect)) {
                     this.plib.toast(this.Swal, 'error', 'Bu teklif sizin firmanıza ait değil.');
-                    this.$router.push({ name : 'IhList' }).catch(()=>{});
+                    this.$router.push({ name : this.listRouteName }).catch(()=>{});
                     return;
                 }
                 this.headerConnId = hConn;
@@ -1307,7 +1310,7 @@
                     const qnid = rsp?.data?.qnid || this.id;
                     this.plib.toast(this.Swal, 'success', 'Teklif kaydedildi.', () => {
                         if (!this.id && qnid) {
-                            this.$router.push({ name : 'IhOffer', params : { id : qnid } }).catch(()=>{});
+                            this.$router.push({ name : this.offerRouteName, params : { id : qnid } }).catch(()=>{});
                         } else {
                             window.location.reload();
                         }

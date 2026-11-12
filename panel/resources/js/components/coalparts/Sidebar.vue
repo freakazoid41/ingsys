@@ -56,9 +56,10 @@ export default {
                     title: 'İhale',
                     desc: 'İhale & Teklif Yönetimi',
                     icon: 'ki-outline ki-chart-simple',
-                    path: '/coalpanel/ihaleler',
+                    path: '/ihalepanel',
                     color: '#059669',
                     perm: 'per-041-03',
+                    permAny: ['per-041-03', 'per-041-03-01'],
                 },
                 {
                     key: 'fabrika',
@@ -102,7 +103,7 @@ export default {
             const perms = this.authStore.permissions || [];
             // DEV_ADMIN (has all via getPermissions) will have per-041 etc; fallback show all if has per-041 parent
             const hasAll = perms.includes('per-041') || perms.includes('per-00');
-            return this.allModules.filter(m => hasAll || perms.includes(m.perm));
+            return this.allModules.filter(m => hasAll || perms.includes(m.perm) || (m.permAny && m.permAny.some(p => perms.includes(p))));
         },
     },
     watch: {
@@ -181,13 +182,15 @@ export default {
             if (!mod || !mod.path) return;
             const cur = window.location.pathname;
             if (cur.startsWith(mod.path)) return;
-            // SPA routes exist in same app — try router first, fallback to hard nav
-            try {
-                if (this.$router && this.$router.push) {
-                    this.$router.push(mod.path);
-                    return;
-                }
-            } catch(e) {}
+            // Coalpanel routes share this SPA; other panels are separate entries.
+            if (mod.path.startsWith('/coalpanel')) {
+                try {
+                    if (this.$router && this.$router.push) {
+                        this.$router.push(mod.path);
+                        return;
+                    }
+                } catch(e) {}
+            }
             window.location.href = mod.path;
         },
         isModuleActive(mod) {

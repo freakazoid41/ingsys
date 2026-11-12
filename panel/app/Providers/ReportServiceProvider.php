@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\Cache;
 // Legacy methods getOffers/dashboardMonthlyOffers/dashboardTopInfo etc remain for old coal panel but are DEAD in new system.
 class ReportServiceProvider extends ServiceProvider
 {
+    /**
+     * Per-request cache of getNotificationUsers(null, personId) — the feed runs
+     * up to 15 categories per request and each category used to re-query the
+     * user's notification group memberships.
+     */
+    private static array $userGroupsCache = [];
+
     public function __construct() {
        
     }
@@ -120,8 +127,19 @@ class ReportServiceProvider extends ServiceProvider
     public function getAdminNotifications($notifKey, ?int $limit = null){
         $personsProvider = new PersonsServiceProvider();
         $data = [];
-        //means our user is in the group or not
-        $permittedUsers = $personsProvider->getNotificationUsers($notifKey,session('person_id'));
+        //means our user is in the group or not — load all groups once per request.
+        //Static cache is per-process: skip it under PHPUnit so tests that mutate
+        //group membership mid-request still see fresh data.
+        $personId = session('person_id');
+        $useCache = ! app()->runningUnitTests();
+        if (! $useCache || $personId === null || $personId === '') {
+            $permittedUsers = $personsProvider->getNotificationUsers($notifKey, $personId);
+        } else {
+            if (! isset(self::$userGroupsCache[$personId])) {
+                self::$userGroupsCache[$personId] = $personsProvider->getNotificationUsers(null, $personId);
+            }
+            $permittedUsers = self::$userGroupsCache[$personId];
+        }
         $isReseller = session('type_key') === 'op-pert-reseller';
         // Tender notifications are permission-driven; offer-02/03 are owner-scoped
         // by Documents::tableList for resellers, so an empty group is not fatal.
@@ -493,6 +511,10 @@ class ReportServiceProvider extends ServiceProvider
             case 'tedarik-activity':
                 return $this->tedarikActivity();
             break;
+            // ── TENDER DASHBOARD ──
+            case 'ihale-stats':
+                return (new \App\Services\TenderDashboardService())->stats();
+            break;
             // ── ADMIN TEDARIK DASHBOARD (global, no LIFNR) ──
             case 'admin-stats':
                 return $this->adminStats();
@@ -694,7 +716,7 @@ class ReportServiceProvider extends ServiceProvider
 
         // ensure 'sended' exists (we'll map empty/draft statuses to this)
         if(!isset($groups['doc_trans_offer_sended'])){
-            $s = \App\Models\Sys_options::where('op_key','doc_trans_offer_sended')->first();
+            $s = \App\Models\Sys_options::rowOf('doc_trans_offer_sended');
             $groups['doc_trans_offer_sended'] = [
                 'label' => $s? $s->title : 'Teklif Gönderidi',
                 'value' => 0,

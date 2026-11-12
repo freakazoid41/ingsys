@@ -7,6 +7,7 @@
     import Plib from '@/lib/pickle';
     import Swal from 'sweetalert2';
     import { fmtDateTime } from '@/lib/dateUtils';
+    import { tenderMeta, parseStatus } from '@/lib/tenderStatus';
 
     export default {
         breadcrumbs: {
@@ -27,13 +28,11 @@
             this.buildTable();
             setTimeout(() => {
                 this.navigationStore.toggle(false);
-                this.handleResponsiveTable();
             }, 300);
+            document.addEventListener('click', this._outsideFilter);
         },
         beforeUnmount(){
-            if(this._tableResizeHandler){
-                window.removeEventListener('resize', this._tableResizeHandler);
-            }
+            document.removeEventListener('click', this._outsideFilter);
         },
         data() {
             return {
@@ -41,59 +40,111 @@
                 router : useRouter(),
                 navigationStore : useNavigationStore(),
                 authStore    : useAuthStore(),
-                _tableResizeHandler : null,
+                showFilter : false,
+                statusChoice : '',
             }
         },
         computed: {
             isReseller(){ return this.authStore.typeKey === 'op-pert-reseller'; },
             canManage(){ return this.authStore.permissions?.includes('per-041-03') && !this.isReseller; },
+            canOffer(){ return this.authStore.permissions?.includes('per-041-03-01'); },
+            isIhalePanel(){ return this.$route.path.startsWith('/ihalepanel'); },
+            formRouteName(){ return this.isIhalePanel ? 'IhalePanelIhForm' : 'IhForm'; },
+            offersRouteName(){ return this.isIhalePanel ? 'IhalePanelIhOfferList' : 'IhOfferList'; },
+            offerRouteName(){ return this.isIhalePanel ? 'IhalePanelIhOffer' : 'IhOffer'; },
         },
         methods: {
-            handleResponsiveTable(){
-                const container = document.getElementById('div_table');
-                if(!container) return;
-
-                const table = container.querySelector('.pickletable table');
-                if(!table) return;
-
-                if(this._tableResizeHandler){
-                    window.removeEventListener('resize', this._tableResizeHandler);
+            _outsideFilter(e){
+                if(this.showFilter && !e.target.closest?.('.ihale-filter-dd-wrap')){
+                    this.showFilter = false;
                 }
-
-                this._tableResizeHandler = () => {
-                    if(window.innerWidth < 768){
-                        container.style.overflowX = 'auto';
-                        table.style.minWidth = '760px';
-                        table.style.width = 'max-content';
-                    } else {
-                        container.style.overflowX = 'visible';
-                        table.style.minWidth = '100%';
-                        table.style.width = '100%';
-                    }
-                };
-
-                this._tableResizeHandler();
-                window.addEventListener('resize', this._tableResizeHandler);
             },
             searchTable(){
+                const inp = this.$refs.tedarikSearch || document.getElementById('mainSearch');
                 this.table.setFilter([{
                     key   : 'all',
                     type  : '=',
-                    value : document.getElementById('mainSearch').value.trim()
+                    value : (inp?.value || '').trim()
                 }]);
             },
             resetSearch(){
-                document.getElementById('mainSearch').value = '';
+                const inp = this.$refs.tedarikSearch || document.getElementById('mainSearch');
+                if(inp) inp.value = '';
+                this.statusChoice = '';
                 this.table.setFilter([]);
             },
+            pickStatus(v){
+                this.statusChoice = v;
+                this.showFilter = false;
+                if(!v){
+                    this.table.setFilter([]);
+                    return;
+                }
+                this.table.setFilter([{ key : 'transactions', type : '=', value : v }]);
+            },
+            exportTable(){
+                // Server-side Excel export honours the active filter and covers
+                // the whole list — not just the current page.
+                this.plib.openTab('POST', '/api/v1/export/ihale', this.table?.currentFilter || [], '_blank');
+            },
+            formatDate(val){
+                if(!val || val === '—') return '—';
+                if(String(val).includes('.')) return String(val).slice(0, 10);
+                if(String(val).includes('-')){
+                    const p = String(val).split(' ')[0].split('-');
+                    if(p.length === 3) return `${p[2]}.${p[1]}.${p[0]}`;
+                }
+                try { const d = new Date(val); if(!isNaN(d)) return d.toLocaleDateString('tr-TR'); } catch(e) {}
+                return val;
+            },
             openEdit(qnid){
-                this.router.push({ name : 'IhForm', params : { id : qnid } });
+                this.router.push({ name : this.formRouteName, params : { id : qnid } });
             },
             openOffers(qnid){
-                this.router.push({ name : 'IhOfferList', query : { ihale : qnid } });
+                this.router.push({ name : this.offersRouteName, query : { ihale : qnid } });
+            },
+            openOfferForTender(qnid){
+                this.router.push({ name : this.offerRouteName, query : { ihale : qnid } });
             },
             esc(s){
                 return String(s ?? '').replace(/[&<>"']/g, c => ({ '&' : '&amp;', '<' : '&lt;', '>' : '&gt;', '"' : '&quot;', "'" : '&#39;' }[c]));
+            },
+            openActionsModal(rowData, columnData){
+                const opKey = String(rowData.status || '').split('**')[0] || 'tender-created';
+                const isCreated = opKey === 'tender-created';
+                const isActive = opKey === 'tender-activated';
+                const isDone = opKey === 'tender-complated';
+                const kod = rowData.ihale_kodu || 'İhale';
+
+                const btn = (id, label, icon, bg) => `<button id="${id}" class="btn" style="background:${bg};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="${icon}" style="font-size:16px;"></i> ${label}</button>`;
+
+                const items = [];
+                if(this.canManage && !isDone) items.push({ id : 'aks-edit', html : btn('aks-edit', 'Düzenle', 'ki-outline ki-pencil', '#6366f1') });
+                if(this.canManage) items.push({ id : 'aks-offers', html : btn('aks-offers', 'Teklifleri Gör', 'ki-outline ki-document', '#0e7490') });
+                if(isActive && this.canOffer) items.push({ id : 'aks-offer', html : btn('aks-offer', 'Teklif Ver', 'ki-outline ki-entrance-right', '#059669') });
+                if(this.canManage && isCreated) items.push({ id : 'aks-activate', html : btn('aks-activate', 'İhaleyi Aktif Et', 'ki-outline ki-rocket', '#f59e0b') });
+                if(this.canManage && isActive) items.push({ id : 'aks-complete', html : btn('aks-complete', 'İhaleyi Tamamla', 'ki-outline ki-check-circle', '#22c55e') });
+                if(this.canManage && !isDone) items.push({ id : 'aks-delete', html : btn('aks-delete', 'Sil', 'ki-outline ki-trash', '#ef4444') });
+
+                if(!items.length) return;
+
+                Swal.fire({
+                    title : 'Aksiyonlar',
+                    html : `<div style="text-align:left;font-size:12.5px;color:#64748b;margin-bottom:10px;"><b style="color:#0f172a;">${this.esc(kod)}</b></div><div class="d-flex flex-column gap-2 p-2">${items.map(i => i.html).join('')}</div>`,
+                    showConfirmButton : false,
+                    showCloseButton : true,
+                });
+
+                const on = (id, fn) => {
+                    const el = document.getElementById(id);
+                    if(el) el.addEventListener('click', () => { Swal.close(); fn(); });
+                };
+                on('aks-edit', () => this.openEdit(columnData));
+                on('aks-offers', () => this.openOffers(columnData));
+                on('aks-offer', () => this.openOfferForTender(columnData));
+                on('aks-activate', () => this.activateTender(columnData, rowData.ihale_kodu));
+                on('aks-complete', () => this.openWinnerModal(columnData, rowData.ihale_kodu));
+                on('aks-delete', () => this.removeIhale(columnData, rowData.ihale_kodu));
             },
             async activateTender(qnid, label){
                 const confirm = await Swal.fire({
@@ -113,8 +164,6 @@
                 const rsp = await this.plib.request({ url : '/api/v1/tenders/activate', method : 'POST' }, null, fd);
 
                 if(rsp?.success){
-                    // Include the action column key (`id`) so PickleTable re-runs its
-                    // columnFormatter and swaps 🚀/🗑 for Teklif Ver/✔.
                     this.table.updateRow(qnid, { status : 'tender-activated**İhale Aktif**-', id : qnid });
                     this.plib.toast(this.Swal, 'success', 'İhale aktif edildi, teklif alımı açıldı.');
                 } else {
@@ -142,7 +191,6 @@
 
                 const map = new Map();
                 rows.forEach((r) => {
-                    // Rejected offers cannot win; hide those suppliers from the picker.
                     if (String(r.status || '').split('**')[0] === 'offer-rejected') return;
                     let attrs = [];
                     try { attrs = JSON.parse(r.main_attr || '[]'); } catch(e) {}
@@ -230,158 +278,192 @@
                         key   : 'ihale_kodu',
                         order : true,
                         type  : 'string',
-                        columnFormatter : (elm,rowData) => {
+                        width : '150px',
+                        columnFormatter : (elm,row) => {
+                            const v = row.ihale_kodu || '—';
                             const wrap = document.createElement('div');
-                            wrap.className = 'ih-row-code';
-                            const code = document.createElement('span');
-                            code.className = 'ih-code';
-                            code.textContent = rowData.ihale_kodu || '—';
-                            wrap.appendChild(code);
+                            wrap.style.display = 'flex';
+                            wrap.style.flexDirection = 'column';
+                            wrap.style.gap = '2px';
+                            const span = document.createElement('span');
+                            span.textContent = v;
+                            span.style.fontWeight = '700';
+                            span.style.color = '#0f172a';
+                            span.style.fontSize = '13px';
+                            span.title = v;
+                            wrap.appendChild(span);
+                            const opKey = String(row.status || '').split('**')[0] || '';
+                            if (opKey === 'tender-complated' && row.winner_supplier_title) {
+                                const link = document.createElement('span');
+                                link.textContent = '🏆 ' + row.winner_supplier_title;
+                                link.style.fontSize = '0.70rem';
+                                link.style.color = '#3b82f6';
+                                link.style.fontWeight = '500';
+                                wrap.appendChild(link);
+                            }
                             return wrap;
                         }
                     },{
                         title : 'Ürün',
                         key   : 'product_count',
-                        order : false,
-                        colAlign : 'center',
+                        order : true,
                         type  : 'string',
-                        columnFormatter : (elm,rowData) => {
-                            const b = document.createElement('span');
-                            b.className = 'ih-count';
-                            b.textContent = (rowData.product_count ?? 0) + ' kalem';
-                            return b;
+                        columnFormatter : (elm,row) => {
+                            const v = (row.product_count ?? 0) + ' kalem';
+                            const span = document.createElement('span');
+                            span.textContent = v;
+                            span.title = v;
+                            span.style.color = '#334155';
+                            span.style.display = 'inline-block';
+                            span.style.maxWidth = '180px';
+                            span.style.overflow = 'hidden';
+                            span.style.textOverflow = 'ellipsis';
+                            span.style.whiteSpace = 'nowrap';
+                            span.style.verticalAlign = 'middle';
+                            return span;
                         }
                     },{
                         title : 'Şartname',
                         key   : 'spec_count',
-                        order : false,
-                        colAlign : 'center',
+                        order : true,
                         type  : 'string',
-                        columnFormatter : (elm,rowData) => {
+                        width : '130px',
+                        columnFormatter : (elm,row) => {
+                            const v = (row.spec_count ?? 0) > 0 ? 'Yüklü' : 'Yok';
                             const s = document.createElement('span');
-                            s.className = 'ih-pill ' + ((rowData.spec_count ?? 0) > 0 ? 'ih-pill--ok' : 'ih-pill--muted');
-                            s.textContent = (rowData.spec_count ?? 0) > 0 ? 'Yüklü' : 'Yok';
+                            s.textContent = v;
+                            s.style.color = '#334155';
+                            return s;
+                        }
+                    },{
+                        title : 'Son Teklif',
+                        key   : 'teklif_son_tarihi',
+                        order : true,
+                        type  : 'string',
+                        width : '120px',
+                        columnFormatter : (elm,row) => {
+                            const s = document.createElement('span');
+                            s.textContent = this.formatDate(row.teklif_son_tarihi || '—');
+                            s.style.color = '#334155';
+                            return s;
+                        }
+                    },{
+                        title : 'Oluşturulma',
+                        key   : 'created_at_fmt',
+                        order : true,
+                        type  : 'string',
+                        width : '120px',
+                        columnFormatter : (elm,row) => {
+                            const s = document.createElement('span');
+                            s.textContent = this.formatDate(row.created_at_fmt || row.created_at || '—');
+                            s.style.color = '#334155';
                             return s;
                         }
                     },{
                         title : 'Durum',
                         key   : 'status',
-                        order : false,
-                        colAlign : 'center',
+                        order : true,
                         type  : 'string',
-                        columnFormatter : (elm,rowData) => {
-                            const raw = (rowData.status || '').split('**');
-                            const opKey = raw[0] || '';
-                            const label = raw[1] || '';
-                            const wrap = document.createElement('div');
-                            wrap.className = 'ih-status-cell';
-                            const b = document.createElement('span');
-                            if (opKey === 'tender-complated') {
-                                b.className = 'ih-pill ih-pill--done';
-                                b.textContent = label || 'İhale Tamamlandı';
-                            } else if (opKey === 'tender-activated') {
-                                b.className = 'ih-pill ih-pill--live';
-                                b.textContent = label || 'İhale Aktif';
-                            } else {
-                                b.className = 'ih-pill ih-pill--muted';
-                                b.textContent = label || 'İhale Oluşturuldu';
-                            }
-                            wrap.appendChild(b);
-                            if (opKey === 'tender-complated' && rowData.winner_supplier_title) {
-                                const w = document.createElement('div');
-                                w.className = 'ih-winner';
-                                w.textContent = '🏆 ' + rowData.winner_supplier_title;
-                                wrap.appendChild(w);
-                            }
-                            return wrap;
+                        width : '225px',
+                        columnFormatter : (elm,row) => {
+                            const meta = tenderMeta(parseStatus(row.status).opKey);
+                            const btn = document.createElement('span');
+                            btn.textContent = meta.label;
+                            btn.style.display = 'inline-flex';
+                            btn.style.alignItems = 'center';
+                            btn.style.justifyContent = 'center';
+                            btn.style.padding = '5px 10px';
+                            btn.style.borderRadius = '6px';
+                            btn.style.fontSize = '11.5px';
+                            btn.style.fontWeight = '600';
+                            btn.style.whiteSpace = 'normal';
+                            btn.style.lineHeight = '1.25';
+                            btn.style.textAlign = 'center';
+                            btn.style.maxWidth = '100%';
+                            btn.style.cursor = 'default';
+                            btn.style.border = '1px solid transparent';
+                            btn.style.gap = '6px';
+                            btn.style.background = meta.color;
+                            btn.style.color = '#ffffff';
+                            btn.style.borderColor = meta.color;
+                            const icon = document.createElement('i');
+                            icon.className = meta.icon;
+                            icon.style.fontSize = '14px';
+                            btn.prepend(icon);
+                            return btn;
                         }
                     },{
-                        title : 'Son Teklif',
-                        key   : 'teklif_son_tarihi',
-                        order : false,
-                        colAlign : 'center',
-                        type  : 'string',
-                        columnFormatter : (elm, rowData) => {
-                            const b = document.createElement('span');
-                            b.className = 'ih-pill ih-pill--muted';
-                            b.textContent = rowData.teklif_son_tarihi || '—';
-                            return b;
-                        }
-                    },{
-                        title : 'Oluşturulma',
-                        key   : 'created_at_fmt',
-                        order : false,
-                        type  : 'string',
-                    },{
-                        title : 'Aksiyonlar',
+                        title : '',
                         key   : 'id',
                         order : false,
-                        colAlign : 'center',
                         type  : 'string',
+                        width : '195px',
                         columnFormatter : (elm,rowData,columnData) => {
-                            const span = document.createElement('span');
-                            span.classList.add('d-flex','align-items-center','justify-content-center','gap-1');
+                            const wrap = document.createElement('div');
+                            wrap.style.display = 'flex';
+                            wrap.style.justifyContent = 'flex-end';
+                            wrap.style.alignItems = 'center';
+                            wrap.style.gap = '6px';
+                            wrap.style.flexWrap = 'wrap';
 
                             const opKey = String(rowData.status || '').split('**')[0] || 'tender-created';
-                            const isCreated = opKey === 'tender-created';
                             const isActive = opKey === 'tender-activated';
-                            const isDone = opKey === 'tender-complated';
+                            const hasAny = this.canManage;
 
-                            if(this.canManage && !isDone){
-                                const editBtn = document.createElement('button');
-                                editBtn.classList.add('btn','btn-secondary','action-icon-btn');
-                                editBtn.title = 'Düzenle';
-                                editBtn.innerHTML = '<i class="ki-outline ki-pencil fs-2"></i>';
-                                editBtn.onclick = () => this.openEdit(columnData);
-                                span.appendChild(editBtn);
+                            let aks = null;
+                            if (hasAny) {
+                                aks = document.createElement('button');
+                                aks.textContent = 'Aksiyonlar';
+                                aks.className = 'btn';
+                                aks.style.background = '#8e8e93';
+                                aks.style.color = '#ffffff';
+                                aks.style.border = '1px solid #8e8e93';
+                                aks.style.borderRadius = '8px';
+                                aks.style.padding = '6px 14px';
+                                aks.style.fontSize = '0.78rem';
+                                aks.style.fontWeight = '600';
+                                aks.style.cursor = 'pointer';
+                                aks.style.flex = '0 0 auto';
+                                aks.style.whiteSpace = 'nowrap';
+                                aks.style.minHeight = '32px';
+                                aks.onmouseenter = () => aks.style.background = '#7f7f84';
+                                aks.onmouseleave = () => aks.style.background = '#8e8e93';
+                                aks.onclick = (e) => { e.stopPropagation(); this.openActionsModal(rowData, columnData); };
+                                wrap.appendChild(aks);
                             }
 
-                            if(this.canManage){
-                                const offersBtn = document.createElement('button');
-                                offersBtn.classList.add('btn','btn-secondary','action-icon-btn');
-                                offersBtn.title = 'Teklifleri Gör';
-                                offersBtn.innerHTML = '<i class="ki-outline ki-document fs-2"></i>';
-                                offersBtn.onclick = () => this.openOffers(columnData);
-                                span.appendChild(offersBtn);
-                            }
+                            const primary = document.createElement('button');
+                            primary.className = 'btn';
+                            primary.style.color = '#ffffff';
+                            primary.style.borderRadius = '8px';
+                            primary.style.padding = '6px 14px';
+                            primary.style.fontSize = '0.78rem';
+                            primary.style.fontWeight = '600';
+                            primary.style.cursor = 'pointer';
+                            primary.style.flex = '0 0 auto';
+                            primary.style.whiteSpace = 'nowrap';
+                            primary.style.minHeight = '32px';
 
-                            if(isActive && this.authStore.permissions?.includes('per-041-03-01')){
-                                const offerBtn = document.createElement('button');
-                                offerBtn.classList.add('btn','btn-secondary','action-icon-btn');
-                                offerBtn.title = 'Teklif Ver';
-                                offerBtn.innerHTML = '<i class="ki-outline ki-entrance-right fs-2"></i>';
-                                offerBtn.onclick = () => this.router.push({ name : 'IhOffer', query : { ihale : columnData } });
-                                span.appendChild(offerBtn);
+                            if (isActive && this.canOffer) {
+                                primary.textContent = 'Teklif Ver';
+                                primary.style.background = '#0e8ea4';
+                                primary.style.border = '1px solid #0e8ea4';
+                                primary.onmouseenter = () => primary.style.background = '#0c7e90';
+                                primary.onmouseleave = () => primary.style.background = '#0e8ea4';
+                                primary.onclick = () => this.openOfferForTender(columnData);
+                            } else {
+                                primary.textContent = 'Detaylar';
+                                primary.style.background = '#0e8ea4';
+                                primary.style.border = '1px solid #0e8ea4';
+                                primary.onmouseenter = () => primary.style.background = '#0c7e90';
+                                primary.onmouseleave = () => primary.style.background = '#0e8ea4';
+                                primary.onclick = () => {
+                                    if (this.canManage) this.openEdit(columnData);
+                                    else this.openOfferForTender(columnData);
+                                };
                             }
-
-                            if(this.canManage && isCreated){
-                                const activateBtn = document.createElement('button');
-                                activateBtn.classList.add('btn','btn-secondary','action-icon-btn');
-                                activateBtn.title = 'İhaleyi Aktif Et (teklif alımını aç)';
-                                activateBtn.innerHTML = '<i class="ki-outline ki-rocket fs-2"></i>';
-                                activateBtn.onclick = () => this.activateTender(columnData, rowData.ihale_kodu);
-                                span.appendChild(activateBtn);
-                            }
-
-                            if(this.canManage && isActive){
-                                const doneBtn = document.createElement('button');
-                                doneBtn.classList.add('btn','btn-secondary','action-icon-btn');
-                                doneBtn.title = 'İhaleyi Tamamla (kazananı seç ve kilitle)';
-                                doneBtn.innerHTML = '<i class="ki-outline ki-check-circle fs-2"></i>';
-                                doneBtn.onclick = () => this.openWinnerModal(columnData, rowData.ihale_kodu);
-                                span.appendChild(doneBtn);
-                            }
-
-                            if(this.canManage && !isDone){
-                                const delBtn = document.createElement('button');
-                                delBtn.classList.add('btn','btn-secondary','action-icon-btn','action-icon-btn--danger');
-                                delBtn.title = 'Sil';
-                                delBtn.innerHTML = '<i class="ki-outline ki-trash fs-2"></i>';
-                                delBtn.onclick = () => this.removeIhale(columnData, rowData.ihale_kodu);
-                                span.appendChild(delBtn);
-                            }
-
-                            return span;
+                            wrap.appendChild(primary);
+                            return wrap;
                         }
                     }
                 ];
@@ -390,7 +472,7 @@
                     container : '#div_table',
                     headers   : headers,
                     pageLimit : 10,
-                    height    : '70vh',
+                    height    : this.isIhalePanel ? '75vh' : '70vh',
                     type      : 'ajax',
                     columnSearch : false,
                     paginationType : 'number',
@@ -402,97 +484,249 @@
                         { key : 'form-type', type : '=', value : 'op-doc-ihale-form' },
                         { key : 'type', type : '=', value : 'op-doc-ihale' }
                     ],
+                    nextPageIcon : '<i class="ki-outline ki-arrow-right"></i>',
+                    prevPageIcon : '<i class="ki-outline ki-arrow-left"></i>',
                     rowFormatter : (elm, data) => {
                         let attrs = [];
-                        try { attrs = JSON.parse(data.main_attr || '[]'); } catch(e) {}
+                        try { attrs = JSON.parse(data.main_attr || '[]'); } catch(e) { console.warn('[IhList] main_attr parse failed', e); }
                         attrs.forEach(a => { data[a.Key] = a.Value; });
 
                         const prodRows = new Set();
                         let spec = 0;
                         attrs.forEach(a => {
                             const tag = a.Key || '';
-                            // Count full row keys. Form-engine ids are `new-<timestamp>`,
-                            // so splitting on '-' collapses every new row into "new".
                             if(tag.startsWith('product_qnid**ihale_product_rows')) prodRows.add(tag.split('**')[2] || '');
                             if(tag.startsWith('ihale_spec_file**ihale_spec')) spec++;
                         });
-                        // Server-side row_count is authoritative; fall back to parsed rows.
                         data.product_count = Number(data.row_count) > 0 ? Number(data.row_count) : prodRows.size;
                         data.spec_count = spec;
                         data.created_at_fmt = fmtDateTime(data.created_at);
                         return data;
                     },
                 });
-
-                requestAnimationFrame(() => this.handleResponsiveTable());
             },
         }
     }
 </script>
 
 <template>
-    <div class="card rlist-card">
-        <div class="card-header rlist-header">
-            <div class="rlist-search-group">
-                <div class="rlist-search-wrap">
-                    <i class="ki-duotone ki-magnifier fs-4 rlist-search-icon">
-                        <span class="path1"></span><span class="path2"></span>
-                    </i>
-                    <input type="text" id="mainSearch" class="rlist-search-input" placeholder="İhale kodu ara...">
-                </div>
-                <button type="button" class="rlist-btn rlist-btn-primary" @click="searchTable">
-                    <i class="ki-outline ki-magnifier fs-5"></i> Ara
-                </button>
-                <button type="button" class="rlist-btn rlist-btn-ghost" @click="resetSearch">Sıfırla</button>
+    <div :class="['order-list-card', 'tedarik-card', { 'ihale-card': isIhalePanel }]">
+        <div class="tedarik-list-top">
+            <div class="tedarik-list-title">
+                <span>İhale Listesi</span>
             </div>
-            <div class="rlist-toolbar">
-                <router-link
-                    v-if="canManage"
-                    :to="{ name: 'IhForm' }"
-                    class="rlist-btn rlist-btn-create"
-                >
-                    <i class="ki-outline ki-plus fs-5"></i> Yeni İhale
+            <div class="tedarik-filters">
+                <router-link v-if="canManage" :to="{ name: formRouteName }" class="tedarik-filter">
+                    <i class="ki-outline ki-plus"></i> Yeni İhale
                 </router-link>
+                <div class="tedarik-filter-dd-wrap">
+                    <a href="javascript:;" class="tedarik-filter" :class="{ active: !!statusChoice }" @click.stop="showFilter = !showFilter">
+                        <i class="ki-outline ki-filter"></i> Filtreler
+                    </a>
+                    <div v-if="showFilter" class="tedarik-dd" @click.stop>
+                        <label class="tedarik-dd-item" :class="{ selected: statusChoice === '' }" @click="pickStatus('')">
+                            <span class="tedarik-radio" :class="{ on: statusChoice === '' }"></span> Hepsini Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{ selected: statusChoice === 'tender-created' }" @click="pickStatus('tender-created')">
+                            <span class="tedarik-radio" :class="{ on: statusChoice === 'tender-created' }"></span> Oluşturulanlar
+                        </label>
+                        <label class="tedarik-dd-item" :class="{ selected: statusChoice === 'tender-activated' }" @click="pickStatus('tender-activated')">
+                            <span class="tedarik-radio" :class="{ on: statusChoice === 'tender-activated' }"></span> Aktif İhaleler
+                        </label>
+                        <label class="tedarik-dd-item" :class="{ selected: statusChoice === 'tender-complated' }" @click="pickStatus('tender-complated')">
+                            <span class="tedarik-radio" :class="{ on: statusChoice === 'tender-complated' }"></span> Tamamlananlar
+                        </label>
+                    </div>
+                </div>
+                <a href="javascript:;" class="tedarik-filter" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel Çıktı</a>
             </div>
         </div>
-        <div class="card-body p-0">
+        <div class="tedarik-docs-searchrow" style="margin: 0 0 14px;">
+            <div class="tedarik-docs-searchbox">
+                <i class="ki-outline ki-magnifier tedarik-docs-search-icon"></i>
+                <input type="text" ref="tedarikSearch" id="mainSearch" class="tedarik-docs-search-input" placeholder="İhale ara — ihale kodu, ürün, şartname..." @keydown.enter="searchTable">
+            </div>
+            <button type="button" class="tedarik-btn-light tedarik-docs-btn" @click="searchTable">Ara</button>
+            <button type="button" class="tedarik-btn-light tedarik-docs-btn tedarik-docs-btn--ghost" @click="resetSearch">Sıfırla</button>
+        </div>
+        <div class="order-list-body">
             <div id="div_table"></div>
+        </div>
+        <div class="tedarik-bottom-note">
+            <i class="ki-outline ki-information-5"></i>
+            <span>Aktif ihalelerde <b>"Teklif Ver"</b> butonuna tıklayarak tekliflerinizi oluşturmayı unutmayınız.</span>
         </div>
     </div>
 </template>
 
 <style scoped>
-.ih-row-code { display: flex; align-items: center; }
-.ih-code {
+.order-list-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+}
+.tedarik-card {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+.tedarik-list-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 4px 18px;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-bottom: none;
+}
+.tedarik-list-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 19px;
     font-weight: 700;
-    color: #0f172a;
-    font-size: 13px;
-    letter-spacing: .01em;
+    color: #1e293b;
+    letter-spacing: -0.02em;
+    line-height: 1;
 }
-.ih-count {
+.tedarik-filters {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+.tedarik-filter {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: #f1f5f9;
-    color: #334155;
-    font-size: 12px;
-    font-weight: 600;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #8a8a8e;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
 }
-.ih-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
+.tedarik-filter i { font-size: 13px; color: #a1a1a6; }
+.tedarik-filter:hover { color: #4b5563; }
+.tedarik-filter.active { color: #059669 !important; }
+.tedarik-filter.active i { color: #059669 !important; }
+.tedarik-filter-dd-wrap { position: relative; display: inline-flex; }
+.tedarik-dd {
+    position: absolute; top: calc(100% + 12px); left: 0; z-index: 50;
+    width: 260px; background: #fff; border: 1px solid #ececec; border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(15,23,42,0.14), 0 4px 12px rgba(15,23,42,0.08);
+    padding: 10px 0 8px;
 }
-.ih-pill--ok { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
-.ih-pill--muted { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
-.ih-pill--live { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-.ih-pill--done { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
-.ih-status-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.ih-winner { font-size: 11px; font-weight: 700; color: #475569; white-space: nowrap; }
+.tedarik-dd-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8.5px 16px; font-size: 13px; font-weight: 400; color: #8a8a8e;
+    cursor: pointer; user-select: none;
+}
+.tedarik-dd-item:hover { background: #f8fafc; color: #334155; }
+.tedarik-dd-item.selected { color: #059669; font-weight: 600; }
+.tedarik-radio {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 1.5px solid #d1d5db; display: inline-flex; flex-shrink: 0;
+    position: relative;
+}
+.tedarik-radio.on { border-color: #059669; }
+.tedarik-radio.on::after {
+    content: ''; position: absolute; inset: 2.5px;
+    border-radius: 50%; background: #059669;
+}
+.tedarik-card .order-list-body {
+    background: transparent !important;
+    flex: 0 0 auto !important;
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+.tedarik-docs-searchrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tedarik-docs-searchbox {
+    position: relative; display: flex; align-items: center; flex: 1; min-width: 220px;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 0 12px; height: 42px;
+}
+.tedarik-docs-searchbox:focus-within { background: #fff; border-color: #cbd5e1; box-shadow: 0 0 0 4px rgba(5,150,105,0.10); }
+.tedarik-docs-search-icon { position: absolute; left: 12px; font-size: 18px; color: #94a3b8; }
+.tedarik-docs-search-input {
+    border: none; outline: none; background: transparent; height: 100%; width: 100%;
+    padding-left: 30px; font-size: 13.5px; color: #0f172a;
+}
+.tedarik-docs-search-input::placeholder { color: #94a3b8; }
+.tedarik-btn-light {
+    height: 42px; padding: 0 18px; border-radius: 10px; background: #fff;
+    border: 1.5px solid #e2e8f0; color: #334155; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.tedarik-btn-light:hover { background: #f8fafc; border-color: #cbd5e1; }
+.tedarik-docs-btn--ghost { background: #f1f5f9; }
+.tedarik-bottom-note {
+    margin-top: 10px; display: flex; align-items: flex-start; gap: 6px;
+    font-size: 11.5px; color: #8a8a8e; line-height: 1.6;
+}
+.tedarik-bottom-note i { color: #059669; font-size: 13px; margin-top: 2px; flex-shrink: 0; }
+.tedarik-bottom-note b { color: #0f172a; }
+.tedarik-card :deep(.pickletable),
+.tedarik-card :deep(#div_table.pickletable) {
+    height: 75vh !important;
+    min-height: calc(75vh - 280px) !important;
+}
+.tedarik-card :deep(.pickletable .divTable){ overflow: auto !important; }
+.tedarik-card :deep(.pickletable .divPagination){ margin-top: 0 !important; }
+.tedarik-card :deep(.pickletable table){
+    border-collapse: separate !important;
+    border-spacing: 0 7px !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+    border: none !important;
+}
+.tedarik-card :deep(.pickletable thead){
+    position: sticky !important; top: 0 !important; z-index: 5 !important; background: #fff !important;
+}
+.tedarik-card :deep(.pickletable thead th){
+    background: #fff !important; color: #b0b0b5 !important;
+    font-size: 13px !important; font-weight: 500 !important;
+    text-transform: none !important; letter-spacing: 0 !important;
+    padding: 10px 14px !important; border: none !important; border-bottom: none !important;
+    white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;
+    text-align: left !important; vertical-align: middle !important; line-height: 1.4 !important;
+    box-shadow: none !important; position: sticky !important; top: 0 !important; z-index: 5 !important;
+}
+.tedarik-card :deep(.pickletable thead th:last-child){ text-align: right !important; }
+.tedarik-card :deep(.pickletable tbody tr){
+    background: #fff !important; border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; border: none !important;
+}
+.tedarik-card :deep(.pickletable tbody tr:hover){
+    transform: translateY(-2px) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+}
+.tedarik-card :deep(.pickletable tbody tr:hover td){ background: transparent !important; }
+.tedarik-card :deep(.pickletable tbody td){
+    background: transparent !important; padding: 14px 12px !important;
+    font-size: 13px !important; color: #333 !important; border: none !important;
+    vertical-align: middle !important; white-space: nowrap !important;
+    overflow: hidden !important; text-overflow: ellipsis !important; font-weight: 400;
+}
+.tedarik-card :deep(.pickletable tbody td:first-child){
+    border-radius: 14px 0 0 14px !important; font-weight: 600 !important; color: #111827 !important;
+}
+.tedarik-card :deep(.pickletable tbody td:last-child){ border-radius: 0 14px 14px 0 !important; }
+.tedarik-card :deep(.pickletable .divPagination){
+    background: transparent !important; border-top: none !important; padding: 10px 0 0 !important;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; position: relative;
+}
+.tedarik-card :deep(.pickletable .divPagination button),
+.tedarik-card :deep(.pickletable .divPagination .page-link){
+    border: 1px solid #e5e7eb !important; background: #fff !important; color: #8a8a8e !important;
+    border-radius: 6px !important; padding: 5px 10px !important;
+    font-size: 12px !important; font-weight: 500 !important; min-width: 32px; height: 30px;
+}
+.tedarik-card :deep(.pickletable .divPagination .active button),
+.tedarik-card :deep(.pickletable .divPagination .active .page-link),
+.tedarik-card :deep(.pickletable .divPagination button.active),
+.tedarik-card :deep(.pickletable .divPagination button.current){
+    background: #fff !important; color: #059669 !important; border-color: #059669 !important; font-weight: 700 !important;
+}
 </style>

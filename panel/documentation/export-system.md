@@ -24,6 +24,8 @@ The Excel export system in CoalApp allows frontend data tables to export filtere
 
 ## 3. Backend export flow
 
+**Tender models (2026-11-12):** `ihale` (İhale Kodu/Ürün/Şartname/Durum/Son Teklif/Oluşturulma) and `ihale-offer` (İhale Kodu/Tedarikçi/Ürün/Durum/Son Kayıt) were added to the same switch. Frontend calls `POST /api/v1/export/ihale(-offer)` with the active table filter — the whole list is exported, not just the rendered page.
+
 ### 3.1 Controller entry point
 
 `ExportController::index(Request $request, $model, $type = null)` does the following:

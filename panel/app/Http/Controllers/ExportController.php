@@ -377,6 +377,94 @@ class ExportController extends Controller
                     return $row[$key] ?? '';
                 };
                 break;
+            case 'ihale':
+                $filename = 'ihaleler.xlsx';
+                $headers = [
+                    'ihale_kodu'        => 'İhale Kodu',
+                    'product_count'     => 'Ürün',
+                    'spec_count'        => 'Şartname',
+                    'status'            => 'Durum',
+                    'teklif_son_tarihi' => 'Son Teklif',
+                    'created_at'        => 'Oluşturulma',
+                ];
+
+                $data = (array) \App\Models\Documents::tableList([
+                    'filter' => array_merge($filter, [
+                        ['key'=>'form-type','type'=>'=','value'=>'op-doc-ihale-form'],
+                        ['key'=>'type','type'=>'=','value'=>'op-doc-ihale'],
+                    ]),
+                ])['data'];
+
+                foreach ($data as $value) {
+                    $value->ihale_kodu = '-';
+                    $value->product_count = 0;
+                    $value->spec_count = 0;
+                    $value->teklif_son_tarihi = '-';
+                    $mainAttr = \json_decode($value->main_attr ?? '[]', true) ?: [];
+                    foreach ($mainAttr as $ma) {
+                        $key = $ma['Key'] ?? '';
+                        if ($key === 'ihale_kodu') $value->ihale_kodu = $ma['Value'];
+                        if ($key === 'teklif_son_tarihi') $value->teklif_son_tarihi = $ma['Value'];
+                        if (str_starts_with($key, 'product_qnid**')) $value->product_count++;
+                        if (str_starts_with($key, 'ihale_spec_file**')) $value->spec_count++;
+                    }
+                    $parts = explode('**', (string) ($value->status ?? ''));
+                    $value->status = match ($parts[0] ?? '') {
+                        'tender-activated' => 'İhale Aktif',
+                        'tender-complated' => 'İhale Tamamlandı',
+                        default => 'İhale Oluşturuldu',
+                    };
+                }
+
+                $rowCallback = function ($row, $key, $label, $rowIndex, $columnIndex) {
+                    $row = (array) $row;
+                    if ($key === 'spec_count') return ((int) ($row[$key] ?? 0)) > 0 ? 'Yüklü' : 'Yok';
+                    if ($key === 'product_count') return ($row[$key] ?? 0).' kalem';
+                    if ($key === 'created_at') return \Carbon\Carbon::parse($row[$key])->format('d.m.Y H:i:s');
+                    return $row[$key] ?? '';
+                };
+                break;
+            case 'ihale-offer':
+                $filename = 'teklifler.xlsx';
+                $headers = [
+                    'ihale_kodu'     => 'İhale Kodu',
+                    'supplier_title' => 'Tedarikçi',
+                    'row_count'      => 'Ürün',
+                    'status'         => 'Durum',
+                    'created_at'     => 'Son Kayıt',
+                ];
+
+                $data = (array) \App\Models\Documents::tableList([
+                    'filter' => array_merge($filter, [
+                        ['key'=>'form-type','type'=>'=','value'=>'op-doc-ihale-offer-form'],
+                        ['key'=>'type','type'=>'=','value'=>'op-doc-ihale-offer'],
+                    ]),
+                ])['data'];
+
+                foreach ($data as $value) {
+                    $value->ihale_kodu = '-';
+                    $value->supplier_title = '-';
+                    $mainAttr = \json_decode($value->main_attr ?? '[]', true) ?: [];
+                    foreach ($mainAttr as $ma) {
+                        $key = $ma['Key'] ?? '';
+                        if ($key === 'ihale_kodu') $value->ihale_kodu = $ma['Value'];
+                        if ($key === 'supplier_title') $value->supplier_title = $ma['Value'];
+                    }
+                    $parts = explode('**', (string) ($value->status ?? ''));
+                    $value->status = match ($parts[0] ?? '') {
+                        'offer-accepted' => 'Teklif Kabul Edildi',
+                        'offer-rejected' => 'Teklif Reddedildi',
+                        default => 'Teklif Gönderildi',
+                    };
+                }
+
+                $rowCallback = function ($row, $key, $label, $rowIndex, $columnIndex) {
+                    $row = (array) $row;
+                    if ($key === 'row_count') return ($row[$key] ?? 0).' kalem';
+                    if ($key === 'created_at') return \Carbon\Carbon::parse($row[$key])->format('d.m.Y H:i:s');
+                    return $row[$key] ?? '';
+                };
+                break;
             case 'userlogs':
                 $filename = 'kullanici_loglari.xlsx';
                 $headers = [

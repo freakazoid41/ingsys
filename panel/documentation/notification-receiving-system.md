@@ -149,6 +149,12 @@ addNotifications() {
 
 ---
 
+**2026-11-12 follow-ups (perf pass):**
+- `/api/v1/notifications` is cached server-side for 15s per user/person/type (`notificationCacheKey`); mark-read/mark-all invalidate it. The cache is disabled under PHPUnit so tests stay isolated.
+- `navigationStore.getNotifications()` coalesces concurrent calls and reuses the result for 20s (`NOTIF_TTL`).
+- `markAllNotificationsRead({op_keys})` accepts a category subset (tender panel marks only its 5 categories) and caches each per-category full fetch for 30s instead of re-running 15 heavy feeds on every click.
+- `ReportServiceProvider` loads the user's notification group memberships **once per request** (`userGroupsCache`) instead of once per category.
+
 ### 2.2 Navigation Store (`stores/navigation.js`)
 
 **Location**: `/resources/js/stores/navigation.js`
@@ -273,6 +279,8 @@ POST /api/v1/notifications/read
 ```
 
 #### API Endpoint: `/api/v1/notifications/read-all`
+
+Optional JSON/form field `op_keys: string[]` limits the mark to a category subset (tender panel passes its 5 categories). Each per-category full fetch is cached for 30s (`notifmark:<user>:<cat>`); re-running mark-all on the same minute reuses it instead of re-running 15 heavy feeds.
 **Method**: `markAllNotificationsRead()` — marks all current notifications as read
 ```php
 POST /api/v1/notifications/read-all

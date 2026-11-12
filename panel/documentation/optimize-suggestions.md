@@ -1,5 +1,7 @@
 # Optimize Suggestions — Breadcrumbs for Next Sessions
 
+> **Superseded in part by `performance-2026-11-12.md`** (JIT off, notification feed limits/cache, dashboard cache, indexes, mark-all caching, group-cache batching, option memoization, count-query lateral strip, vendor chunk split). Treat that doc as the current truth; this one remains for the 1:1 design notes.
+
 > **Purpose:** What we optimized in `OList`/`DList`/`OForm`/`DForm` without breaking design/mechanic, and what **outside partner** libs/composables you can reuse for any new listing page.
 > **Read after:** `tedarik-system-process.md:5-6`, `form-system-mechanics.md:7`, `memory/05-order-system-state.md:4`.
 > **Shared code lives in `resources/js/composables/` + `resources/js/lib/` — import, don't copy-paste.**

@@ -45,3 +45,22 @@ Verification: `php artisan test` ⇒ **63 passed, 1 skipped, 228 assertions**.
 - `IS_TEST` must stay **false** in production (2FA bypass and reCAPTCHA bypass are gated on it).
 
 Production deployment checklist: `documentation/production-closeout-memo.md`.
+
+## Follow-up hardening (same day, second pass)
+
+| Item | Change |
+|---|---|
+| A1 | Tender PUT now runs `validateTenderHeader()` — deadline/spec/code/product can't be stripped after creation |
+| A2 | Tender/offer lists export the FULL list server-side (`/export/ihale`, `/export/ihale-offer`) instead of a page-only CSV |
+| A3 | `markAllNotificationsRead` caches each per-category full fetch for 30s; PHPUnit bypasses the cache |
+| B1 | `Documents::tableList` COUNT drops the `main_attr` LATERAL when the WHERE doesn't reference it |
+| B2 | Notification group memberships fetched once per request (`userGroupsCache`) instead of 15× |
+| B3 | `Sys_options::idOf()/rowOf()` per-request memo (bypassed under PHPUnit) |
+| B4 | Vite `manualChunks` (vendor/swal/flatpickr/charts/xlsx/pickletable) + lazy-loaded panel shells → `app-*.js` 1.6MB → ~790KB initial |
+| C2 | `lib/formSerialize.js` + `data-fmt="date"` replaces the class-hack date serialization |
+| C3 | Tedarik + Ihale panel shells now share `resources/css/front-shell.css` (49/51 rules were byte-identical) |
+| C5 | `lib/tenderStatus.js` — single source for tender/offer pill labels/colors/icons |
+| C7 | Tender dashboard extracted to `app/Services/TenderDashboardService` |
+| C9 | `BackfillOrderStatusCommandTest` covers the backfill command (dry-run + idempotency) |
+
+**Still open / deliberately deferred:** full SQL-binding rewrite of `Documents::tableList` WHERE builder (C1 — `noInject` remains the guard; conversion is a dedicated session), Form.vue monolith split (C2 partial), Planlama shell sharing (C3 partial), full ReportServiceProvider split (C7 partial — notifications/reports still in the provider).

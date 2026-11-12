@@ -64,3 +64,9 @@ ALTER DATABASE "<production_db>" RESET jit;
 ```
 
 or enable it per session/query only.
+
+## 7. Known open security items (do not go live with these)
+- CSRF validation is disabled globally (`bootstrap/app.php` → `validateCsrfTokens(except: ['*'])`).
+- `DEV_ADMIN` receives a fixed `111111` 2FA code in **any** environment — unset the env var.
+- `/order-file/{doc}` serves files by token without an ownership re-check.
+- Legacy file bytes were not in the import dump — clone `public/documents/` before go-live or downloads 404.

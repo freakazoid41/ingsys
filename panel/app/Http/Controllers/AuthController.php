@@ -89,7 +89,8 @@ class AuthController extends Controller
         $defs = [
             'per-041-01' => ['code'=>'per-041-01','title'=>'Yönetim Paneli','route'=>'/coalpanel','color'=>'#154b91','desc'=>'Kontrol Paneli & Raporlar','icon'=>'shield'],
             'per-041-02' => ['code'=>'per-041-02','title'=>'Tedarik','route'=>'/tedarikpanel','color'=>'#FF4713','desc'=>'Sipariş & Döküman','icon'=>'truck'],
-            'per-041-03' => ['code'=>'per-041-03','title'=>'İhale','route'=>'/coalpanel','color'=>'#059669','desc'=>'İhale & Teklif Yönetimi','icon'=>'gavel'],
+            'per-041-03' => ['code'=>'per-041-03','title'=>'İhale Yönetimi','route'=>'/ihalepanel','color'=>'#059669','desc'=>'İhale & Teklif Yönetimi','icon'=>'gavel'],
+            'per-041-03-01' => ['code'=>'per-041-03-01','title'=>'İhale Teklifleri','route'=>'/ihalepanel','color'=>'#059669','desc'=>'Teklif Hazırlama','icon'=>'gavel'],
             'per-041-04' => ['code'=>'per-041-04','title'=>'Fabrika Kabul','route'=>'/coalpanel','color'=>'#7c3aed','desc'=>'Yakında','icon'=>'factory','disabled'=>true],
             'per-041-05' => ['code'=>'per-041-05','title'=>'Malzeme Planlama','route'=>'/planlamapanel','color'=>'#0e7490','desc'=>'Talep & Onay','icon'=>'clipboard'],
         ];
@@ -108,7 +109,13 @@ class AuthController extends Controller
                 $out[] = $m;
             }
         }
-        return $out;
+
+        // Users with both 03 and 03-01 share the same route: keep one card.
+        $dedup = [];
+        foreach ($out as $m) {
+            if (! isset($dedup[$m['route']])) $dedup[$m['route']] = $m;
+        }
+        return array_values($dedup);
     }
 
     public function getModules(\Illuminate\Http\Request $request){
@@ -552,7 +559,7 @@ class AuthController extends Controller
 
                 // Email deep-link wins: /tedarik?next=/tedarikpanel/... → straight to record
                 $postNext = session('post_login_next');
-                if (is_string($postNext) && preg_match('#^/(tedarikpanel|coalpanel)(/|$)#', $postNext)) {
+                if (is_string($postNext) && preg_match('#^/(tedarikpanel|coalpanel|ihalepanel)(/|$)#', $postNext)) {
                     session(['target_module' => $postNext]);
                     session()->forget('post_login_next');
                     return redirect()->route($loginRoute)->with('sms-success', $token);

@@ -109,3 +109,5 @@ document_files.relation='-'
 3. Tender next scope: participant/invite model, deadline auto-disqualification cron, prices, order handoff, multi-lot.
 4. Delete/archive unused legacy dashboard/offer components.
 5. Keep extending `TenderPipelineTest` for matrix file validation and admin offer inspect.
+
+> **Audit follow-up (2026-11-12, second pass):** A1–A3, B1–B4, C2/C3/C5/C6/C7/C9 implemented and tested (66 passed). Details in `performance-2026-11-12.md` → "Follow-up hardening". Remaining: C1 (bindings), C8 is solved by A2, C4 closed by removing dead global styles. Security note: CSRF still disabled globally (`bootstrap/app.php` `except ['*']`), `DEV_ADMIN` still gets a fixed 2FA code in any env, `/order-file` IDOR is still open — fix before production, see `production-closeout-memo.md`.

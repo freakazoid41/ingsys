@@ -66,6 +66,23 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
         Route::get('/tedarikpanel',$tedarikAuth)->name('tedarik-app');
         Route::get('/tedarikpanel/{any}',$tedarikAuth)->where('any', '^((?!api).)*');
 
+        $ihaleAuth = function (){
+            if(session('type_key') !== null && session('2f_success') !== null){
+                $user = auth()->user();
+                $perm = app(\App\Services\PermissionService::class);
+                if($user && !$perm->has($user, 'per-041-03') && !$perm->has($user, 'per-041-03-01')){
+                    if(!$perm->has($user, 'all')){
+                        abort(403, 'Bu modüle yetkiniz yok (İhale)');
+                    }
+                }
+                return view('ihaleapp',['type' => session('type_key') == 'op-pert-admin' ? 'admin' : 'client']);
+            }else{
+                abort('403');
+            }
+        };
+        Route::get('/ihalepanel',$ihaleAuth)->name('ihale-app');
+        Route::get('/ihalepanel/{any}',$ihaleAuth)->where('any', '^((?!api).)*');
+
         $planlamaAuth = function (){
             if(session('type_key') !== null && session('2f_success') !== null){
                 $user = auth()->user();

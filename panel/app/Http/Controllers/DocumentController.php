@@ -322,8 +322,65 @@ class DocumentController extends Controller
         return response()->json(['success'=>!empty($res), 'data'=>$res]);
     }
 
-    private function handleStore(Request $request, ?array $decoded, ?string $key)
+    /**
+     * Required tender header: code, deadline, spec title/file, ≥1 product.
+     * On update the spec file only has to be present when it was uploaded
+     * again — otherwise the stored one counts.
+     */
+    private function validateTenderHeader(?array $decoded, array $files, ?string $id = null): ?\Illuminate\Http\JsonResponse
     {
+        $hasCode = false;
+        $hasProduct = false;
+        $hasDeadline = false;
+        $hasSpecTitle = false;
+        $deadlineValue = '';
+        foreach (($decoded['dynamicF'] ?? []) as $row) {
+            foreach (($row['entities'] ?? []) as $k => $v) {
+                if ($k === 'ihale_kodu' && trim((string) $v) !== '') $hasCode = true;
+                if (str_starts_with((string) $k, 'spec_title') && trim((string) $v) !== '') $hasSpecTitle = true;
+                if ($k === 'teklif_son_tarihi' && trim((string) $v) !== '') {
+                    $hasDeadline = true;
+                    $deadlineValue = trim((string) $v);
+                }
+                if (str_starts_with((string) $k, 'product_qnid**ihale_product_rows') && trim((string) $v) !== '') {
+                    $hasProduct = true;
+                }
+            }
+        }
+
+        $hasSpec = false;
+        foreach ($files as $fileKey => $fileValue) {
+            if (str_contains((string) $fileKey, 'ihale_spec_file')) { $hasSpec = true; break; }
+        }
+        if (! $hasSpec && ! empty($id) && $this->isValidUuid($id)) {
+            $docId = \App\Models\Documents::where('qnid', $id)->value('id');
+            if ($docId) {
+                $connId = \App\Models\Sys_con_ops::where('main_id', $docId)->where('conn_id', 0)->value('id');
+                if ($connId) {
+                    $hasSpec = \App\Models\Sys_con_entities::where('conn_id', $connId)
+                        ->where('entity_tag', 'like', 'ihale_spec_file%')
+                        ->exists();
+                }
+            }
+        }
+
+        if (! $hasCode || ! $hasProduct || ! $hasSpec || ! $hasSpecTitle || ! $hasDeadline) {
+            return response()->json([
+                'success' => false,
+                'msg'     => 'İhale kodu, teklif son tarihi, ilgili teknik şartname adı/dosyası ve en az bir ürün zorunludur.',
+            ], 422);
+        }
+        if (strtotime($deadlineValue) === false) {
+            return response()->json([
+                'success' => false,
+                'msg'     => 'Teklif son tarihi geçerli bir tarih olmalıdır.',
+            ], 422);
+        }
+
+        return null;
+    }
+
+    private function handleStore(Request $request, ?array $decoded, ?string $key)    {
         $files = $request->files->all();
         $this->mergeTempUploadReferences($request->all(), $files);
         $refError = $this->assertTempReferencesOwned($files);
@@ -333,40 +390,8 @@ class DocumentController extends Controller
         // Tender creation is server-validated: the UI requires these, but the API
         // must not be able to create an empty tender header.
         if ($key === 'op-doc-ihale') {
-            $hasCode = false;
-            $hasProduct = false;
-            $hasDeadline = false;
-            $hasSpecTitle = false;
-            $deadlineValue = '';
-            foreach (($decoded['dynamicF'] ?? []) as $row) {
-                foreach (($row['entities'] ?? []) as $k => $v) {
-                    if ($k === 'ihale_kodu' && trim((string) $v) !== '') $hasCode = true;
-                    if (str_starts_with((string) $k, 'spec_title') && trim((string) $v) !== '') $hasSpecTitle = true;
-                    if ($k === 'teklif_son_tarihi' && trim((string) $v) !== '') {
-                        $hasDeadline = true;
-                        $deadlineValue = trim((string) $v);
-                    }
-                    if (str_starts_with((string) $k, 'product_qnid**ihale_product_rows') && trim((string) $v) !== '') {
-                        $hasProduct = true;
-                    }
-                }
-            }
-            $hasSpec = false;
-            foreach ($files as $fileKey => $fileValue) {
-                if (str_contains((string) $fileKey, 'ihale_spec_file')) { $hasSpec = true; break; }
-            }
-            if (! $hasCode || ! $hasProduct || ! $hasSpec || ! $hasSpecTitle || ! $hasDeadline) {
-                return response()->json([
-                    'success' => false,
-                    'msg'     => 'İhale kodu, teklif son tarihi, ilgili teknik şartname adı/dosyası ve en az bir ürün zorunludur.',
-                ], 422);
-            }
-            if (strtotime($deadlineValue) === false) {
-                return response()->json([
-                    'success' => false,
-                    'msg'     => 'Teklif son tarihi geçerli bir tarih olmalıdır.',
-                ], 422);
-            }
+            $tenderError = $this->validateTenderHeader($decoded, $files);
+            if ($tenderError) return $tenderError;
         }
 
         // Ürün kartı malzeme grubu (kategori) olmadan oluşturulamaz: teklif
@@ -453,6 +478,13 @@ class DocumentController extends Controller
         $refError = $this->assertTempReferencesOwned($files);
         if ($refError) return $refError;
         $this->stripResellerGorus($key, $files, $decoded);
+
+        // Same tender header rules as creation — a PUT must not be able to strip
+        // the required code/deadline/spec/product after the tender exists.
+        if ($key === 'op-doc-ihale') {
+            $tenderError = $this->validateTenderHeader($decoded, $files, $request->id);
+            if ($tenderError) return $tenderError;
+        }
 
         if ($key === 'op-doc-ihale-offer') {
             $offerError = $this->validateOfferPayload($decoded, $request->id);

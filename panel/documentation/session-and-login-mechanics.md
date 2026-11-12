@@ -27,6 +27,8 @@ This document covers the **full login pipeline, session state, token lifecycle, 
 
 ### 2.1 Step 1 — Credentials: `POST /v1/auth/login/{type?}` → `AuthController::loginUser`
 
+> **2026-11-12:** when `IS_TEST=true` the reCAPTCHA token is no longer required and the 2FA code is fixed to `111111` with mail/SMS sending skipped entirely. `DEV_ADMIN` also receives the fixed code in any environment — keep that env var unset in production.
+
 1. **Session flush** — any pre-existing session data is wiped first.
 2. **Validation** — `email`, `password`, `g-recaptcha-response` (custom `Recaptcha` rule). Failures redirect back to `/` with `login-error`.
 3. **User lookup** — `User::where(['email' => $email, 'status' => '1'])`. A disabled user gets a generic "Bilgiler Hatalıdır" (no account-enumeration leak).
@@ -69,6 +71,8 @@ The token never leaves the browser-session flow:
 4. All subsequent API calls attach `Authorization: Bearer <localStorage token>` (`pickle.js`). On logout/force-logout the token is removed from localStorage.
 
 **Password change page** (`passwordReset` view + `POST /auth/passchange`): also serves as the **first-login** password setter — `passChange` hashes the new password, clears `needs_refresh`, flushes the session, and redirects to login.
+
+**Module routing (2026-11-12):** `getAvailableModules()` maps permissions to shell cards; `per-041-03`/`per-041-03-01` both route to the dedicated **İhale** panel `/ihalepanel` (duplicate route deduped). Single-module users auto-redirect; multi-module users land on `/module-select`.
 
 ### 2.4 Code resend: `POST /api/auth/resend-code`
 

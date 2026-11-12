@@ -12,6 +12,20 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('xlsx')) return 'xlsx';
+          if (id.includes('quill')) return 'quill';
+          if (id.includes('flatpickr')) return 'flatpickr';
+          if (id.includes('sweetalert2')) return 'swal';
+          if (id.includes('chart.js')) return 'charts';
+          if (id.includes('pickletable')) return 'pickletable';
+          return 'vendor';
+        },
+      },
+    },
   },
   plugins: [
     laravel({
