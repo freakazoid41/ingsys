@@ -366,7 +366,18 @@ class Document_files extends Model
         $sql = 'select '.implode(",", array_values($columns)).'
                     from document_files as i '.$join.' ' . $where.$order.$limit ;
         $result = DB::select($sql);
-        
+
+        if (! empty($obj['noCount'])) {
+            $n = count($result);
+            return array(
+                'data'          => $result,
+                'pageCount'     => 1,
+                'totalCount'    => $n,
+                'filteredCount' => $n,
+                'last_page'     => 1,
+            );
+        }
+
         //count query
         $sql = 'select count(*) as row from document_files as i '.$join.' '. $where;
         $total_count = DB::select($sql)[0];

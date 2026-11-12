@@ -271,11 +271,15 @@ class AuthController extends Controller
             else session(['auth_panel' => 'admin']);
             if ($postNext) session(['post_login_next' => $postNext]);
             //validate request sended parameters
-            $validateUser = Validator::make($request->all(),[
+            $isTestEnv = filter_var(env('IS_TEST', false), FILTER_VALIDATE_BOOLEAN);
+            $rules = [
                 'email'    => 'required',
                 'password' => 'required',
-                'g-recaptcha-response' => ['required', new Recaptcha()],
-            ], [
+            ];
+            if (! $isTestEnv) {
+                $rules['g-recaptcha-response'] = ['required', new Recaptcha()];
+            }
+            $validateUser = Validator::make($request->all(), $rules, [
                 'g-recaptcha-response.required' => 'reCAPTCHA zorunludur.',
             ]);
 
@@ -606,6 +610,18 @@ class AuthController extends Controller
         session(['login_person' => $user->person_id.'-login']);
         session(['token' => $token]);
         session(['login_type' => 'normal']);
+
+        // IS_TEST: the code is fixed (111111) and the mail/SMS fan-out is pure
+        // dev latency — a single login used to block the server for ~4s.
+        if ($isTest) {
+            session(['resend_last_at' => Carbon::now()->timestamp]);
+            return [
+                'success' => true,
+                'message' => 'Doğrulama kodu başarılı şekilde gönderildi.',
+                'errors' => [],
+                'debug_code' => $code,
+            ];
+        }
 
         $mailService = new MailService();
         $smsService = new SmsService();

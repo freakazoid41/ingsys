@@ -1337,11 +1337,12 @@
                                         placeholder : 'örn. IHL-2026-001',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
                                         type  : 'text',
                                         name  : 'teklif_son_tarihi',
                                         col      : 6,
                                         isDate   : true,
-                                        required : false,
+                                        required : true,
                                         label : 'Teklif Son Tarihi',
                                         placeholder : 'gg.aa.yyyy',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -1361,7 +1362,7 @@
                                         type  : 'text',
                                         name  : 'spec_title',
                                         col      : 6,
-                                        required : false,
+                                        required : true,
                                         label : 'İlgili Teknik Şartname Adı',
                                         placeholder : 'örn. Trafo Teknik Şartnamesi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
@@ -1477,9 +1478,9 @@
                                         type  : 'text',
                                         name  : 'category_title',
                                         col      : 6,
-                                        required : false,
+                                        required : true,
                                         readOnly : true,
-                                        label : 'Kategori (listeden seçin)',
+                                        label : 'Malzeme Grubu (listeden seçin)',
                                         placeholder : 'Henüz seçilmedi',
                                         oninput : (e) => this.submitDynamicChanges(e.target)
                                     },{
@@ -3090,6 +3091,12 @@
 
                         //do this after is added to div because lightpick component is not seeing before
                         if(attr?.isDate == true){
+                            // Sub-field definitions don't always carry the Bootstrap
+                            // classes (tender deadline was one of them). Force them
+                            // here so every date control looks like the rest of the
+                            // form, and add `date-input` so submitDynamicChanges
+                            // converts dd/mm/yyyy to Y-m-d before POSTing.
+                            input.classList.add('form-control', 'form-item', 'date-input');
                             input.readOnly    = true;
                             input.placeholder = 'Tarih Seçiniz';
                             if(data?.entities?.[attr.name] !== undefined){
@@ -3125,6 +3132,7 @@
                         }
 
                         if(attr?.isMonth == true){
+                            input.classList.add('form-control', 'form-item');
                             input.readOnly    = true;
                             input.placeholder = 'Tarih Seçiniz';
                             if(this.readonlyFields.includes(attr.name) || this.readonlyFields.some(rf => attr.name === rf || attr.name.startsWith(rf + '**'))){

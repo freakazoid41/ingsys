@@ -134,7 +134,27 @@ class EmailServiceProvider extends ServiceProvider
         try{
             $payload['type'] = $type;
             $payload['sys_code'] = $payload['sys_code'] ?? $GLOBALS['SYS_CODE'] ?? null;
-            SendNotificationMailJob::dispatch($payload)->onQueue('default');
+
+            $isTender = in_array($type, ['ihaleActivated', 'ihaleCompleted', 'offerSubmitted', 'offerRejected', 'offerAccepted'], true);
+
+            // Dev/E2E: never fan out real supplier mail. The sync queue plus the
+            // single-process dev server turns a 30-recipient tender blast into a
+            // 20-30s stall on every activation/offer action (and spams real
+            // suppliers during test runs). Production (IS_TEST=false) still sends.
+            if ($isTender && filter_var(env('IS_TEST', false), FILTER_VALIDATE_BOOLEAN)) {
+                Log::info($type.' skipped (IS_TEST)', ['payload'=>$payload]);
+                return;
+            }
+
+            $pending = SendNotificationMailJob::dispatch($payload)->onQueue('default');
+
+            // Tender actions must return before the SMTP fan-out. With
+            // QUEUE_CONNECTION=sync the mail job otherwise blocks the HTTP
+            // response for ~20-30s (the UI looks stuck and can time out).
+            if ($isTender) {
+                $pending->afterResponse();
+            }
+
             Log::info($type.' dispatched', $payload);
         }catch(\Throwable $e){
             Log::error($type.' dispatch failed', ['exception'=>$e, 'payload'=>$payload]);

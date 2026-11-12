@@ -91,9 +91,6 @@
             };
         },
         computed: {
-            isTedarik(){ return this.$route.path.startsWith('/tedarikpanel'); },
-            listRouteName(){ return this.isTedarik ? 'TedarikIhList' : 'IhList'; },
-            offerRouteName(){ return this.isTedarik ? 'TedarikIhOffer' : 'IhOffer'; },
             itemsDoneCount(){
                 try { return (this.items || []).filter(it => this.itemMissing(it) === 0).length; }
                 catch(e) { return 0; }
@@ -156,7 +153,7 @@
                 } else if (this.ihaleQnid) {
                     const existing = await this.lookupExistingOffer(this.ihaleQnid, this.supplierQnid);
                     if (existing) {
-                        this.$router.push({ name : this.offerRouteName, params : { id : existing } }).catch(()=>{});
+                        this.$router.push({ name : 'IhOffer', params : { id : existing } }).catch(()=>{});
                         return;
                     }
                     await this.loadIhale(this.ihaleQnid, {});
@@ -264,7 +261,7 @@
                 try {
                     const existing = await this.lookupExistingOffer(qnid, this.supplierQnid);
                     if (existing) {
-                        this.$router.push({ name : this.offerRouteName, params : { id : existing } }).catch(()=>{});
+                        this.$router.push({ name : 'IhOffer', params : { id : existing } }).catch(()=>{});
                         return;
                     }
                     await this.loadIhale(qnid, {});
@@ -305,6 +302,18 @@
                 }
                 return rows;
             },
+            parseDocStatus(raw){
+                if (Array.isArray(raw)) return raw;
+                if (typeof raw === 'string') {
+                    try {
+                        const parsed = JSON.parse(raw);
+                        return Array.isArray(parsed) ? parsed : [];
+                    } catch (e) {
+                        return [];
+                    }
+                }
+                return [];
+            },
             async loadIhale(qnid, savedByProduct){                const rsp = await this.plib.request({ url: '/api/v1/document/' + qnid, method: 'GET' }, null);
                 if (!rsp?.success) {
                     this.plib.toast(this.Swal, 'error', 'İhale yüklenemedi.');
@@ -313,7 +322,7 @@
                 const ff = rsp?.data?.formFormat?.['op-doc-ihale-form'] || {};
                 const first = Object.values(ff)[0] || {};
                 const ents = first.entities || {};
-                const statusArr = rsp?.data?.document?.status || [];
+                const statusArr = this.parseDocStatus(rsp?.data?.document?.status);
                 const lastStatus = statusArr.length ? statusArr[statusArr.length - 1].op_key : '';
                 this.tenderStatus = lastStatus || 'tender-created';
                 this.tenderLocked = this.tenderStatus === 'tender-complated';
@@ -344,11 +353,16 @@
                     const specKey = Object.keys(ents).find(k => k.startsWith('ihale_spec_file'));
                     if (specKey && ents[specKey]) specFileQnid = (JSON.parse(ents[specKey]).qnid) || '';
                 } catch(e) {}
+                let specTitle = '';
+                try {
+                    const specTitleKey = Object.keys(ents).find(k => k.startsWith('spec_title'));
+                    if (specTitleKey) specTitle = ents[specTitleKey] || '';
+                } catch(e) {}
                 this.ihaleQnid = qnid;
                 this.ihale = {
                     qnid,
                     kodu : ents.ihale_kodu || '',
-                    spec_title : ents.spec_title || '',
+                    spec_title : specTitle,
                     spec_file_qnid : specFileQnid,
                     deadline : ents.teklif_son_tarihi || '',
                     products,
@@ -697,7 +711,7 @@
                 const officeInspect = this.canReview && this.authStore.typeKey !== 'op-pert-reseller';
                 if (!hEnts.supplier_qnid || (!ownsOffer && !officeInspect)) {
                     this.plib.toast(this.Swal, 'error', 'Bu teklif sizin firmanıza ait değil.');
-                    this.$router.push({ name : this.listRouteName }).catch(()=>{});
+                    this.$router.push({ name : 'IhList' }).catch(()=>{});
                     return;
                 }
                 this.headerConnId = hConn;
@@ -710,7 +724,7 @@
                     if (snap && Array.isArray(snap.slots)) this.snapshotSlots = snap.slots;
                 } catch(e) {}
                 if (hEnts.snapshot === undefined) this.snapshotSlots = [];
-                const offerStatusArr = rsp?.data?.document?.status || [];
+                const offerStatusArr = this.parseDocStatus(rsp?.data?.document?.status);
                 const lastOfferStatus = offerStatusArr.length ? offerStatusArr[offerStatusArr.length - 1] : null;
                 this.offerStatus = lastOfferStatus?.op_key || 'offer-sended';
                 this.offerRejectNote = lastOfferStatus?.note || '';
@@ -1293,7 +1307,7 @@
                     const qnid = rsp?.data?.qnid || this.id;
                     this.plib.toast(this.Swal, 'success', 'Teklif kaydedildi.', () => {
                         if (!this.id && qnid) {
-                            this.$router.push({ name : this.offerRouteName, params : { id : qnid } }).catch(()=>{});
+                            this.$router.push({ name : 'IhOffer', params : { id : qnid } }).catch(()=>{});
                         } else {
                             window.location.reload();
                         }

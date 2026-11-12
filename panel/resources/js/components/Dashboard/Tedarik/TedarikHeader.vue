@@ -241,8 +241,8 @@ export default {
                 const isOffer = ['offer-01','offer-02','offer-03'].includes(item.cat);
                 if(isFile) this.$router.push({ name: 'TedarikDForm', params: { id: item.targetQnid } }).catch(()=>{});
                 else if(isPlanlama) this.$router.push({ name: 'PlanlamaFForm', params: { id: item.targetQnid } }).catch(()=>{});
-                else if(isTenderList) this.$router.push({ name: 'TedarikIhList' }).catch(()=>{});
-                else if(isOffer) this.$router.push({ name: 'TedarikIhOffer', params: { id: item.targetQnid } }).catch(()=>{});
+                else if(isTenderList) this.$router.push({ name: 'IhList' }).catch(()=>{});
+                else if(isOffer) this.$router.push({ name: 'IhOffer', params: { id: item.targetQnid } }).catch(()=>{});
                 else this.$router.push({ name: 'TedarikOrderForm', params: { id: item.targetQnid } }).catch(()=>{});
               }
               Swal.close();

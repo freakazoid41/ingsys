@@ -272,7 +272,16 @@ class DocumentController extends Controller
 
         $key = $this->resolveDocumentKey($request, $method, $decodedData);
 
-        if (!docPermCheck($key, ($method === 'GET' ? 'read' : 'edit'))) {
+        // Tender suppliers must be able to read the product + category catalog:
+        // the offer matrix resolves the category's required file templates and
+        // product metadata from those documents. Narrow read-only exception.
+        $catalogRead = false;
+        if ($method === 'GET' && in_array($key, ['op-doc-product', 'op-doc-product-category'], true)) {
+            $auth = auth('sanctum')->user() ?? auth()->user();
+            $catalogRead = $auth && $this->perms->has($auth, 'per-041-03-01');
+        }
+
+        if (!docPermCheck($key, ($method === 'GET' ? 'read' : 'edit')) && ! $catalogRead) {
             if (!($key === 'op-doc-client' && session('type_key') === 'op-pert-reseller' && in_array($request->id, session('currentStatus')['clientQnidList'] ?? [], true) && in_array($method, ['GET','PUT'], true))) {
                 return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır...'],403);
             }
@@ -326,9 +335,17 @@ class DocumentController extends Controller
         if ($key === 'op-doc-ihale') {
             $hasCode = false;
             $hasProduct = false;
+            $hasDeadline = false;
+            $hasSpecTitle = false;
+            $deadlineValue = '';
             foreach (($decoded['dynamicF'] ?? []) as $row) {
                 foreach (($row['entities'] ?? []) as $k => $v) {
                     if ($k === 'ihale_kodu' && trim((string) $v) !== '') $hasCode = true;
+                    if (str_starts_with((string) $k, 'spec_title') && trim((string) $v) !== '') $hasSpecTitle = true;
+                    if ($k === 'teklif_son_tarihi' && trim((string) $v) !== '') {
+                        $hasDeadline = true;
+                        $deadlineValue = trim((string) $v);
+                    }
                     if (str_starts_with((string) $k, 'product_qnid**ihale_product_rows') && trim((string) $v) !== '') {
                         $hasProduct = true;
                     }
@@ -338,10 +355,33 @@ class DocumentController extends Controller
             foreach ($files as $fileKey => $fileValue) {
                 if (str_contains((string) $fileKey, 'ihale_spec_file')) { $hasSpec = true; break; }
             }
-            if (! $hasCode || ! $hasProduct || ! $hasSpec) {
+            if (! $hasCode || ! $hasProduct || ! $hasSpec || ! $hasSpecTitle || ! $hasDeadline) {
                 return response()->json([
                     'success' => false,
-                    'msg'     => 'İhale kodu, en az bir ürün ve teknik şartname dosyası zorunludur.',
+                    'msg'     => 'İhale kodu, teklif son tarihi, ilgili teknik şartname adı/dosyası ve en az bir ürün zorunludur.',
+                ], 422);
+            }
+            if (strtotime($deadlineValue) === false) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Teklif son tarihi geçerli bir tarih olmalıdır.',
+                ], 422);
+            }
+        }
+
+        // Ürün kartı malzeme grubu (kategori) olmadan oluşturulamaz: teklif
+        // matrisi zorunlu dosya şablonlarını kategori üzerinden çözer.
+        if ($key === 'op-doc-product') {
+            $hasCategory = false;
+            foreach (($decoded['dynamicF'] ?? []) as $row) {
+                foreach (($row['entities'] ?? []) as $k => $v) {
+                    if ($k === 'category_qnid' && trim((string) $v) !== '') $hasCategory = true;
+                }
+            }
+            if (! $hasCategory) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Malzeme grubu (kategori) seçmeden ürün oluşturulamaz.',
                 ], 422);
             }
         }

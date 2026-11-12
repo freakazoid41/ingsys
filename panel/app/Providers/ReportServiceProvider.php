@@ -341,6 +341,8 @@ class ReportServiceProvider extends ServiceProvider
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-requestf-form'],
             ],
             'order' => ['key' => 'main_id', 'style' => 'desc'],
+            'scale' => ['page' => 1, 'limit' => 30],
+            'noCount' => true,
         ]);
         return $data['data'] ?? [];
     }
@@ -354,6 +356,8 @@ class ReportServiceProvider extends ServiceProvider
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-ihale-form'],
             ],
             'order' => ['key' => 'main_id', 'style' => 'desc'],
+            'scale' => ['page' => 1, 'limit' => 30],
+            'noCount' => true,
         ]);
         return $data['data'] ?? [];
     }
@@ -366,22 +370,55 @@ class ReportServiceProvider extends ServiceProvider
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-ihale-offer-form'],
             ],
             'order' => ['key' => 'main_id', 'style' => 'desc'],
+            'scale' => ['page' => 1, 'limit' => 30],
+            'noCount' => true,
         ]);
         return $data['data'] ?? [];
     }
 
     // ── TEDARIK helpers ──
+    /**
+     * Latest N document ids whose most recent order transaction is $statusKey.
+     * Resolving ids first avoids scanning/sorting ~30k documents per bell item.
+     */
+    private function latestOrderTargetIds(string $statusKey, int $limit = 30): array
+    {
+        $typeId = (int) DB::table('sys_options')->where('op_key', $statusKey)->value('id');
+        if ($typeId <= 0) {
+            return [];
+        }
+
+        return DB::table('transactions as t')
+            ->where('t.type_id', $typeId)
+            ->whereRaw(
+                't.id = (select max(t2.id) from transactions t2 where t2.target_id = t.target_id and t2.type_id in (select id from sys_options where group_key = ?))',
+                ['op-trans-op-doc-order']
+            )
+            ->orderByDesc('t.id')
+            ->limit($limit)
+            ->pluck('t.target_id')
+            ->all();
+    }
+
     public function getTedarikOrders($statusKey){
+        $ids = $this->latestOrderTargetIds($statusKey, 30);
+        if (empty($ids)) {
+            return [];
+        }
+
         // with-cancelled=1 so cancelOrder (status=0 + rejected txn) still appears in tedarik-06/07 bells.
         // OList does not pass this flag, so lists stay active-only.
         $data = \App\Models\Documents::tableList([
             'filter' => [
-                ['key' => 'transactions', 'type' => '=','value' => $statusKey],
+                ['key' => 'target_ids', 'type' => 'in','value' => $ids],
                 ['key' => 'type', 'type' => '=','value' => 'op-doc-order'],
                 ['key' => 'form-type', 'type' => '=','value' => 'op-doc-order-form'],
                 ['key' => 'with-cancelled', 'type' => '=','value' => '1'],
             ],
             'order' => ['key' => 'main_id', 'style' => 'desc'],
+            // bell feeds only render the latest N — never pull tens of thousands
+            'scale' => ['page' => 1, 'limit' => 30],
+            'noCount' => true,
         ]);
         return $data['data'] ?? [];
     }
@@ -392,6 +429,8 @@ class ReportServiceProvider extends ServiceProvider
                 ['key' => 'file_status', 'type' => '=','value' => $fileStatusKey],
             ],
             'order' => ['key' => 'main_id', 'style' => 'desc'],
+            'scale' => ['page' => 1, 'limit' => 30],
+            'noCount' => true,
         ]);
         return $data['data'] ?? [];
     }

@@ -42,7 +42,7 @@ class ImportLegacyCommand extends Command
     private array $orderStatusMap = [
         'status-wait' => 'doc_trans_order_created',
         'status-file-check' => 'doc_trans_order_transfer_sent',
-        'status-factory-check-wait' => 'doc_trans_order_transfer_sent',
+        'status-factory-check-wait' => 'doc_trans_order_ready_for_shipment',
         'status-transfer-ended' => 'doc_trans_order_approved',
         'status-file-rejected' => 'doc_trans_order_files_rejected',
     ];
@@ -160,6 +160,14 @@ class ImportLegacyCommand extends Command
         // ---- 5. TRANSACTIONS ----
         if (!$dry && $run('transactions')) $stats = $this->importTransactions($L('x'), $statusIds, $docMap, $chunk, $stats);
         elseif ($dry) $stats['transactions'] = $L('x')->table('transactions')->count();
+
+        // Legacy never wrote an explicit "created" event; synthesize missing
+        // order-level statuses now that file history is available.
+        if (!$dry && $run('transactions')) {
+            $backfill = (new \App\Services\OrderStatusBackfillService())->backfill();
+            $stats['status_backfill'] = $backfill['applied'];
+            $this->line('status backfill: '.$backfill['applied'].' ('.json_encode($backfill['counts']).')');
+        }
 
         // ---- 6. USERS/PERSONS ----
         if (!$dry && $run('users')) {
@@ -333,7 +341,9 @@ class ImportLegacyCommand extends Command
                                'table_tag'=>'sys_con_ops','created_at'=>$now,'updated_at'=>$now];
                 }
                 DB::table('sys_con_entities')->insert($rows);
-                // birth transaction (created) - full history comes from transactions import
+                // Legacy "created" was implicit (no order-level transaction).
+                // After the transactions phase, OrderStatusBackfillService derives
+                // the missing status from files for every order that has no event.
                 $count++;
             }
         }

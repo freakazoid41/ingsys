@@ -31,15 +31,6 @@ export default {
                     perm: 'per-041-02',
                 },
                 {
-                    key: 'ihale',
-                    title: 'İhale',
-                    desc: 'İhale ve teklif süreçleri',
-                    icon: 'ki-outline ki-chart-simple',
-                    path: '/tedarikpanel/ihaleler',
-                    color: '#059669',
-                    perm: 'per-041-03-01',
-                },
-                {
                     key: 'fabrika',
                     title: 'Fabrika Kabul',
                     desc: 'Fabrika kabul — Yakında',
@@ -115,7 +106,6 @@ export default {
         tenantLogo() { return (String(this.sysCode || '').toUpperCase() === 'ADM') ? '/coaltheme/adm-logo.svg' : '/coaltheme/GDZ.svg'; },
         userName() { return this.authStore.userName || this.authStore.currentStatus?.main_name || ''; },
         isOrdersActive() { return this.$route.path.includes('/orders'); },
-        isIhaleActive() { return this.$route.path.includes('/ihaleler'); },
         isDokumanActive() { return this.$route.path.includes('/document'); },
         isDashboardActive() { return this.$route.path === '/tedarikpanel' || this.$route.path === '/tedarikpanel/'; },
         isBilgilendirmelerActive() { return this.$route.path.includes('/bilgilendirmeler'); },
@@ -246,13 +236,6 @@ export default {
                         <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isOrdersActive }]">
                             <i class="ki-outline ki-document tedarik-menu-icon"></i>
                             <span>Siparişler</span>
-                            <i class="ki-outline ki-right tedarik-menu-arrow"></i>
-                        </a>
-                    </router-link>
-                    <router-link v-if="authStore.permissions?.includes('per-041-03-01') || authStore.permissions?.includes('per-041-03')" to="/tedarikpanel/ihaleler" custom v-slot="{ navigate, href }">
-                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isIhaleActive }]">
-                            <i class="ki-outline ki-chart-simple tedarik-menu-icon"></i>
-                            <span>İhaleler</span>
                             <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                         </a>
                     </router-link>

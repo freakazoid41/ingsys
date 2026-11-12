@@ -96,6 +96,16 @@ Mapping: `LIFNR→spec_code`, `EBELN→order_no+transfer_no`, `EBELP appended MA
 
 ---
 
+### Legacy import status repair (2026-11-12)
+
+Legacy wrote `created` implicitly — only 170 of 10,591 orders had a `status-wait` transaction. `ImportLegacyCommand` copies transactions but cannot invent that missing event, so untouched orders imported with a blank status.
+
+- `orders:backfill-status [--dry-run]` — only orders with **no** `op-trans-op-doc-order` transaction; derives:
+  no files → `doc_trans_order_created` · any last file rejected → `doc_trans_order_files_rejected` · all last files accepted → `doc_trans_order_ready_for_shipment` · files pending → `doc_trans_order_transfer_sent`.
+- `orders:repair-factory-status [--dry-run]` — remaps legacy `status-factory-check-wait` events (1,534) from `transfer_sent` to `ready_for_shipment`; matches by order qnid, then order_no, then exact timestamp.
+- Importer now maps `status-factory-check-wait` → `doc_trans_order_ready_for_shipment` and runs the backfill automatically after the transactions phase.
+- Live result: **0 missing**; 2,710 created / 93 ready / 78 transfer_sent / 7,688 approved / 22 files_rejected.
+
 ## 4. Step 1 — Supplier Login (Single Orange Login)
 
 **Entry:** `GET /` or `GET /tedarik` → `resources/views/auth/tedariklogin.blade.php` orange card `560×840 140px Gdz` `Sipariş Platformu` `E-Posta/Şifreniz 56px` `Giriş Yap 58px #FF4713` `panel/docs` `AuthController.php:873`.

@@ -3,7 +3,7 @@
 > Scope: `panel/documentation/**` + `memory/**` against the live `tedarikNewApp` schema/code.
 > Environment: PostgreSQL `127.0.0.1:5431` (Docker `tedarikNewApp`), Laravel test DB `komur_test`.
 > Commands used: `php artisan test`, `php artisan route:list`, `php artisan migrate:status`, `php artisan tinker`, `npm run build`, direct SQL integrity queries.
-> **Post-audit tender closeout (same day):** native `/tedarikpanel/ihaleler*`, deadline, server-side offer item validation, per-file acceptance, and 5 tender notification types were added. See `modules/tender.md` for the current open list.
+> **Post-audit tender closeout (same day):** admin/coalpanel-only tender entry, deadline, server-side offer item/file validation, per-file acceptance, and 5 tender notification types were added. Tedarik is intentionally kept separate (no İhale menu/tile). See `modules/tender.md` for the current open list.
 
 ## 1. Verdict
 
@@ -53,7 +53,7 @@
 - **Seeder-created clients/products/categories have no birth transaction** because their seeders insert rows directly instead of `registerContent`. They are not status-driven, but audit history is absent.
 - **Legacy dictionary rows remain**: `op-doc-offer`, `op-doc-offer-form`, `op-doc-flat`, `op-doc-client-main`, and legacy status groups. No documents use them, but they are not purged.
 - **`request:autoclose` is legacy/dead** for the new Planlama model (targets `op-doc-request` + `contract_end_date` and processes only the first row). It is still scheduled at 01:00. Decide to remove/repurpose.
-- **Tender closeout delivered after this audit:** native `/tedarikpanel/ihaleler*`, 5 notification types (`ihale-01/02`, `offer-01..03`), deadline enforcement, server-side offer/file validation, per-file acceptance, and `TenderPipelineTest`. Remaining tender scope: invites, prices/order handoff, multi-lot, auto-disqualification cron.
+- **Tender closeout delivered after this audit:** admin/coalpanel-only supplier entry (`/coalpanel/ihaleler*`), 5 notification types (`ihale-01/02`, `offer-01..03`), deadline enforcement, server-side offer/file validation, per-file acceptance, and `TenderPipelineTest`. Remaining tender scope: invites, prices/order handoff, multi-lot, auto-disqualification cron.
 - **`ClientStats.vue`, `ClientOfferTable.vue`, `OfferTable.vue`, `OfferRequestTable.vue`, `DashboardCalendar.vue`, `DashboardRequestTables.vue`** are unused legacy components; some still point at removed route names. They are not mounted, but should be deleted or marked.
 - **`notification_logs` has 52 email `error` rows** (historic); verify the current relay/SMTP setup before treating mail delivery as green.
 - **`Documents::tableList` / `Document_files::tableList`** still use string-built SQL with `noInject`; the tender/offer path is permission-gated now, but broader per-type hardening is still advisable.

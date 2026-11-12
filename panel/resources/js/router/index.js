@@ -111,8 +111,6 @@ const router = createRouter({
         { path: "/tedarikpanel/bilgilendirmeler", name: 'TedarikBilgilendirmeler', component: TedarikBilgilendirmeler },
         { path: "/tedarikpanel/orders", name: 'TedarikOrderList', component: OrderList },
         { path: "/tedarikpanel/orders/form/:id?", name: 'TedarikOrderForm', component: OrderForm },
-        { path: "/tedarikpanel/ihaleler", name: 'TedarikIhList', component: IhList },
-        { path: "/tedarikpanel/ihaleler/teklif/:id?", name: 'TedarikIhOffer', component: IhOffer },
         { path: "/tedarikpanel/documents", name: 'TedarikDList', component: DList },
         { path: "/tedarikpanel/documents/:id", name: 'TedarikDForm', component: DForm },
       ]
@@ -176,10 +174,10 @@ router.beforeEach((to, from, next) => {
             if (!hasOrder) return next('/tedarikpanel');
         }
         // İhale module: management (03) or offer creation (03-01) may enter the list
-        const inIhaleList = to.path.startsWith('/coalpanel/ihaleler') || to.path.startsWith('/tedarikpanel/ihaleler');
+        const inIhaleList = to.path.startsWith('/coalpanel/ihaleler');
         if (inIhaleList && perms.length) {
             if (!perms.includes('per-041-03') && !perms.includes('per-041-03-01')) {
-                return next(to.path.startsWith('/tedarikpanel') ? '/tedarikpanel' : '/coalpanel');
+                return next('/coalpanel');
             }
         }
         // Teklifler review queue: management only (no supplier review queue)

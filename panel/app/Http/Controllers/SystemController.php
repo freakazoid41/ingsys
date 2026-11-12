@@ -92,7 +92,18 @@ class SystemController extends Controller
         }
     }
 
+    private function notificationCacheKey(): string
+    {
+        return 'notif:'.(auth()->id() ?? 0).':'.(session('person_id') ?? '0').':'.(session('type_key') ?? '');
+    }
+
     public function getNotifications(){
+        $cacheKey = $this->notificationCacheKey();
+        $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         $response = ['blink' => 0, 'unreadTotal' => 0];
         $provider = new ReportServiceProvider();
         $limit = 10; // show only 10 unread per category
@@ -175,6 +186,10 @@ class SystemController extends Controller
         $response['unreadTotal'] += $r['total'];
         if($r['total'] > 0) $response['blink'] = 1;
 
+        // Several dashboard widgets call this endpoint on mount; a short cache
+        // keeps the single-thread dev server from re-running the whole feed.
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $response, 15);
+
         return $response;
 
     }
@@ -194,6 +209,7 @@ class SystemController extends Controller
             ['user_id'=>$userId, 'op_key'=>$opKey, 'target_qnid'=>$targetQnid],
             ['read_at'=>now()]
         );
+        \Illuminate\Support\Facades\Cache::forget($this->notificationCacheKey());
 
         return response()->json(['success'=>true]);
     }
@@ -217,6 +233,8 @@ class SystemController extends Controller
                 }
             }
         }
+
+        \Illuminate\Support\Facades\Cache::forget($this->notificationCacheKey());
 
         return response()->json(['success'=>true]);
     }

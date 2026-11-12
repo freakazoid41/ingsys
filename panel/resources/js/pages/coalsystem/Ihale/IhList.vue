@@ -46,8 +46,6 @@
         },
         computed: {
             isReseller(){ return this.authStore.typeKey === 'op-pert-reseller'; },
-            isTedarik(){ return this.$route.path.startsWith('/tedarikpanel'); },
-            offerRouteName(){ return this.isTedarik ? 'TedarikIhOffer' : 'IhOffer'; },
             canManage(){ return this.authStore.permissions?.includes('per-041-03') && !this.isReseller; },
         },
         methods: {
@@ -115,7 +113,9 @@
                 const rsp = await this.plib.request({ url : '/api/v1/tenders/activate', method : 'POST' }, null, fd);
 
                 if(rsp?.success){
-                    this.table.updateRow(qnid, { status : 'tender-activated**İhale Aktif**-' });
+                    // Include the action column key (`id`) so PickleTable re-runs its
+                    // columnFormatter and swaps 🚀/🗑 for Teklif Ver/✔.
+                    this.table.updateRow(qnid, { status : 'tender-activated**İhale Aktif**-', id : qnid });
                     this.plib.toast(this.Swal, 'success', 'İhale aktif edildi, teklif alımı açıldı.');
                 } else {
                     this.plib.toast(this.Swal, 'error', rsp?.msg || 'İhale aktif edilemedi.');
@@ -195,7 +195,7 @@
                 const done = await this.plib.request({ url : '/api/v1/tenders/complete', method : 'POST' }, null, fd2);
 
                 if (done?.success) {
-                    this.table.updateRow(qnid, { status : 'tender-complated**İhale Tamamlandı**-', winner_supplier_title : pick.value.title });
+                    this.table.updateRow(qnid, { status : 'tender-complated**İhale Tamamlandı**-', winner_supplier_title : pick.value.title, id : qnid });
                     this.plib.toast(this.Swal, 'success', 'İhale tamamlandı — kazanan: ' + pick.value.title);
                 } else {
                     this.plib.toast(this.Swal, 'error', done?.msg || 'İhale tamamlanamadı.');
@@ -350,7 +350,7 @@
                                 offerBtn.classList.add('btn','btn-secondary','action-icon-btn');
                                 offerBtn.title = 'Teklif Ver';
                                 offerBtn.innerHTML = '<i class="ki-outline ki-entrance-right fs-2"></i>';
-                                offerBtn.onclick = () => this.router.push({ name : this.offerRouteName, query : { ihale : columnData } });
+                                offerBtn.onclick = () => this.router.push({ name : 'IhOffer', query : { ihale : columnData } });
                                 span.appendChild(offerBtn);
                             }
 

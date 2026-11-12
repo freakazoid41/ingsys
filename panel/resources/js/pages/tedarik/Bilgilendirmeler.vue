@@ -283,8 +283,8 @@ export default {
       }
       if (isFileCat(rowData.cat) && rowData.qnid) this.$router.push({ name: 'TedarikDForm', params: { id: rowData.qnid } }).catch(() => {});
       else if (isPlanlamaCat(rowData.cat) && rowData.qnid) this.$router.push({ name: 'PlanlamaFForm', params: { id: rowData.qnid } }).catch(() => {});
-      else if (isTenderCat(rowData.cat) && ['ihale-01','ihale-02'].includes(rowData.cat)) this.$router.push({ name: 'TedarikIhList' }).catch(() => {});
-      else if (isTenderCat(rowData.cat) && rowData.qnid) this.$router.push({ name: 'TedarikIhOffer', params: { id: rowData.qnid } }).catch(() => {});
+      else if (isTenderCat(rowData.cat) && ['ihale-01','ihale-02'].includes(rowData.cat)) this.$router.push({ name: 'IhList' }).catch(() => {});
+      else if (isTenderCat(rowData.cat) && rowData.qnid) this.$router.push({ name: 'IhOffer', params: { id: rowData.qnid } }).catch(() => {});
       else if (rowData.qnid) this.$router.push({ name: 'TedarikOrderForm', params: { id: rowData.qnid } }).catch(() => {});
     },
   },

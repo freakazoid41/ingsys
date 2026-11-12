@@ -2,6 +2,12 @@
 import { defineStore } from 'pinia'
 import Plib from '@/lib/pickle';
 
+// Several dashboard widgets + headers call getNotifications on mount. Coalesce
+// concurrent calls and reuse the result briefly instead of hammering the feed.
+let notifInFlight = null;
+let notifFetchedAt = 0;
+const NOTIF_TTL = 20000;
+
 export const useNavigationStore = defineStore('navigation', {
   state: () => {
     // try to restore persisted nav state from sessionStorage
@@ -55,17 +61,30 @@ export const useNavigationStore = defineStore('navigation', {
       try{ sessionStorage.setItem('nav.state', JSON.stringify({ breadcrumps: this.breadcrumps, currentTitle: this.currentTitle, breadbuttons: this.breadbuttons, routeParams: this.routeParams, lastUpdated: this.lastUpdated })); }catch(e){}
     },
     async getNotifications(){
-        try {
-          const rsp = await (new Plib).request({
-            url      : '/api/v1/notifications',
-            method   : 'GET',
-          }, null);
-          
-          this.notifications = rsp || {};
-        } catch(error) {
-          console.error('Failed to load notifications:', error);
-          this.notifications = { blink: 0 }; // Reset on error
+        if (notifInFlight) return notifInFlight;
+        if (Date.now() - notifFetchedAt < NOTIF_TTL && this.notifications && this.notifications.unreadTotal !== undefined) {
+          return this.notifications;
         }
+
+        notifInFlight = (async () => {
+          try {
+            const rsp = await (new Plib).request({
+              url      : '/api/v1/notifications',
+              method   : 'GET',
+            }, null);
+
+            this.notifications = rsp || {};
+            notifFetchedAt = Date.now();
+          } catch(error) {
+            console.error('Failed to load notifications:', error);
+            this.notifications = { blink: 0 }; // Reset on error
+          } finally {
+            notifInFlight = null;
+          }
+          return this.notifications;
+        })();
+
+        return notifInFlight;
     },
     async markNotificationRead(opKey, targetQnid){
         try {

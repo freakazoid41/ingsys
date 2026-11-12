@@ -1,4 +1,26 @@
-!/usr/bin/bash
+#!/usr/bin/env bash
+#
+# ═══════════════════════════════════════════════════════════════════════════
+#  PRODUCTION CLOSEOUT MEMO — read before running this script
+# ═══════════════════════════════════════════════════════════════════════════
+#  1) JIT: disable on the production database (it cost ~350ms per complex
+#     document query here):
+#         ALTER DATABASE "<production_db>" SET jit = off;
+#     Verify with: SHOW jit;  -> off
+#
+#  2) .env: APP_ENV=production, APP_DEBUG=false, IS_TEST=false
+#     IS_TEST=true bypasses 2FA mail/SMS + reCAPTCHA. Never in production.
+#
+#  3) This script runs `migrate:fresh` and deletes uploaded documents.
+#     DO NOT run it against a database that contains live data.
+#     For a real deployment use:
+#         php artisan migrate --force
+#
+#  4) After build: npm run build && php artisan optimize
+#     Then restart PHP-FPM and the queue worker.
+#
+#  Full checklist: documentation/production-closeout-memo.md
+# ═══════════════════════════════════════════════════════════════════════════
 
 php artisan migrate:fresh
 php artisan db:seed --class="SysSeeder"
@@ -8,10 +30,14 @@ php artisan db:seed --class="DataSeeder"
 
 rm -r storage/app/public/documents/*
 
+echo ""
+echo "MEMO: production closeout — JIT off, IS_TEST=false, APP_DEBUG=false,"
+echo "      npm run build, php artisan optimize, restart PHP-FPM + queue."
+echo "      See documentation/production-closeout-memo.md"
+
 #php artisan serve
 #npm run build
 
 #npm run dev
-
 
 #php artisan serve.

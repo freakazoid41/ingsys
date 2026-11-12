@@ -132,7 +132,7 @@
                 const rsp = await this.plib.request({ url : '/api/v1/offers/accept', method : 'POST' }, null, fd);
 
                 if(rsp?.success){
-                    this.table.updateRow(qnid, { status : 'offer-accepted**Teklif Kabul Edildi**-' });
+                    this.table.updateRow(qnid, { status : 'offer-accepted**Teklif Kabul Edildi**-', id : qnid });
                     this.plib.toast(this.Swal, 'success', 'Teklif kabul edildi, ihale tamamlandı.');
                 } else {
                     this.plib.toast(this.Swal, 'error', rsp?.msg || 'Teklif kabul edilemedi.');
@@ -162,7 +162,7 @@
                 const rsp = await this.plib.request({ url : '/api/v1/offers/reject', method : 'POST' }, null, fd);
 
                 if(rsp?.success){
-                    this.table.updateRow(qnid, { status : 'offer-rejected**Teklif Reddedildi**' + note });
+                    this.table.updateRow(qnid, { status : 'offer-rejected**Teklif Reddedildi**' + note, id : qnid });
                     this.plib.toast(this.Swal, 'success', 'Teklif reddedildi.');
                 } else {
                     this.plib.toast(this.Swal, 'error', rsp?.msg || 'Teklif reddedilemedi.');

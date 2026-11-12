@@ -52,7 +52,8 @@ class Documents extends Model
         $formType = null;
         $withCancelled = false;
         foreach($obj['filter'] as $f){
-            $obj['filterKeys'][$f['key']] = noInject(strip_tags($f['value']));
+            $rawValue = is_array($f['value'] ?? null) ? implode(',', $f['value']) : ($f['value'] ?? '');
+            $obj['filterKeys'][$f['key']] = noInject(strip_tags((string) $rawValue));
 
             if($f['key'] == 'type' && !empty($f['value'])) {
                 $formType = $f['value'];
@@ -433,9 +434,9 @@ class Documents extends Model
             $expiredKeyReaded = false;
             foreach($obj['filter'] as $f){
                 
-                $nativeValue = noInject(strip_tags($f['value']));
+                $nativeValue = noInject(strip_tags(is_array($f['value'] ?? null) ? implode(',', $f['value']) : (string) ($f['value'] ?? '')));
                 if(isset($f['field'])) $f['key'] = $f['field'];
-                if(isset($f['value']) && $f['key'] !== 'transactions' ) $f['value'] = noInject(strip_tags($f['value']));
+                if(isset($f['value']) && $f['key'] !== 'transactions' && !is_array($f['value'])) $f['value'] = noInject(strip_tags($f['value']));
                 
                 switch($f['key']){
                     case 'showExpired':
@@ -606,6 +607,13 @@ class Documents extends Model
                     case 'parent_id':
                         $where .= " and i.parent_id = '".intval($f['value'])."' ";
                         break;
+                    case 'target_ids':
+                        // Pre-resolved document ids (notification feeds pick the
+                        // latest N status events first, then load only those docs).
+                        $ids = is_array($f['value']) ? $f['value'] : explode(',', (string) $f['value']);
+                        $ids = array_values(array_filter(array_map('intval', $ids)));
+                        $where .= $ids ? ' and i.id in ('.implode(',', $ids).') ' : ' and 1=0 ';
+                        break;
                     case 'is_system':
                     case 'system_only':
                         $v = trim((string)$f['value']);
@@ -680,7 +688,20 @@ class Documents extends Model
                     from documents as i '.$join.' ' . $where.$order.$limit ;
         
         $result = DB::select($sql);
-        
+
+        // Notification feeds fetch a small page and do not need a COUNT over the
+        // full (often huge) result set. Skipping it removes a heavy count query.
+        if (! empty($obj['noCount'])) {
+            $n = count($result);
+            return array(
+                'data'          => $result,
+                'pageCount'     => 1,
+                'totalCount'    => $n,
+                'filteredCount' => $n,
+                'last_page'     => 1,
+            );
+        }
+
         //count query — select-list subqueries (status/main_attr laterals) do not
         //affect count(distinct i.id); dropping them avoids evaluating ~N
         //correlated subqueries per row on big datasets.
