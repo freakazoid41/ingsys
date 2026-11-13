@@ -34,6 +34,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     Route::any('/v1/transaction/{id?}',                [DocumentController::class, 'transaction']);
     Route::post('/v1/temp-upload',                     [DocumentController::class, 'tempUpload']);
     Route::get('/v1/client-docs/{supplier}',            [DocumentController::class, 'clientDocs']);
+    Route::get('/v1/client-brands/{supplier}',          [DocumentController::class, 'clientBrands']);
     Route::post('/v1/client-docs/slot',                 [DocumentController::class, 'clientDocsSlot']);
     Route::post('/v1/tenders/complete',                 [DocumentController::class, 'completeTender']);
     Route::post('/v1/tenders/activate',                 [DocumentController::class, 'activateTender']);

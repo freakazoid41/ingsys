@@ -77,6 +77,9 @@
                 ihaleTable      : null,
                 ihaleSearch     : '',
                 registrySlots   : [],
+                brandOptions    : [],
+                brandMenuIdx    : null,
+                brandFiltered   : [],
                 snapshotSlots   : [],
                 tenderLocked    : false,
                 tenderInactive  : false,
@@ -184,10 +187,15 @@
             },
             async loadRegistry(){
                 try {
-                    const rsp = await this.plib.request({ url : '/api/v1/client-docs/' + this.supplierQnid, method : 'GET' }, null);
+                    const [rsp, brsp] = await Promise.all([
+                        this.plib.request({ url : '/api/v1/client-docs/' + this.supplierQnid, method : 'GET' }, null),
+                        this.plib.request({ url : '/api/v1/client-brands/' + this.supplierQnid, method : 'GET' }, null).catch(() => null),
+                    ]);
                     this.registrySlots = (rsp && rsp.success) ? (rsp.data?.slots || []) : [];
+                    this.brandOptions = (brsp && brsp.success) ? (brsp.data?.brands || []) : [];
                 } catch(e) {
                     this.registrySlots = [];
+                    this.brandOptions = [];
                 }
             },
             async onSupplierChange(){
@@ -436,9 +444,9 @@
                             }
                         }
                     }
-                    // shared library (client + product code + requirement + kVA) wins over
-                    // legacy per-offer files; completed tenders read the frozen snapshot
-                    this.applyLibrary(cells, p.prod_code);
+                    // shared library (client + product code + BRAND + requirement + kVA)
+                    // wins over legacy per-offer files; completed tenders read the frozen snapshot
+                    this.applyLibrary(cells, p.prod_code, (saved && saved.entities.urun_markasi) || '');
                     // group cells into template rows for rendering
                     const rowMap = {};
                     for (const ck in cells) {
@@ -764,19 +772,30 @@
             acceptFor(preset){
                 return ACCEPT_BY_PRESET[preset] || ACCEPT_BY_PRESET.all;
             },
-            libKey(prodCode, standard, fileTitle, kva){
+            libKey(prodCode, brand, standard, fileTitle, kva){
+                return [prodCode || '', brand || '', standard || '', fileTitle || '', kva || ''].join('||');
+            },
+            legacyLibKey(prodCode, standard, fileTitle, kva){
                 return [prodCode || '', standard || '', fileTitle || '', kva || ''].join('||');
             },
-            applyLibrary(cells, prodCode){
+            applyLibrary(cells, prodCode, brand){
                 // A closed tender must read ONLY its frozen snapshot, even when the
                 // snapshot has zero slots. Falling back to registrySlots lets a
                 // post-completion library upload appear inside a locked tender.
                 const source = this.tenderLocked ? this.snapshotSlots : this.registrySlots;
                 if (!source || !source.length) return;
+                // Live files are brand-scoped: without a brand there is nothing to
+                // resolve. Old brandless slots are only reachable via frozen snapshots.
+                if (!this.tenderLocked && !String(brand || '').trim()) return;
                 for (const ck in cells) {
                     const c = cells[ck];
-                    const key = this.libKey(prodCode, c.standard, c.file_title, c.kva);
-                    const slot = source.find(s => s.match_key === key);
+                    const key = this.libKey(prodCode, brand, c.standard, c.file_title, c.kva);
+                    let slot = source.find(s => s.match_key === key);
+                    // Old snapshots (pre-brand) keep resolving inside frozen tenders only.
+                    if (!slot && this.tenderLocked) {
+                        const legacy = this.legacyLibKey(prodCode, c.standard, c.file_title, c.kva);
+                        slot = source.find(s => s.match_key === legacy || s.legacy_key === legacy);
+                    }
                     if (!slot || !slot.file) continue;
                     c.state = 'saved';
                     c.shared = true;
@@ -787,6 +806,54 @@
                     c.history = slot.versions || [];
                     c.fileTag = slot.row || '';
                 }
+            },
+            brandOptionsFor(typed){
+                const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('tr');
+                const q = norm(typed);
+                const list = this.brandOptions || [];
+                if (!q) return list.slice(0, 60);
+                return list.filter(b => norm(b).includes(q)).slice(0, 60);
+            },
+            openBrandMenu(idx){
+                if (this.tenderLocked || this.tenderInactive || this.deadlinePassed) return;
+                this.brandMenuIdx = idx;
+                this.brandFiltered = this.brandOptionsFor('');
+            },
+            brandMenuTyping(idx, item){
+                this.brandMenuIdx = idx;
+                this.brandFiltered = this.brandOptionsFor(item.marka);
+            },
+            closeBrandMenu(){
+                // let option mousedown land before closing
+                setTimeout(() => { this.brandMenuIdx = null; }, 140);
+            },
+            pickBrand(item, brand){
+                item.marka = brand;
+                this.brandMenuIdx = null;
+                this.onBrandChange(item);
+            },
+            onBrandChange(item){
+                if (this.tenderLocked || this.tenderInactive || this.deadlinePassed) return;
+                // free-text guard: fold case/space variants onto the catalog's canonical spelling
+                const typed = String(item.marka || '').trim();
+                if (typed && this.brandOptions.length) {
+                    const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('tr');
+                    const hit = this.brandOptions.find(b => norm(b) === norm(typed));
+                    if (hit) item.marka = hit;
+                }
+                // Library files are remembered per brand: a brand change invalidates
+                // every shared cell and re-resolves against the new brand's slots.
+                Object.values(item.cells || {}).forEach(c => {
+                    if (!c.shared) return;
+                    c.state = 'empty';
+                    c.savedFile = null;
+                    c.shared = false;
+                    c.expired = false;
+                    c.fileStatus = '';
+                    c.history = [];
+                    c.fileTag = '';
+                });
+                this.applyLibrary(item.cells, item.prod_code, item.marka);
             },
             async askValidity(cell){
                 const current = cell.savedFile?.valid_until || '';
@@ -814,6 +881,9 @@
                             allowInput : true,
                             disableMobile : true,
                             defaultDate : current || null,
+                            // open upward: the default downward calendar covers the
+                            // swal's own Yükle/Vazgeç buttons and blocks clicks
+                            position : 'above',
                         });
                     },
                     willClose : () => {
@@ -859,6 +929,10 @@
                     this.plib.toast(this.Swal, 'info', 'Dosya en fazla 42 MB olabilir.');
                     return;
                 }
+                if (!String(item.marka || '').trim()) {
+                    this.plib.toast(this.Swal, 'info', 'Önce Ürün Markası girin — evraklar ürün kodu + marka eşleşmesiyle hatırlanır.');
+                    return;
+                }
                 const validUntil = await this.askValidity(cell);
                 if (validUntil === false) return;
 
@@ -882,6 +956,7 @@
                     payload.append('supplier_qnid', this.supplierQnid);
                     payload.append('supplier_title', this.supplierTitle());
                     payload.append('product_code', item.prod_code || '');
+                    payload.append('brand', String(item.marka || '').trim());
                     payload.append('standard', cell.standard || '');
                     payload.append('file_title', cell.file_title || '');
                     payload.append('kva', cell.kva || 'all');
@@ -1485,7 +1560,21 @@
                             <tr><th style="width:32%;background:#f1f5f9;">İHALE KODU</th><td>{{ ihale.kodu }}</td></tr>
                             <tr><th style="background:#f1f5f9;">İMALATÇI FİRMA ADI *</th><td><input v-model="it.imalatci" :disabled="!canWrite" type="text" class="form-control" placeholder="doldurunuz" /></td></tr>
                             <tr><th style="background:#f1f5f9;">TEDARİKÇİ FİRMA ADI</th><td>{{ supplierTitle() }}</td></tr>
-                            <tr><th style="background:#f1f5f9;">ÜRÜN MARKASI *</th><td><input v-model="it.marka" :disabled="!canWrite" type="text" class="form-control" placeholder="doldurunuz" /></td></tr>
+                            <tr><th style="background:#f1f5f9;">ÜRÜN MARKASI *</th><td>
+                                <div class="iho-brand-wrap">
+                                    <input v-model="it.marka" :disabled="!canWrite" type="text" class="form-control" placeholder="seçin veya yeni marka yazın"
+                                           @focus="openBrandMenu(idx)" @input="brandMenuTyping(idx, it)" @blur="closeBrandMenu" @change="onBrandChange(it)" />
+                                    <div v-if="brandMenuIdx === idx" class="iho-brand-menu">
+                                        <button v-for="b in brandFiltered" :key="b" type="button" class="iho-brand-opt" @mousedown.prevent="pickBrand(it, b)">
+                                            <i class="ki-outline ki-check fs-7"></i> {{ b }}
+                                        </button>
+                                        <div v-if="!brandFiltered.length" class="iho-brand-empty">
+                                            {{ brandOptions.length ? 'Eşleşen marka yok — yeni marka olarak yazabilirsiniz.' : 'Henüz kayıtlı marka yok — yeni marka yazın; sonraki ihalelerde önerilecek.' }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-muted small" style="margin-top:4px;">Listeden seçin veya yeni marka yazın — evraklar ürün kodu + markaya göre hatırlanır; marka değişirse evrak eşleşmeleri yenilenir.</div>
+                            </td></tr>
                             <tr><th style="background:#fffbeb;">MALZEME GRUBU</th><td>{{ it.category_title }}</td></tr>
                             <tr><th style="background:#f1f5f9;">İLGİLİ TEKNİK ŞARTNAME</th><td>{{ ihale.spec_title || '—' }}</td></tr>
                             <tr>
@@ -1946,4 +2035,12 @@
 .iho-attach-add:hover { border-color: #2f80ed; background: #eff6ff; }
 .iho-attach-add input { display: none; }
 .iho-attach-empty { font-size: 12px; color: #94a3b8; }
+
+/* brand suggestion combobox (free text + catalog list) */
+.iho-brand-wrap { position: relative; }
+.iho-brand-menu { position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 4px); background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 10px 24px rgba(15, 23, 42, .14); max-height: 220px; overflow-y: auto; padding: 4px; }
+.iho-brand-opt { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; border: 0; background: transparent; padding: 8px 10px; font-size: 12.5px; font-weight: 600; color: #0f172a; border-radius: 6px; cursor: pointer; }
+.iho-brand-opt:hover { background: #eff6ff; color: #1d4ed8; }
+.iho-brand-opt .ki-check { color: #16a34a; }
+.iho-brand-empty { padding: 8px 10px; font-size: 11.5px; color: #94a3b8; }
 </style>

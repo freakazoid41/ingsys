@@ -297,23 +297,41 @@ Supplier screen (`IhOffer.vue`, routes `/ihalepanel/ihaleler/teklif/:id?` and `/
 
 ## 10. Paylaşımlı Evrak Kütüphanesi — Shared Client Files (2026-11-11)
 
-> **Rule:** a file belongs to **client + product code + requirement + kVA**, never to a tender. Same client + same product code + same requirement sees the same file in every tender.
+> **Rule:** a file belongs to **client + product code + brand + requirement + kVA**, never to a tender. Same client + same product code + same brand + same requirement sees the same file in every tender.
 
 **Identity / storage**
-- Key (front + back, exact string): `product_code||standard||file_title||kva` — `kva = all` for a spanning template row.
+- Key (front + back, exact string): `product_code||brand||standard||file_title||kva` — `kva = all` for a spanning template row. Brand alone does not identify a file; it is part of the slot key, so the same product code on a different brand resolves to a different file.
 - Registry = one `op-doc-client-docs` document per supplier (`supplier_qnid` header entity).
-- Slot tag: `cdf_<sha1(product|standard|title|kva) 24>**client_docs**slot_<same hash>` — unique first segment so the engine's single-slot prefix replacement touches only that slot (never another cell).
+- Slot tag: `cdf_<sha1(product|brand|standard|title|kva) 24>**client_docs**slot_<same hash>` — unique first segment so the engine's single-slot prefix replacement touches only that slot (never another cell).
 - Versioning is the stock file mechanic: one `sys_con_entities` row per upload, active = `document_files.status=1`, `replaced_id` chains backwards. History = all entity rows for the slot.
 - Expiry: `document_files.valid_until` (migration `2026_11_11_120000`) — set at temp upload, survives finalize. Expired = red pill, still viewable, **blocks offer save**.
 
+**Brand scope (2026-11-13)**
+- Client requirement: remembered files must be brand-specific — same `prod_code` on a different **Ürün Markası** = different evrak set.
+- Upload is brand-gated: empty brand → front toast (“Önce Ürün Markası girin…”) and backend `422` from `ClientDocsService::uploadSlot`; nothing is written to the registry.
+- The brand typed in the offer matrix is sent with every slot upload (`brand` param). Changing the brand fires `onBrandChange()`: all `shared` cells reset, then `applyLibrary()` re-resolves against the new brand — remembered files appear/disappear live, without reload.
+- Before a brand exists, live offers resolve **no** library cells (`applyLibrary` early-returns). Brandless pre-2026-11-13 slots therefore no longer auto-fill open tenders; the supplier uploads once per brand.
+- Frozen tenders keep working: `applyLibrary` falls back to the legacy 4-part key **only when `tenderLocked`**, so pre-brand snapshots still render exactly as they were completed. New snapshots store brand-aware keys.
+- Mirror in server validation: `validateOfferFiles` builds the key from the product's `prod_code` + the offer item's `urun_markasi` (payload first, stored offer items as fallback) and rejects missing/expired files with the brand in the message.
+
+**Brand catalog / suggestions (2026-11-13)**
+- Free-text brand rot is guarded by a per-supplier brand catalog stored **EAV-style inside the supplier's `op-doc-client-docs` registry document** — no side table. Form instance = the registry's form conn; entity group `brand_catalog`; deterministic row key `b_<sha1(norm) 20>`.
+- Row fields: `brand**brand_catalog**<row>` (canonical), `brand_norm**brand_catalog**<row>` (folded), `last_used**brand_catalog**<row>` (`Y-m-d H:i:s`). Tags follow the stock `field**group**row` mechanic; all rows live on the registry conn with `table_tag=sys_con_ops`.
+- Canonical spelling = first spelling entered; folding is Turkish-aware trim + collapse spaces + lowercase (`ClientDocsService::normalizeBrand`, `İ→i`, `I→ı`). Later variants only refresh `last_used`.
+- Auto-fill points: slot upload (`uploadSlot`), offer create/update (`rememberOfferBrands` → every item's `urun_markasi`), and lazy insert-only backfill while reading a registry (`listing`). `brands()` additionally backfills from historical offer items (`urun_markasi` over the supplier's offers) and from branded slots on first read — so suppliers with old offers see their existing brands immediately, no manual seeding.
+- Suggestion endpoint: `GET /v1/client-brands/{supplierQnid}` → `{ success, data:{ brands:[…] } }`, most recently used first, cap 100; same read permission as client-docs (`canUseClientDocs`). The service resolves the registry doc → conn → reads `%**brand_catalog**%` entities, groups by row and sorts by `last_used`.
+- Offer UI: the **Ürün Markası** input is a custom combobox (`.iho-brand-menu`, focus-open — not a native datalist). Focus shows the full catalog; typing filters by substring (`brandOptionsFor`), no-match shows "Eşleşen marka yok — yeni marka olarak yazabilirsiniz", and picking an option sets the canonical brand then calls `onBrandChange()` to re-resolve cells. New brands stay allowed. Case/space variants fold to the catalog spelling first, so “PROBE MARKA” and “Probe Marka” hit the same remembered files.
+
 **Endpoints** (`DocumentController`)
-- `GET /v1/client-docs/{supplierQnid}` → `{ qnid, slots:[{match_key, product_code, standard, file_title, kva, evrak_no, file, expired, versions[]}] }`
-- `POST /v1/client-docs/slot` (multipart) → `supplier_qnid, supplier_title, product_code, standard, file_title, kva, evrak_no, reference(JSON)`; finalizes the temp file into the registry via `registerContent`.
+- `GET /v1/client-docs/{supplierQnid}` → `{ qnid, slots:[{match_key, legacy_key, product_code, brand, standard, file_title, kva, evrak_no, file, expired, versions[]}] }`
+- `GET /v1/client-brands/{supplierQnid}` → `{ success, data:{ brands:[…] } }` — per-supplier brand suggestions (most recent first).
+- `POST /v1/client-docs/slot` (multipart) → `supplier_qnid, supplier_title, product_code, brand, standard, file_title, kva, evrak_no, reference(JSON)`; finalizes the temp file into the registry via `registerContent`. `brand` is required (422 when empty).
 - `POST /v1/tenders/complete` `{ id: ihaleQnid }` → snapshots every offer of that tender, then writes `tender-complated`.
 - `POST /v1/tender-products` (`tableReq` JSON: `qnid`, `scale`, `filter`) → server-side paginated tender product rows enriched with `prod_code`, `category_qnid`, `category_title`; search matches title + product code (never qnid).
 
 **Tender completion lock**
 - Tender status chain `tender-created → tender-activated → tender-complated` (`op-trans-op-doc-ihale`); activation by 🚀, completion by ✔ (admin, `per-041-03`).
+- **Winner evrak gate (2026-11-13):** accept/complete resolves the winning offer and re-runs `validateOfferFiles(null, $winnerOfferQnid)` — stored offer items, brand-aware keys. Any missing or expired requirement (including a leftover `all`-kVA slot that does not cover the template's 160/400/1000/1600 columns) returns `422 Teklif kabul edilemez — Eksik veya süresi dolmuş evrak: <belge> — marka: <marka> (<ürün>)`; no snapshot, no status change. A tender can never be completed around an incomplete offer.
 - Completion stores one JSON `snapshot` entity on each offer header (`{snapshot_at, tender_qnid, slots[]}`).
 - While a tender is open, offers resolve files **live** from the registry (replacements show everywhere).
 - After completion the offer reads the **snapshot** — later registry replacements do not rewrite a closed tender. Offer UI becomes read-only and the upload/change buttons disappear.
@@ -322,7 +340,7 @@ Supplier screen (`IhOffer.vue`, routes `/ihalepanel/ihaleler/teklif/:id?` and `/
 - **Product overview first:** opening an offer lands on a **server-side paginated table** (`PickleTable` ajax → `POST /v1/tender-products`, 10/page, search by name/code) rendered as **card rows** (rounded row cards, left accent stripe = state). Columns: Ürün (title + `prod_code` + qty/unit) · Kategori · Evrak (`ready/total` + mini bar) · Eksik (missing + expired) · Durum pill (**Dikkat Bekliyor / Devam Ediyor / Tamamlandı**) · Doldur/Aç. Header chips summarise `N ürün dikkat bekliyor` / `N tamam` / total. Stats come from the built items (`itemStats`), so they refresh on return from the matrix. Clicking a row opens that product's matrix (`viewMode='form'`); `← Ürün Listesi` returns and rebuilds the table.
 - **TEDAŞ / Genel Görüş rows** use attachment cards (`.iho-attach-*`): doc icon, ellipsised file name, status pill, right-aligned Önizle / Değiştir / Kaldır; pending uploads render as dashed amber cards; empty state = dashed **+ Dosya Ekle/Yükle** button. TEDAŞ stays multi-file (append), görüş stays single (replace).
 - **Matrix cells (`IhFileCell.vue`):** empty → outlined **Yükle** button; filled → **icon-only tile** (no text): **green check** = uploaded/valid, **red alert** = rejected, **amber clock** = expired (`title` tooltip carries date/status). Clicking the tile opens **Dosya İşlemleri** modal: status pill, yüklenme/geçerlilik/kaynak/sürüm rows, **Not / Ret nedeni** box, and buttons **Önizle · Geçmiş (n) · Yenile · Dosyayı Reddet** (admin only, hidden on a locked tender). `Geçmiş` opens the version-history modal; `Yenile` re-opens the flatpickr expiry + upload flow.
-- On file pick: `Geçerlilik Tarihi` prompt — **flatpickr** (Turkish locale, `d/m/Y`, typed or picked, optional) → temp upload with `valid_until` → slot POST → cell becomes `saved` + `Paylaşımlı`, expiry shown, `Geçmiş (n)` opens the version history modal.
+- On file pick: `Geçerlilik Tarihi` prompt — **flatpickr** (Turkish locale, `d/m/Y`, typed or picked, optional) → temp upload with `valid_until` → slot POST → cell becomes `saved` + `Paylaşımlı`, expiry shown, `Geçmiş (n)` opens the version history modal. Calendar opens with `position : 'above'` so it never covers the prompt's own Yükle/Vazgeç buttons (fixed 2026-11-13 — the default downward calendar swallowed clicks on the buttons). Upload is blocked until **Ürün Markası** is filled; the brand input is a focus-open combobox (pick a remembered brand or type a new one) and carries a hint that evraklar ürün kodu + markaya göre hatırlanır.
 - `itemMissing` / `missingList` treat expired files as missing → save is blocked with "süresi doldu".
 - `IhList` gained a **Durum** pill (Açık / İhale Tamamlandı) and the completion action.
 

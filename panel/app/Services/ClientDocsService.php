@@ -24,23 +24,182 @@ class ClientDocsService
     public const TYPE  = 'op-doc-client-docs';
     public const FORM  = 'op-doc-client-docs-form';
     public const GROUP = 'client_docs';
+    public const BRAND_GROUP = 'brand_catalog';
 
-    /** Stable, unique-per-slot tag prefix (kept short: entity_tag is varchar(100)). */
-    public static function slotTag(string $productCode, string $standard, string $fileTitle, string $kva): string
+    /** Stable, unique-per-slot tag prefix (kept short: entity_tag is varchar(100)).
+     *  Brand is part of slot identity: same product code on a different brand is a different file. */
+    public static function slotTag(string $productCode, string $brand, string $standard, string $fileTitle, string $kva): string
     {
-        $hash = substr(sha1($productCode.'|'.$standard.'|'.$fileTitle.'|'.$kva), 0, 24);
+        $hash = substr(sha1($productCode.'|'.$brand.'|'.$standard.'|'.$fileTitle.'|'.$kva), 0, 24);
         return 'cdf_'.$hash;
     }
 
-    public static function slotRow(string $productCode, string $standard, string $fileTitle, string $kva): string
+    public static function slotRow(string $productCode, string $brand, string $standard, string $fileTitle, string $kva): string
     {
-        return 'slot_'.substr(sha1($productCode.'|'.$standard.'|'.$fileTitle.'|'.$kva), 0, 24);
+        return 'slot_'.substr(sha1($productCode.'|'.$brand.'|'.$standard.'|'.$fileTitle.'|'.$kva), 0, 24);
     }
 
-    /** Frontend/back shared match key: product code + requirement text + kVA. */
-    public static function matchKey(string $productCode, string $standard, string $fileTitle, string $kva): string
+    /** Frontend/back shared match key: product code + brand + requirement text + kVA. */
+    public static function matchKey(string $productCode, string $brand, string $standard, string $fileTitle, string $kva): string
+    {
+        return $productCode.'||'.$brand.'||'.$standard.'||'.$fileTitle.'||'.$kva;
+    }
+
+    /** Pre-brand key, kept only so frozen (completed) tenders still resolve their old snapshots. */
+    public static function legacyMatchKey(string $productCode, string $standard, string $fileTitle, string $kva): string
     {
         return $productCode.'||'.$standard.'||'.$fileTitle.'||'.$kva;
+    }
+
+    /** Fold free-text brand variants: trim, collapse spaces, Turkish-aware casefold. */
+    public static function normalizeBrand(string $brand): string
+    {
+        $b = trim(preg_replace('/\s+/u', ' ', $brand));
+        $b = strtr($b, ['İ' => 'i', 'I' => 'ı']);
+        return mb_strtolower($b, 'UTF-8');
+    }
+
+    /**
+     * Upsert one brand into the supplier's suggestion catalog.
+     * Canonical spelling is the first one entered; later variants only refresh usage.
+     * Catalog is EAV, stored inside the supplier's client-docs registry document
+     * (group `brand_catalog`, row `b_<sha1(norm)>`) — no side tables.
+     */
+    public function rememberBrand(string $supplierQnid, string $brand, bool $touch = true): void
+    {
+        $brand = trim($brand);
+        $norm = self::normalizeBrand($brand);
+        if ($supplierQnid === '' || $brand === '' || $norm === '') return;
+
+        try {
+            $registry = $this->ensureRegistry($supplierQnid);
+            $connId = (int) $registry['conn_id'];
+            if (! $connId) return;
+
+            $suffix = '**'.self::BRAND_GROUP.'**'.self::brandRow($norm);
+            $now = now();
+
+            $exists = Sys_con_entities::where('conn_id', $connId)
+                ->where('entity_tag', 'brand'.$suffix)
+                ->exists();
+            if ($exists) {
+                if ($touch) {
+                    Sys_con_entities::where('conn_id', $connId)
+                        ->where('entity_tag', 'last_used'.$suffix)
+                        ->update(['entity_value' => $now->toDateTimeString(), 'updated_at' => $now]);
+                }
+                return;
+            }
+
+            foreach ([
+                'brand' => $brand,
+                'brand_norm' => $norm,
+                'last_used' => $now->toDateTimeString(),
+            ] as $tag => $value) {
+                $e = new Sys_con_entities();
+                $e->table_tag = 'sys_con_ops';
+                $e->conn_id = $connId;
+                $e->entity_tag = $tag.$suffix;
+                $e->entity_value = $value;
+                $e->save();
+            }
+        } catch (\Throwable $e) {
+            // catalog is a convenience layer — never break uploads/listing on it
+        }
+    }
+
+    /** Deterministic EAV row key for one folded brand. */
+    public static function brandRow(string $norm): string
+    {
+        return 'b_'.substr(sha1($norm), 0, 20);
+    }
+
+    /** Distinct brands of one supplier, most recently used first. */
+    public function brands(string $supplierQnid, int $limit = 100): array
+    {
+        if ($supplierQnid === '') return [];
+        try {
+            // Lazy backfill: historical offer items + branded library slots predate
+            // the catalog; fold them in before the first read (insert-only).
+            $this->backfillBrands($supplierQnid);
+
+            $doc = $this->registryDoc($supplierQnid);
+            $connId = $doc ? $this->connId($doc) : 0;
+            if (! $connId) return [];
+
+            $entities = DB::table('sys_con_entities')
+                ->where('conn_id', $connId)
+                ->where('table_tag', 'sys_con_ops')
+                ->where('entity_tag', 'like', '%**'.self::BRAND_GROUP.'**%')
+                ->get(['entity_tag', 'entity_value']);
+
+            $rows = [];
+            foreach ($entities as $e) {
+                $parts = explode('**', $e->entity_tag);
+                if (count($parts) !== 3 || $parts[1] !== self::BRAND_GROUP) continue;
+                $rows[$parts[2]][$parts[0]] = $e->entity_value;
+            }
+
+            $list = [];
+            foreach ($rows as $r) {
+                if (! empty($r['brand'])) {
+                    $list[] = ['brand' => $r['brand'], 'last' => $r['last_used'] ?? ''];
+                }
+            }
+            usort($list, fn ($a, $b) => strcmp($b['last'], $a['last']));
+
+            return array_slice(array_column($list, 'brand'), 0, $limit);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /** Seed the catalog from data that predates it (offers + branded slots). Insert-only. */
+    private function backfillBrands(string $supplierQnid): void
+    {
+        try {
+            $itemForm = Sys_options::where('op_key', 'op-doc-ihale-offer-item-form')->value('id');
+            $offerType = Sys_options::where('op_key', 'op-doc-ihale-offer')->value('id');
+            if ($itemForm && $offerType) {
+                $docIds = DB::table('sys_con_entities as se')
+                    ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                    ->join('documents as d', 'd.id', '=', 'so.main_id')
+                    ->where('d.type_id', $offerType)
+                    ->where('d.status', 1)
+                    ->where('se.entity_tag', 'supplier_qnid')
+                    ->where('se.entity_value', $supplierQnid)
+                    ->pluck('so.main_id')
+                    ->unique();
+
+                if ($docIds->isNotEmpty()) {
+                    $brands = DB::table('sys_con_entities as se')
+                        ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                        ->whereIn('so.main_id', $docIds)
+                        ->where('so.type_id', $itemForm)
+                        ->where('se.entity_tag', 'urun_markasi')
+                        ->pluck('se.entity_value');
+                    foreach ($brands as $brand) {
+                        $b = trim((string) $brand);
+                        if ($b !== '') $this->rememberBrand($supplierQnid, $b, false);
+                    }
+                }
+            }
+
+            $doc = $this->registryDoc($supplierQnid);
+            $connId = $doc ? $this->connId($doc) : 0;
+            if ($connId) {
+                $slotBrands = DB::table('sys_con_entities')
+                    ->where('conn_id', $connId)
+                    ->where('entity_tag', 'like', 'brand**'.self::GROUP.'**%')
+                    ->pluck('entity_value');
+                foreach ($slotBrands as $brand) {
+                    $b = trim((string) $brand);
+                    if ($b !== '') $this->rememberBrand($supplierQnid, $b, false);
+                }
+            }
+        } catch (\Throwable $e) {
+            // backfill is best-effort — never block the suggestion read
+        }
     }
 
     public function registryDoc(string $supplierQnid): ?Documents
@@ -122,6 +281,7 @@ class ClientDocsService
         $supplierQnid = (string) ($a['supplier_qnid'] ?? '');
         $supplierTitle = (string) ($a['supplier_title'] ?? '');
         $productCode = trim((string) ($a['product_code'] ?? ''));
+        $brand = trim((string) ($a['brand'] ?? ''));
         $standard = trim((string) ($a['standard'] ?? ''));
         $fileTitle = trim((string) ($a['file_title'] ?? ''));
         $kva = trim((string) ($a['kva'] ?? ''));
@@ -131,6 +291,9 @@ class ClientDocsService
         if ($supplierQnid === '' || $productCode === '' || $fileTitle === '') {
             return ['success' => false, 'msg' => 'Eksik parametre: supplier_qnid / product_code / file_title'];
         }
+        if ($brand === '') {
+            return ['success' => false, 'msg' => 'Ürün markası zorunludur — evrak ürün kodu + markaya göre saklanır.'];
+        }
         if (! is_array($reference) || empty($reference['reference_id'])) {
             return ['success' => false, 'msg' => 'Geçersiz dosya referansı'];
         }
@@ -139,14 +302,15 @@ class ClientDocsService
         $doc = $registry['doc'];
         $connId = $registry['conn_id'];
 
-        $tag = self::slotTag($productCode, $standard, $fileTitle, $kva);
-        $row = self::slotRow($productCode, $standard, $fileTitle, $kva);
+        $tag = self::slotTag($productCode, $brand, $standard, $fileTitle, $kva);
+        $row = self::slotRow($productCode, $brand, $standard, $fileTitle, $kva);
         $suffix = '**'.self::GROUP.'**'.$row;
 
         $entities = [
             'supplier_qnid' => $supplierQnid,
             'supplier_title' => $supplierTitle,
             'product_code'.$suffix => $productCode,
+            'brand'.$suffix => $brand,
             'standard'.$suffix => $standard,
             'file_title'.$suffix => $fileTitle,
             'kva'.$suffix => $kva,
@@ -171,6 +335,8 @@ class ClientDocsService
         }
 
         $file = $this->activeFile($connId, $tag.$suffix);
+
+        $this->rememberBrand($supplierQnid, $brand);
 
         return ['success' => true, 'slot' => $this->slotPayload($row, $connId, $tag.$suffix), 'file' => $file];
     }
@@ -232,15 +398,23 @@ class ClientDocsService
             $slots[] = [
                 'row' => $row,
                 'product_code' => $m['product_code'] ?? '',
+                'brand' => $m['brand'] ?? '',
                 'standard' => $m['standard'] ?? '',
                 'file_title' => $m['file_title'] ?? '',
                 'kva' => $m['kva'] ?? '',
                 'evrak_no' => $m['evrak_no'] ?? '',
-                'match_key' => self::matchKey($m['product_code'] ?? '', $m['standard'] ?? '', $m['file_title'] ?? '', $m['kva'] ?? ''),
+                'match_key' => self::matchKey($m['product_code'] ?? '', $m['brand'] ?? '', $m['standard'] ?? '', $m['file_title'] ?? '', $m['kva'] ?? ''),
+                'legacy_key' => self::legacyMatchKey($m['product_code'] ?? '', $m['standard'] ?? '', $m['file_title'] ?? '', $m['kva'] ?? ''),
                 'file' => $active,
                 'expired' => $this->isExpired($active),
                 'versions' => $versions,
             ];
+        }
+
+        // Backfill the brand suggestion catalog from existing slots (insert-only).
+        foreach ($slots as $s) {
+            $b = trim((string) ($s['brand'] ?? ''));
+            if ($b !== '') $this->rememberBrand($supplierQnid, $b, false);
         }
 
         // Attach the latest file-level transaction (offer-file-rejected etc.) to active files
@@ -294,11 +468,13 @@ class ClientDocsService
         return [
             'row' => $row,
             'product_code' => $m['product_code'] ?? '',
+            'brand' => $m['brand'] ?? '',
             'standard' => $m['standard'] ?? '',
             'file_title' => $m['file_title'] ?? '',
             'kva' => $m['kva'] ?? '',
             'evrak_no' => $m['evrak_no'] ?? '',
-            'match_key' => self::matchKey($m['product_code'] ?? '', $m['standard'] ?? '', $m['file_title'] ?? '', $m['kva'] ?? ''),
+            'match_key' => self::matchKey($m['product_code'] ?? '', $m['brand'] ?? '', $m['standard'] ?? '', $m['file_title'] ?? '', $m['kva'] ?? ''),
+            'legacy_key' => self::legacyMatchKey($m['product_code'] ?? '', $m['standard'] ?? '', $m['file_title'] ?? '', $m['kva'] ?? ''),
             'file' => $file,
             'expired' => $this->isExpired($file),
             'versions' => [$file],

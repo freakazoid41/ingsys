@@ -392,14 +392,16 @@ async function main() {
     await kb.waitForSelector('#iho_prod_table table tbody tr', { timeout: 30000 });
     await kb.locator('#iho_prod_table button.iho-pt-btn').first().click();
     await kb.waitForTimeout(800);
-    const kbIn = kb.locator('input[placeholder="doldurunuz"]:visible');
-    await kbIn.nth(0).fill('PIPE KB İmalatçı');
-    await kbIn.nth(1).fill('PIPE KB Marka');
-    const cell = kb.locator('.iho-cell-upload input[type="file"]').first();
-    if (await cell.count()) {
+    await kb.locator('tr:has-text("İMALATÇI FİRMA ADI") input').first().fill('PIPE KB İmalatçı');
+    await kb.locator('tr:has-text("ÜRÜN MARKASI") input').first().fill('PIPE KB Marka');
+    await kb.locator('tr:has-text("ÜRÜN MARKASI") input').first().press('Tab');
+    await kb.waitForTimeout(800);
+    for (let round = 0; round < 10; round++) {
+      const cell = kb.locator('.iho-cell-upload input[type="file"]').first();
+      if (!(await cell.count())) break;
       await cell.setInputFiles(PDF);
-      await kb.waitForTimeout(800);
-      const swU = kb.locator('.swal2-confirm');
+      await kb.waitForTimeout(1000);
+      const swU = kb.locator('.swal2-popup button:has-text("Yükle")');
       if (await swU.count()) await swU.click().catch(() => {});
       await kb.waitForTimeout(1500);
     }
@@ -419,14 +421,16 @@ async function main() {
     await pickle.waitForSelector('#iho_prod_table table tbody tr', { timeout: 30000 });
     await pickle.locator('#iho_prod_table button.iho-pt-btn').first().click();
     await pickle.waitForTimeout(800);
-    const pIn = pickle.locator('input[placeholder="doldurunuz"]:visible');
-    await pIn.nth(0).fill('PIPE Pickle İmalatçı');
-    await pIn.nth(1).fill('PIPE Pickle Marka');
-    const pCell = pickle.locator('.iho-cell-upload input[type="file"]').first();
-    if (await pCell.count()) {
+    await pickle.locator('tr:has-text("İMALATÇI FİRMA ADI") input').first().fill('PIPE Pickle İmalatçı');
+    await pickle.locator('tr:has-text("ÜRÜN MARKASI") input').first().fill('PIPE Pickle Marka');
+    await pickle.locator('tr:has-text("ÜRÜN MARKASI") input').first().press('Tab');
+    await pickle.waitForTimeout(800);
+    for (let round = 0; round < 10; round++) {
+      const pCell = pickle.locator('.iho-cell-upload input[type="file"]').first();
+      if (!(await pCell.count())) break;
       await pCell.setInputFiles(PDF);
-      await pickle.waitForTimeout(800);
-      const swU = pickle.locator('.swal2-confirm');
+      await pickle.waitForTimeout(1000);
+      const swU = pickle.locator('.swal2-popup button:has-text("Yükle")');
       if (await swU.count()) await swU.click().catch(() => {});
       await pickle.waitForTimeout(1500);
     }

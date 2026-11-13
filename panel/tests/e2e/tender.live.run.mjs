@@ -137,15 +137,20 @@ async function main() {
 
     const inputs = supplier.locator('input[placeholder="doldurunuz"]:visible');
     await inputs.first().waitFor({ timeout: 15000 });
-    await inputs.nth(0).fill('E2E İmalatçı');
-    await inputs.nth(1).fill('E2E Marka');
-
-    const uploadInput = supplier.locator('.iho-cell-upload input[type="file"]').first();
-    await uploadInput.setInputFiles(PDF);
+    await supplier.locator('tr:has-text("İMALATÇI FİRMA ADI") input').first().fill('E2E İmalatçı');
+    await supplier.locator('tr:has-text("ÜRÜN MARKASI") input').first().fill('E2E Marka');
+    await supplier.locator('tr:has-text("ÜRÜN MARKASI") input').first().press('Tab');
     await supplier.waitForTimeout(800);
-    const uploadConfirm = supplier.locator('.swal2-confirm');
-    if (await uploadConfirm.count()) await uploadConfirm.click().catch(() => {});
-    await supplier.waitForTimeout(1800);
+
+    for (let round = 0; round < 10; round++) {
+      const uploadInput = supplier.locator('.iho-cell-upload input[type="file"]').first();
+      if (!(await uploadInput.count())) break;
+      await uploadInput.setInputFiles(PDF);
+      await supplier.waitForTimeout(1000);
+      const uploadConfirm = supplier.locator('.swal2-popup button:has-text("Yükle")');
+      if (await uploadConfirm.count()) await uploadConfirm.click().catch(() => {});
+      await supplier.waitForTimeout(1600);
+    }
     await shot(supplier, '04-offer-matrix');
 
     await supplier.locator('button:has-text("Teklifi Kaydet")').click();

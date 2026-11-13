@@ -435,8 +435,10 @@ async function main() {
       await p.waitForSelector('#iho_prod_table table tbody tr', { timeout: 30000 });
       await p.locator('#iho_prod_table button.iho-pt-btn').first().click();
       await p.waitForTimeout(800);
-      const ins = p.locator('input[placeholder="doldurunuz"]:visible');
-      if (await ins.count() >= 2) { await ins.nth(0).fill(`MATRIX ${who} İmalatçı`); await ins.nth(1).fill(`MATRIX ${who} Marka`); }
+      await p.locator('tr:has-text("İMALATÇI FİRMA ADI") input').first().fill(`MATRIX ${who} İmalatçı`);
+      await p.locator('tr:has-text("ÜRÜN MARKASI") input').first().fill(`MATRIX ${who} Marka`);
+      await p.locator('tr:has-text("ÜRÜN MARKASI") input').first().press('Tab');
+      await p.waitForTimeout(700);
       // mechanics: every evrak cell must carry a file. Cells convert to a
       // saved preview after each upload, so re-query the inputs every round.
       // The Geçerlilik Tarihi swal date is OPTIONAL — do NOT fill the flatpickr

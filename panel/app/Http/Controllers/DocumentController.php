@@ -424,6 +424,7 @@ class DocumentController extends Controller
 
         $res = $this->docs->registerContent(0, $decoded, $files);
         if ($key === 'op-doc-ihale-offer' && ($res['id'] ?? 0) > 0) {
+            $this->rememberOfferBrands($decoded);
             try {
                 $tenderQnid = $this->offerTenderQnid($decoded);
                 if ($tenderQnid) {
@@ -499,6 +500,7 @@ class DocumentController extends Controller
 
         $res = $this->docs->registerContent($request->id, $decoded, $files);
         if ($key === 'op-doc-ihale-offer' && ($res['id'] ?? 0) > 0) {
+            $this->rememberOfferBrands($decoded, $request->id);
             try {
                 $tenderQnid = $this->offerTenderQnid($decoded, $request->id);
                 if ($tenderQnid) {
@@ -1172,6 +1174,20 @@ class DocumentController extends Controller
         return response()->json($svc->listing($supplier));
     }
 
+    /** GET /v1/client-brands/{supplierQnid} — suggestion list for free-text brand fields */
+    public function clientBrands($supplier)
+    {
+        $supplier = (string) $supplier;
+        if (! $this->isValidUuid($supplier)) {
+            return response()->json(['success' => false, 'msg' => 'Geçersiz tedarikçi kimliği'], 422);
+        }
+        if (! $this->canUseClientDocs($supplier)) {
+            return response()->json(['success' => false, 'msg' => 'Bu marka listesine erişim yetkiniz yok.'], 403);
+        }
+        $svc = new ClientDocsService();
+        return response()->json(['success' => true, 'data' => ['brands' => $svc->brands($supplier)]]);
+    }
+
     /** POST /v1/client-docs/slot — upload/replace one shared file slot */
     public function clientDocsSlot(Request $request)
     {
@@ -1201,6 +1217,7 @@ class DocumentController extends Controller
             'supplier_qnid' => $supplier,
             'supplier_title' => (string) $request->input('supplier_title', ''),
             'product_code' => (string) $request->input('product_code', ''),
+            'brand' => (string) $request->input('brand', ''),
             'standard' => (string) $request->input('standard', ''),
             'file_title' => (string) $request->input('file_title', ''),
             'kva' => (string) $request->input('kva', ''),
@@ -1428,6 +1445,8 @@ class DocumentController extends Controller
             $available[(string) ($slot['match_key'] ?? '')] = true;
         }
 
+        $brands = $this->offerBrandMap($decoded, $offerQnid);
+
         foreach ($tenderRows as $productQnid => $row) {
             try {
                 $pdetail = $this->docs->getFormData($productQnid);
@@ -1439,18 +1458,58 @@ class DocumentController extends Controller
                 continue;
             }
             if ($categoryQnid === '') continue;
+            $brand = (string) ($brands[$productQnid] ?? '');
 
             foreach ($this->categoryFileTemplates($categoryQnid) as $tpl) {
                 $kvas = $tpl['kva'] ?: ['all'];
                 foreach ($kvas as $kva) {
-                    $key = $prodCode.'||'.$tpl['standard'].'||'.$tpl['file_title'].'||'.$kva;
+                    $key = ClientDocsService::matchKey($prodCode, $brand, $tpl['standard'], $tpl['file_title'], $kva);
                     if (! isset($available[$key])) {
-                        return 'Eksik veya süresi dolmuş evrak: '.$tpl['file_title'].' ('.$row['product_title'].')';
+                        $label = $tpl['file_title'].($brand !== '' ? ' — marka: '.$brand : '');
+                        return 'Eksik veya süresi dolmuş evrak: '.$label.' ('.$row['product_title'].')';
                     }
                 }
             }
         }
         return null;
+    }
+
+    /** product_qnid → ürün markası (payload first; stored offer items as fallback). */
+    private function offerBrandMap(?array $decoded, ?string $offerQnid = null): array
+    {
+        $out = [];
+        foreach (($decoded['dynamicF'] ?? []) as $row) {
+            $e = $row['entities'] ?? [];
+            $p = trim((string) ($e['product_qnid'] ?? ''));
+            if ($p !== '') $out[$p] = trim((string) ($e['urun_markasi'] ?? ''));
+        }
+        if ($offerQnid) {
+            try {
+                $detail = $this->docs->getFormData($offerQnid);
+                foreach (($detail['formFormat']['op-doc-ihale-offer-item-form'] ?? []) as $cr) {
+                    $e = $cr['entities'] ?? [];
+                    $p = trim((string) ($e['product_qnid'] ?? ''));
+                    if ($p !== '' && ($out[$p] ?? '') === '') $out[$p] = trim((string) ($e['urun_markasi'] ?? ''));
+                }
+            } catch (\Throwable $e) {}
+        }
+        return $out;
+    }
+
+    /** Feed every brand used in an offer into the supplier's suggestion catalog. */
+    private function rememberOfferBrands(?array $decoded, ?string $offerQnid = null): void
+    {
+        try {
+            $supplierQnid = $this->offerSupplierQnid($decoded, $offerQnid);
+            if (! $supplierQnid) return;
+            $svc = new ClientDocsService();
+            foreach ($this->offerBrandMap($decoded, $offerQnid) as $brand) {
+                $b = trim((string) $brand);
+                if ($b !== '') $svc->rememberBrand($supplierQnid, $b);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('brand catalog update failed', ['msg' => $e->getMessage()]);
+        }
     }
 
     /** Resolve the tender of an offer from payload first, stored header second. */
@@ -1653,6 +1712,16 @@ class DocumentController extends Controller
             return response()->json([
                 'success' => false,
                 'msg'     => 'Seçilen tedarikçinin bu ihaleye geçerli (reddedilmemiş) teklifi yok.',
+            ], 422);
+        }
+
+        // Winner can only be accepted/completed when its evrak matrix is complete
+        // (brand-aware key, same validator used on offer save). Expired counts as missing.
+        $fileError = $this->validateOfferFiles(null, $winnerOfferQnid);
+        if ($fileError) {
+            return response()->json([
+                'success' => false,
+                'msg'     => 'Teklif kabul edilemez — '.$fileError,
             ], 422);
         }
 
