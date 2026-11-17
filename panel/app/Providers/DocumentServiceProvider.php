@@ -2131,6 +2131,40 @@ class DocumentServiceProvider extends ServiceProvider
         if ($this->getLatestOrderStatus($order->id) !== 'doc_trans_order_ready_for_shipment') {
             return ['success' => false, 'msg' => 'Sevk onayı yalnızca Sevke Hazır siparişlerde başlatılabilir'];
         }
+        // All reviewed files must be explicitly accepted — a manually-flagged
+        // ready order with pending/waiting files must not enter Sevk.
+        $docFileScope = "df.status = 1 AND df.relation = 'documents'
+               AND sce.entity_tag NOT LIKE '%sevk%'
+               AND sce.entity_tag NOT LIKE '%proforma%'
+               AND sce.entity_tag NOT LIKE '%irsaliye%'
+               AND ((d.id = ? AND (SELECT op_key FROM sys_options WHERE id = d.type_id) = 'op-doc-order')
+                 OR (d.parent_id = ? AND (SELECT op_key FROM sys_options WHERE id = d.type_id) = 'op-doc-order-item'))";
+        $total = DB::selectOne(
+            "SELECT COUNT(*) c FROM document_files df
+             JOIN sys_con_entities sce ON sce.entity_value = df.id::text AND sce.table_tag = 'document_files'
+             JOIN sys_con_ops sco ON sco.id = sce.conn_id
+             JOIN documents d ON d.id = sco.main_id
+             WHERE $docFileScope",
+            [$order->id, $order->id]
+        );
+        if (($total->c ?? 0) < 1) {
+            return ['success' => false, 'msg' => 'Sevk onayı için incelenmiş dosya bulunamadı'];
+        }
+        $unaccepted = DB::selectOne(
+            "SELECT COUNT(*) c FROM (
+               SELECT df.id, (SELECT so.op_key FROM transactions t JOIN sys_options so ON so.id = t.type_id
+                 WHERE t.target_id = df.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) AS last_op
+               FROM document_files df
+               JOIN sys_con_entities sce ON sce.entity_value = df.id::text AND sce.table_tag = 'document_files'
+               JOIN sys_con_ops sco ON sco.id = sce.conn_id
+               JOIN documents d ON d.id = sco.main_id
+               WHERE $docFileScope
+             ) s WHERE s.last_op IS DISTINCT FROM 'doc_file_accepted'",
+            [$order->id, $order->id]
+        );
+        if (($unaccepted->c ?? 0) > 0) {
+            return ['success' => false, 'msg' => 'Onaylanmamış inceleme dosyası var — önce tüm dosyaları kabul edin'];
+        }
         $this->saveSevkFields($orderQnid, ['approval_path' => 'sevk']);
         return $this->setStatus($orderQnid, 'doc_trans_order_sevk_started', $note ?? 'Sevk onayına alındı');
     }
@@ -2146,6 +2180,13 @@ class DocumentServiceProvider extends ServiceProvider
         if (!in_array($toKey, $allowed, true)) return ['success' => false, 'msg' => 'Geçersiz sevk adımı'];
         $order = Documents::where('qnid', $orderQnid)->first();
         if (empty($order)) return ['success' => false, 'msg' => 'Sipariş bulunamadı'];
+        // date sanity lives here too (controller validates as well) — takvim stub: Y-m-d, earliest tomorrow
+        if ($toKey === 'doc_trans_order_sevk_dated') {
+            $dv = trim((string)($fields['sevk_tarihi'] ?? ''));
+            $ts = $dv !== '' ? strtotime($dv) : false;
+            if ($dv === '' || $ts === false) return ['success' => false, 'msg' => 'sevk_tarihi zorunlu'];
+            if ($ts < strtotime('today +1 day')) return ['success' => false, 'msg' => 'Sevk tarihi en erken yarın olabilir'];
+        }
         // proforma step requires both files present (active)
         if ($toKey === 'doc_trans_order_sevk_proforma') {
             $hasPro = DB::selectOne(
@@ -3075,16 +3116,20 @@ class DocumentServiceProvider extends ServiceProvider
     }
 
     /**
-     * Fetch order spec_code + sys_code (BUKRS) via EAV — bound params.
-     * Returns ['spec'=>string,'sys_raw'=>string]
+     * All (spec_code, sys_code) pairs from the order's own form conns.
+     * Mirrors Documents::tableList reseller EXISTS exactly: same conn
+     * (conn_id=0), same table_tag, raw values. Returns list of
+     * ['spec'=>string,'sys_raw'=>string].
      */
     public function fetchOrderSpecAndSys(int $orderId): array
     {
-        $row = DB::selectOne(
-            "SELECT sce.entity_value as spec, COALESCE(sy.entity_value, 'GDZ') as sys FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id LEFT JOIN sys_con_entities sy ON sy.conn_id=sco.id AND sy.entity_tag='sys_code' WHERE sco.main_id = ? AND sce.entity_tag = 'spec_code' LIMIT 1",
+        $rows = DB::select(
+            "SELECT sce.entity_value as spec, COALESCE(sy.entity_value, 'GDZ') as sys FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id LEFT JOIN sys_con_entities sy ON sy.conn_id=sco.id AND sy.entity_tag='sys_code' AND sy.table_tag='sys_con_ops' WHERE sco.main_id = ? AND sco.conn_id = 0 AND sce.entity_tag = 'spec_code' AND sce.table_tag = 'sys_con_ops'",
             [$orderId]
         );
-        return ['spec' => trim($row->spec ?? ''), 'sys_raw' => $row->sys ?? 'GDZ'];
+        $out = [];
+        foreach ($rows as $row) $out[] = ['spec' => $row->spec ?? '', 'sys_raw' => $row->sys ?? 'GDZ'];
+        return $out;
     }
 
     /**
@@ -3134,17 +3179,33 @@ class DocumentServiceProvider extends ServiceProvider
         // Admin / non-reseller sees all — permission already gated via docPermCheck
         if ($typeKey !== 'op-pert-reseller') return true;
 
-        $clientQnids = session('currentStatus')['clientQnidList'] ?? [];
+        $clientQnids = function_exists('currentSupplierQnidList')
+            ? currentSupplierQnidList()   // session first, persons fallback for token calls
+            : (session('currentStatus')['clientQnidList'] ?? []);
         if (empty($clientQnids)) return false;
 
         $bySys = $this->fetchResellerLifnrsBySystem($clientQnids);
         // Direct qnid ownership covers composite clients where order qnid == client qnid
         if (in_array($order->qnid ?? '', $clientQnids, true)) return true;
 
-        $specInfo = $this->fetchOrderSpecAndSys((int)$order->id);
-        $orderSys = $this->normalizeSystemCode($specInfo['sys_raw']);
-        $bucket = $bySys[$orderSys] ?? [];
-        return in_array($specInfo['spec'], $bucket, true);
+        // Any same-conn (spec,sys) pair matching a client bucket passes —
+        // identical predicate to Documents::tableList reseller EXISTS
+        // (raw order spec vs trimmed client lifnr; sys via in-list OR ilike).
+        foreach ($this->fetchOrderSpecAndSys((int)$order->id) as $pair) {
+            $spec = (string)($pair['spec'] ?? '');
+            $raw = strtoupper(trim($pair['sys_raw'] ?? ''));
+            if ($raw === '') $raw = 'GDZ';
+            foreach (['GDZ','ADM'] as $sys) {
+                $bucket = $bySys[$sys] ?? [];
+                if (empty($bucket)) continue;
+                $hit = false;
+                foreach ($bucket as $lif) { if (trim((string)$lif) === $spec) { $hit = true; break; } }
+                if (!$hit) continue;
+                $sysVals = $sys === 'GDZ' ? ['GDZ','4000','1000','G4000'] : ['ADM','5000','A5000'];
+                if (in_array($raw, $sysVals, true) || stripos($raw, $sys) !== false) return true;
+            }
+        }
+        return false;
     }
 
     /**

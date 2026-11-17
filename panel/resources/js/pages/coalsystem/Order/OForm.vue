@@ -126,6 +126,7 @@
                 // sevk focus mode (entering from Sevk tab)
                 showAllDetails: false,
                 sevkScrolled: false,
+                sevkPartitions: null,
             };
         },
         computed: {
@@ -351,6 +352,7 @@
                     this.checkingPartitions = true;
                     // Fast indexed endpoint — old tableList all-scan took 17s on 208k orders
                     const rsp = await this.plib.request({url:'/api/v1/order/'+this.id+'/partitions', method:'GET'}, null);
+                    this.sevkPartitions = rsp?.success ? rsp : null;
                     if(rsp?.success && !this.isCloneOrder) this.hasPartitions = !!rsp.hasPartitions;
                     else if(this.isCloneOrder) this.hasPartitions = false;
                     if(this.hasPartitions && this.transferMode === 'at_once'){
@@ -1241,9 +1243,12 @@
                 if(/\-\d+$/.test(orderNo)) return orderNo;
                 const baseNo = orderNo;
                 try {
-                    // Fast indexed endpoint — old all-scan took 17s
-                    const rsp = await this.plib.request({url:'/api/v1/order/'+this.id+'/partitions', method:'GET'}, null);
-                    const clones = rsp?.clones || [];
+                    // Reuse the partitions payload from checkHasPartitions — same endpoint, no second round-trip
+                    let clones = (this.sevkPartitions && this.sevkPartitions.base === baseNo) ? (this.sevkPartitions.clones || []) : null;
+                    if(!clones){
+                        const rsp = await this.plib.request({url:'/api/v1/order/'+this.id+'/partitions', method:'GET'}, null);
+                        clones = rsp?.clones || [];
+                    }
                     let maxX = 0;
                     for(const r of clones){
                         const m = String(r.order_no || '').match(/-(\d+)$/);

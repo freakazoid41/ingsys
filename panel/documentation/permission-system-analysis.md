@@ -802,5 +802,11 @@ The frontend still reads permissions from `/api/v1/getpermissions` and uses thos
 
 If you want, I can also add a second document that maps every permission code to the exact controllers/routes where it is enforced.
 
-## Sevk perm reuse (2026-11-16)
-- Sevk reuses current perms: split/address/control `per-05-03`, kalite `per-07-02`, supplier steps `per-05-02` + LIFNR scope. Future `per-05-06/07` split reserved, not seeded.
+## Sevk perms (live 2026-11-17)
+- `sevk_started→05-03`, `sevk_kalite_ok→07-02`, `sevk_addressed→05-06` (**Lojistik Stok Yöneticiliği (Sevk Adresi / Tarihi Girişi)**, seeded + granted to admin + İş Birimi, propagated + version bumped), `sevk_dated→05-02|05-06`, supplier steps `05-02` + LIFNR scope, kontrol `05-03`, file decide `07-02`. Reseller role has no `05-06`. `per-05-07` still reserved.
+- `setFileStatus(All)` returns 403 (not misleading 422) on missing `per-07-02`.
+## Reseller row ownership gate (2026-11-17)
+- `DocumentController::assertOrderOwnership` — direct-qnid GET/PUT on `op-doc-order/item/serial` is fail-closed for resellers against their bound LIFNR set (lists already were via `tableList`). Predicate mirrors `tableList` EXISTS exactly (same-conn spec/sys, raw spec vs trimmed lifnr, in-list OR ilike) + `currentSupplierQnidList` session→persons fallback so Bearer token calls work. Admins bypass; unknown docs pass through to preserve invalid-qnid handling.
+- Known pre-existing gap (NOT changed — blast radius): Bearer-token `tableList` calls skip the reseller scope entirely (session-only), so token lists are unscoped while direct reads are now fail-closed. Browser flows (the supported supplier path) are consistent on both. Follow-up: apply the same fallback inside `tableList`.
+- Roles catalog fetch (`roles/templates|items`, needs `per-04-03`) is skipped client-side without the perm — supplier boot no longer fires 401s.
+- `AuthController::getPermissions` DEV_ADMIN hardcoded list must stay in sync with `immutable-admin` (it shadowed the seeder and hid the missing `per-05-06` until E2E caught it).

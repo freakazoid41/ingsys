@@ -836,6 +836,12 @@ class DocumentController extends Controller
         if (!in_array($request->method(), ['GET','PUT'], true)) return true;
         $typeKey = function_exists('currentPersonTypeKey') ? currentPersonTypeKey() : session('type_key');
         if ($typeKey !== 'op-pert-reseller') return true;
+        // request-scoped memo — one ownership check hits ~6 queries otherwise.
+        // keyed by user: statics survive across phpunit tests in one process.
+        static $seen = [];
+        $uid = (auth('sanctum')->user() ?? auth()->user())?->id ?? 0;
+        $cacheKey = $uid.'|'.($request->method() ?? '?').'|'.($request->id ?? '');
+        if (array_key_exists($cacheKey, $seen)) return $seen[$cacheKey] === true ? true : $seen[$cacheKey];
         $doc = \App\Models\Documents::where('qnid', $request->id)->first();
         if (!$doc) return true;
         $order = $doc; $guard = 0;
@@ -847,12 +853,16 @@ class DocumentController extends Controller
         }
         if (!$order) return true;
         if (!$this->docs->canCurrentResellerAccessOrder($order)) {
-            return response()->json(['success'=>false,'msg'=>'Bu sipariş size bağlı cariye ait değil...'],403);
+            $denied = response()->json(['success'=>false,'msg'=>'Bu sipariş size bağlı cariye ait değil...'],403);
+            $seen[$cacheKey] = $denied;
+            return $denied;
         }
+        $seen[$cacheKey] = true;
         return true;
     }
 
-    public function orderPartitions(Request $request){        $id = $request->route('id') ?? $request->input('id');
+    public function orderPartitions(Request $request){
+        $id = $request->route('id') ?? $request->input('id');
         if (!$id || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', (string) $id)) {
             return response()->json(['success'=>false,'msg'=>'Missing Parameters'], 422);
         }
@@ -936,8 +946,11 @@ class DocumentController extends Controller
     public function setFileStatus(Request $request){
         $authUser = auth('sanctum')->user() ?? auth()->user();
         $validateUser = Validator::make($request->all(),['id'=>'required','op_key'=>'required']);
-        if($validateUser->fails() || !$this->perms->has($authUser, 'per-07-02')){
+        if($validateUser->fails()){
             return response()->json(['success'=>false,'message'=>'Missing Parameters','error'=>$validateUser->errors()],422);
+        }
+        if(!$this->perms->has($authUser, 'per-07-02')){
+            return response()->json(['success'=>false,'msg'=>'Yetki yok (per-07-02)'],403);
         }
         $result = $this->docs->documentFileStatus($request->id,$request->op_key,$request->note);
         if($result['success']){
@@ -991,8 +1004,11 @@ class DocumentController extends Controller
     public function setFileStatusAll(Request $request){
         $authUser = auth('sanctum')->user() ?? auth()->user();
         $validateUser = Validator::make($request->all(),['id'=>'required','op_key'=>'required']);
-        if($validateUser->fails() || !$this->perms->has($authUser, 'per-07-02')){
+        if($validateUser->fails()){
             return response()->json(['success'=>false,'message'=>'Missing Parameters','error'=>$validateUser->errors()],422);
+        }
+        if(!$this->perms->has($authUser, 'per-07-02')){
+            return response()->json(['success'=>false,'msg'=>'Yetki yok (per-07-02)'],403);
         }
         $files = $this->docs->getDocumentFiles($request->id);
         $result = ['success' => false];

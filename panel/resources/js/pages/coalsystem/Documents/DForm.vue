@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 import Plib from '@/lib/pickle';
 import Swal from 'sweetalert2';
 import { parseStatus, statusLabel, statusCls, personName, noteOf } from '@/lib/statusUtils';
+import { isSevkFile } from '@/lib/sevk';
 import { fmtDate, fmtDateTime } from '@/lib/dateUtils';
 
 export default {
@@ -17,14 +18,7 @@ export default {
         canDecide() { return (this.authStore.permissions||[]).includes('per-07-02'); },
         canSevkControl() { return (this.authStore.permissions||[]).includes('per-05-03'); },
         curFile() { return this.files.find(f=> f._sel) || this.files[0] || null; },
-        isSevkFile() {
-            const f = this.curFile;
-            if(!f) return false;
-            const tag = String(f.entity_tag || '');
-            const key = String(f.file_type_key || '');
-            const typ = String(f.file_type || '');
-            return tag.includes('sevk') || tag.includes('proforma') || tag.includes('irsaliye') || key.includes('sevk') || key.includes('proforma') || key.includes('irsaliye') || /proforma|irsaliye/i.test(typ);
-        },
+        isSevkFile() { return isSevkFile(this.curFile); },
     },
     data() {
         return {
@@ -70,11 +64,7 @@ export default {
         },
         isDecidable(f){
             if(this.isOldVersion(f)) return false;
-            const tag = String(f?.entity_tag || '');
-            const key = String(f?.file_type_key || '');
-            const typ = String(f?.file_type || '');
-            const isSevk = tag.includes('sevk') || tag.includes('proforma') || tag.includes('irsaliye') || key.includes('sevk') || key.includes('proforma') || key.includes('irsaliye') || /proforma|irsaliye/i.test(typ);
-            if(isSevk){
+            if(isSevkFile(f)){
                 if(!(this.authStore.permissions||[]).includes('per-05-03')) return false;
                 const k=this.parseStatus(f)?.op_key;
                 return k==='doc_file_waiting' || k==='doc_file_refreshed' || !k;

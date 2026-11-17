@@ -195,3 +195,4 @@ Result: order save with 3 images went 420ms → 90ms, `user_logs` insert 2 queri
 ## Sevk logging (2026-11-16)
 - `startSevk/advanceSevk/sevkControl` write `log-order-update {actor,document,from,to,note}` via `setStatus` + stamp `approval_path/depo_yeri/sevk_adresi/sevk_tarihi/sevk_kontrol_ok/proforma_kontrol_note` via `saveSevkFields`.
 - Kontrol-red note parsed by existing `noteOf()`.
+- `sevkControl` 422s unless the order is exactly at `sevk_proforma` (2026-11-17) — control decisions always attach to the right step in the audit trail.

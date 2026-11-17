@@ -489,3 +489,4 @@ Expected: N entity rows per slot for N uploads; only last file `status=1`; `repl
 - `proforma_file/irsaliye_file` group `sevk_docs` version exactly like kabul/cins (new row + `replaced_id`, active=`document_files.status=1`).
 - `syncOrderStatusFromFiles` ignores `*sevk*/*proforma*/*irsaliye*` so sevk uploads never flip `files_rejected/ready_for_shipment`.
 - File-type titles resolve via `op-proforma_file/op-irsaliye_file` (`fetchFileDetailBundle` join `op-||split_part`).
+- `syncOrderStatusFromFiles` never yanks a `sevk_*` order back to `ready` on upload (regression caught 2026-11-17 by real-browser E2E) — only `files_rejected` still applies inside Sevk (recoverable via `ready → start`).

@@ -168,4 +168,17 @@ Logging: every transition `log-order-update {actor,document,from,to,note}` + enr
 
 ## 15. Real-browser E2E (2026-11-17, ALL GREEN 19/19)
 - `panel/tests/e2e/sevk.run.mjs` (headed Chromium, 2 users): scratch GDZ order 3510006329 (pickle's own lifnr) setup → started via API, then browser: Sevk tabs (admin + supplier), focused detail (scroll + ring + collapsed steps + no stray Kaydet), Kalite modal from Aksiyonlar (depo prompt + perm note), multiline adres UI, supplier date/tiles/ship UI, Dökümanlar Uygun control, supplier scoping (own rows only, foreign 403 + bounce). Stops at shipped; full cleanup verified (order back at created, zero residue).
-- Caught & fixed by the run: (1) `syncOrderStatusFromFiles` yanked sevk orders back to ready on any upload — now skips `sevk_*` states; (2) read-only steps rendered inputs + values doubled — inputs hidden unless editable; (3) supplier app boot fired 2× `roles/*` 401s — store skips without per-04-03; (4) foreign direct-qnid read was 200 for resellers — `assertOrderOwnership` gate on order family GET/PUT (fail-closed like tableList); (5) `sevkControl` accepted from any status — now requires `sevk_proforma`; (6) favicon 404 (`/public/css/favicon.ico` → `/favicon.ico` in 5 blades).
+- Caught & fixed across runs: (1) `syncOrderStatusFromFiles` yanked sevk orders back to ready on any upload — now skips `sevk_*` states; (2) read-only steps rendered inputs + values doubled — inputs hidden unless editable; (3) supplier app boot fired 2× `roles/*` 401s — store skips without per-04-03; (4) foreign direct-qnid read was 200 for resellers — `assertOrderOwnership` gate on order family GET/PUT (fail-closed like tableList); (5) `sevkControl` accepted from any status — now requires `sevk_proforma`; (6) favicon 404 (`/public/css/favicon.ico` → `/favicon.ico` in 5 blades).
+## 16. Post-E2E hardening (2026-11-17)
+- `assertOrderOwnership` gate (see permission-system-analysis.md) — reseller direct reads now 403 like lists.
+- `sevkControl` requires `sevk_proforma` (see logging-mechanics.md).
+- `permissiondata` store skips roles fetch without `per-04-03`.
+- Favicon 404 fixed in 5 blades (`/favicon.ico`).
+- DEV_ADMIN hardcoded perm list re-synced (`per-05-06` was missing and shadowed the seeder until E2E caught the empty adres step).
+
+## 17. Permission matrix (2026-11-17, all live-proven, zero mutations)
+- kb (no 05-03/07-02/05-06): start/kalite/adres/control → 403; file-status → 403; foreign order GET → 403; generic sev set-status → 422.
+- pickle (05-02, own GDZ order): dated/ship at wrong state → 422 (perm passes, guard blocks); own GET → 200; foreign GET → 403; tables exclude foreign rows.
+- Admin: generic sev set-status → 422 (dedicated endpoints only); start on file-less ready → 422 (completeness gate).
+## 18. `startSevk` completeness gate (2026-11-17)
+- Start requires ≥1 reviewed file AND zero unaccepted active doc files (sevk files excluded) — a manually-flagged ready order can't enter Sevk.

@@ -11,6 +11,7 @@
     import { Turkish } from 'flatpickr/dist/l10n/tr.js';
     import 'flatpickr/dist/flatpickr.min.css';
     import { noteOf } from '@/lib/statusUtils';
+import { isSevkFile } from '@/lib/sevk';
     flatpickr.localize(Turkish);
 
     const ESCAPE_RE = /[&<>"']/g;
@@ -837,8 +838,7 @@
                             pill.innerHTML = icon+'<span>'+label+'</span>';
                             pill.type = 'button';
                             // Sevk files: order-level Uygun/Değil via sevkControl (per-05-03), NOT set-file-status
-                            const _ft = String(rowData.file_type || rowData.file_type_key || '');
-                            const _isSevk = /proforma|irsaliye|sevk/i.test(_ft);
+                            const _isSevk = isSevkFile({ entity_tag: rowData.entity_tag, file_type_key: rowData.file_type_key, file_type: rowData.file_type });
                             if(_isSevk && !this.isTedarik && this.useAuthStore.permissions?.includes('per-05-03')){
                                 pill.onclick = (e) => {
                                     Swal.fire({
