@@ -7,7 +7,7 @@
     <title>{{env('APP_NAME')}}</title>
     <meta name="theme-color" content="#6777ef" />
     <link rel="apple-touch-icon" href="{{ asset('img/icons/apple-touch-icon.png') }}">
-    <link rel="icon" type="image/x-icon" href="{{ asset('css/favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
     @vite(['public/css/theme.css','public/css/custom.css','resources/js/app.js'])
     <style>

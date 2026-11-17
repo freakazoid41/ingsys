@@ -14,7 +14,17 @@ export default {
     computed: {
         isTedarik() { return this.$route.path.startsWith('/tedarikpanel'); },
         fileId() { return this.$route.params.id || ''; },
-        canDecide() { return (this.authStore.permissions||[]).includes('per-07-02'); }
+        canDecide() { return (this.authStore.permissions||[]).includes('per-07-02'); },
+        canSevkControl() { return (this.authStore.permissions||[]).includes('per-05-03'); },
+        curFile() { return this.files.find(f=> f._sel) || this.files[0] || null; },
+        isSevkFile() {
+            const f = this.curFile;
+            if(!f) return false;
+            const tag = String(f.entity_tag || '');
+            const key = String(f.file_type_key || '');
+            const typ = String(f.file_type || '');
+            return tag.includes('sevk') || tag.includes('proforma') || tag.includes('irsaliye') || key.includes('sevk') || key.includes('proforma') || key.includes('irsaliye') || /proforma|irsaliye/i.test(typ);
+        },
     },
     data() {
         return {
@@ -60,6 +70,15 @@ export default {
         },
         isDecidable(f){
             if(this.isOldVersion(f)) return false;
+            const tag = String(f?.entity_tag || '');
+            const key = String(f?.file_type_key || '');
+            const typ = String(f?.file_type || '');
+            const isSevk = tag.includes('sevk') || tag.includes('proforma') || tag.includes('irsaliye') || key.includes('sevk') || key.includes('proforma') || key.includes('irsaliye') || /proforma|irsaliye/i.test(typ);
+            if(isSevk){
+                if(!(this.authStore.permissions||[]).includes('per-05-03')) return false;
+                const k=this.parseStatus(f)?.op_key;
+                return k==='doc_file_waiting' || k==='doc_file_refreshed' || !k;
+            }
             if(!this.canDecide) return false;
             const k=this.parseStatus(f)?.op_key;
             return k==='doc_file_waiting' || k==='doc_file_refreshed' || !k;
@@ -147,6 +166,33 @@ export default {
             this.$router.push({ name: this.isTedarik?'TedarikDList':'DList'});
         },
         async saveStatus(){
+            // Sevk files: order-level Uygun/Değil control, NOT per-file accept
+            if(this.isSevkFile){
+                if(!this.canSevkControl){ Swal.fire({ icon:'warning', title:'Yetki yok', text:'Sevk kontrol için yetkiniz yok (per-05-03)'}); return; }
+                if(!this.choice){ Swal.fire({ icon:'warning', title:'Seçim yapın', text:'Uygun veya Uygun Değil seçin'}); return; }
+                const uygun = this.choice === 'accept' ? 1 : 0;
+                if(!uygun && !(this.note||'').trim()){ Swal.fire({ icon:'warning', title:'Gerekçe yazın', text:'Uygun Değil için not zorunlu'}); return; }
+                if(!this.order?.qnid){ Swal.fire({ icon:'error', title:'Sipariş yok'}); return; }
+                this.saving=true;
+                Swal.fire({ title:'Kaydediliyor...', allowOutsideClick:false, didOpen:()=> Swal.showLoading()});
+                try{
+                    const fd=new FormData();
+                    fd.append('id', this.order.qnid);
+                    fd.append('uygun', uygun ? '1' : '0');
+                    fd.append('note', (this.note||'').trim() || (uygun ? 'Uygun (Dökümanlar)' : 'Uygun değil (Dökümanlar)'));
+                    const rsp=await this.plib.request({ url:'/api/v1/orders/sevk/control', method:'POST'}, null, fd);
+                    if(rsp && rsp.success){
+                        Swal.close();
+                        this.plib.toast(Swal,'success', rsp.msg || 'Sevk kontrol işlendi');
+                        await this.fetchDetail();
+                    } else {
+                        Swal.fire({ icon:'error', title:'Hata', text: rsp?.msg || rsp?.message || 'Kaydedilemedi'});
+                    }
+                }catch(e){
+                    Swal.fire({ icon:'error', title:'Hata', text: e?.msg || e?.message || String(e)});
+                } finally{ this.saving=false; }
+                return;
+            }
             if(!this.choice){ Swal.fire({ icon:'warning', title:'Seçim yapın', text:'Onayla veya Reddet seçin'}); return; }
             const cur=this.files.find(f=> f._sel);
             if(!cur) return;
@@ -238,9 +284,10 @@ export default {
                             <div class="old-badge" style="background:#f0fdf4; border-color:#bbf7d0; color:#065f46;"><i class="ki-outline ki-lock-2"></i> İşlem tamamlandı — değiştirilemez</div>
                         </div>
                         <template v-else>
+                            <div v-if="isSevkFile" style="margin-bottom:8px; font-size:11.5px; font-weight:700; color:#5b21b6; background:#f5f3ff; border:1px solid #c4b5fd; border-radius:8px; padding:8px 10px;">Sevk dosyası — karar sipariş seviyesinde işlenir (Uygun = ship unlock, Değil = revize loop). <a @click.stop="goOrder" style="color:#7c3aed; text-decoration:underline; cursor:pointer;">Sipariş Sevk kartı →</a></div>
                             <div class="decide-row">
-                                <label :class="['decide-pill', { on: choice==='accept' }]"><input type="radio" value="accept" v-model="choice" name="decide"> Onayla</label>
-                                <label :class="['decide-pill', { on: choice==='reject' }]"><input type="radio" value="reject" v-model="choice" name="decide"> Reddet</label>
+                                <label :class="['decide-pill', { on: choice==='accept' }]"><input type="radio" value="accept" v-model="choice" name="decide"> {{ isSevkFile ? 'Uygun' : 'Onayla' }}</label>
+                                <label :class="['decide-pill', { on: choice==='reject' }]"><input type="radio" value="reject" v-model="choice" name="decide"> {{ isSevkFile ? 'Uygun Değil' : 'Reddet' }}</label>
                             </div>
                             <button class="save-red" :disabled="saving || !choice" @click.stop="saveStatus">{{ saving ? 'Kaydediliyor...' : 'Kaydet' }}</button>
                             <div v-if="choice==='reject'" class="reject-box">

@@ -55,10 +55,10 @@ sys_con_entities  — field value: conn_id→sys_con_ops, entity_tag = field**gr
 ## 6. Document Types & State Machines
 `sys_options group op-doc` live: order family (`op-doc-order`/`-item`/`-serial`), `op-doc-client`, planlama (`op-doc-request`/`-item` + `op-doc-requestf`/`-item`), products (`op-doc-product`, `op-doc-product-category`, `op-doc-kva`), tender (`op-doc-ihale`, `op-doc-ihale-offer`, `op-doc-client-docs`). Legacy `op-doc-flat`/`op-doc-offer` rows remain unused in the dictionary; no documents.
 
-- **Order:** `created → transfer_sent → ready_for_shipment → approved/rejected` + `files_rejected`. Kalite `approved` from **ANY** status.
+- **Order:** `created → transfer_sent → ready_for_shipment → approved/rejected` + `files_rejected` + Sevk Way-1 chain `ready → sevk_started → kalite_ok → addressed → dated → proforma → shipped → approved`. Sevk `approved` from **ANY** status (button `Sevk Onayı Ver`). Detail: `panel/documentation/modules/transfer-approve.md`.
 - **Planlama:** Talep `awaiting → man-approved/man-rejected`; `man-approved → std-approved`; `man-rejected → awaiting` (revise).
 - **Tender:** `tender-created → tender-activated → tender-complated`; offer `offer-sended ↔ offer-rejected`, `offer-accepted` terminal.
-- **File:** `waiting → accepted | rejected → refreshed`; tender files also carry `offer-file-rejected`.
+- **File:** `waiting → accepted | rejected → refreshed`; tender files also carry `offer-file-rejected`. Sevk `proforma/irsaliye` version the same but decide is order-level `sevkControl Uygun/Değil` (DForm + DList + OForm), never flips order auto-status.
 - **Serial:** `op-doc-order-serial` parented to items. Entities: `serial_no`, `production_date` (YYYY-MM-01), `quantity`, `unit`.
 
 ## 7. Routing — 74 registered routes (`php artisan route:list` is authoritative)

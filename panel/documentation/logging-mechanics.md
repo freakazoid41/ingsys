@@ -191,3 +191,7 @@ Left `log-modal-main` shows `jsonToDetails()` collapsible tree (`Object{3} / Arr
 5. **Truncation before encode:** `$note = mb_substr($note??'-',0,300)` then `description = $actorName.' <email> | '.$note` — avoids building 2KB JSON then truncating.
 
 Result: order save with 3 images went 420ms → 90ms, `user_logs` insert 2 queries not 9, `LList` still renders enriched side-panel unchanged.
+
+## Sevk logging (2026-11-16)
+- `startSevk/advanceSevk/sevkControl` write `log-order-update {actor,document,from,to,note}` via `setStatus` + stamp `approval_path/depo_yeri/sevk_adresi/sevk_tarihi/sevk_kontrol_ok/proforma_kontrol_note` via `saveSevkFields`.
+- Kontrol-red note parsed by existing `noteOf()`.

@@ -1,5 +1,11 @@
 import { defineStore } from 'pinia'
 import Plib from '@/lib/pickle'
+import { useAuthStore } from '@/stores/auth'
+
+const canSeeRoles = () => {
+  try { return !!useAuthStore().permissions?.includes('per-04-03'); }
+  catch (e) { return false; }
+};
 
 export const usePermissionDataStore = defineStore('permissiondata', {
   state: () => ({
@@ -14,6 +20,8 @@ export const usePermissionDataStore = defineStore('permissiondata', {
   },
   actions: {
     async fetchRoleTemplates() {
+      // role catalog needs per-04-03 — skip silently for suppliers (was noisy 401s)
+      if (!canSeeRoles()) { this.roleTemplates = []; return []; }
       try {
         const response = await new Plib().request({ url: '/api/v1/roles/templates', method: 'get' })
         if (response && response.success && Array.isArray(response.data)) {
@@ -27,6 +35,7 @@ export const usePermissionDataStore = defineStore('permissiondata', {
       return []
     },
     async fetchRoleItems() {
+      if (!canSeeRoles()) { this.items = []; return []; }
       try {
         const response = await new Plib().request({ url: '/api/v1/roles/items', method: 'get' })
         if (response && response.success && Array.isArray(response.data)) {

@@ -130,7 +130,7 @@ export default {
               list = [...list, ...(addNotifications[key]||[]).map(f=>{ const m=parseFile(f); return { id:`ted05-${f.qnid||f.id}`, text: `Sipariş Dosyası Yeniden Talep — ${m.title} (${m.orderNo})`, time: `Kayıt: ${f.created_at||''}`, type:'tedarik05', iconClass:'ki-outline ki-cross', onclick:()=>this.$router.push({name:'DForm',params:{id:m.qnid}}) }; })];
               break;
             case 'orderApproved':
-              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted06-${o.qnid||o.id}`, text: `Sipariş Kalite Onayı Verildi — ${m.orderNo}`, time: `Kayıt: ${o.created_at||''}`, type:'tedarik06', iconClass:'ki-outline ki-medal-star', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
+              list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted06-${o.qnid||o.id}`, text: `Sipariş Sevk Onayı Verildi — ${m.orderNo}`, time: `Kayıt: ${o.created_at||''}`, type:'tedarik06', iconClass:'ki-outline ki-medal-star', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];
               break;
             case 'orderRejected':
               list = [...list, ...(addNotifications[key]||[]).map(o=>{ const m=parseOrder(o); return { id:`ted07-${o.qnid||o.id}`, text: `Sipariş Reddedildi — ${m.orderNo}`, time: `Kayıt: ${o.created_at||''}`, type:'tedarik07', iconClass:'ki-outline ki-cross-square', onclick:()=>this.$router.push({name:'OrderForm',params:{id:m.qnid}}) }; })];

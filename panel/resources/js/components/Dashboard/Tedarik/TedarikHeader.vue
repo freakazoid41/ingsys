@@ -134,7 +134,7 @@ export default {
       if (Array.isArray(notifs.pendingFiles)) notifs.pendingFiles.forEach(f=>{ const m=parseFile(f); push(m, 'tedarik-03', 'tedarik-03', `İnceleme Bekliyor — ${m.title}`); });
       if (Array.isArray(notifs.fileApproved)) notifs.fileApproved.forEach(f=>{ const m=parseFile(f); push(m, 'tedarik-04', 'tedarik-04', `Dosya Onaylandı — ${m.title}`); });
       if (Array.isArray(notifs.fileRejected)) notifs.fileRejected.forEach(f=>{ const m=parseFile(f); push(m, 'tedarik-05', 'tedarik-05', `Yeniden Talep — ${m.title}`); });
-      if (Array.isArray(notifs.orderApproved)) notifs.orderApproved.forEach(o=>{ const m=parseOrder(o); push(m, 'tedarik-06', 'tedarik-06', `Kalite Onayı — ${m.orderNo}`); });
+      if (Array.isArray(notifs.orderApproved)) notifs.orderApproved.forEach(o=>{ const m=parseOrder(o); push(m, 'tedarik-06', 'tedarik-06', `Sevk Onayı — ${m.orderNo}`); });
       if (Array.isArray(notifs.orderRejected)) notifs.orderRejected.forEach(o=>{ const m=parseOrder(o); push(m, 'tedarik-07', 'tedarik-07', `Reddedildi — ${m.orderNo}`); });
       if (Array.isArray(notifs.planlamaSent)) notifs.planlamaSent.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-01', 'planlama-01', `Talep Onaya Gönderildi — ${m.orderNo}`); });
       if (Array.isArray(notifs.planlamaRejected)) notifs.planlamaRejected.forEach(o=>{ const m=parseRequest(o); push(m, 'planlama-02', 'planlama-02', `Talep Reddedildi — ${m.orderNo}`); });

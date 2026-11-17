@@ -864,7 +864,7 @@ class SendNotificationMailJob implements ShouldQueue
                 }
             }catch(\Throwable $e){}
         }
-        $subject = 'Kalite Onayı: ' . ($payload['order_no'] ?? '-');
+        $subject = 'Sevk Onayı: ' . ($payload['order_no'] ?? '-');
         $html = $this->tedarikCard('tedarikOrderApproved', $subject, [
             ['Sipariş No', e($payload['order_no'] ?? '-')],
             ['Tedarikçi', e(($payload['ctitle'] ?? '-') . ' (' . ($payload['spec_code'] ?? $payload['order_spec'] ?? '-') . ')')],

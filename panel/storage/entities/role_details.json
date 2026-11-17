@@ -169,6 +169,13 @@
             },
             {
                 "parent_id": 0,
+                "title": "Lojistik Stok Yöneticiliği (Sevk Adresi / Tarihi Girişi)",
+                "ttitle": "Perm_con_ops",
+                "ctitle": "type_id",
+                "op_key": "per-05-06"
+            },
+            {
+                "parent_id": 0,
                 "title": "Sipariş İptali / Parça Sipariş Silebilme",
                 "ttitle": "Perm_con_ops",
                 "ctitle": "type_id",

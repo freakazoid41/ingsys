@@ -801,3 +801,6 @@ The frontend still reads permissions from `/api/v1/getpermissions` and uses thos
 ---
 
 If you want, I can also add a second document that maps every permission code to the exact controllers/routes where it is enforced.
+
+## Sevk perm reuse (2026-11-16)
+- Sevk reuses current perms: split/address/control `per-05-03`, kalite `per-07-02`, supplier steps `per-05-02` + LIFNR scope. Future `per-05-06/07` split reserved, not seeded.

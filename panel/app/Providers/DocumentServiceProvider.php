@@ -1236,12 +1236,18 @@ class DocumentServiceProvider extends ServiceProvider
             }
 
             // Order status guard — like offer's editableStatuses, enforce valid transitions
-            // NEW 2026-09-08: Kalite Onayı (doc_trans_order_approved) is allowed from ANY status per product decision
+            // Sevk Onayı (doc_trans_order_approved) is allowed from ANY status
             if (($documentType->op_key ?? null) === 'op-doc-order') {
                 $allowed = [
                     'doc_trans_order_created' => ['doc_trans_order_transfer_sent','doc_trans_order_approved'],
                     'doc_trans_order_transfer_sent' => ['doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected'],
-                    'doc_trans_order_ready_for_shipment' => ['doc_trans_order_approved','doc_trans_order_rejected'],
+                    'doc_trans_order_ready_for_shipment' => ['doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_sevk_started'],
+                    'doc_trans_order_sevk_started' => ['doc_trans_order_sevk_kalite_ok','doc_trans_order_rejected'],
+                    'doc_trans_order_sevk_kalite_ok' => ['doc_trans_order_sevk_addressed','doc_trans_order_rejected'],
+                    'doc_trans_order_sevk_addressed' => ['doc_trans_order_sevk_dated','doc_trans_order_rejected'],
+                    'doc_trans_order_sevk_dated' => ['doc_trans_order_sevk_proforma','doc_trans_order_rejected'],
+                    'doc_trans_order_sevk_proforma' => ['doc_trans_order_sevk_shipped','doc_trans_order_sevk_dated','doc_trans_order_rejected'],
+                    'doc_trans_order_sevk_shipped' => ['doc_trans_order_approved','doc_trans_order_rejected'],
                     'doc_trans_order_files_rejected' => ['doc_trans_order_ready_for_shipment','doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected'],
                 ];
                 // fetch last order status (op-trans-op-doc-order group)
@@ -1405,7 +1411,7 @@ class DocumentServiceProvider extends ServiceProvider
                 ];
             }
 
-            // Tedarik Aksiyonlar "Kalite Onayı Ver ve Kapat": approve the order AND
+            // Tedarik Aksiyonlar "Sevk Onayı Ver": approve the order AND
             // accept every active file under it (order-level + its item files). Supplier
             // should not need to approve files one by one.
             // Outside main transaction — never break order status if file bulk fails
@@ -1428,7 +1434,7 @@ class DocumentServiceProvider extends ServiceProvider
 
     /**
      * Accept every active file (status=1) belonging to an order or its direct items.
-     * Used by "Kalite Onayı Ver ve Kapat" so the order closure also clears file queue.
+     * Used by "Sevk Onayı Ver" so the order closure also clears file queue.
      */
     private function acceptAllOrderFiles(int $orderId): void
     {
@@ -1473,8 +1479,8 @@ class DocumentServiceProvider extends ServiceProvider
                         'file_id' => $r->id,
                         'file' => $fileSnapB,
                         'actor' => $actorB,
-                        'desc' => $fileTitle.' Dosya Kalite Onayı ile kabul edildi',
-                        'note' => 'Kalite Onayı Ver ve Kapat',
+                        'desc' => $fileTitle.' Dosya Sevk Onayı ile kabul edildi',
+                        'note' => 'Sevk Onayı Ver',
                     ], JSON_UNESCAPED_UNICODE),
                 ]);
                 Transactions::create([
@@ -1484,8 +1490,8 @@ class DocumentServiceProvider extends ServiceProvider
                     'target_id' => $r->id,
                     'description' => json_encode([
                         'file_id' => $r->id,
-                        'desc' => 'Dosya Kalite Onayı ile kabul edildi',
-                        'note' => 'Kalite Onayı Ver ve Kapat',
+                        'desc' => 'Dosya Sevk Onayı ile kabul edildi',
+                        'note' => 'Sevk Onayı Ver',
                     ], JSON_UNESCAPED_UNICODE),
                 ]);
             }
@@ -1553,14 +1559,21 @@ class DocumentServiceProvider extends ServiceProvider
 
     public function documentFileStatus($id, $statusKey, $note)
     {
+        $allowedFileOps = ['doc_file_accepted', 'doc_file_rejected'];
+        if (!in_array($statusKey, $allowedFileOps, true)) {
+            return ['success' => false, 'id' => 0, 'message' => 'Geçersiz dosya durumu: '.$statusKey];
+        }
         if (isset($statusKey)) {
             try {
                 DB::beginTransaction();
 
                 // get file
                 $file = Document_files::where('qnid', $id)->first();
+                if (empty($file)) { DB::rollBack(); return ['success' => false, 'id' => 0, 'message' => 'Dosya bulunamadı']; }
                 $type = Sys_options::rowOf($statusKey);
+                if (empty($type)) { DB::rollBack(); return ['success' => false, 'id' => 0, 'message' => 'Bilinmeyen dosya durumu']; }
                 $entity = Sys_con_entities::where(['entity_value' => $file->id, 'table_tag' => 'document_files'])->first();
+                if (empty($entity)) { DB::rollBack(); return ['success' => false, 'id' => 0, 'message' => 'Dosya bağlantısı bulunamadı']; }
                 $fileTitle = Sys_options::where('op_key', 'op-'.explode('**', $entity->entity_tag)[0])->first()->title ?? 'Dosya';
                 $EntityConnections = Sys_con_entities::where(['conn_id' => $entity->conn_id])->get();
                 // enrich with actor + file/order snapshot for audit heat
@@ -1679,6 +1692,9 @@ class DocumentServiceProvider extends ServiceProvider
                  JOIN documents d ON d.id = sco.main_id
                  JOIN sys_options dt ON dt.id = d.type_id
                  WHERE df.status = 1 AND df.relation = 'documents'
+                   AND sce.entity_tag NOT LIKE '%sevk%'
+                   AND sce.entity_tag NOT LIKE '%proforma%'
+                   AND sce.entity_tag NOT LIKE '%irsaliye%'
                    AND ((d.id = ? AND dt.op_key = 'op-doc-order') OR (d.parent_id = ? AND dt.op_key = 'op-doc-order-item'))",
                 [$doc->id, $doc->id]
             );
@@ -1767,7 +1783,14 @@ class DocumentServiceProvider extends ServiceProvider
             if ($hasRejected) {
                 $this->applyOrderStatus($doc, 'doc_trans_order_files_rejected', $rejectedNote ?? 'Dosya reddedildi');
             } elseif ($allAccepted && ! empty($orderFileRows)) {
-                $this->applyOrderStatus($doc, 'doc_trans_order_ready_for_shipment', 'Tüm aktif dosyalar kabul edildi');
+                // Sevk chain owns its own transitions — a file upload (e.g. proforma/irsaliye
+                // via registerContent) must never yank a sevk_* order back to ready.
+                // Exception: files_rejected recovery still lands on ready (→ re-enter sevk via start).
+                $cur = $this->getLatestOrderStatus($doc->id);
+                $isSevk = $cur && str_starts_with($cur, 'doc_trans_order_sevk_');
+                if (! $isSevk) {
+                    $this->applyOrderStatus($doc, 'doc_trans_order_ready_for_shipment', 'Tüm aktif dosyalar kabul edildi');
+                }
             } elseif (! empty($orderFileRows)) {
                 // Files exist but are still waiting / refreshed (not all accepted, none rejected).
                 // Only recover to "Dosyalar Kontrol Ediliyor" from the files_rejected state —
@@ -2073,6 +2096,116 @@ class DocumentServiceProvider extends ServiceProvider
         }
         $entity->entity_value = $mode;
         $entity->save();
+    }
+
+    /** Sevk Onay (Way-1): stamp EAV fields on op-doc-order-form conn. */
+    public function saveSevkFields(string $orderQnid, array $fields): bool
+    {
+        $order = Documents::where('qnid', $orderQnid)->first();
+        if (empty($order)) return false;
+        $conn = Sys_con_ops::where('main_id', $order->id)
+            ->where('conn_id', 0)
+            ->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-form'))
+            ->first();
+        if (empty($conn)) return false;
+        foreach ($fields as $tag => $val) {
+            if (!preg_match('/^[a-z0-9_]+$/', (string) $tag)) continue;
+            $e = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => $tag, 'table_tag' => 'sys_con_ops'])->first();
+            if (empty($e)) {
+                $e = new Sys_con_entities;
+                $e->conn_id = $conn->id;
+                $e->entity_tag = $tag;
+                $e->table_tag = 'sys_con_ops';
+            }
+            $e->entity_value = is_scalar($val) ? (string) $val : json_encode($val, JSON_UNESCAPED_UNICODE);
+            $e->save();
+        }
+        return true;
+    }
+
+    /** Sevk Onay start: ready_for_shipment → sevk_started + approval_path=sevk. */
+    public function startSevk(string $orderQnid, ?string $note = null): array
+    {
+        $order = Documents::where('qnid', $orderQnid)->first();
+        if (empty($order)) return ['success' => false, 'msg' => 'Sipariş bulunamadı'];
+        if ($this->getLatestOrderStatus($order->id) !== 'doc_trans_order_ready_for_shipment') {
+            return ['success' => false, 'msg' => 'Sevk onayı yalnızca Sevke Hazır siparişlerde başlatılabilir'];
+        }
+        $this->saveSevkFields($orderQnid, ['approval_path' => 'sevk']);
+        return $this->setStatus($orderQnid, 'doc_trans_order_sevk_started', $note ?? 'Sevk onayına alındı');
+    }
+
+    /** Generic Sevk step: stamp fields then setStatus (guard enforces chain). */
+    public function advanceSevk(string $orderQnid, string $toKey, array $fields = [], ?string $note = null): array
+    {
+        $allowed = [
+            'doc_trans_order_sevk_kalite_ok', 'doc_trans_order_sevk_addressed',
+            'doc_trans_order_sevk_dated', 'doc_trans_order_sevk_proforma',
+            'doc_trans_order_sevk_shipped',
+        ];
+        if (!in_array($toKey, $allowed, true)) return ['success' => false, 'msg' => 'Geçersiz sevk adımı'];
+        $order = Documents::where('qnid', $orderQnid)->first();
+        if (empty($order)) return ['success' => false, 'msg' => 'Sipariş bulunamadı'];
+        // proforma step requires both files present (active)
+        if ($toKey === 'doc_trans_order_sevk_proforma') {
+            $hasPro = DB::selectOne(
+                "SELECT COUNT(*) c FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id
+                 JOIN documents d ON d.id=sco.main_id JOIN document_files df ON df.id::text=sce.entity_value
+                 WHERE d.id=? AND sce.table_tag='document_files' AND df.status=1
+                   AND (sce.entity_tag LIKE '%proforma%')", [$order->id]);
+            $hasIrs = DB::selectOne(
+                "SELECT COUNT(*) c FROM sys_con_entities sce JOIN sys_con_ops sco ON sco.id=sce.conn_id
+                 JOIN documents d ON d.id=sco.main_id JOIN document_files df ON df.id::text=sce.entity_value
+                 WHERE d.id=? AND sce.table_tag='document_files' AND df.status=1
+                   AND (sce.entity_tag LIKE '%irsaliye%')", [$order->id]);
+            if (($hasPro->c ?? 0) < 1 || ($hasIrs->c ?? 0) < 1) {
+                return ['success' => false, 'msg' => 'Proforma ve irsaliye dosyaları zorunlu'];
+            }
+        }
+        // shipped requires kontrol-ok flag (set by lojistik control)
+        if ($toKey === 'doc_trans_order_sevk_shipped') {
+            $flag = DB::table('sys_con_entities as sce')->join('sys_con_ops as sco', 'sco.id', '=', 'sce.conn_id')
+                ->where('sco.main_id', $order->id)->where('sce.entity_tag', 'sevk_kontrol_ok')->value('sce.entity_value');
+            if ($flag !== '1' && (($fields['sevk_kontrol_ok'] ?? null) != '1')) {
+                return ['success' => false, 'msg' => 'Lojistik kontrol onayı (Uygun) gerekli'];
+            }
+        }
+        if (!empty($fields)) $this->saveSevkFields($orderQnid, $fields);
+        return $this->setStatus($orderQnid, $toKey, $note ?? $toKey);
+    }
+
+    /** Lightweight partitions check — indexed order_no LIKE, NOT tableList all-scan (17s). */
+    public function orderPartitions(string $orderQnid): array
+    {
+        $order = Documents::where('qnid', $orderQnid)->first();
+        if (empty($order)) return ['success' => false, 'msg' => 'Sipariş bulunamadı'];
+        $no = Sys_con_entities::join('sys_con_ops as sco', 'sco.id', '=', 'sys_con_entities.conn_id')
+            ->where('sco.main_id', $order->id)->where('sys_con_entities.entity_tag', 'order_no')
+            ->value('sys_con_entities.entity_value');
+        if (!$no) return ['success' => true, 'hasPartitions' => false, 'clones' => []];
+        $base = preg_replace('/-\d+$/', '', (string) $no);
+        $rows = DB::select(
+            "SELECT d.qnid, sce.entity_value as order_no FROM sys_con_entities sce
+             JOIN sys_con_ops sco ON sco.id = sce.conn_id
+             JOIN documents d ON d.id = sco.main_id
+             JOIN sys_options so ON so.id = d.type_id
+             WHERE so.op_key = 'op-doc-order' AND sce.entity_tag = 'order_no'
+               AND sce.entity_value LIKE ? AND d.status = 1 AND d.id != ? LIMIT 100",
+            [$base.'-%', $order->id]
+        );
+        $clones = [];
+        foreach ($rows as $r) {
+            if (($r->order_no ?? '') !== $no && preg_match('/-\d+$/', (string) ($r->order_no ?? ''))) $clones[] = $r;
+        }
+        return ['success' => true, 'hasPartitions' => !empty($clones), 'clones' => $clones, 'base' => $base];
+    }
+
+    /** Latest order status op_key for a qnid (public for controller guards). */
+    public function latestOrderStatus(string $orderQnid): ?string
+    {
+        $order = Documents::where('qnid', $orderQnid)->first();
+        if (empty($order)) return null;
+        return $this->getLatestOrderStatus($order->id);
     }
 
     /** Check if base order has active EBELN-X clones (status=1). Excludes given doc id. */

@@ -295,6 +295,18 @@ export default {
                                     <span class="menu-title">Sipariş Listesi</span>
                                 </router-link>
                             </div>
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-05-01')">
+                                <router-link :to="{ name: 'OrderList', query: { f: 'sevk' } }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Sevk Onay Süreci</span>
+                                </router-link>
+                            </div>
+                            <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-05-01')">
+                                <router-link :to="{ name: 'OrderList', query: { f: 'fabrika' } }" class="menu-link sub-link">
+                                    <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
+                                    <span class="menu-title">Fabrika Kabul <span style="font-size:10px; background:#fef3c7; color:#92400e; border-radius:999px; padding:1px 6px; margin-left:4px;">yakında</span></span>
+                                </router-link>
+                            </div>
                             <div class="menu-item" v-if="this.useAuthStore().permissions?.includes('per-07-01')">
                                 <router-link :to="{ name: 'DList' }" class="menu-link sub-link">
                                     <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
@@ -316,7 +328,7 @@ export default {
                         </div>
                     </div>
 
-                    <!-- Transferler removed: transfers are EBELN-X rows inside Sipariş Listesi, status shows Kalite Onayı/Dosyalar Kontrol -->
+                    <!-- Transferler removed: transfers are EBELN-X rows inside Sipariş Listesi, status shows Sevk Onayı/Dosyalar Kontrol -->
                     <div v-if="false" class="menu-item py-1 menu-row-main"></div>
 
                     <!-- Legacy Talep/Teklif hidden but keep route alive for compat -->

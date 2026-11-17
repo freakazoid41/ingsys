@@ -17,11 +17,17 @@
     const escapeHtml = (s) => String(s ?? '').replace(ESCAPE_RE, c => ESCAPE_MAP[c]);
     const STATUS_LABEL_MAP = {
         'doc_trans_order_transfer_sent': 'Dosyalar Kontrol Ediliyor',
-        'doc_trans_order_approved': 'Kalite Onayı Verildi',
+        'doc_trans_order_approved': 'Sevk Onayı Verildi',
         'doc_trans_order_created': 'Beklemede',
         'doc_trans_order_ready_for_shipment': 'Sipariş Sevke Hazır',
         'doc_trans_order_rejected': 'Sipariş Reddedildi',
         'doc_trans_order_files_rejected': 'Reddedilen Dosyalar Mevcut',
+        'doc_trans_order_sevk_started': 'Kalite Onayında',
+        'doc_trans_order_sevk_kalite_ok': 'Sevk Kalite OK',
+        'doc_trans_order_sevk_addressed': 'Sevk Adresi Girildi',
+        'doc_trans_order_sevk_dated': 'Sevk Tarihi Seçildi',
+        'doc_trans_order_sevk_proforma': 'Proforma Yüklendi',
+        'doc_trans_order_sevk_shipped': 'Sevkiyat Yapıldı',
     };
     const STATUS_ICONS = {
         doc_trans_order_created:'ki-outline ki-file-added',
@@ -30,6 +36,12 @@
         doc_trans_order_approved:'ki-outline ki-check-circle',
         doc_trans_order_rejected:'ki-outline ki-cross-circle',
         doc_trans_order_files_rejected:'ki-outline ki-file-danger',
+        doc_trans_order_sevk_started:'ki-outline ki-delivery',
+        doc_trans_order_sevk_kalite_ok:'ki-outline ki-check-circle',
+        doc_trans_order_sevk_addressed:'ki-outline ki-geolocation',
+        doc_trans_order_sevk_dated:'ki-outline ki-calendar',
+        doc_trans_order_sevk_proforma:'ki-outline ki-document',
+        doc_trans_order_sevk_shipped:'ki-outline ki-truck',
         doc_file_waiting:'ki-outline ki-hourglass',
     };
 
@@ -43,8 +55,10 @@
             this.navigationStore.toggle(true);
             this.buildTable();
             // apply ?status= filter from dashboard stat clicks (e.g. ?status=doc_trans_order_files_rejected)
+            // + ?f=sevk|fabrika from sidebar tabs
             this._buildTimeouts.push(setTimeout(() => {
                 this.applyStatusQuery(this.$route.query.status);
+                this.applySideTab(this.$route.query.f);
                 this.navigationStore.toggle(false);
             }, 500));
             if(this.isTedarik){
@@ -62,6 +76,9 @@
         watch: {
             '$route.query.status'(newVal){
                 this.applyStatusQuery(newVal);
+            },
+            '$route.query.f'(newVal){
+                this.applySideTab(newVal);
             },
             isTedarik(newVal){
                 if(newVal){
@@ -349,6 +366,18 @@
                         this.table.setFilter([{key:'transactions', type:'=', value: 'doc_trans_order_approved,doc_trans_order_ready_for_shipment'}]);
                         break;
                     }
+                    case 'sevk_sureci': {
+                        this.detayliChoice = 'sevk_sureci';
+                        this.table.setFilter([{key:'transactions', type:'=', value: 'doc_trans_order_sevk_started,doc_trans_order_sevk_kalite_ok,doc_trans_order_sevk_addressed,doc_trans_order_sevk_dated,doc_trans_order_sevk_proforma,doc_trans_order_sevk_shipped'}]);
+                        this.plib.toast(Swal,'success','Sevk Onay Sürecindekiler listeleniyor');
+                        break;
+                    }
+                    case 'fabrika': {
+                        this.detayliChoice = 'fabrika';
+                        this.table.setFilter([{key:'transactions', type:'=', value: 'doc_trans_order_fabrika_started'}]);
+                        this.plib.toast(Swal,'info','Fabrika Kabul Way-2 henüz kapalı — liste boş döner');
+                        break;
+                    }
                     case 'hepsi': {
                         this.selectedSirkets=[];
                         this.sirketSearch='';
@@ -483,6 +512,16 @@
                 } else if(status === '' || status === null){
                     // clear to show all (keep initial)
                     this.table.setFilter([]);
+                }
+            },
+            applySideTab(f){
+                if(!this.table) return;
+                if(f === 'sevk'){
+                    this.detayliChoice = 'sevk_sureci';
+                    this.table.setFilter([{key:'transactions', type:'=', value: 'doc_trans_order_sevk_started,doc_trans_order_sevk_kalite_ok,doc_trans_order_sevk_addressed,doc_trans_order_sevk_dated,doc_trans_order_sevk_proforma,doc_trans_order_sevk_shipped'}]);
+                } else if(f === 'fabrika'){
+                    this.detayliChoice = 'fabrika';
+                    this.table.setFilter([{key:'transactions', type:'=', value: 'doc_trans_order_fabrika_started'}]);
                 }
             },
             formatDate(val){
@@ -641,8 +680,16 @@
                             btn.style.border='1px solid transparent';
                             btn.style.gap='6px';
                             if(this.isTedarik){
-                                // vivid solid pills as in screenshot
-                                if(label.includes('Kalite Onayı') || opKey==='doc_trans_order_approved'){
+                                // vivid solid pills as in screenshot — sevk chain owns purple
+                                if(opKey==='doc_trans_order_sevk_started'){
+                                    btn.style.background='#7c3aed';
+                                    btn.style.color='#ffffff';
+                                    btn.style.borderColor='#7c3aed';
+                                } else if(opKey.indexOf('doc_trans_order_sevk_')===0){
+                                    btn.style.background='#8b5cf6';
+                                    btn.style.color='#ffffff';
+                                    btn.style.borderColor='#8b5cf6';
+                                } else if(label.includes('Sevk Onayı') || label.includes('Kalite Onayı') || opKey==='doc_trans_order_approved'){
                                     btn.style.background='#22c55e';
                                     btn.style.color='#ffffff';
                                     btn.style.borderColor='#22c55e';
@@ -657,11 +704,19 @@
                                     btn.style.borderColor='#FF5A1F';
                                 }
                             } else {
-                                if(opKey==='doc_trans_order_ready_for_shipment' || label.includes('Sipariş Sevke Hazır')){
+                                if(opKey==='doc_trans_order_sevk_started'){
+                                    btn.style.background='#ede9fe';
+                                    btn.style.color='#4c1d95';
+                                    btn.style.borderColor='#8b5cf6';
+                                } else if(opKey.indexOf('doc_trans_order_sevk_')===0){
+                                    btn.style.background='#f5f3ff';
+                                    btn.style.color='#6d28d9';
+                                    btn.style.borderColor='#c4b5fd';
+                                } else if(opKey==='doc_trans_order_ready_for_shipment' || label.includes('Sipariş Sevke Hazır')){
                                     btn.style.background='#fef3c7';
                                     btn.style.color='#92400e';
                                     btn.style.borderColor='#fcd34d';
-                                } else if(label.includes('Kalite Onayı') || opKey==='doc_trans_order_approved'){
+                                } else if(label.includes('Sevk Onayı') || label.includes('Kalite Onayı') || opKey==='doc_trans_order_approved'){
                                     btn.style.background='#dcfce7';
                                     btn.style.color='#166534';
                                     btn.style.borderColor='#86efac';
@@ -696,11 +751,17 @@
                                         'doc_trans_order_created': ['doc_trans_order_transfer_sent','doc_trans_order_approved'],
                                         'doc_trans_order_transfer_sent': ['doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_ready_for_shipment'],
                                         'doc_trans_order_files_rejected': ['doc_trans_order_transfer_sent','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_ready_for_shipment'],
-                                        'doc_trans_order_ready_for_shipment': ['doc_trans_order_approved','doc_trans_order_rejected'],
+                                        'doc_trans_order_ready_for_shipment': ['doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_sevk_started'],
+                                        'doc_trans_order_sevk_started': ['doc_trans_order_sevk_kalite_ok','doc_trans_order_rejected'],
+                                        'doc_trans_order_sevk_kalite_ok': ['doc_trans_order_sevk_addressed','doc_trans_order_rejected'],
+                                        'doc_trans_order_sevk_addressed': ['doc_trans_order_sevk_dated','doc_trans_order_rejected'],
+                                        'doc_trans_order_sevk_dated': ['doc_trans_order_sevk_proforma','doc_trans_order_rejected'],
+                                        'doc_trans_order_sevk_proforma': ['doc_trans_order_sevk_shipped','doc_trans_order_sevk_dated','doc_trans_order_rejected'],
+                                        'doc_trans_order_sevk_shipped': ['doc_trans_order_approved','doc_trans_order_rejected'],
                                     };
                                     const isAllowed = (target) => {
                                         if(['doc_trans_order_approved','doc_trans_order_rejected'].includes(current)) return false;
-                                        // NEW 2026-09-08: Kalite Onayı allowed from ANY status
+                                        // Sevk Onayı (was Kalite) allowed from ANY status
                                         if(target === 'doc_trans_order_approved') return true;
                                         const list = allowed[current] || [];
                                         return list.includes(target);
@@ -716,8 +777,9 @@
                                         title:'Durum Değiştir',
                                         showConfirmButton:false, showCloseButton:true,
                                         html:`<div class="d-flex flex-column gap-2 p-2">
-                                            ${mkBtn('doc_trans_order_approved','Kalite Onayı Verildi','ki-outline ki-check-circle','#22c55e')}
+                                            ${mkBtn('doc_trans_order_approved','Sevk Onayı Ver','ki-outline ki-check-circle','#22c55e')}
                                             ${mkBtn('doc_trans_order_ready_for_shipment','Sipariş Sevke Hazır','ki-outline ki-truck','#facc15','#713f12')}
+                                            ${mkBtn('doc_trans_order_sevk_started','Sevk Onayına Al','ki-outline ki-delivery','#8b5cf6')}
                                             ${mkBtn('doc_trans_order_transfer_sent','Dosyalar Kontrol Ediliyor','ki-outline ki-magnifier','#f97316')}
                                             ${mkBtn('doc_trans_order_rejected','Reddedildi','ki-outline ki-cross-circle','#ef4444')}
                                             <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:4px;">Mevcut: <b style="color:#0f172a;">${STATUS_LABEL_MAP[current] || current}</b></div>
@@ -785,7 +847,11 @@
                                 const canKalite = _perms.includes('per-07-02');
                                 const canRename = _perms.includes('per-05-05');
                                 const canCancel = _perms.includes('per-05-04');
-                                const hasAny = canKalite || canRename || canCancel;
+                                const canSevk = _perms.includes('per-05-03');
+                                const _opKey = String(row.status||'').split('**')[0]||'';
+                                const _canSevkStart = canSevk && _opKey === 'doc_trans_order_ready_for_shipment';
+                                const canKaliteOk = _perms.includes('per-07-02') && _opKey === 'doc_trans_order_sevk_started';
+                                const hasAny = canKalite || canRename || canCancel || _canSevkStart || canKaliteOk;
                                 // Detaylar is always visible, Aksiyonlar only if hasAny
                                 let aks = null;
                                 if(hasAny){
@@ -812,14 +878,18 @@
                                     const opKey = String(row.status||'').split('**')[0]||'';
                                     const isEnded = ['doc_trans_order_approved','doc_trans_order_rejected'].includes(opKey);
                                     // only show actions for which we have permission (no warning, just hide)
-                                    const kaliteBtn = canKalite ? `<button id="aks-kalite" class="btn" ${isEnded?'disabled':''} style="background:${isEnded?'#9ca3af':'#22c55e'};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;${isEnded?'opacity:0.65;cursor:not-allowed;':''}"><i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Kalite Onayı Ver ve Kapat${isEnded?' — Zaten Kapalı':''}</button>` : '';
+                                    const kaliteBtn = canKalite ? `<button id="aks-kalite" class="btn" ${isEnded?'disabled':''} style="background:${isEnded?'#9ca3af':'#22c55e'};color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;${isEnded?'opacity:0.65;cursor:not-allowed;':''}"><i class="ki-outline ki-check-circle" style="font-size:16px;"></i> Sevk Onayı Ver${isEnded?' — Zaten Kapalı':''}</button>` : '';
+                                    const sevkBtn = _canSevkStart ? `<button id="aks-sevk" class="btn" style="background:#8b5cf6;color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-delivery" style="font-size:16px;"></i> Sevk Onayına Al</button>` : '';
                                     const renameBtn = (isClone && canRename) ? `<button id="aks-rename" class="btn" style="background:#f59e0b;color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-pencil" style="font-size:16px;"></i> Sipariş Numarasını Düzenle</button>` : '';
+                                    const kaliteOkBtn = canKaliteOk ? `<button id="aks-kalite-ok" class="btn" style="background:#7c3aed;color:#fff;border:none;font-weight:600;padding:12px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ki-outline ki-shield-tick" style="font-size:16px;"></i> Kalite Onayı Ver</button>` : '';
                                     const endedNote = isEnded ? `<div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:2px;">Bu sipariş zaten kapatılmış.</div>` : '';
                                     // if no visible actions after filtering (e.g. non-clone + only rename perm), don't open modal
-                                    if(!kaliteBtn && !renameBtn){
+                                    if(!kaliteBtn && !renameBtn && !sevkBtn && !kaliteOkBtn){
                                         return;
                                     }
                                     const html = `<div class="d-flex flex-column gap-2 p-2">
+                                        ${sevkBtn}
+                                        ${kaliteOkBtn}
                                         ${kaliteBtn}
                                         ${renameBtn}
                                         ${endedNote}
@@ -829,6 +899,80 @@
                                         showConfirmButton:false, showCloseButton:true,
                                         html,
                                         willOpen: () => {
+                                            const kaliteOkBtn = document.getElementById('aks-kalite-ok');
+                                            if(kaliteOkBtn){
+                                                kaliteOkBtn.addEventListener('click', async () => {
+                                                    const { value: depo, isConfirmed } = await Swal.fire({
+                                                        title:'Kalite Onayı Ver',
+                                                        html: `<div style="text-align:left;padding:4px 2px;">
+                                                            <div style="font-size:13px;color:#334155;margin-bottom:6px;">Sipariş: <b>${escapeHtml(curNo)}</b></div>
+                                                            <div style="font-size:11.5px;color:#64748b;margin-bottom:10px;">Gerekli yetki: <b>per-07-02</b> (Döküman Değerlendirme). Depo yeri SAS'tan gelir, yoksa yazınız.</div>
+                                                            <label style="font-size:12px;font-weight:700;color:#5b21b6;">Depo Yeri (SAS) *</label>
+                                                            <input id="swal-depo" class="swal2-input" placeholder="GEBZE-DEPO-01" style="margin:6px 0 0;">
+                                                        </div>`,
+                                                        showCancelButton:true,
+                                                        confirmButtonText:'Kalite Onayı Ver',
+                                                        cancelButtonText:'Vazgeç',
+                                                        confirmButtonColor:'#7c3aed',
+                                                        focusConfirm:false,
+                                                        preConfirm: () => {
+                                                            const v=document.getElementById('swal-depo')?.value?.trim() ?? '';
+                                                            if(!v){ Swal.showValidationMessage('Depo yeri zorunlu'); return false; }
+                                                            return v;
+                                                        }
+                                                    });
+                                                    if(!isConfirmed || !depo) return;
+                                                    kaliteOkBtn.disabled = true;
+                                                    kaliteOkBtn.style.opacity = '0.7';
+                                                    try{
+                                                        const fd=new FormData();
+                                                        fd.append('id', row.id);
+                                                        fd.append('op_key', 'doc_trans_order_sevk_kalite_ok');
+                                                        fd.append('depo_yeri', depo);
+                                                        fd.append('note', 'Kalite onayı (liste)');
+                                                        const rsp=await this.plib.request({url:'/api/v1/orders/sevk/advance', method:'POST'}, null, fd);
+                                                        if(rsp && rsp.success){
+                                                            this.table.updateRow(row.id, {status:'doc_trans_order_sevk_kalite_ok**Sevk Kalite OK'});
+                                                            Swal.close();
+                                                            this.plib.toast(Swal,'success','Kalite onayı verildi');
+                                                        }else{
+                                                            Swal.showValidationMessage(rsp?.msg || rsp?.message || 'İşlem başarısız');
+                                                            kaliteOkBtn.disabled = false;
+                                                            kaliteOkBtn.style.opacity = '';
+                                                        }
+                                                    }catch(err){
+                                                        Swal.showValidationMessage(err?.msg || String(err));
+                                                        kaliteOkBtn.disabled = false;
+                                                        kaliteOkBtn.style.opacity = '';
+                                                    }
+                                                });
+                                            }
+                                            const sevkBtn = document.getElementById('aks-sevk');
+                                            if(sevkBtn){
+                                                sevkBtn.addEventListener('click', async () => {
+                                                    sevkBtn.disabled = true;
+                                                    sevkBtn.style.opacity = '0.7';
+                                                    try{
+                                                        const fd=new FormData();
+                                                        fd.append('id', row.id);
+                                                        fd.append('note', 'Sevk onayına alındı (liste)');
+                                                        const rsp=await this.plib.request({url:'/api/v1/orders/sevk/start', method:'POST'}, null, fd);
+                                                        if(rsp && rsp.success){
+                                                            this.table.updateRow(row.id, {status:'doc_trans_order_sevk_started**Kalite Onayında'});
+                                                            Swal.close();
+                                                            this.plib.toast(Swal,'success','Sevk onayına alındı');
+                                                        }else{
+                                                            Swal.showValidationMessage(rsp?.msg || rsp?.message || 'İşlem başarısız');
+                                                            sevkBtn.disabled = false;
+                                                            sevkBtn.style.opacity = '';
+                                                        }
+                                                    }catch(err){
+                                                        Swal.showValidationMessage(err?.msg || String(err));
+                                                        sevkBtn.disabled = false;
+                                                        sevkBtn.style.opacity = '';
+                                                    }
+                                                });
+                                            }
                                             const kaliteBtn = document.getElementById('aks-kalite');
                                             if(kaliteBtn){
                                                 if(isEnded){
@@ -839,8 +983,8 @@
                                                 } else {
                                                 kaliteBtn.addEventListener('click', async () => {
                                                     const conf = await Swal.fire({
-                                                        title: 'Kalite Onayı Ver',
-                                                        html: '<div style="text-align:left;font-size:13px;color:#334155;">Tüm bekleyen dosyalar <b>kabul</b> edilecek ve sipariş <b>Kalite Onayı Verildi</b> durumuna geçecek.<br><span style="color:#64748b;font-size:11.5px;">Onay sonrası sipariş kilitlenir.</span></div>',
+                                                        title: 'Sevk Onayı Ver',
+                                                        html: '<div style="text-align:left;font-size:13px;color:#334155;">Tüm bekleyen dosyalar <b>kabul</b> edilecek ve sipariş <b>Sevk Onayı Verildi</b> durumuna geçecek.<br><span style="color:#64748b;font-size:11.5px;">Onay sonrası sipariş kilitlenir.</span></div>',
                                                         icon: 'warning',
                                                         showCancelButton: true,
                                                         confirmButtonText: 'Evet, Onayla',
@@ -860,12 +1004,12 @@
                                                         const fd=new FormData();
                                                         fd.append('id', row.id);
                                                         fd.append('op_key', 'doc_trans_order_approved');
-                                                        fd.append('note', 'Kalite onayı verildi ve kapatıldı');
+                                                        fd.append('note', 'Sevk onayı verildi ve kapatıldı');
                                                         const rsp=await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
                                                         Swal.close();
                                                         if(rsp && rsp.success){
-                                                            this.table.updateRow(row.id, {status:'doc_trans_order_approved**Kalite Onayı Verildi'});
-                                                            this.plib.toast(Swal,'success','Kalite onayı verildi — tüm dosyalar kabul edildi');
+                                                            this.table.updateRow(row.id, {status:'doc_trans_order_approved**Sevk Onayı Verildi'});
+                                                            this.plib.toast(Swal,'success','Sevk onayı verildi — tüm dosyalar kabul edildi');
                                                         }else{
                                                             Swal.fire({icon:'error', title:'Olmadı', text: rsp?.msg || rsp?.message || 'İşlem başarısız', confirmButtonText:'Tamam'});
                                                         }
@@ -954,7 +1098,7 @@
                                 det.onmouseenter=()=> det.style.background='#0c7e90';
                                 det.onmouseleave=()=> det.style.background='#0e8ea4';
                                 det.onclick=()=>{
-                                    this.$router.push({name:'TedarikOrderForm', params:{id:row.id}});
+                                    this.$router.push({name:'TedarikOrderForm', params:{id:row.id}, query:{...this.$route.query}});
                                 };
                                 wrap.appendChild(det);
                                 return wrap;
@@ -973,8 +1117,8 @@
                             btn.onmouseenter=()=> btn.style.background='#d1d5db';
                             btn.onmouseleave=()=> btn.style.background='#e5e7eb';
                             btn.onclick=()=>{
-                                // simple action: go to detail
-                                this.$router.push({name:'OrderForm', params:{id:row.id}});
+                                // simple action: go to detail (preserve ?f=sevk focus)
+                                this.$router.push({name:'OrderForm', params:{id:row.id}, query:{...this.$route.query}});
                             };
                             wrap.appendChild(btn);
                             const cancelBtn=document.createElement('button');
@@ -1112,7 +1256,7 @@
                     });
                     if(match){
                         const target = this.isTedarik ? 'TedarikOrderForm' : 'OrderForm';
-                        this.$router.push({name: target, params:{id: match.id}});
+                        this.$router.push({name: target, params:{id: match.id}, query:{...this.$route.query}});
                     } else {
                         this.plib.toast(this.Swal, 'info', 'Orijinal sipariş bulunamadı: ' + baseNo);
                     }
@@ -1140,6 +1284,8 @@
                 </div>
                 <button class="order-btn order-btn-primary" @click="searchTable">Ara</button>
                 <button class="order-btn order-btn-ghost" @click="resetSearch">Sıfırla</button>
+                <button class="order-btn order-btn-ghost" @click="handleDetayliChoice('sevk_sureci')"><i class="ki-outline ki-delivery"></i> Sevk Onay Süreci</button>
+                <button class="order-btn order-btn-ghost" @click="handleDetayliChoice('fabrika')"><i class="ki-outline ki-setting-2"></i> Fabrika Kabul</button>
                 <button class="order-btn order-btn-ghost" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel</button>
             </div>
         </div>
@@ -1150,6 +1296,8 @@
               
             </div>
             <div class="tedarik-filters">
+                <a href="javascript:;" class="tedarik-filter" :class="{active: detayliChoice==='sevk_sureci'}" @click="handleDetayliChoice('sevk_sureci')"><i class="ki-outline ki-delivery"></i> Sevk Onay Süreci</a>
+                <a href="javascript:;" class="tedarik-filter" :class="{active: detayliChoice==='fabrika'}" @click="handleDetayliChoice('fabrika')"><i class="ki-outline ki-setting-2"></i> Fabrika Kabul</a>
                 <a href="javascript:;" class="tedarik-filter" @click="toggleDetailed"><i class="ki-outline ki-filter"></i> Detaylı Filtre</a>
                 <div class="tedarik-filter-dd-wrap" ref="detayliWrap">
                     <a href="javascript:;" class="tedarik-filter" :class="{active: showDetayli}" @click="toggleDetayli"><i class="ki-outline ki-filter"></i> Filtreler</a>
@@ -1180,6 +1328,12 @@
                         </label>
                         <label class="tedarik-dd-item" :class="{selected: detayliChoice==='tamamlanan'}" @click="handleDetayliChoice('tamamlanan')">
                             <span class="tedarik-radio" :class="{on: detayliChoice==='tamamlanan'}"></span> Tamamlananları Göster
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='sevk_sureci'}" @click="handleDetayliChoice('sevk_sureci')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='sevk_sureci'}"></span> Sevk Onay Sürecindekiler
+                        </label>
+                        <label class="tedarik-dd-item" :class="{selected: detayliChoice==='fabrika'}" @click="handleDetayliChoice('fabrika')">
+                            <span class="tedarik-radio" :class="{on: detayliChoice==='fabrika'}"></span> Fabrika Kabul (yakında)
                         </label>
                         <label class="tedarik-dd-item" :class="{selected: detayliChoice==='hepsi'}" @click="handleDetayliChoice('hepsi')">
                             <span class="tedarik-radio" :class="{on: detayliChoice==='hepsi'}"></span> Hepsini Göster

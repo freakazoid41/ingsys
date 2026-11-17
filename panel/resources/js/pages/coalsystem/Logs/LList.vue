@@ -280,7 +280,7 @@
                                     'doc_trans_order_created': 'Sipariş Oluşturuldu',
                                     'doc_trans_order_transfer_sent': 'Dosyalar Kontrol Ediliyor',
                                     'doc_trans_order_ready_for_shipment': 'Sipariş Sevke Hazır',
-                                    'doc_trans_order_approved': 'Kalite Onayı Verildi',
+                                    'doc_trans_order_approved': 'Sevk Onayı Verildi',
                                     'doc_trans_order_rejected': 'Sipariş Reddedildi',
                                     'doc_trans_order_files_rejected': 'Reddedilen Dosyalar Mevcut',
                                 };

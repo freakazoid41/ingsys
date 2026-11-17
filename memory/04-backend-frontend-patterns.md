@@ -49,7 +49,7 @@ Global middleware (`bootstrap/app.php:19-27`): `ParsePutMultipart` (broken, fall
 - **Frontend** `LList.vue:163 Sistem logları` `PickleTable POST /v1/table/userlog` → `UserLog::tableList:41` `description TEXT` + `side-panel` `340px` `log-modal-grid`: left `jsonToDetails` tree (expand/collapse/copy) + right `side-card` stack (avatar/name/email/role/type_key/ip/sys_code, order_no big + transfer/buying/spec/ctitle/qnid, file field/group/qnid/order_no/tag, from→to pills, note box). Old logs (no actor) → side hidden.
 
 ### 2.3 Status Machine — Controlled Writes
-`POST /v1/trans/set-status` → `DocumentController::setStatus:260-295` → `DocumentServiceProvider::setStatus(id, opKey, note)` (`DocumentServiceProvider.php:712-781`)
+`POST /v1/trans/set-status` → `DocumentController::setStatus` → `DocumentServiceProvider::setStatus` + Sevk `POST /v1/orders/sevk/start|advance|control` → `startSevk/advanceSevk` (`saveSevkFields`) + `GET /v1/order/{id}/partitions` (indexed clone check, replaces 17s `tableList all=` scan)
 - Resolves `op_key→sys_options.id`, creates `UserLog log-document-status-update` + `Transactions` (op_id 0)
 
 `POST /v1/trans/set-file-status|set-file-status-all|disable-document` → `documentFileStatus` (file transactions `op_id=1`) + `refreshAllUserPermissions` + `sendClientFileStatus` mail.

@@ -78,6 +78,10 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckPermissionVersion::
     Route::post('/v1/trans/disable-document',          [DocumentController::class, 'disableDocument']);
     Route::post('/v1/orders/cancel',                   [DocumentController::class, 'cancelOrder']);
     Route::post('/v1/orders/rename',                   [DocumentController::class, 'renameOrder']);
+    Route::post('/v1/orders/sevk/start',               [DocumentController::class, 'sevkStart']);
+    Route::post('/v1/orders/sevk/advance',             [DocumentController::class, 'sevkAdvance']);
+    Route::post('/v1/orders/sevk/control',            [DocumentController::class, 'sevkControl']);
+    Route::get('/v1/order/{id}/partitions',           [DocumentController::class, 'orderPartitions']);
     Route::get('/v1/file-detail/{id}',                 [DocumentController::class, 'fileDetail']);
     Route::get('/v1/order/{qnid}/files',               [DocumentController::class, 'listOrderFiles']);
     Route::get('/v1/request/{qnid}/files',             [DocumentController::class, 'requestFiles']);

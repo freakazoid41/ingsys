@@ -241,9 +241,23 @@ export default {
                         </a>
                     </router-link>
                     <router-link v-if="authStore.permissions?.includes('per-05-01') || authStore.permissions?.includes('per-05')" to="/tedarikpanel/orders" custom v-slot="{ navigate, href }">
-                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isOrdersActive }]">
+                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: isOrdersActive && !$route.query.f }]">
                             <i class="ki-outline ki-document tedarik-menu-icon"></i>
                             <span>Siparişler</span>
+                            <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                        </a>
+                    </router-link>
+                    <router-link v-if="authStore.permissions?.includes('per-05-01') || authStore.permissions?.includes('per-05')" :to="{ path: '/tedarikpanel/orders', query: { f: 'sevk' } }" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: $route.query.f === 'sevk' }]">
+                            <i class="ki-outline ki-delivery tedarik-menu-icon"></i>
+                            <span>Sevk Onay Süreci</span>
+                            <i class="ki-outline ki-right tedarik-menu-arrow"></i>
+                        </a>
+                    </router-link>
+                    <router-link v-if="authStore.permissions?.includes('per-05-01') || authStore.permissions?.includes('per-05')" :to="{ path: '/tedarikpanel/orders', query: { f: 'fabrika' } }" custom v-slot="{ navigate, href }">
+                        <a :href="href" @click="navigate" :class="['tedarik-menu-item', { active: $route.query.f === 'fabrika' }]">
+                            <i class="ki-outline ki-setting-2 tedarik-menu-icon"></i>
+                            <span>Fabrika Kabul</span>
                             <i class="ki-outline ki-right tedarik-menu-arrow"></i>
                         </a>
                     </router-link>

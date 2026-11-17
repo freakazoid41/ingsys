@@ -836,8 +836,52 @@
                             }
                             pill.innerHTML = icon+'<span>'+label+'</span>';
                             pill.type = 'button';
-                            // tedarik list is read-only — status changes only on detail page (per Master 2026-09-03)
-                            if(!this.isTedarik && this.useAuthStore.permissions?.includes('per-07-02')){
+                            // Sevk files: order-level Uygun/Değil via sevkControl (per-05-03), NOT set-file-status
+                            const _ft = String(rowData.file_type || rowData.file_type_key || '');
+                            const _isSevk = /proforma|irsaliye|sevk/i.test(_ft);
+                            if(_isSevk && !this.isTedarik && this.useAuthStore.permissions?.includes('per-05-03')){
+                                pill.onclick = (e) => {
+                                    Swal.fire({
+                                        showConfirmButton : false,
+                                        showCloseButton : true,
+                                        html : `<small class="mb-5 mt-5">Sevk kontrolü — sipariş seviyesinde işlenir (Uygun = ship unlock)</small>
+                                                <div class="row m-5 justify-content-center">
+                                                    <button class="btn btn-success mb-5 doc-status" data-key="1" type="button">Uygun</button>
+                                                    <button class="btn btn-danger mb-5 doc-status" data-key="0" type="button">Uygun Değil</button>
+                                                </div>`,
+                                        willOpen : async () => {
+                                            const container = (typeof Swal.getHtmlContainer==='function' ? Swal.getHtmlContainer() : document) || document;
+                                            container.querySelectorAll('.doc-status').forEach(btn => {
+                                                btn.addEventListener('click', e => {
+                                                    const key = e.currentTarget?.dataset?.key;
+                                                    Swal.fire({
+                                                        confirmButtonText : 'Kaydet',
+                                                        showCloseButton : true,
+                                                        html : `<div style="display:flex; flex-direction:column; align-items:center; gap:14px; padding:6px 4px 2px; text-align:center;">
+                                                            <div style="font-size:13px; color:#64748b;">${key === '1' ? 'Uygun notu (opsiyonel)' : 'Revize gerekçesi (zorunlu)'}</div>
+                                                            <textarea id="sevkNote" placeholder="Notunuz..." style="width:100%; min-height:90px; border:1.5px solid #e2e8f0; border-radius:12px; padding:12px 14px; font-size:13.5px; background:#f8fafc;"></textarea>
+                                                        </div>`,
+                                                        preConfirm : async () => {
+                                                            try {
+                                                                const note = document.getElementById('sevkNote').value.trim();
+                                                                if(key !== '1' && !note){ Swal.showValidationMessage('Gerekçe zorunlu'); return false; }
+                                                                const envelope = new FormData();
+                                                                envelope.append('id', rowData.relation_qnid);
+                                                                envelope.append('uygun', key);
+                                                                envelope.append('note', note || (key === '1' ? 'Uygun (Dökümanlar liste)' : 'Uygun değil (Dökümanlar liste)'));
+                                                                const rsp = await this.plib.request({ url : '/api/v1/orders/sevk/control', method : 'POST' }, null, envelope);
+                                                                if(rsp.success){ this.plib.toast(this.Swal,'success','İşlem Tamamlandı'); this.table.refresh?.(); }
+                                                                else Swal.showValidationMessage(rsp.msg);
+                                                                return rsp.success;
+                                                            } catch (error) { Swal.showValidationMessage(`Request failed: ${error}`); }
+                                                        }
+                                                    });
+                                                });
+                                            });
+                                        }
+                                    });
+                                };
+                            } else if(!this.isTedarik && this.useAuthStore.permissions?.includes('per-07-02')){
                                 pill.onclick = (e) => {
                                     Swal.fire({
                                         showConfirmButton : false,

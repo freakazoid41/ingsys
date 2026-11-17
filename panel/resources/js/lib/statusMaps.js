@@ -2,11 +2,17 @@
 // OList/DList both duplicated labelMap + statusIcons per row (10× alloc). Import here: `import { ORDER_STATUS_LABEL_MAP, FILE_STATUS_ICONS } from '@/lib/statusMaps'`
 export const ORDER_STATUS_LABEL_MAP = {
   'doc_trans_order_transfer_sent': 'Dosyalar Kontrol Ediliyor',
-  'doc_trans_order_approved': 'Kalite Onayı Verildi',
+  'doc_trans_order_approved': 'Sevk Onayı Verildi',
   'doc_trans_order_created': 'Beklemede',
   'doc_trans_order_ready_for_shipment': 'Sipariş Sevke Hazır',
   'doc_trans_order_rejected': 'Sipariş Reddedildi',
   'doc_trans_order_files_rejected': 'Reddedilen Dosyalar Mevcut',
+  'doc_trans_order_sevk_started': 'Kalite Onayında',
+  'doc_trans_order_sevk_kalite_ok': 'Sevk Kalite OK',
+  'doc_trans_order_sevk_addressed': 'Sevk Adresi Girildi',
+  'doc_trans_order_sevk_dated': 'Sevk Tarihi Seçildi',
+  'doc_trans_order_sevk_proforma': 'Proforma Yüklendi',
+  'doc_trans_order_sevk_shipped': 'Sevkiyat Yapıldı',
 };
 export const FILE_STATUS_ICONS = {
   doc_trans_order_created:'ki-outline ki-file-added',
@@ -15,6 +21,12 @@ export const FILE_STATUS_ICONS = {
   doc_trans_order_approved:'ki-outline ki-check-circle',
   doc_trans_order_rejected:'ki-outline ki-cross-circle',
   doc_trans_order_files_rejected:'ki-outline ki-file-danger',
+  doc_trans_order_sevk_started:'ki-outline ki-truck',
+  doc_trans_order_sevk_kalite_ok:'ki-outline ki-check-circle',
+  doc_trans_order_sevk_addressed:'ki-outline ki-geolocation',
+  doc_trans_order_sevk_dated:'ki-outline ki-calendar',
+  doc_trans_order_sevk_proforma:'ki-outline ki-document',
+  doc_trans_order_sevk_shipped:'ki-outline ki-delivery',
   doc_file_waiting:'ki-outline ki-hourglass',
   doc_file_accepted:'ki-outline ki-check-circle',
   doc_file_rejected:'ki-outline ki-cross-circle',

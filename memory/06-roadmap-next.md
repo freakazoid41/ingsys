@@ -3,8 +3,10 @@
 > **Completed-work log removed (was duplicate of `05 §4`). History lives in `git log`. Mechanics live in `panel/documentation/*`.**
 
 ## 1. Immediate Next (pick 1)
+- **Sevk Way-1 follow-ups:** SAS depo pull, ambar doluluk takvim API, sevk mail `sevk-01`, per-05-06/07 split (now reuses 05-03/07-02). Mechanics: `panel/documentation/modules/transfer-approve.md`.
+- **Fabrika Kabul Way-2:** specced later, guard slot reserved (`ready → fabrika_started`).
 - **Tedarik polish:** list LIFNR filter wiring verify, detail readOnly + transfer + serials + files via shared `OForm`, `files_rejected` re-upload loop — mostly DONE, verify both panels parity.
-- **Dashboard extend:** add metrics to `tedarikStats/adminStats` (`ReportServiceProvider.php`) + Stat→List `?status=` already wired.
+- **Dashboard extend:** add Sevk states to `tedarikStats/adminStats` breakdown (colors/labels done) + Stat→List `?status=` already wired.
 - **Branding:** DONE (`ADM/GDZ`). Only per-tenant CSS tweaks left (logo-adm rule).
 - **Front panel skin:** waits on `memory/idea.md` design from Master — crown jewel, not started.
 

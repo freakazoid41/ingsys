@@ -484,3 +484,8 @@ Expected: N entity rows per slot for N uploads; only last file `status=1`; `repl
 4. Keep file status as transactions (`op_id = 1`) so the timeline/audit stays uniform with document statuses.
 5. Add a config-driven accepted-extension/size list instead of the hardcoded array.
 6. If the new system needs pre-signed/streamed downloads, wrap `decryptFile` behind a signed-URL controller instead of the session-only `/order-file` route.
+
+## Sevk files (2026-11-16)
+- `proforma_file/irsaliye_file` group `sevk_docs` version exactly like kabul/cins (new row + `replaced_id`, active=`document_files.status=1`).
+- `syncOrderStatusFromFiles` ignores `*sevk*/*proforma*/*irsaliye*` so sevk uploads never flip `files_rejected/ready_for_shipment`.
+- File-type titles resolve via `op-proforma_file/op-irsaliye_file` (`fetchFileDetailBundle` join `op-||split_part`).

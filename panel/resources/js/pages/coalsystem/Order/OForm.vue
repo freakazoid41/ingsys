@@ -12,8 +12,8 @@
     import { escapeHtml } from '@/lib/escape.js';
     import { noteOf } from '@/lib/statusUtils.js';
 
-    const LOCKED_STATUSES = ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected'];
-    const FILES_LOCKED_STATUSES = ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected'];
+    const LOCKED_STATUSES = ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_files_rejected','doc_trans_order_sevk_started','doc_trans_order_sevk_kalite_ok','doc_trans_order_sevk_addressed','doc_trans_order_sevk_dated','doc_trans_order_sevk_proforma','doc_trans_order_sevk_shipped'];
+    const FILES_LOCKED_STATUSES = ['doc_trans_order_transfer_sent','doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected','doc_trans_order_sevk_started','doc_trans_order_sevk_kalite_ok','doc_trans_order_sevk_addressed','doc_trans_order_sevk_dated','doc_trans_order_sevk_proforma','doc_trans_order_sevk_shipped'];
 
     export default {
         breadcrumbs: {
@@ -33,6 +33,13 @@
                 return;
             }
             const response = await this.plib.request({ url:'/api/v1/document/'+this.id, method:'GET' },null);
+            if(!response || response.success === false){
+                this.navigationStore.toggle(false);
+                this.plib.toast(this.Swal,'error', response?.msg || response?.message || 'Bu siparişi görüntüleme yetkiniz yok');
+                const listName = this.$route.path.startsWith('/tedarikpanel') ? 'TedarikOrderList' : 'OrderList';
+                try{ await this.$router.replace({ name: listName, query:{...this.$route.query} }); }catch(e){}
+                return;
+            }
             this.formDataStore.setData(response?.data?.formFormat);
             this.formDataStore.rawData = response?.data || {};
             this.rawData = response?.data || {};
@@ -44,6 +51,13 @@
             try { this.tedarikDesc = this.orderFormEntities?.order_desc || ''; } catch(e){}
             try { this.tedarikImalatci = this.orderFormEntities?.imalatci_firma_adi || ''; } catch(e){}
             try { this.parseTedarikExistingFiles(); } catch(e){}
+            try {
+                this.sevkDepo = this.orderFormEntities?.depo_yeri || '';
+                this.sevkAdres = this.orderFormEntities?.sevk_adresi || '';
+                this.sevkAdresDiger = this.orderFormEntities?.sevk_adres_diger || '';
+                this.sevkTarihi = this.orderFormEntities?.sevk_tarihi || '';
+                this.parseSevkExistingFiles();
+            } catch(e){}
             // sync transferMode to stored value when locked so dot and border agree (partial vs at_once)
             try {
                 if(this.isLocked && this.storedTransferMode){
@@ -96,6 +110,22 @@
                 tedarikCinsRef: null,
                 tedarikExistingKabul: null,
                 tedarikExistingCins: null,
+                // sevk onay (Way-1)
+                sevkDepo: '',
+                sevkAdres: '',
+                sevkAdresDiger: '',
+                sevkTarihi: '',
+                sevkProformaFile: null,
+                sevkIrsaliyeFile: null,
+                sevkProformaRef: null,
+                sevkIrsaliyeRef: null,
+                sevkExistingProforma: null,
+                sevkExistingIrsaliye: null,
+                sevkLoading: false,
+                sevkKontrolNote: '',
+                // sevk focus mode (entering from Sevk tab)
+                showAllDetails: false,
+                sevkScrolled: false,
             };
         },
         computed: {
@@ -194,8 +224,20 @@
                 let label = rawLabel || 'Beklemede';
                 let cls = 'tedarik-status--waiting';
                 let icon = 'ki-outline ki-file-added';
-                if(op === 'doc_trans_order_approved' || /Onay/i.test(label)){
-                    label = 'Kalite Onayı Verildi'; cls = 'tedarik-status--approved'; icon = 'ki-outline ki-check-circle';
+                if(op === 'doc_trans_order_sevk_started'){
+                    label = 'Kalite Onayında'; cls = 'tedarik-status--waiting'; icon = 'ki-outline ki-shield-tick';
+                } else if(op === 'doc_trans_order_sevk_kalite_ok'){
+                    label = 'Sevk Kalite OK'; cls = 'tedarik-status--ready'; icon = 'ki-outline ki-check-circle';
+                } else if(op === 'doc_trans_order_sevk_addressed'){
+                    label = 'Sevk Adresi Girildi'; cls = 'tedarik-status--ready'; icon = 'ki-outline ki-geolocation';
+                } else if(op === 'doc_trans_order_sevk_dated'){
+                    label = 'Sevk Tarihi Seçildi'; cls = 'tedarik-status--ready'; icon = 'ki-outline ki-calendar';
+                } else if(op === 'doc_trans_order_sevk_proforma'){
+                    label = 'Proforma Yüklendi'; cls = 'tedarik-status--ready'; icon = 'ki-outline ki-document';
+                } else if(op === 'doc_trans_order_sevk_shipped'){
+                    label = 'Sevkiyat Yapıldı'; cls = 'tedarik-status--ready'; icon = 'ki-outline ki-delivery';
+                } else if(op === 'doc_trans_order_approved' || /Onay/i.test(label)){
+                    label = 'Sevk Onayı Verildi'; cls = 'tedarik-status--approved'; icon = 'ki-outline ki-check-circle';
                 } else if(op === 'doc_trans_order_ready_for_shipment' || /Sevke Hazır/i.test(label)){
                     label = 'Sipariş Sevke Hazır'; cls = 'tedarik-status--ready'; icon = 'ki-outline ki-truck';
                 } else if(op === 'doc_trans_order_transfer_sent' || /Kontrol/i.test(label)){
@@ -216,8 +258,57 @@
                 // allow from any sent state; block on pure draft without files? keep open - backend will validate transition
                 return true;
             },
+            sevkEnts(){
+                return this.orderFormEntities || {};
+            },
+            isSevkOrder(){
+                const s = this.orderStatus || '';
+                if ((this.sevkEnts.approval_path || '') === 'sevk') return true;
+                return s.startsWith('doc_trans_order_sevk_');
+            },
+            canSevkStart(){
+                return this.orderStatus === 'doc_trans_order_ready_for_shipment' && this.authStore.permissions?.includes('per-05-03');
+            },
+            canSevkKalite(){
+                return this.orderStatus === 'doc_trans_order_sevk_started' && this.authStore.permissions?.includes('per-07-02');
+            },
+            canSevkAdres(){
+                return this.orderStatus === 'doc_trans_order_sevk_kalite_ok' && this.authStore.permissions?.includes('per-05-06');
+            },
+            canSevkDate(){
+                return this.orderStatus === 'doc_trans_order_sevk_addressed' && (this.authStore.permissions?.includes('per-05-02') || this.authStore.permissions?.includes('per-05-06'));
+            },
+            canSevkProforma(){
+                return ['doc_trans_order_sevk_dated','doc_trans_order_sevk_proforma'].includes(this.orderStatus) && this.authStore.permissions?.includes('per-05-02');
+            },
+            canSevkControl(){
+                return this.orderStatus === 'doc_trans_order_sevk_proforma' && this.authStore.permissions?.includes('per-05-03');
+            },
+            canSevkShip(){
+                return this.orderStatus === 'doc_trans_order_sevk_proforma' && (this.sevkEnts.sevk_kontrol_ok === '1') && this.authStore.permissions?.includes('per-05-02');
+            },
+            sevkFocus(){
+                const active = this.canSevkStart || this.isSevkOrder;
+                if(!active) return false;
+                return (this.$route.query.f === 'sevk') || this.isSevkOrder;
+            },
+        },
+        watch: {
+            loadForm(v){ if(v) this.maybeScrollSevk(); },
+            orderStatus(){ this.maybeScrollSevk(); },
         },
         methods: {
+            maybeScrollSevk(){
+                if(!this.sevkFocus || this.sevkScrolled || !this.loadForm) return;
+                this.sevkScrolled = true;
+                this.$nextTick(()=>{
+                    setTimeout(()=>{
+                        const el = document.getElementById('sevk-card');
+                        if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+                    }, 350);
+                });
+            },
+            toggleAllDetails(){ this.showAllDetails = !this.showAllDetails; },
             validatePartial(){
                 if(!this.selectedItems.length){
                     this.plib.toast(this.Swal,'info','Parçalı transfer için en az bir kalem seçmelisiniz.',()=>{});
@@ -256,45 +347,12 @@
             },
             async checkHasPartitions(){
                 try {
-                    const orderNo = this.orderEntities?.order_no || '';
-                    if(!orderNo) return;
-                    const baseNo = orderNo.replace(/-\d+$/, '');
-                    if(!baseNo) return;
-                    // clones are op-doc-order with order_no = baseNo + '-X', active only (tableList filters status=1)
+                    if(!this.id) return;
                     this.checkingPartitions = true;
-                    const fd = new FormData();
-                    fd.append('tableReq', JSON.stringify({
-                        filter: [
-                            { key:'form-type', type:'=', value:'op-doc-order-form' },
-                            { key:'type', type:'=', value:'op-doc-order' },
-                            { key:'all', type:'=', value: baseNo + '-' }
-                        ],
-                        scale: { page: 1, limit: 100 },
-                        order: { key: 'id', style: 'asc' }
-                    }));
-                    const rsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, fd);
-                    const rows = rsp?.data?.data || rsp?.data || [];
-                    const list = Array.isArray(rows) ? rows : (rows?.data || []);
-                    let found = false;
-                    for(const r of list){
-                        try {
-                            const attrs = JSON.parse(r.main_attr || '[]');
-                            const noAttr = attrs.find(a => a.Key === 'order_no');
-                            const v = noAttr ? String(noAttr.Value) : '';
-                            if(v && v !== orderNo && v.startsWith(baseNo + '-') && /-\d+$/.test(v)){
-                                // tableList already filters active, so any hit = active partition
-                                // also ensure it's not the current doc itself
-                                if(String(r.id) !== String(this.id)) found = true;
-                                // even if r.id is current clone, still counts as partition exists for base
-                                // for base order, any clone means partitioned before
-                                if(!this.isCloneOrder && v.startsWith(baseNo + '-')) found = true;
-                            }
-                        } catch(e){}
-                    }
-                    // If we are viewing the base order, any clone found means partitioned before
-                    // If we are viewing a clone, don't apply rule to itself
-                    if(!this.isCloneOrder) this.hasPartitions = found;
-                    else this.hasPartitions = false;
+                    // Fast indexed endpoint — old tableList all-scan took 17s on 208k orders
+                    const rsp = await this.plib.request({url:'/api/v1/order/'+this.id+'/partitions', method:'GET'}, null);
+                    if(rsp?.success && !this.isCloneOrder) this.hasPartitions = !!rsp.hasPartitions;
+                    else if(this.isCloneOrder) this.hasPartitions = false;
                     if(this.hasPartitions && this.transferMode === 'at_once'){
                         this.transferMode = 'partial';
                     }
@@ -616,6 +674,118 @@
             onItemsSelected(items){
                 this.selectedItems = items;
             },
+            async refreshSevkOrder(){
+                try{
+                    const r = await this.plib.request({url:'/api/v1/document/'+this.id, method:'GET'}, null);
+                    this.rawData = r?.data || this.rawData;
+                    this.formDataStore.rawData = r?.data || this.formDataStore.rawData;
+                    try{ this.parsedStatus = JSON.parse(this.rawData?.document?.status || '[]'); }catch(e){ this.parsedStatus=[]; }
+                    try{
+                        this.sevkDepo = this.sevkEnts.depo_yeri || this.sevkDepo;
+                        this.sevkAdres = this.sevkEnts.sevk_adresi || this.sevkAdres;
+                        this.sevkTarihi = this.sevkEnts.sevk_tarihi || this.sevkTarihi;
+                        this.parseSevkExistingFiles();
+                    }catch(e){}
+                }catch(e){}
+            },
+            parseSevkExistingFiles(){
+                try{
+                    const form = this.rawData?.formFormat?.['op-doc-order-form'] || {};
+                    for(const connId in form){
+                        const ents = form[connId]?.entities || {};
+                        for(const tag in ents){
+                            if(!tag.includes('proforma') && !tag.includes('irsaliye')) continue;
+                            const raw = ents[tag];
+                            let parsed = null;
+                            if(typeof raw === 'object' && raw !== null && raw.id) parsed = raw;
+                            else if(typeof raw === 'string'){ try{ parsed = JSON.parse(raw); }catch(e){ continue; } }
+                            if(!parsed || !parsed.id) continue;
+                            if(tag.includes('proforma') && !this.sevkExistingProforma) this.sevkExistingProforma = {...parsed, entity_tag: tag, connId};
+                            if(tag.includes('irsaliye') && !this.sevkExistingIrsaliye) this.sevkExistingIrsaliye = {...parsed, entity_tag: tag, connId};
+                        }
+                    }
+                }catch(e){}
+            },
+            getSevkRowId(){
+                const form = this.rawData?.formFormat?.['op-doc-order-form'] || {};
+                const keys = Object.keys(form);
+                if(keys.length) return keys[0];
+                return 'new-' + Date.now();
+            },
+            onSevkFileSelect(e, type){
+                const f = e.target.files && e.target.files[0];
+                if(type === 'proforma') this.sevkProformaFile = f || null;
+                else this.sevkIrsaliyeFile = f || null;
+                if(f) this.handleSevkTempUpload(f, type);
+            },
+            async handleSevkTempUpload(file, type){
+                try{
+                    const fd = new FormData(); fd.append('file', file);
+                    const rsp = await this.plib.request({url:'/api/v1/temp-upload', method:'POST'}, null, fd);
+                    const ref = rsp?.data?.reference_id ? rsp.data : (rsp?.reference_id ? rsp : null);
+                    if(rsp && rsp.success && ref && ref.reference_id){
+                        if(type === 'proforma') this.sevkProformaRef = ref;
+                        else this.sevkIrsaliyeRef = ref;
+                    }
+                }catch(e){}
+            },
+            async uploadSevkFiles(){
+                const rowId = this.getSevkRowId();
+                const key = 'op-doc-order-form**' + rowId;
+                const files = {};
+                if(this.sevkProformaFile || this.sevkProformaRef){
+                    const fid = 'new-' + Date.now() + '-pro';
+                    const fkey = 'dynamicFile**sevk_docs**' + fid + '**' + rowId + '*-*proforma_file**sevk_docs**' + rowId;
+                    files[fkey] = this.sevkProformaRef?.reference_id ? {reference: this.sevkProformaRef} : {file: this.sevkProformaFile};
+                }
+                if(this.sevkIrsaliyeFile || this.sevkIrsaliyeRef){
+                    const fid = 'new-' + Date.now() + '-irs';
+                    const fkey = 'dynamicFile**sevk_docs**' + fid + '**' + rowId + '*-*irsaliye_file**sevk_docs**' + rowId;
+                    files[fkey] = this.sevkIrsaliyeRef?.reference_id ? {reference: this.sevkIrsaliyeRef} : {file: this.sevkIrsaliyeFile};
+                }
+                if(!Object.keys(files).length) return {success: true};
+                const envelope = new FormData();
+                envelope.append('data', JSON.stringify({typeKey:'op-doc-order', dynamicF:{[key]:{tag:'op-doc-order-form', entities:{}}}}));
+                for(const k in files){
+                    const it = files[k];
+                    envelope.append(k, it.reference ? JSON.stringify(it.reference) : it.file);
+                }
+                const rsp = await this.plib.request({url:'/api/v1/document/'+this.id, method:'PUT'}, null, envelope);
+                if(rsp?.success){
+                    this.sevkProformaFile = null; this.sevkIrsaliyeFile = null;
+                    this.sevkProformaRef = null; this.sevkIrsaliyeRef = null;
+                    await this.refreshSevkOrder();
+                }
+                return rsp;
+            },
+            async callSevk(url, payload){
+                if(this.sevkLoading) return;
+                this.sevkLoading = true;
+                try{
+                    const fd = new FormData();
+                    fd.append('id', this.id);
+                    for(const k in (payload || {})){ if(payload[k] !== undefined && payload[k] !== '') fd.append(k, payload[k]); }
+                    const rsp = await this.plib.request({url, method:'POST'}, null, fd);
+                    this.plib.toast(this.Swal, rsp?.success ? 'success' : 'error', rsp?.msg || rsp?.message || 'İşlem tamam');
+                    if(rsp?.success) await this.refreshSevkOrder();
+                    return rsp;
+                } finally { this.sevkLoading = false; }
+            },
+            sevkStart(){ return this.callSevk('/api/v1/orders/sevk/start', {note:'Sevk onayına alındı'}); },
+            sevkKalite(){ if(!this.sevkDepo) return this.Swal.fire({icon:'warning', title:'Depo yeri zorunlu'}); return this.callSevk('/api/v1/orders/sevk/advance', {op_key:'doc_trans_order_sevk_kalite_ok', depo_yeri:this.sevkDepo, note:'Sevk kalite onayı'}); },
+            sevkAdresKaydet(){ if(!this.sevkAdres) return this.Swal.fire({icon:'warning', title:'Sevk adresi zorunlu'}); return this.callSevk('/api/v1/orders/sevk/advance', {op_key:'doc_trans_order_sevk_addressed', sevk_adresi:this.sevkAdres, sevk_adres_diger:this.sevkAdresDiger, note:'Adres girildi'}); },
+            sevkTarihKaydet(){ if(!this.sevkTarihi) return this.Swal.fire({icon:'warning', title:'Tarih seçin'}); return this.callSevk('/api/v1/orders/sevk/advance', {op_key:'doc_trans_order_sevk_dated', sevk_tarihi:this.sevkTarihi, note:'Tarih seçildi'}); },
+            async sevkProformaKaydet(){
+                const up = await this.uploadSevkFiles();
+                if(up && up.success === false){ this.Swal.fire({icon:'error', title:'Dosya yüklenemedi', text: up.msg}); return; }
+                return this.callSevk('/api/v1/orders/sevk/advance', {op_key:'doc_trans_order_sevk_proforma', note:'Proforma yüklendi'});
+            },
+            sevkUygun(){ return this.callSevk('/api/v1/orders/sevk/control', {uygun:1, note:this.sevkKontrolNote || 'Uygun'}); },
+            sevkRed(){
+                if(!this.sevkKontrolNote) return this.Swal.fire({icon:'warning', title:'Red gerekçesi yazın'});
+                return this.callSevk('/api/v1/orders/sevk/control', {uygun:0, note:this.sevkKontrolNote});
+            },
+            sevkShip(){ return this.callSevk('/api/v1/orders/sevk/advance', {op_key:'doc_trans_order_sevk_shipped', sevk_kontrol_ok:'1', note:'Sevkiyat gerçekleşti'}); },
             onItemSerials(serials){
                 this.allItemSerials = serials;
             },
@@ -649,7 +819,7 @@
             async kaliteOnayi(){
                 if(this.kaliteLoading) return;
                 if(!this.authStore.permissions?.includes('per-07-02')){
-                    this.Swal.fire({icon:'warning', title:'Yetki yok', text:'Kalite onayı için yetkiniz yok (per-07-02)', confirmButtonText:'Tamam'});
+                    this.Swal.fire({icon:'warning', title:'Yetki yok', text:'Sevk onayı için yetkiniz yok (per-07-02)', confirmButtonText:'Tamam'});
                     return;
                 }
                 if(['doc_trans_order_approved','doc_trans_order_rejected'].includes(this.orderStatus)){
@@ -657,8 +827,8 @@
                     return;
                 }
                 const conf = await this.Swal.fire({
-                    title: 'Kalite Onayı Ver',
-                    html: '<div style="text-align:left;font-size:13px;color:#334155;">Tüm bekleyen dosyalar <b>kabul</b> edilecek ve sipariş <b>Kalite Onayı Verildi</b> durumuna geçecek.<br><span style="color:#64748b;font-size:11.5px;">Onay sonrası sipariş kilitlenir.</span></div>',
+                    title: 'Sevk Onayı Ver',
+                    html: '<div style="text-align:left;font-size:13px;color:#334155;">Tüm bekleyen dosyalar <b>kabul</b> edilecek ve sipariş <b>Sevk Onayı Verildi</b> durumuna geçecek.<br><span style="color:#64748b;font-size:11.5px;">Onay sonrası sipariş kilitlenir.</span></div>',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonText: 'Evet, Onayla',
@@ -679,11 +849,11 @@
                     const fd = new FormData();
                     fd.append('id', this.id);
                     fd.append('op_key', 'doc_trans_order_approved');
-                    fd.append('note', 'Kalite onayı verildi ve kapatıldı (detay)');
+                    fd.append('note', 'Sevk onayı verildi ve kapatıldı (detay)');
                     const rsp = await this.plib.request({url:'/api/v1/trans/set-status', method:'POST'}, null, fd);
                     this.Swal.close();
                     if(rsp?.success){
-                        this.plib.toast(this.Swal, 'success', rsp.msg || 'Kalite onayı verildi — tüm dosyalar kabul edildi', async () => {
+                        this.plib.toast(this.Swal, 'success', rsp.msg || 'Sevk onayı verildi — tüm dosyalar kabul edildi', async () => {
                             try{
                                 const refreshed = await this.plib.request({url:'/api/v1/document/'+this.id, method:'GET'}, null);
                                 this.rawData = refreshed?.data || this.rawData;
@@ -803,7 +973,7 @@
                         filter: [
                             { key:'form-type', type:'=', value:'op-doc-order-form' },
                             { key:'type', type:'=', value:'op-doc-order' },
-                            { key:'all', type:'=', value: this.parentOrderNo }
+                            { key:'siparis_kodu', type:'=', value: this.parentOrderNo }
                         ],
                         scale: { page: 1, limit: 5 },
                         order: { key: 'id', style: 'asc' }
@@ -820,7 +990,7 @@
                     });
                     if(match){
                         const target = this.isTedarik ? 'TedarikOrderForm' : 'OrderForm';
-                        this.$router.push({name: target, params:{id: match.id}});
+                        this.$router.push({name: target, params:{id: match.id}, query:{...this.$route.query}});
                     } else {
                         this.plib.toast(this.Swal, 'info', 'Orijinal sipariş bulunamadı: ' + this.parentOrderNo);
                     }
@@ -830,7 +1000,7 @@
             },
             goBackToList(){
                 const target = this.targetList;
-                try{ this.$router.push({name: target}); }catch(e){ window.history.back(); }
+                try{ this.$router.push({name: target, query:{...this.$route.query}}); }catch(e){ window.history.back(); }
             },
             async printMalzemeKabul(){
                 const showWarn = (title, text) => {
@@ -1071,29 +1241,13 @@
                 if(/\-\d+$/.test(orderNo)) return orderNo;
                 const baseNo = orderNo;
                 try {
-                    const cloneFd = new FormData();
-                    cloneFd.append('tableReq', JSON.stringify({
-                        filter: [
-                            { key:'form-type', type:'=', value:'op-doc-order-form' },
-                            { key:'type', type:'=', value:'op-doc-order' },
-                            { key:'all', type:'=', value: baseNo + '-' }
-                        ],
-                        scale: { page: 1, limit: 100 },
-                        order: { key: 'id', style: 'asc' }
-                    }));
-                    const cloneRsp = await this.plib.request({url:'/api/v1/table/documents', method:'POST'}, null, cloneFd);
-                    const cloneRows = cloneRsp?.data?.data || cloneRsp?.data || [];
-                    const cloneList = Array.isArray(cloneRows) ? cloneRows : (cloneRows?.data || []);
+                    // Fast indexed endpoint — old all-scan took 17s
+                    const rsp = await this.plib.request({url:'/api/v1/order/'+this.id+'/partitions', method:'GET'}, null);
+                    const clones = rsp?.clones || [];
                     let maxX = 0;
-                    for(const r of cloneList){
-                        try {
-                            const attrs = JSON.parse(r.main_attr || '[]');
-                            const noAttr = attrs.find(a => a.Key === 'order_no');
-                            if(noAttr && noAttr.Value){
-                                const m = noAttr.Value.match(/-(\d+)$/);
-                                if(m) maxX = Math.max(maxX, parseInt(m[1]));
-                            }
-                        } catch(e){}
+                    for(const r of clones){
+                        const m = String(r.order_no || '').match(/-(\d+)$/);
+                        if(m) maxX = Math.max(maxX, parseInt(m[1]));
                     }
                     return baseNo + '-' + (maxX + 1);
                 } catch(e){
@@ -1146,8 +1300,15 @@
                 <button @click="navigateToParentOrder" style="background:#fff; border:1px solid #c7d2fe; border-radius:10px; padding:8px 16px; color:#4f46e5; font-weight:600; cursor:pointer;">Orijinal Siparişe Git</button>
             </div>
 
+            <!-- Sevk focus bar -->
+            <div v-if="sevkFocus && loadForm" style="margin-bottom:12px; display:flex; align-items:center; gap:10px; padding:10px 14px; background:#f5f3ff; border:1px solid #c4b5fd; border-radius:12px; font-size:12.5px; color:#5b21b6;">
+                <i class="ki-outline ki-delivery" style="font-size:16px;"></i>
+                <span><b>Sevk odağı</b> — {{ orderEntities.order_no || '' }} · {{ tedarikStatus.label }}</span>
+                <button @click="toggleAllDetails" style="margin-left:auto; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid #c4b5fd; background:#fff; color:#5b21b6; cursor:pointer;">{{ showAllDetails ? 'Özeti göster' : 'Tüm detayı göster' }}</button>
+            </div>
+
             <!-- Step 1 -->
-            <div class="tedarik-step-card">
+            <div class="tedarik-step-card" v-show="!sevkFocus || showAllDetails">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">1</span><span>Malzeme ve tedarik tipini seçiniz.</span></div>
                 <div class="tedarik-step-body">
                     <div style="margin-bottom:10px; font-size:13px; color:#475569;">Sevkiyat Tipi <span style="color:#ef4444;">*</span></div>
@@ -1170,7 +1331,7 @@
             </div>
 
             <!-- Step 2 -->
-            <div class="tedarik-step-card">
+            <div class="tedarik-step-card" v-show="!sevkFocus || showAllDetails">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">2</span><span>İsterseniz açıklama girebilirsiniz.</span></div>
                 <div class="tedarik-step-body">
                     <textarea v-model="tedarikDesc" rows="4" placeholder="Tercih ettiğiniz açıklamayı yazınız.." style="width:100%; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; font-size:13.5px; color:#1e293b; outline:none; resize:vertical;" :disabled="isLocked" :style="isLocked ? 'background:#f8fafc;opacity:0.72;cursor:not-allowed;' : ''"></textarea>
@@ -1179,7 +1340,7 @@
             </div>
 
             <!-- Step 3 -->
-            <div class="tedarik-step-card">
+            <div class="tedarik-step-card" v-show="!sevkFocus || showAllDetails">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">3</span><span>İmalatçı firma adını giriniz.</span></div>
                 <div class="tedarik-step-body">
                     <input v-model="tedarikImalatci" placeholder="İmalatçı Firma Adı Giriniz *" style="width:100%; max-width:520px; height:44px; border:1px solid #e2e8f0; border-radius:10px; padding:0 14px; font-size:13.5px; color:#1e293b; outline:none;" :disabled="isLocked" :style="isLocked ? 'background:#f8fafc;opacity:0.72;cursor:not-allowed;' : ''" />
@@ -1188,7 +1349,7 @@
             </div>
 
             <!-- Step 4 -->
-            <div class="tedarik-step-card">
+            <div class="tedarik-step-card" v-show="!sevkFocus || showAllDetails">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">4</span><span>Lütfen gerekli formları indirin.</span></div>
                 <div class="tedarik-step-body">
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -1200,7 +1361,7 @@
             </div>
 
             <!-- Step 5 -->
-            <div class="tedarik-step-card">
+            <div class="tedarik-step-card" v-show="!sevkFocus || showAllDetails">
                 <div class="tedarik-step-head"><span class="tedarik-step-num">5</span><span>Lütfen doldurduğunuz formları yükleyiniz <span style="color:#ef4444;">*</span></span></div>
                 <div class="tedarik-step-body">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
@@ -1326,22 +1487,111 @@
                 </div>
             </div>
 
-            <!-- Kalite Onayı — tedarik after step 5 (per-07-02) -->
+            <!-- Sevk Onay Way-1 (before approved) -->
+            <div id="sevk-card" class="tedarik-step-card sevk-card" :class="{ 'sevk-ring': sevkFocus }" v-if="id && loadForm && (canSevkStart || isSevkOrder)" style="border:1px solid #c4b5fd; background:linear-gradient(180deg,#faf5ff 0%,#f5f3ff 100%);">
+                <div style="padding:16px 18px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="width:30px; height:30px; border-radius:10px; background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:#fff; display:inline-flex; align-items:center; justify-content:center;"><i class="ki-outline ki-delivery" style="font-size:16px;"></i></span>
+                        <span style="font-weight:800; color:#4c1d95; font-size:14px;">Sevk Onay Süreci</span>
+                    </div>
+                    <div style="font-size:11.5px; color:#6d28d9; margin:6px 0 12px;">Depo → adres → tarih → proforma/irsaliye → kontrol → sevkiyat → stok. Final: Kalite onayı.</div>
+                    <div v-if="canSevkStart"><button @click="sevkStart" :disabled="sevkLoading" class="tedarik-orange-btn" style="background:#8b5cf6;border-color:#8b5cf6;">Sevk Onayına Al</button></div>
+                    <div v-if="isSevkOrder" class="sevk-steps" style="display:flex; flex-direction:column; gap:10px; margin-top:6px;">
+                        <div class="sevk-step">
+                            <span class="sevk-num">1</span>
+                            <div class="sevk-body">
+                                <label>Depo (SAS)</label>
+                                <div class="sevk-row">
+                                    <input v-if="canSevkKalite" v-model="sevkDepo" :placeholder="sevkEnts.depo_yeri || 'Depo yeri'" class="sevk-input" />
+                                    <button v-if="canSevkKalite" @click="sevkKalite" :disabled="sevkLoading" class="tedarik-orange-btn" style="background:#7c3aed;border-color:#7c3aed;">Kalite Onayı Ver</button>
+                                    <span v-else class="sevk-val" :class="{ 'sevk-empty': !sevkEnts.depo_yeri }">{{ sevkEnts.depo_yeri || 'Henüz girilmedi' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sevk-step">
+                            <span class="sevk-num">2</span>
+                            <div class="sevk-body">
+                                <label>Sevk Adresi</label>
+                                <div v-if="canSevkAdres" class="sevk-addrs">
+                                    <textarea v-model="sevkAdres" :placeholder="sevkEnts.sevk_adresi || 'Sevk adresini yazınız...'" class="sevk-input sevk-area" rows="3"></textarea>
+                                    <textarea v-model="sevkAdresDiger" placeholder="Diğer (Köşk vb. manuel giriş)" class="sevk-input sevk-area" rows="3"></textarea>
+                                </div>
+                                <button v-if="canSevkAdres" @click="sevkAdresKaydet" :disabled="sevkLoading" class="tedarik-orange-btn" style="background:#0ea5e9;border-color:#0ea5e9; margin-top:8px;">Adresi Kaydet</button>
+                                <div v-if="!canSevkAdres && (sevkEnts.sevk_adresi || sevkEnts.sevk_adres_diger)" class="sevk-val">{{ sevkEnts.sevk_adresi || '' }}<span v-if="sevkEnts.sevk_adres_diger"> · {{ sevkEnts.sevk_adres_diger }}</span></div>
+                                <div v-if="!canSevkAdres && !(sevkEnts.sevk_adresi || sevkEnts.sevk_adres_diger)" class="sevk-val sevk-empty">Henüz adres girilmedi</div>
+                            </div>
+                        </div>
+                        <div class="sevk-step">
+                            <span class="sevk-num">3</span>
+                            <div class="sevk-body">
+                                <label>Sevk Tarihi</label>
+                                <div class="sevk-row">
+                                    <input v-if="canSevkDate" type="date" v-model="sevkTarihi" class="sevk-input" style="max-width:220px;" />
+                                    <button v-if="canSevkDate" @click="sevkTarihKaydet" :disabled="sevkLoading" class="tedarik-orange-btn" style="background:#06b6d4;border-color:#06b6d4;">Tarihi Kaydet</button>
+                                    <span v-else class="sevk-val">{{ sevkEnts.sevk_tarihi || '' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sevk-step">
+                            <span class="sevk-num">4</span>
+                            <div class="sevk-body">
+                                <label>Proforma + İrsaliye</label>
+                                <div class="sevk-uploads">
+                                    <label v-if="canSevkProforma" class="sevk-upload">
+                                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onSevkFileSelect($event,'proforma')" style="display:none;" />
+                                        <span class="sevk-upload-icon"><i class="ki-outline ki-document"></i></span>
+                                        <span class="sevk-upload-text"><b>Proforma Fatura</b><small>{{ sevkProformaFile?.name || (sevkExistingProforma ? 'Yüklü ✓ — değiştirmek için seç' : 'PDF / görsel seç') }}</small></span>
+                                    </label>
+                                    <label v-if="canSevkProforma" class="sevk-upload">
+                                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onSevkFileSelect($event,'irsaliye')" style="display:none;" />
+                                        <span class="sevk-upload-icon"><i class="ki-outline ki-document"></i></span>
+                                        <span class="sevk-upload-text"><b>İrsaliye</b><small>{{ sevkIrsaliyeFile?.name || (sevkExistingIrsaliye ? 'Yüklü ✓ — değiştirmek için seç' : 'PDF / görsel seç') }}</small></span>
+                                    </label>
+                                </div>
+                                <div v-if="sevkExistingProforma || sevkExistingIrsaliye" class="sevk-files">
+                                    <span v-if="sevkExistingProforma" class="sevk-chip"><i class="ki-outline ki-check-circle"></i> {{ getTedarikDisplayName(sevkExistingProforma,'Proforma') }} <button type="button" @click="previewTedarikFile(sevkExistingProforma)" title="Önizle"><i class="ki-outline ki-eye"></i></button></span>
+                                    <span v-if="sevkExistingIrsaliye" class="sevk-chip"><i class="ki-outline ki-check-circle"></i> {{ getTedarikDisplayName(sevkExistingIrsaliye,'İrsaliye') }} <button type="button" @click="previewTedarikFile(sevkExistingIrsaliye)" title="Önizle"><i class="ki-outline ki-eye"></i></button></span>
+                                </div>
+                                <div class="sevk-row" style="margin-top:10px;">
+                                    <button v-if="canSevkProforma" @click="sevkProformaKaydet" :disabled="sevkLoading" class="tedarik-orange-btn" style="background:#d97706;border-color:#d97706;">Yükle+Onaya Sun</button>
+                                    <span v-else-if="!(sevkExistingProforma || sevkExistingIrsaliye)" class="sevk-val sevk-empty">Henüz dosya yüklenmedi</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="canSevkControl" class="sevk-step">
+                            <span class="sevk-num">5</span>
+                            <div class="sevk-body">
+                                <label>Kontrol</label>
+                                <textarea v-model="sevkKontrolNote" placeholder="Not / gerekçe (ret için zorunlu)" class="sevk-input sevk-area" rows="2"></textarea>
+                                <div class="sevk-row" style="margin-top:8px;">
+                                    <button @click="sevkUygun" :disabled="sevkLoading" class="tedarik-orange-btn" style="background:#059669;border-color:#059669;">Uygun</button>
+                                    <button @click="sevkRed" :disabled="sevkLoading" class="tedarik-orange-btn" style="background:#ef4444;border-color:#ef4444;">Uygun Değil</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="canSevkShip"><button @click="sevkShip" :disabled="sevkLoading" class="tedarik-orange-btn" style="background:#059669;border-color:#059669;">Sevkiyat Gerçekleşti</button></div>
+                        <div v-if="sevkEnts.sevk_kontrol_ok === '1'" class="sevk-meta sevk-ok">Kontrol: Uygun — sevkiyat yapabilirsiniz</div>
+                        <div v-else-if="sevkEnts.proforma_kontrol_note" class="sevk-meta sevk-no">Kontrol: Uygun değil — {{ sevkEnts.proforma_kontrol_note }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sevk Onayı — tedarik close (per-07-02) -->
             <div class="tedarik-step-card" v-if="canKalite" style="border:1px solid #bbf7d0; background:#f0fdf4;">
                 <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; gap:12px; flex-wrap:wrap;">
                     <div style="min-width:0; flex:1;">
-                        <div style="font-weight:800; color:#166534; font-size:13px; display:flex; align-items:center; gap:6px;"><i class="ki-outline ki-check-circle" style="font-size:15px;"></i> Kalite Onayı</div>
-                        <div style="font-size:11.5px; color:#15803d; margin-top:3px; line-height:1.4;">Siparişi <b>Kalite Onayı Verildi</b> durumuna alınır , tüm bekleyen dosyalar kabul edilir ve sipariş kilitlenir.</div>
+                        <div style="font-weight:800; color:#166534; font-size:13px; display:flex; align-items:center; gap:6px;"><i class="ki-outline ki-check-circle" style="font-size:15px;"></i> Sevk Onayı</div>
+                        <div style="font-size:11.5px; color:#15803d; margin-top:3px; line-height:1.4;">Siparişi <b>Sevk Onayı Verildi</b> durumuna alınır , tüm bekleyen dosyalar kabul edilir ve sipariş kilitlenir.</div>
                     </div>
                     <button @click="kaliteOnayi" :disabled="kaliteLoading" :style="kaliteLoading ? 'background:#9ca3af; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-weight:700; font-size:13px; opacity:0.72; cursor:not-allowed; display:inline-flex; align-items:center; gap:8px; min-width:170px; justify-content:center;' : 'background:#22c55e; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; min-width:170px; justify-content:center; box-shadow:0 2px 8px rgba(34,197,94,0.18);'">
                         <i :class="kaliteLoading ? 'ki-outline ki-loading' : 'ki-outline ki-check-circle'" :style="kaliteLoading ? 'font-size:15px; animation:spin 1s linear infinite;' : 'font-size:15px;'"></i>
-                        {{ kaliteLoading ? 'Onaylanıyor...' : 'Kalite Onayı Verildi' }}
+                        {{ kaliteLoading ? 'Onaylanıyor...' : 'Sevk Onayı Ver' }}
                     </button>
                 </div>
             </div>
 
             <!-- File History — Bütün Formları + entered Malzeme forms history (lists ALL, incl. rejected old versions) — only after first send for review -->
-            <div class="tedarik-step-card" v-if="id && loadForm && orderStatus && orderStatus !== 'doc_trans_order_created'" style="border:1px solid #e2e8f0;">
+            <div class="tedarik-step-card" v-show="!sevkFocus || showAllDetails" v-if="id && loadForm && orderStatus && orderStatus !== 'doc_trans_order_created'" style="border:1px solid #e2e8f0;">
                 <div style="display:flex; gap:10px; flex-wrap:wrap; padding:14px;">
                     <button type="button" @click="downloadAllForms" :disabled="downloadingAll" class="tedarik-orange-btn"><i :class="downloadingAll ? 'ki-outline ki-loading' : 'ki-outline ki-file-down'" :style="downloadingAll ? 'animation:spin 1s linear infinite' : ''"></i> {{ downloadingAll ? 'İndiriliyor…' : 'Bütün Formları İndir' }}</button>
                     <button type="button" @click="showFileHistory('kabul')" class="tedarik-orange-btn"><i class="ki-outline ki-eye"></i> Malzeme Kabul Formu</button>
@@ -1370,16 +1620,21 @@
                 </div>
             </div>
 
-            <!-- hidden Form for EAV scaffolding -->
+            <!-- hidden Form for EAV scaffolding (own Gönder button above — suppress generic bar) -->
             <div style="display:none;">
-                <Form ref="formRef" formtypes="op-doc-order-form" v-if="loadForm" savebtntitle="Kaydet" :readonlyFields="readonlyFields" :savecallback="submitForm" />
+                <Form ref="formRef" formtypes="op-doc-order-form" v-if="loadForm" :showsave="false" savebtntitle="Kaydet" :readonlyFields="readonlyFields" :savecallback="submitForm" />
             </div>
         </div>
         <div v-else-if="id && !loadForm" style="padding:40px; text-align:center; color:#94a3b8;">Yükleniyor...</div>
     </div>
     <!-- ADMIN PANEL (unchanged) -->
     <div v-else style="padding-bottom: 100px;">
-        <div class="card mb-6" v-if="id && loadForm" style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02);">
+        <div v-if="id && loadForm && (canSevkStart || isSevkOrder)" style="margin:0 14px 12px; display:flex; align-items:center; gap:10px; padding:10px 14px; background:#f5f3ff; border:1px solid #c4b5fd; border-radius:12px; font-size:12.5px; color:#5b21b6;">
+            <i class="ki-outline ki-delivery" style="font-size:16px;"></i>
+            <span><b>Sevk odağı</b></span>
+            <button @click="toggleAllDetails" type="button" style="margin-left:auto; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid #c4b5fd; background:#fff; color:#5b21b6; cursor:pointer;">{{ showAllDetails ? 'Özeti göster' : 'Tüm detayı göster' }}</button>
+        </div>
+        <div class="card mb-6" v-show="!sevkFocus || showAllDetails" v-if="id && loadForm" style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02);">
             <div v-if="canSend" style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-bottom:1px solid #bfdbfe;padding:20px 24px;">
                 <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:16px;">
                     <div style="width:42px;height:42px;border-radius:12px;background:#3b82f6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;flex-shrink:0;box-shadow:0 2px 6px rgba(59,130,246,0.3);">
@@ -1469,6 +1724,88 @@
             </div>
         </div>
 
+        <div id="sevk-card" class="card mb-6 sevk-card" :class="{ 'sevk-ring': sevkFocus }" v-if="id && loadForm && (canSevkStart || isSevkOrder)" style="border:1px solid #c4b5fd;border-radius:14px;overflow:hidden;background:#f5f3ff;">
+            <div style="padding:18px 20px;">
+                <div style="font-weight:800; color:#5b21b6; font-size:14px;">Sevk Onay Süreci</div>
+                <div style="font-size:12px; color:#6d28d9; margin:4px 0 12px;">Depo → adres → tarih → proforma/irsaliye → kontrol → sevkiyat → stok. Final Kalite.</div>
+                <div v-if="canSevkStart"><button @click="sevkStart" :disabled="sevkLoading" class="btn btn-sm" style="background:#8b5cf6;color:#fff;font-weight:700;">Sevk Onayına Al</button></div>
+                <div v-if="isSevkOrder" class="sevk-steps" style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+                    <div class="sevk-step">
+                        <span class="sevk-num">1</span>
+                        <div class="sevk-body">
+                            <label>Depo (SAS)</label>
+                            <div class="sevk-row">
+                                <input v-if="canSevkKalite" v-model="sevkDepo" :placeholder="sevkEnts.depo_yeri || 'Depo'" class="form-control form-control-sm sevk-input" style="max-width:280px;" />
+                                <button v-if="canSevkKalite" @click="sevkKalite" class="btn btn-sm" style="background:#7c3aed;color:#fff;">Kalite Onayı Ver</button>
+                                <span v-else style="font-size:12px;" :class="{ 'sevk-empty': !sevkEnts.depo_yeri }">{{ sevkEnts.depo_yeri || 'Henüz girilmedi' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sevk-step">
+                        <span class="sevk-num">2</span>
+                        <div class="sevk-body">
+                            <label>Sevk Adresi</label>
+                            <div v-if="canSevkAdres" class="sevk-addrs">
+                                <textarea v-model="sevkAdres" :placeholder="sevkEnts.sevk_adresi || 'Sevk adresini yazınız...'" class="form-control sevk-input sevk-area" rows="3"></textarea>
+                                <textarea v-model="sevkAdresDiger" placeholder="Diğer (Köşk vb. manuel giriş)" class="form-control sevk-input sevk-area" rows="3"></textarea>
+                            </div>
+                            <button v-if="canSevkAdres" @click="sevkAdresKaydet" class="btn btn-sm" style="background:#0ea5e9;color:#fff; margin-top:8px;">Kaydet</button>
+                            <div v-if="!canSevkAdres && (sevkEnts.sevk_adresi || sevkEnts.sevk_adres_diger)" style="font-size:12px;">{{ sevkEnts.sevk_adresi || '' }}<span v-if="sevkEnts.sevk_adres_diger"> · {{ sevkEnts.sevk_adres_diger }}</span></div>
+                            <div v-if="!canSevkAdres && !(sevkEnts.sevk_adresi || sevkEnts.sevk_adres_diger)" style="font-size:12px;" class="sevk-empty">Henüz adres girilmedi</div>
+                        </div>
+                    </div>
+                    <div class="sevk-step">
+                        <span class="sevk-num">3</span>
+                        <div class="sevk-body">
+                            <label>Sevk Tarihi</label>
+                            <div class="sevk-row">
+                                <input v-if="canSevkDate" type="date" v-model="sevkTarihi" class="form-control form-control-sm sevk-input" style="max-width:200px;" />
+                                <button v-if="canSevkDate" @click="sevkTarihKaydet" class="btn btn-sm" style="background:#06b6d4;color:#fff;">Kaydet</button>
+                                <span v-else style="font-size:12px;">{{ sevkEnts.sevk_tarihi || '' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sevk-step">
+                        <span class="sevk-num">4</span>
+                        <div class="sevk-body">
+                            <label>Proforma + İrsaliye</label>
+                            <div class="sevk-uploads">
+                                <label v-if="canSevkProforma" class="sevk-upload">
+                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onSevkFileSelect($event,'proforma')" style="display:none;" />
+                                    <span class="sevk-upload-icon"><i class="ki-outline ki-document"></i></span>
+                                    <span class="sevk-upload-text"><b>Proforma Fatura</b><small>{{ sevkProformaFile?.name || (sevkExistingProforma ? 'Yüklü ✓ — değiştirmek için seç' : 'PDF / görsel seç') }}</small></span>
+                                </label>
+                                <label v-if="canSevkProforma" class="sevk-upload">
+                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onSevkFileSelect($event,'irsaliye')" style="display:none;" />
+                                    <span class="sevk-upload-icon"><i class="ki-outline ki-document"></i></span>
+                                    <span class="sevk-upload-text"><b>İrsaliye</b><small>{{ sevkIrsaliyeFile?.name || (sevkExistingIrsaliye ? 'Yüklü ✓ — değiştirmek için seç' : 'PDF / görsel seç') }}</small></span>
+                                </label>
+                            </div>
+                            <div v-if="sevkExistingProforma || sevkExistingIrsaliye" class="sevk-files">
+                                <span v-if="sevkExistingProforma" class="sevk-chip"><i class="ki-outline ki-check-circle"></i> {{ getTedarikDisplayName(sevkExistingProforma,'Proforma') }} <button type="button" @click="previewTedarikFile(sevkExistingProforma)" title="Önizle"><i class="ki-outline ki-eye"></i></button></span>
+                                <span v-if="sevkExistingIrsaliye" class="sevk-chip"><i class="ki-outline ki-check-circle"></i> {{ getTedarikDisplayName(sevkExistingIrsaliye,'İrsaliye') }} <button type="button" @click="previewTedarikFile(sevkExistingIrsaliye)" title="Önizle"><i class="ki-outline ki-eye"></i></button></span>
+                            </div>
+                            <div class="sevk-row" style="margin-top:10px;">
+                                <button v-if="canSevkProforma" @click="sevkProformaKaydet" :disabled="sevkLoading" class="btn btn-sm" style="background:#d97706;color:#fff;">Yükle+Onaya Sun</button>
+                                <span v-else-if="!(sevkExistingProforma || sevkExistingIrsaliye)" class="sevk-val sevk-empty">Henüz dosya yüklenmedi</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="canSevkControl" class="sevk-step">
+                        <span class="sevk-num">5</span>
+                        <div class="sevk-body">
+                            <label>Kontrol</label>
+                            <textarea v-model="sevkKontrolNote" placeholder="Not / gerekçe (ret için zorunlu)" class="form-control sevk-input sevk-area" rows="2"></textarea>
+                            <div class="sevk-row" style="margin-top:8px;"><button @click="sevkUygun" class="btn btn-sm" style="background:#059669;color:#fff;">Uygun</button><button @click="sevkRed" class="btn btn-sm" style="background:#ef4444;color:#fff;">Değil</button></div>
+                        </div>
+                    </div>
+                    <div v-if="canSevkShip"><button @click="sevkShip" class="btn btn-sm" style="background:#059669;color:#fff;">Sevkiyat Gerçekleşti</button></div>
+                    <div v-if="sevkEnts.sevk_kontrol_ok === '1'" class="sevk-meta sevk-ok">Kontrol: Uygun — sevkiyat yapabilirsiniz</div>
+                    <div v-else-if="sevkEnts.proforma_kontrol_note" class="sevk-meta sevk-no">Kontrol: Uygun değil — {{ sevkEnts.proforma_kontrol_note }}</div>
+                </div>
+            </div>
+        </div>
+
         <div class="locked-card mb-6" v-if="id && isLocked">
             <div class="locked-card-body">
                 <div class="locked-card-left">
@@ -1497,24 +1834,24 @@
             </div>
         </div>
 
-        <!-- Kalite Onayı — admin detail (per-07-02) — area on image: after Kaynak/Transfer/Kilitli -->
+        <!-- Sevk Onayı — admin detail (per-07-02) -->
         <div class="card mb-6" v-if="id && loadForm && canKalite" style="border:1px solid #bbf7d0; border-radius:14px; overflow:hidden; background:#f0fdf4; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
             <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; gap:12px; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
                     <div style="width:42px; height:42px; border-radius:10px; background:#22c55e; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; flex-shrink:0; box-shadow:0 2px 6px rgba(34,197,94,0.2);"><i class="ki-outline ki-check-circle"></i></div>
                     <div style="min-width:0;">
-                        <div style="font-weight:800; color:#166534; font-size:13px;">Kalite Onayı</div>
-                        <div style="font-size:11.5px; color:#15803d; margin-top:2px; line-height:1.4;">Tüm bekleyen dosyalar kabul edilecek, sipariş <b>Kalite Onayı Verildi</b> durumuna geçecek.</div>
+                        <div style="font-weight:800; color:#166534; font-size:13px;">Sevk Onayı</div>
+                        <div style="font-size:11.5px; color:#15803d; margin-top:2px; line-height:1.4;">Tüm bekleyen dosyalar kabul edilecek, sipariş <b>Sevk Onayı Verildi</b> durumuna geçecek.</div>
                     </div>
                 </div>
                 <button @click="kaliteOnayi" :disabled="kaliteLoading" :style="kaliteLoading ? 'background:#9ca3af; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-weight:700; font-size:13px; opacity:0.72; cursor:not-allowed; display:inline-flex; align-items:center; gap:8px; min-width:170px; justify-content:center;' : 'background:#22c55e; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; min-width:170px; justify-content:center; box-shadow:0 2px 8px rgba(34,197,94,0.18);'">
                     <i :class="kaliteLoading ? 'ki-outline ki-loading' : 'ki-outline ki-check-circle'" :style="kaliteLoading ? 'font-size:15px; animation:spin 1s linear infinite;' : 'font-size:15px;'"></i>
-                    {{ kaliteLoading ? 'Onaylanıyor...' : 'Kalite Onayı Verildi' }}
+                    {{ kaliteLoading ? 'Onaylanıyor...' : 'Sevk Onayı Ver' }}
                 </button>
             </div>
         </div>
 
-        <Form ref="formRef" formtypes="op-doc-order-form" v-if="loadForm" savebtntitle="Kaydet" :readonlyFields="readonlyFields" :savecallback="submitForm" />
+        <Form ref="formRef" formtypes="op-doc-order-form" v-if="loadForm" :showsave="!sevkFocus" savebtntitle="Kaydet" :readonlyFields="readonlyFields" :savecallback="submitForm" />
         
     </div>
 </template>
@@ -1769,6 +2106,37 @@
 .tedarik-warning { background:#fff8db; border:1px solid #fde68a; border-radius:12px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; color:#92400e; font-size:12.8px; line-height:1.6; }
 .tedarik-warning i { font-size:18px; color:#f59e0b; flex-shrink:0; margin-top:2px; }
 .tedarik-step-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }
+.sevk-ring { box-shadow:0 0 0 3px #a78bfa, 0 8px 24px rgba(139,92,246,.25) !important; }
+#sevk-card { scroll-margin-top:12px; }
+.sevk-steps { display:flex; flex-direction:column; gap:10px; }
+.sevk-step { display:flex; gap:12px; background:#fff; border:1px solid #e9e5fb; border-radius:12px; padding:12px 14px; box-shadow:0 1px 2px rgba(76,29,149,.06); }
+.sevk-num { width:26px; height:26px; border-radius:999px; background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:#fff; font-size:12.5px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+.sevk-body { flex:1; min-width:0; }
+.sevk-body > label { display:block; font-size:11px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#5b21b6; margin-bottom:6px; }
+.sevk-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.sevk-input { border:1px solid #c4b5fd; border-radius:10px; padding:8px 12px; font-size:13px; color:#1e293b; background:#fff; outline:none; transition:border-color .15s, box-shadow .15s; }
+.sevk-input:focus { border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,.18); }
+.sevk-input:disabled { background:#f8fafc; color:#64748b; }
+.sevk-area { width:100%; resize:vertical; min-height:64px; line-height:1.5; }
+.sevk-addrs { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:640px){ .sevk-addrs { grid-template-columns:1fr; } }
+.sevk-file { cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+.sevk-uploads { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:640px){ .sevk-uploads { grid-template-columns:1fr; } }
+.sevk-upload { display:flex; align-items:center; gap:10px; background:#fff; border:1.5px dashed #c4b5fd; border-radius:12px; padding:10px 14px; cursor:pointer; transition:border-color .15s, box-shadow .15s; min-width:0; }
+.sevk-upload:hover { border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,.12); }
+.sevk-upload-icon { width:34px; height:34px; border-radius:10px; background:#ede9fe; color:#7c3aed; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+.sevk-upload-text { display:flex; flex-direction:column; min-width:0; }
+.sevk-upload-text b { font-size:12.5px; color:#4c1d95; }
+.sevk-upload-text small { font-size:11px; color:#6d28d9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:230px; }
+.sevk-files { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.sevk-chip { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:#065f46; background:#ecfdf5; border:1px solid #6ee7b7; border-radius:999px; padding:5px 8px 5px 10px; max-width:100%; }
+.sevk-chip button { border:none; background:#fff; border-radius:999px; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; color:#059669; cursor:pointer; font-size:12px; }
+.sevk-val { font-size:12.5px; color:#334155; }
+.sevk-empty { color:#94a3b8 !important; font-style:italic; }
+.sevk-meta { font-size:11px; color:#6d28d9; background:#ede9fe; border:1px dashed #c4b5fd; border-radius:8px; padding:6px 10px; }
+.sevk-ok { color:#065f46; background:#ecfdf5; border-color:#6ee7b7; }
+.sevk-no { color:#991b1b; background:#fef2f2; border-color:#fca5a5; }
 .tedarik-step-head { display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid #f1f5f9; font-size:13.5px; font-weight:700; color:#0f172a; background:#fcfcfd; }
 .tedarik-step-num { width:26px; height:26px; border-radius:999px; background:#FF5A1F; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; }
 .tedarik-step-body { padding:16px 18px; }

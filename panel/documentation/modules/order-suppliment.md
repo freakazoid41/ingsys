@@ -135,3 +135,6 @@ SELECT order_no FROM sys_con_entities se JOIN sys_con_ops so ON so.id=se.conn_id
 - Hard refresh after `vite build` — stale `app-*.js` is #1 false failure.
 - `orders:sync --fresh` alone leaves files/serials — always use `orders:reset`.
 - Export PDFs are print-only, `items` from request — verify DB qty separately.
+
+## 11. Sevk happy path (2026-11-16)
+1. `ready` → `POST /v1/orders/sevk/start` → `sevk_started`. 2. depo+`kalite_ok`. 3. adres→`addressed`. 4. tarih→`dated`. 5. proforma+irsaliye upload (`PUT /v1/document`, `sevk_docs`) → `proforma`. 6. `POST /v1/orders/sevk/control {uygun:1/0}` (Değil loops to `dated`). 7. ship→`shipped` (needs `kontrol_ok=1`). 8. Kalite `approved`. Dökümanlar tab: same control on proforma rows.

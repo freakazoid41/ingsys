@@ -125,7 +125,7 @@ class TedarikMailHelper
             'tedarikFileWaiting'   => ['pill' => 'İnceleme Bekliyor', 'color' => '#b45309', 'bg' => '#fef3c7', 'intro' => 'Sipariş ile birlikte inceleme bekleyen dosyalar eklendi.'],
             'tedarikFileApproved'  => ['pill' => 'Dosya Onaylandı', 'color' => '#15803d', 'bg' => '#dcfce7', 'intro' => 'Sipariş dosyası onaylandı.'],
             'tedarikFileRejected'  => ['pill' => 'Yeniden Talep', 'color' => '#b91c1c', 'bg' => '#fee2e2', 'intro' => 'Sipariş dosyası reddedildi — tedarikçiden yeniden talep edildi.'],
-            'tedarikOrderApproved' => ['pill' => 'Kalite Onayı', 'color' => '#15803d', 'bg' => '#dcfce7', 'intro' => 'Sipariş kalite onayı verildi ve kapatıldı.'],
+            'tedarikOrderApproved' => ['pill' => 'Sevk Onayı', 'color' => '#15803d', 'bg' => '#dcfce7', 'intro' => 'Sipariş sevk onayı verildi ve kapatıldı.'],
             'tedarikOrderRejected' => ['pill' => 'Sipariş Reddedildi', 'color' => '#b91c1c', 'bg' => '#fee2e2', 'intro' => 'Sipariş reddedildi. Detayı inceleyin.'],
             'planlamaTalepSent'     => ['pill' => 'Onaya Talep Geldi', 'color' => '#0e7490', 'bg' => '#ecfeff', 'intro' => 'Yeni Talep Dökümanı müdürlük onayına gönderildi.'],
             'planlamaTalepRejected' => ['pill' => 'Talep Reddedildi', 'color' => '#b91c1c', 'bg' => '#fee2e2', 'intro' => 'Talep Dökümanı müdürlük tarafından reddedildi.'],

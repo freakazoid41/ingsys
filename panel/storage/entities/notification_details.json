@@ -31,7 +31,7 @@
         "childs": []
     },{
         "parent_id": 0,
-        "title": "Sipariş Kalite Onayı Verildi",
+        "title": "Sipariş Sevk Onayı Verildi",
         "group_key": "op-notif",
         "op_key": "tedarik-06",
         "childs": []

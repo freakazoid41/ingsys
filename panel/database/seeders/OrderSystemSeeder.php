@@ -25,15 +25,27 @@ class OrderSystemSeeder extends Seeder
             ['op_key'=>'doc_trans_order_created', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sipariş Oluşturuldu', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'doc_trans_order_transfer_sent', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Dosyalar Kontrol Ediliyor', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'doc_trans_order_ready_for_shipment', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sipariş Sevke Hazır', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
-            ['op_key'=>'doc_trans_order_approved', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Kalite Onayı Verildi', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'doc_trans_order_approved', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sevk Onayı Verildi', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'doc_trans_order_rejected', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sipariş Reddedildi', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'doc_trans_order_files_rejected', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Reddedilen Dosyalar Mevcut', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
+            // ---- Sevk Onay path (Way-1, before approved) ----
+            ['op_key'=>'doc_trans_order_sevk_started', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sevk Onayına Alındı', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'doc_trans_order_sevk_kalite_ok', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sevk Kalite Onayı Verildi', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'doc_trans_order_sevk_addressed', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sevk Adresi Girildi', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'doc_trans_order_sevk_dated', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sevk Tarihi Seçildi', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'doc_trans_order_sevk_proforma', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Proforma/İrsaliye Yüklendi', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'doc_trans_order_sevk_shipped', 'group_key'=>'op-trans-op-doc-order', 'title'=>'Sevkiyat Gerçekleşti', 'ttitle'=>'Transactions', 'ctitle'=>'type_id', 'parent_id'=>0],
 
             // ---- File type dictionary (op-file-types) for the 4 file groups you confirmed ----
             ['op_key'=>'op-transfer_kabul_file', 'group_key'=>'op-file-types', 'title'=>'Malzeme Kabul Formu', 'ttitle'=>'document_files', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'op-transfer_cins_file', 'group_key'=>'op-file-types', 'title'=>'Malzeme Cins-Miktar Kabul Formu', 'ttitle'=>'document_files', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'op-item_test_file', 'group_key'=>'op-file-types', 'title'=>'Ürün Test Dokümanı', 'ttitle'=>'document_files', 'ctitle'=>'type_id', 'parent_id'=>0],
             ['op_key'=>'op-item_images_file', 'group_key'=>'op-file-types', 'title'=>'Ürün Görsel', 'ttitle'=>'document_files', 'ctitle'=>'type_id', 'parent_id'=>0],
+            // ---- Sevk Onay files (entity_tag prefix proforma_file/irsaliye_file → file_type join needs op-<prefix>) ----
+            ['op_key'=>'op-sevk_proforma_file', 'group_key'=>'op-file-types', 'title'=>'Proforma Fatura', 'ttitle'=>'document_files', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'op-sevk_irsaliye_file', 'group_key'=>'op-file-types', 'title'=>'İrsaliye', 'ttitle'=>'document_files', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'op-proforma_file', 'group_key'=>'op-file-types', 'title'=>'Proforma Fatura', 'ttitle'=>'document_files', 'ctitle'=>'type_id', 'parent_id'=>0],
+            ['op_key'=>'op-irsaliye_file', 'group_key'=>'op-file-types', 'title'=>'İrsaliye', 'ttitle'=>'document_files', 'ctitle'=>'type_id', 'parent_id'=>0],
 
             // ---- Logs for new flows ----
             ['op_key'=>'log-order-update', 'group_key'=>'op-logs', 'title'=>'Sipariş Güncelleme', 'ttitle'=>'User_logs', 'ctitle'=>'log_id', 'parent_id'=>0],

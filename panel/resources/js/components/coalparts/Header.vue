@@ -148,7 +148,7 @@ export default {
         pendingFiles: { cat:'tedarik-03', opKey:'tedarik-03', label:'İnceleme Bekliyor' },
         fileApproved: { cat:'tedarik-04', opKey:'tedarik-04', label:'Dosya Onaylandı' },
         fileRejected: { cat:'tedarik-05', opKey:'tedarik-05', label:'Yeniden Talep' },
-        orderApproved: { cat:'tedarik-06', opKey:'tedarik-06', label:'Kalite Onayı' },
+        orderApproved: { cat:'tedarik-06', opKey:'tedarik-06', label:'Sevk Onayı' },
         orderRejected: { cat:'tedarik-07', opKey:'tedarik-07', label:'Reddedildi' },
         planlamaSent: { cat:'planlama-01', opKey:'planlama-01', label:'Talep Onaya Gönderildi' },
         planlamaRejected: { cat:'planlama-02', opKey:'planlama-02', label:'Talep Reddedildi' },
@@ -178,7 +178,7 @@ export default {
             qnid=m.qnid; created_at=m.created_at; main_id=m.main_id; orderNo=m.orderNo; sub=m.ctitle;
             if(key==='orderImported'){ const msg = m.ctitle ? `${m.orderNo} — ${m.ctitle}` : `${m.orderNo}`; title=`Sipariş Geldi — ${m.orderNo}`; message=msg; }
             else if(key==='orderSent'){ title=`Onaya Gönderildi — ${m.orderNo}`; message=m.orderNo; }
-            else if(key==='orderApproved'){ title=`Kalite Onayı — ${m.orderNo}`; message=m.orderNo; }
+            else if(key==='orderApproved'){ title=`Sevk Onayı — ${m.orderNo}`; message=m.orderNo; }
             else if(key==='orderRejected'){ title=`Reddedildi — ${m.orderNo}`; message=m.orderNo; }
             else if(key==='planlamaSent'||key==='planlamaRejected'||key==='planlamaApproved'){
               const pm = parseRequest(offr);

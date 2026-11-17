@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#6777ef" />
     <link rel="apple-touch-icon" href="{{ asset('img/icons/apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('/manifest.json') }}">
-    <link rel="icon" type="image/x-icon" href="/public/css/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     @vite([
         'public/coaltheme/css/theme.css',

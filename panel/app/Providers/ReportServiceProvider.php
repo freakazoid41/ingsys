@@ -186,7 +186,7 @@ class ReportServiceProvider extends ServiceProvider
                     $data = $this->filterFilesByBukrsForCurrentUser($data);
                 }
                 break;
-            case 'tedarik-06': // Sipariş Kalite Onayı Verildi — doc_trans_order_approved (BUKRS+SYSTEM-aware LIFNR)
+            case 'tedarik-06': // Sipariş Sevk Onayı Verildi — doc_trans_order_approved (BUKRS+SYSTEM-aware LIFNR)
                 if($isReseller){
                     $data = $this->getTedarikOrders('doc_trans_order_approved');
                     $data = $this->filterOrdersByBukrsForCurrentUser($data);
@@ -287,7 +287,7 @@ class ReportServiceProvider extends ServiceProvider
 
         // Ensure newest first — ORDER BY id DESC (i.id) — tableList already does this, but BUKRS/read filtering preserves input order
         // For per-category sorting (single table), id desc is correct. We keep created_at as primary for recency of status changes,
-        // newest by status change time (last_trans_at / last_status.created_at), not birth — so Kalite Onayı (approved at 05:57) sorts above files created 05:56 but approved 05:51
+        // newest by status change time (last_trans_at / last_status.created_at), not birth — so Sevk Onayı (approved at 05:57) sorts above files created 05:56 but approved 05:51
         if(!empty($data)){
             usort($data, function($a,$b){
                 $aRaw = $a->last_trans_at ?? null;
@@ -1100,6 +1100,12 @@ class ReportServiceProvider extends ServiceProvider
             'doc_trans_order_approved'      => '#10b981',
             'doc_trans_order_rejected'      => '#ef4444',
             'doc_trans_order_files_rejected'=> '#f97316',
+            'doc_trans_order_sevk_started' => '#8b5cf6',
+            'doc_trans_order_sevk_kalite_ok' => '#7c3aed',
+            'doc_trans_order_sevk_addressed' => '#0ea5e9',
+            'doc_trans_order_sevk_dated' => '#06b6d4',
+            'doc_trans_order_sevk_proforma' => '#d97706',
+            'doc_trans_order_sevk_shipped' => '#059669',
         ];
         $labelMap = [
             'doc_trans_order_created'      => 'Yeni Oluşturuldu',
@@ -1108,6 +1114,12 @@ class ReportServiceProvider extends ServiceProvider
             'doc_trans_order_approved'      => 'Onaylandı',
             'doc_trans_order_rejected'      => 'Reddedildi',
             'doc_trans_order_files_rejected'=> 'Dosya Reddedildi',
+            'doc_trans_order_sevk_started' => 'Kalite Onayında',
+            'doc_trans_order_sevk_kalite_ok' => 'Sevk Kalite OK',
+            'doc_trans_order_sevk_addressed' => 'Adres Girildi',
+            'doc_trans_order_sevk_dated' => 'Tarih Seçildi',
+            'doc_trans_order_sevk_proforma' => 'Proforma Yüklendi',
+            'doc_trans_order_sevk_shipped' => 'Sevkiyat Yapıldı',
         ];
 
         $result = [];
@@ -1405,6 +1417,12 @@ class ReportServiceProvider extends ServiceProvider
             'doc_trans_order_approved'      => '#10b981',
             'doc_trans_order_rejected'      => '#ef4444',
             'doc_trans_order_files_rejected'=> '#f97316',
+            'doc_trans_order_sevk_started' => '#8b5cf6',
+            'doc_trans_order_sevk_kalite_ok' => '#7c3aed',
+            'doc_trans_order_sevk_addressed' => '#0ea5e9',
+            'doc_trans_order_sevk_dated' => '#06b6d4',
+            'doc_trans_order_sevk_proforma' => '#d97706',
+            'doc_trans_order_sevk_shipped' => '#059669',
         ];
         $labelMap = [
             'doc_trans_order_created'      => 'Yeni',
@@ -1413,6 +1431,12 @@ class ReportServiceProvider extends ServiceProvider
             'doc_trans_order_approved'      => 'Onaylandı',
             'doc_trans_order_rejected'      => 'Reddedildi',
             'doc_trans_order_files_rejected'=> 'Dosya Reddedildi',
+            'doc_trans_order_sevk_started' => 'Kalite Onayında',
+            'doc_trans_order_sevk_kalite_ok' => 'Sevk Kalite OK',
+            'doc_trans_order_sevk_addressed' => 'Adres Girildi',
+            'doc_trans_order_sevk_dated' => 'Tarih Seçildi',
+            'doc_trans_order_sevk_proforma' => 'Proforma Yüklendi',
+            'doc_trans_order_sevk_shipped' => 'Sevkiyat Yapıldı',
         ];
         $result = [];
         foreach($rows as $row){

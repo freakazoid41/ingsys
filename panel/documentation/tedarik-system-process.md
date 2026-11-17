@@ -1,6 +1,7 @@
 # Tedarik System Process — End-to-End Order Lifecycle (2026-09-07)
 
 > **Purpose:** Malzeme Tedarik İş Süreci — SAP creates purchase orders, suppliers (Tedarikçiler) complete them with serials + files, GDZ/ADM (İB) reviews files and closes orders. This is the single source of truth for testing both panels.
+> **Sevk Onay Way-1 (2026-11-16):** split at `ready_for_shipment`, full spec in `panel/documentation/modules/transfer-approve.md`. Partitions check uses `GET /v1/order/{id}/partitions` (indexed, 0.09s) — never `tableList all=` (17s on 208k orders).
 > **Read after:** `logging-mechanics.md`, `file-upload-versioning-mechanics.md`, `form-system-mechanics.md`, `session-and-login-mechanics.md`, `memory/05-order-system-state.md`.
 > **⚠️ 2026-09-07 late14: TEK PARÇA VIDEO — `tekParcaSiparis.mov 21M 1626x946 60fps 86s` → `tekParcaSiparis.mp4 2.0M 1280x744 30fps crf24 medium faststart` `644`, `TedarikHeader.vue:65 openHelpVideo` map `Tek Parça Sevkiyat→tekParca.mp4` else `loginVideo`; `build 5.52s` `app-B85yY5Xw.js 1.3M`.**
 > **⚠️ 2026-09-07 late13: TEDARIK DETAIL FILE INFO HIDE `OForm.vue:1247` `v-if` hidden until `doc_trans_order_transfer_sent`; `build 4.51s` `app-BiKY`.**

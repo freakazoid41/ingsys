@@ -65,7 +65,7 @@ export default {
                 'tedarik-03': { icon: 'ki-outline ki-file-added', color: '#d97706', bg: '#fef3c7', label: 'Dosya Bekliyor', desc: 'İnceleme bekleyen dosyalar' },
                 'tedarik-04': { icon: 'ki-outline ki-check-circle', color: '#059669', bg: '#ecfdf5', label: 'Onaylandı', desc: 'Dosya onaylandı' },
                 'tedarik-05': { icon: 'ki-outline ki-cross-circle', color: '#dc2626', bg: '#fef2f2', label: 'Yeniden Talep', desc: 'Dosya reddedildi / yeniden talep' },
-                'tedarik-06': { icon: 'ki-outline ki-medal-star', color: '#16a34a', bg: '#f0fdf4', label: 'Kalite Onayı', desc: 'Sipariş kapatıldı' },
+                'tedarik-06': { icon: 'ki-outline ki-medal-star', color: '#16a34a', bg: '#f0fdf4', label: 'Sevk Onayı', desc: 'Sipariş kapatıldı' },
                 'tedarik-07': { icon: 'ki-outline ki-cross-square', color: '#991b1b', bg: '#fef2f2', label: 'Reddedildi', desc: 'Sipariş reddedildi' },
             };
             return map[opKey] || { icon: 'ki-outline ki-notification-bing', color: '#64748b', bg: '#f1f5f9', label: 'Bildirim', desc: 'Bildirim grubu' };

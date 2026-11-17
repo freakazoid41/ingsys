@@ -307,6 +307,11 @@ class DocumentController extends Controller
         $lockError = $this->lockedTenderWriteError($key, $method, $request->id);
         if ($lockError) return $lockError;
 
+        // Reseller row ownership: lists are LIFNR-scoped, but a direct qnid read/write
+        // would otherwise open any order. Fail closed like tableList does.
+        $ownGuard = $this->assertOrderOwnership($key, $request);
+        if ($ownGuard !== true) return $ownGuard;
+
         return match($method) {
             'GET'    => $this->handleShow($request),
             'POST'   => $this->handleStore($request, $decodedData, $key),
@@ -660,6 +665,17 @@ class DocumentController extends Controller
             return response()->json(['success'=>false,'msg'=>'Belge bulunamadı'],404);
         }
 
+        // Sevk lifecycle is owned by dedicated endpoints (start/advance/control) which
+        // stamp EAV fields and enforce per-step validation (depo_yeri, files,
+        // kontrol-ok) + per-key perms. The generic set-status route must not be
+        // able to forge sevk steps.
+        if ($docOpKey === 'op-doc-order' && is_string($request->op_key) && str_starts_with($request->op_key, 'doc_trans_order_sevk_')) {
+            return response()->json([
+                'success' => false,
+                'msg'     => 'Sevk adımları yalnızca /v1/orders/sevk/* uçlarından değiştirilebilir.',
+            ], 422);
+        }
+
         // Tender lifecycle is owned by dedicated endpoints: activate/complete,
         // offer accept/reject/file-reject. The generic set-status route must not
         // be able to forge offer-accepted/tender-complated without winner checks,
@@ -689,7 +705,7 @@ class DocumentController extends Controller
             }
             $authUser = auth('sanctum')->user() ?? auth()->user();
             if (!$this->perms->has($authUser, 'per-07-02')) {
-                return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır (per-07-02 Kalite Onayı)...'],403);
+                return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır (per-07-02 Sevk Onayı)...'],403);
             }
         } else {
             $validated = docPermCheck($docOpKey,'status');
@@ -805,6 +821,116 @@ class DocumentController extends Controller
         }
         $response = $this->docs->renameOrder($request->id, $request->order_no);
         return response()->json($response, ($response['success'] ?? false) ? 200 : 422);
+    }
+
+    // ---- Sevk Onay (Way-1, before approved) ----
+    /**
+     * Reseller row ownership for the order family (GET/PUT by direct qnid).
+     * Lists are LIFNR-scoped via tableList; without this, any reseller with
+     * per-05-01 could open/alter any order. Admins bypass. Unknown docs pass
+     * through to preserve existing invalid-qnid handling.
+     */
+    private function assertOrderOwnership(?string $key, Request $request)
+    {
+        if (!in_array($key, ['op-doc-order','op-doc-order-item','op-doc-order-serial'], true)) return true;
+        if (!in_array($request->method(), ['GET','PUT'], true)) return true;
+        $typeKey = function_exists('currentPersonTypeKey') ? currentPersonTypeKey() : session('type_key');
+        if ($typeKey !== 'op-pert-reseller') return true;
+        $doc = \App\Models\Documents::where('qnid', $request->id)->first();
+        if (!$doc) return true;
+        $order = $doc; $guard = 0;
+        while ($order && $guard++ < 4) {
+            $t = \App\Models\Sys_options::where('id', $order->type_id)->value('op_key');
+            if ($t === 'op-doc-order') break;
+            if (empty($order->parent_id)) { $order = null; break; }
+            $order = \App\Models\Documents::where('id', $order->parent_id)->first();
+        }
+        if (!$order) return true;
+        if (!$this->docs->canCurrentResellerAccessOrder($order)) {
+            return response()->json(['success'=>false,'msg'=>'Bu sipariş size bağlı cariye ait değil...'],403);
+        }
+        return true;
+    }
+
+    public function orderPartitions(Request $request){        $id = $request->route('id') ?? $request->input('id');
+        if (!$id || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', (string) $id)) {
+            return response()->json(['success'=>false,'msg'=>'Missing Parameters'], 422);
+        }
+        $rsp = $this->docs->orderPartitions($id);
+        return response()->json($rsp, ($rsp['success'] ?? false) ? 200 : 422);
+    }
+
+    public function sevkStart(Request $request){
+        $v = Validator::make($request->all(), ['id' => 'required|uuid']);
+        if ($v->fails()) return response()->json(['success'=>false,'msg'=>'Missing Parameters'], 422);
+        if (!docPermCheck('op-doc-order','status')) return response()->json(['success'=>false,'msg'=>'Yetki yok (per-05-03)'], 403);
+        $rsp = $this->docs->startSevk($request->id, $request->note);
+        return response()->json($rsp, ($rsp['success'] ?? false) ? 200 : 422);
+    }
+
+    public function sevkAdvance(Request $request){
+        $v = Validator::make($request->all(), ['id' => 'required|uuid', 'op_key' => 'required|string']);
+        if ($v->fails()) return response()->json(['success'=>false,'msg'=>'Missing Parameters'], 422);
+        $map = [
+            'doc_trans_order_sevk_kalite_ok' => ['perms' => ['per-07-02'], 'fields' => ['depo_yeri']],
+            'doc_trans_order_sevk_addressed' => ['perms' => ['per-05-06'], 'fields' => ['sevk_adresi','sevk_adres_diger']],
+            'doc_trans_order_sevk_dated' => ['perms' => ['per-05-02','per-05-06'], 'fields' => ['sevk_tarihi']],
+            'doc_trans_order_sevk_proforma' => ['perms' => null, 'fields' => []],
+            'doc_trans_order_sevk_shipped' => ['perms' => null, 'fields' => ['sevk_kontrol_ok']],
+        ];
+        $cfg = $map[$request->op_key] ?? null;
+        if (!$cfg) return response()->json(['success'=>false,'msg'=>'Geçersiz sevk adımı'], 422);
+        if (!empty($cfg['perms'])) {
+            $auth = auth('sanctum')->user() ?? auth()->user();
+            $ok = false;
+            foreach ($cfg['perms'] as $p) { if ($this->perms->has($auth, $p)) { $ok = true; break; } }
+            if (!$ok) {
+                return response()->json(['success'=>false,'msg'=>'Yetki yok ('.implode('/', $cfg['perms']).')'], 403);
+            }
+        }
+        // supplier steps: must own order (reseller LIFNR scope); admin bypass
+        if (in_array($request->op_key, ['doc_trans_order_sevk_dated','doc_trans_order_sevk_proforma','doc_trans_order_sevk_shipped'], true)) {
+            if (!docPermCheck('op-doc-order','edit')) return response()->json(['success'=>false,'msg'=>'Yetki yok'], 403);
+        }
+        $fields = [];
+        foreach ($cfg['fields'] as $f) {
+            if ($request->filled($f)) $fields[$f] = $request->input($f);
+        }
+        // sevk_tarihi required + future date (takvim: ambar doluluk stub = today+1 min)
+        if ($request->op_key === 'doc_trans_order_sevk_dated') {
+            if (empty($fields['sevk_tarihi'])) return response()->json(['success'=>false,'msg'=>'sevk_tarihi zorunlu'], 422);
+            $ts = strtotime($fields['sevk_tarihi']);
+            if ($ts === false) return response()->json(['success'=>false,'msg'=>'Geçersiz tarih'], 422);
+            if ($ts < strtotime('today +1 day')) return response()->json(['success'=>false,'msg'=>'Sevk tarihi en erken yarın olabilir'], 422);
+        }
+        if ($request->op_key === 'doc_trans_order_sevk_kalite_ok' && empty($fields['depo_yeri'])) {
+            return response()->json(['success'=>false,'msg'=>'depo_yeri zorunlu (SAS)'], 422);
+        }
+        if ($request->op_key === 'doc_trans_order_sevk_addressed' && empty($fields['sevk_adresi'])) {
+            return response()->json(['success'=>false,'msg'=>'sevk_adresi zorunlu'], 422);
+        }
+        $rsp = $this->docs->advanceSevk($request->id, $request->op_key, $fields, $request->note);
+        return response()->json($rsp, ($rsp['success'] ?? false) ? 200 : 422);
+    }
+
+    // Lojistik kontrol: Uygun → sevk_kontrol_ok=1 (ship unlock), Değil → back to dated + note
+    public function sevkControl(Request $request){
+        $v = Validator::make($request->all(), ['id' => 'required|uuid', 'uygun' => 'required|boolean']);
+        if ($v->fails()) return response()->json(['success'=>false,'msg'=>'Missing Parameters'], 422);
+        if (!$this->perms->has(auth('sanctum')->user() ?? auth()->user(), 'per-05-03')) {
+            return response()->json(['success'=>false,'msg'=>'Yetki yok (per-05-03)'], 403);
+        }
+        // kontrol ancak Proforma Yüklendi adımında yapılır
+        if ($this->docs->latestOrderStatus($request->id) !== 'doc_trans_order_sevk_proforma') {
+            return response()->json(['success'=>false,'msg'=>'Kontrol yalnızca Proforma Yüklendi adımında yapılır'], 422);
+        }
+        if ($request->boolean('uygun')) {
+            $this->docs->saveSevkFields($request->id, ['sevk_kontrol_ok' => '1', 'proforma_kontrol_note' => $request->note ?? 'Uygun']);
+            return response()->json(['success' => true, 'msg' => 'Kontrol uygun — tedarikçi sevkiyat yapabilir']);
+        }
+        $this->docs->saveSevkFields($request->id, ['sevk_kontrol_ok' => '0', 'proforma_kontrol_note' => $request->note ?? 'Uygun değil']);
+        $rsp = $this->docs->setStatus($request->id, 'doc_trans_order_sevk_dated', $request->note ?? 'Proforma uygun değil — revize gerekli');
+        return response()->json($rsp, ($rsp['success'] ?? false) ? 200 : 422);
     }
 
     public function setFileStatus(Request $request){
