@@ -518,6 +518,14 @@ class DocumentController extends Controller
             }
         }
 
+        // Order item/serial quantities are physical amounts — never negative.
+        if (in_array($key, ['op-doc-order-item', 'op-doc-order-serial'], true)) {
+            $qty = $this->firstEntity($decoded, 'quantity');
+            if ($qty !== '' && (! is_numeric($qty) || (float) $qty < 0)) {
+                return response()->json(['success' => false, 'msg' => 'Miktar negatif olamaz.'], 422);
+            }
+        }
+
         $res = $this->docs->registerContent(0, $decoded, $files);
         if ($key === 'op-doc-ihale-offer' && ($res['id'] ?? 0) > 0) {
             $this->rememberOfferBrands($decoded);
@@ -627,6 +635,13 @@ class DocumentController extends Controller
             $fileError = $this->validateOfferFiles($decoded, $request->id);
             if ($fileError) {
                 return response()->json(['success' => false, 'msg' => $fileError], 422);
+            }
+        }
+
+        if (in_array($key, ['op-doc-order-item', 'op-doc-order-serial'], true)) {
+            $qty = $this->firstEntity($decoded, 'quantity');
+            if ($qty !== '' && (! is_numeric($qty) || (float) $qty < 0)) {
+                return response()->json(['success' => false, 'msg' => 'Miktar negatif olamaz.'], 422);
             }
         }
 
