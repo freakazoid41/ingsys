@@ -167,10 +167,33 @@ Users: admin `redv@kontent.com.tr` (all 37 perms incl. per-09) for create/edit; 
 - **UI:** Ürün → **Güç & Kapsam Tanımları** (`/coalpanel/kva`) is a two-tab page — **Güç (kVA)** + **Kapsam Tipleri** (scope values). Scope create/edit/delete via `SForm` route `/coalpanel/kva/scope-form/:id?` (`op-doc-scope-value-form` def in `forms/defs/scope-value.js`), gated `per-09-01` read / `per-09-02` edit, Excel export model `scopevalues`. Verified live: tabs, 24 rows, create → list → search. Row polish: one name column, `dd.mm.yyyy HH:ii` dates, 34px tinted action buttons, hover row highlight. **No group concept** — definitions are a flat list (Başlık + Kod only); `scope_group` was removed from list/filter/export/form and pruned from the DB.
 - **Product lists row polish (2026-11-19):** `/coalpanel/products` (PList) — `prod_code` indigo monospace pills, bold short names, unit chips (ST/KG/M), category chips (teal), formatted dates, tinted 34px action buttons, hover rows. `/coalpanel/product-categories` (PCList) — bold category titles, `code` pills, formatted dates, same row styling. `/coalpanel/client` (CList) — bold titles, `clicode` pills, system chips (ADM orange / GDZ blue), `lifnr` cari pills, same action buttons; mobile card view kept. `/coalpanel/users` (UList) — status chips (Aktif green / Pasif red / Onay Bekliyor amber + Şifre Yenileme warn chip), bold names, Tip teal chip, Rol indigo chip, Sistem chips, monospace usernames with active-dot icon, amber/teal/red 34px action buttons (reset/edit/delete). The shared design lives in `public/coaltheme/css/custom.css` (FINAL OVERRIDE block; bundled via Vite — **rebuild required after edits**): header 14px 18px / 11px 800 uppercase, rows 15px 18px, hover `#f0fbfc` with rounded edges. Applies to all `.rlist-card` admin tables. Verified live: client/products/categories/kva/users all read 15px 18px + hover `rgb(240,251,252)`; tenant chips consistent (GDZ rgb(239,246,255) / ADM rgb(255,247,237)).
 - **Category form now exposes the connections:** each `category_files` row renders two tagboxes — `Geçerli Güçler` (kVA docs) and `Geçerli Tipler` (scope-value docs, **bare codes, no group prefix**). Both load existing pills and re-seed `dynamicF` on build so untouched rows keep their links. Verified live: TRF 11 rows × 9 kVA (`50 kVA` … `1600 kVA`); GY 7 units (row 13 → KES. ÇIK, row 26 → 3 units); HY 9 units (row 24 → YA. TRF KOR + GER. TRF); PANO 4 plain kVA pills (630/1000/1250/1600) + 7 combined type pills; SDK TİP-A/TİP-B every row. Save-without-change keeps rows, metadata and single-conn shape intact.
-- Live build: `prjBuildLive` runs `ProductCategorySeeder → ProductSeeder → KvaSeeder → ScopeValueSeeder → TedarikRealCatalogSeeder`. On an already-populated DB: `php artisan catalog:purge --force && php artisan db:seed --class=TedarikRealCatalogSeeder`.
+- Live build: `prjBuildLive` runs `ProductCategorySeeder → ProductSeeder → KvaSeeder → ScopeValueSeeder → TedarikRealCatalogSeeder → SahaIsgucuCatalogSeeder`. On an already-populated DB, the full catalog is one command: `php artisan db:seed --class=SahaIsgucuCatalogSeeder` (self-sufficient, idempotent — it re-runs the real catalog first). After `catalog:purge --force --definitions`, run that same command to rebuild all categories/products.
 - Open data questions (Master): FRM.865 evrak no 1 missing in source; 1600 kVA HARİCİ/DAHİLİ tag absent; FRM.869 row 13 standard reads "61439-1 Madde 10.2.101" (kept literal, likely a 61439-5 typo).
 
-## 15. Gotchas
+## 15. Saha İşgücü Catalog Import (2026-11-19)
+
+Source workbook: `Teknik Değerlendirme Saha İşgücü Modülü Eşleştirme Tablosu.xlsx` (folder `RE__Tedarik_Portalı_Geliştirme_Toplantısı`). Five product sheets, different layouts:
+
+| Sheet | Header row | Code | Name | Unit | Category |
+|---|---|---|---|---|---|
+| `Sayfa2` | 4 | C3 | C4 | — | C1 |
+| `YATIRIM` | 2 | C3 | C4 | C5 | C1 |
+| `BAKIM` | 2 | C3 | C4 | C5 | C1 |
+| `İŞLETME` | 3 | C1 | C3 | C4 | C2 |
+| `2026 ihale` | 1 | C6 | C7 | C8 | C3 (fallback C13) |
+
+**Result:** 987 unique products / 36 categories — the 5 real TEDAŞ categories plus **31 new categories with zero file requirements** (technical data not supplied yet; they will be filled from the panel). `Stoklar` is a stock report only (no code, no category) and is **not** imported; 4 `Kod talep edilecek` rows are skipped.
+
+**Import rules (implemented in `SahaIsgucuCatalogSeeder` + `database/seeders/data/saha_isgucu_products.php`):**
+- One row per unique `Malzeme Kodu`; if a code appears in several sheets, priority is `Sayfa2 → YATIRIM → BAKIM → İŞLETME → 2026 ihale` for name/unit/category.
+- Cosmetic cross-sheet category variants collapse (`AG KABLO` = `AG KABLOLAR`, `YG SİGORTALAR` = `YG SİGORTA`, `İZOLATÖRLER` = `İZOLATÖR`, hyphen/comma variants, …). Existing real groups map to their real category docs: `GAZ YALITIMLI HÜCRE → GY-HUCRE`, `HAVA YALITIMLI HÜCRE → HY-HUCRE`, `HERMETİK TRANSFORMATÖR → TRF-33KV`, `PANO → AG-PANO`, `SDK → SDK`.
+- Units normalized to the system set: `ADT` / `Adet` → `ST`, `M` / `Metre` → `M`, `KG` → `KG`. 26 LED fixtures have a blank unit cell in `YATIRIM` and are seeded as `ST` (piece).
+- 31 new category codes are ASCII slugs (`AER-KABLO`, `AG-KABLO`, `EK-MUF-BASLIK`, `PANO-SDK`, …); their stored `title` is the workbook group name. No `category_files`, `row_count`, `sartname` or scope metadata — verified 0 requirement entities across all 31.
+- 987 imported + 5 example products = **992 products** in the catalog.
+
+**Verification:** `php tests/e2e/saha-isgucu-crosscheck.php` parses the workbook independently, applies the rules and diffs code/name/unit/category link/title against the DB — **ALL GREEN (987 products, 0 mismatches)**. `php tests/e2e/saha-isgucu-generate.php [xlsx]` regenerates the seed data file byte-identically. Fresh scratch-DB build through the `prjBuildLive` chain: 992 products / 36 categories / 9 kVA / 24 scope values / 117 requirement rows; both this cross-check and `excel-crosscheck.php` green.
+
+## 16. Gotchas
 
 1. **Readonly/hidden link fields are invisible to validation** — category link is enforced in `submitForm`, not via `required`.
 2. **Always inject page-owned values into `formData.dynamicF` at submit time** — DOM writes alone can be lost on re-render (Form rebuilds inputs from store).

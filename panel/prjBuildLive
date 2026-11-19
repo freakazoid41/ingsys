@@ -31,6 +31,7 @@ php artisan db:seed --class="ProductSeeder"
 php artisan db:seed --class="KvaSeeder"
 php artisan db:seed --class="ScopeValueSeeder"
 php artisan db:seed --class="TedarikRealCatalogSeeder"
+php artisan db:seed --class="SahaIsgucuCatalogSeeder"
 php artisan db:seed --class="DataSeeder"
 
 rm -r storage/app/public/documents/*
