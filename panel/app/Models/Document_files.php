@@ -98,16 +98,16 @@ class Document_files extends Model
             'last_status'       => "(select     json_build_object(
                                                     'op_key',sot.op_key,
                                                     'title' , sot.title,
-                                                    'name'  , p.name,
+                                                    'name'  , coalesce(p.name, 'Sistem'),
                                                     'note' , t.description,
                                                     'created_at', t.created_at
                                                 ) 
                                                     from transactions t 
                                             
                                                 inner join sys_options sot on sot.id = t.type_id
-                                                inner join user_logs ul on ul.id = t.log_id
-                                                inner join users u on u.id = ul.user_id
-                                                inner join persons p on p.id = u.person_id
+                                                left join user_logs ul on ul.id = t.log_id
+                                                left join users u on u.id = ul.user_id
+                                                left join persons p on p.id = u.person_id
                                             where t.target_id = i.id and op_id = 1 order by t.id desc limit 1)  as  last_status",
             'last_trans_at'     => "(select t.created_at from transactions t where t.target_id = i.id and t.op_id = 1 order by t.id desc limit 1) as last_trans_at",
             'title'             => "COALESCE(
