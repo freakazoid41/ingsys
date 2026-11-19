@@ -518,11 +518,18 @@ class DocumentController extends Controller
             }
         }
 
-        // Order item/serial quantities are physical amounts — never negative.
+        // Order item/serial quantities are physical amounts. ST can never be
+        // negative; KG/M may intentionally be negative after an over-shipment.
         if (in_array($key, ['op-doc-order-item', 'op-doc-order-serial'], true)) {
             $qty = $this->firstEntity($decoded, 'quantity');
-            if ($qty !== '' && (! is_numeric($qty) || (float) $qty < 0)) {
-                return response()->json(['success' => false, 'msg' => 'Miktar negatif olamaz.'], 422);
+            if ($qty !== '' && ! is_numeric($qty)) {
+                return response()->json(['success' => false, 'msg' => 'Miktar sayısal olmalıdır.'], 422);
+            }
+            if ($qty !== '' && (float) $qty < 0) {
+                $unit = strtoupper(trim($this->firstEntity($decoded, 'unit')));
+                if ($key === 'op-doc-order-serial' || $unit === '' || $unit === 'ST') {
+                    return response()->json(['success' => false, 'msg' => 'Miktar negatif olamaz.'], 422);
+                }
             }
         }
 
@@ -640,8 +647,14 @@ class DocumentController extends Controller
 
         if (in_array($key, ['op-doc-order-item', 'op-doc-order-serial'], true)) {
             $qty = $this->firstEntity($decoded, 'quantity');
-            if ($qty !== '' && (! is_numeric($qty) || (float) $qty < 0)) {
-                return response()->json(['success' => false, 'msg' => 'Miktar negatif olamaz.'], 422);
+            if ($qty !== '' && ! is_numeric($qty)) {
+                return response()->json(['success' => false, 'msg' => 'Miktar sayısal olmalıdır.'], 422);
+            }
+            if ($qty !== '' && (float) $qty < 0) {
+                $unit = strtoupper(trim($this->firstEntity($decoded, 'unit')));
+                if ($key === 'op-doc-order-serial' || $unit === '' || $unit === 'ST') {
+                    return response()->json(['success' => false, 'msg' => 'Miktar negatif olamaz.'], 422);
+                }
             }
         }
 

@@ -2031,13 +2031,23 @@ class DocumentServiceProvider extends ServiceProvider
                             DB::rollBack();
                             return ['success' => false, 'msg' => 'Seçilen belge sipariş kalemi değil: ' . $chkQnid];
                         }
+                        $chkConnId = Sys_con_ops::where('main_id', $chkDoc->id)->where('conn_id', 0)
+                            ->whereHas('type', fn ($q) => $q->where('op_key', 'op-doc-order-item-form'))
+                            ->value('id');
+                        $chkUnit = $chkConnId
+                            ? strtoupper(trim((string) Sys_con_entities::where(['conn_id' => $chkConnId, 'entity_tag' => 'unit'])->value('entity_value')))
+                            : 'ST';
+                        $isPiece = $chkUnit === 'ST';
                         $curQty = $this->getItemQuantityForTransfer((int) $chkDoc->id);
-                        if ($curQty <= 0) {
+                        if ($isPiece && $curQty <= 0) {
                             DB::rollBack();
                             return ['success' => false, 'msg' => 'Kalem tükendi (stok 0) — başka partisyona gönderilemez: ' . $chkQnid];
                         }
                         $totals[$chkQnid] = ($totals[$chkQnid] ?? 0) + $chkAmt;
-                        if ($totals[$chkQnid] > $curQty + 0.00001) {
+                        // Piece items may not exceed stock. KG/M intentionally may:
+                        // real shipments can exceed the recorded amount slightly
+                        // because of unit conversion — the remainder goes negative.
+                        if ($isPiece && $totals[$chkQnid] > $curQty + 0.00001) {
                             DB::rollBack();
                             return ['success' => false, 'msg' => 'Kalem için bölme miktarı stoktan fazla: ' . $chkQnid . ' (' . $totals[$chkQnid] . ' > ' . $curQty . ')'];
                         }
@@ -2506,12 +2516,15 @@ class DocumentServiceProvider extends ServiceProvider
         // Store original_quantity on first split (before decrementing)
         $this->storeOriginalQuantity($conn->id, $currentQty);
 
-        // Validate: can't go below 0
-        if ($newQty < 0) $newQty = 0;
-
         // Get unit for type enforcement
         $unitEntity = Sys_con_entities::where(['conn_id' => $conn->id, 'entity_tag' => 'unit', 'table_tag' => 'sys_con_ops'])->first();
         $unit = $unitEntity->entity_value ?? 'ST';
+
+        // Piece items cannot go below 0. KG/M items intentionally may go
+        // negative: real deliveries occasionally exceed the recorded amount
+        // because of unit conversion/rounding, and the negative remainder is
+        // how the system represents that over-shipment.
+        if (strtoupper(trim((string) $unit)) === 'ST' && $newQty < 0) $newQty = 0;
 
         // ST = integer, KG/M = float
         $qtyEntity->entity_value = $unit === 'ST' ? (string) (int) $newQty : (string) round($newQty, 2);
