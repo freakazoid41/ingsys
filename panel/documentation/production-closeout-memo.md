@@ -70,3 +70,9 @@ or enable it per session/query only.
 - `DEV_ADMIN` receives a fixed `111111` 2FA code in **any** environment — unset the env var.
 - `/order-file/{doc}` serves files by token without an ownership re-check.
 - Legacy file bytes were not in the import dump — clone `public/documents/` before go-live or downloads 404.
+
+## 8. Legacy import audit (2026-11-19)
+- `orders:import-legacy` verified against the live `livetdedarik_src` snapshot: all 12 legacy status keys are mapped, source `sys_code` values are clean (4000/5000; suppliers 40005000→BOTH), log types fully mapped, item titles ≤40 chars (no truncation loss). Counts reconcile: files −1,302 (factory, by design) −12 orphans; transactions −2,654 orphans + status backfill; users +3 kept accounts.
+- **Fixed two script bugs:** (a) item `prod_code` entity used `$ln->prod_code.'**'.$ebelp` instead of the precomputed `$prodCode` — on any re-run every SAP `MATNR**EBELP` code would get a second `**00010` suffix and break SAP-sync matching; (b) serial `production_date` was truncated to month start (`Y-m-01`) — now stores the full `Y-m-d` (the `uretim_tarihi` filter is an `ilike '%YYYY-MM%'`, so month filtering still works).
+- **Note:** live DB qnids only match the current snapshot for ~67% of orders / ~65% of items — the live import ran against an earlier dump with empty qnids (script generated UUIDs). Fresh re-imports from the current snapshot copy every qnid. Internal-only, no external references.
+- Live data currently has month-truncated `production_date` on 154k serials from the old import — a repair pass from the snapshot is possible if the exact day matters.

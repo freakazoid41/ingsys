@@ -390,7 +390,7 @@ class ImportLegacyCommand extends Command
                     $connMap[$newId] = $conn;
                     DB::table('sys_con_entities')->insert([
                         ['conn_id'=>$conn,'entity_tag'=>'qnid','entity_value'=>$ln->qnid,'table_tag'=>'sys_con_ops','created_at'=>$now,'updated_at'=>$now],
-                        ['conn_id'=>$conn,'entity_tag'=>'prod_code','entity_value'=>$ln->prod_code.'**'.$ebelp,'table_tag'=>'sys_con_ops','created_at'=>$now,'updated_at'=>$now],
+                        ['conn_id'=>$conn,'entity_tag'=>'prod_code','entity_value'=>$prodCode,'table_tag'=>'sys_con_ops','created_at'=>$now,'updated_at'=>$now],
                         ['conn_id'=>$conn,'entity_tag'=>'title','entity_value'=>substr($ln->title ?? '',0,50),'table_tag'=>'sys_con_ops','created_at'=>$now,'updated_at'=>$now],
                         ['conn_id'=>$conn,'entity_tag'=>'quantity','entity_value'=>(string)$ln->quantity,'table_tag'=>'sys_con_ops','created_at'=>$now,'updated_at'=>$now],
                         ['conn_id'=>$conn,'entity_tag'=>'unit','entity_value'=>$ln->unit,'table_tag'=>'sys_con_ops','created_at'=>$now,'updated_at'=>$now],
@@ -417,7 +417,7 @@ class ImportLegacyCommand extends Command
                 $newItem = $itemMap[$s->parent_id];
                 $unit = ($s->unit && $s->unit !== 'PRNT') ? $s->unit : ($parentUnit[$s->parent_id] ?? 'ST');
                 $prod = $srlDate = null;
-                try { $srlDate = $s->srl_date ? date('Y-m-01', strtotime($s->srl_date)) : null; } catch (\Throwable $e) {}
+                try { $srlDate = $s->srl_date ? date('Y-m-d', strtotime($s->srl_date)) : null; } catch (\Throwable $e) {}
                 $newId = DB::table('documents')->insertGetId([
                     'type_id' => $serialType, 'person_id' => 'system', 'parent_id' => $newItem,
                     'title' => '-', 'grp_code' => DB::table('documents')->where('id',$newItem)->value('grp_code') ?? 'GDZ',
