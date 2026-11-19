@@ -3,6 +3,7 @@
 > **Completed-work log removed (was duplicate of `05 §4`). History lives in `git log`. Mechanics live in `panel/documentation/*`.**
 
 ## 1. Immediate Next (pick 1)
+- **Category variant mechanic:** `category_files` rows carry `variants` (explicit scope-type codes from the seeded `op-doc-scope-value` dictionary) + category `scope_kind/headers/value/variants` metadata (real TEDAŞ catalog, 2026-11-19). Extend the tender/offer matrix to scope cells by variant (hücre birimleri, TİP-A/B, HARİCİ/DAHİLİ) like kVA: `IhOffer.vue buildItems/loadTemplates` expansion, `validateOfferFiles` + `ClientDocsService::matchKey` variant key, product `variant` entity. Bible: `products.md §14`.
 - **Sevk Way-1 follow-ups:** SAS depo pull, ambar doluluk takvim API, sevk mail `sevk-01`, per-05-06/07 split (now reuses 05-03/07-02). Mechanics: `panel/documentation/modules/transfer-approve.md`.
 - **Fabrika Kabul Way-2:** specced later, guard slot reserved (`ready → fabrika_started`).
 - **Tedarik polish:** list LIFNR filter wiring verify, detail readOnly + transfer + serials + files via shared `OForm`, `files_rejected` re-upload loop — mostly DONE, verify both panels parity.

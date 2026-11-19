@@ -388,11 +388,15 @@
                     const ff = rsp?.data?.formFormat?.['op-doc-product-category-form'] || {};
                     const ents = (Object.values(ff)[0] || {}).entities || {};
                     const out = Object.entries(this.groupEntities(ents, 'category_files')).map(([reqId, r]) => {
-                        let kva = [];
+                        let kva = [], variants = [];
                         try {
                             const raw = r.kva;
                             kva = Array.isArray(raw) ? raw.map(String) : JSON.parse(raw || '[]').map(String);
                         } catch(e) { kva = []; }
+                        try {
+                            const raw = r.variants;
+                            variants = Array.isArray(raw) ? raw.map(String) : JSON.parse(raw || '[]').map(String);
+                        } catch(e) { variants = []; }
                         return {
                             reqId,
                             evrak_no : r.evrak_no || '',
@@ -401,6 +405,7 @@
                             file_group : r.file_group || '',
                             file_types : r.file_types || 'all',
                             kva,
+                            variants,
                         };
                     }).filter(t => t.file_title);
                     this._tplCache[categoryQnid] = out;
@@ -409,13 +414,21 @@
             },
             async buildItems(products, savedByProduct){
                 const items = [];
-                const kvasB = new Set(), kvasC = new Set();
+                const scopeCmp = (a, b) => {
+                    const na = /^\d+$/.test(String(a)), nb = /^\d+$/.test(String(b));
+                    if (na && nb) return Number(a) - Number(b);
+                    if (na) return -1;
+                    if (nb) return 1;
+                    return String(a).localeCompare(String(b), 'tr');
+                };
                 for (const p of products) {
                     const templates = await this.loadTemplates(p.category_qnid);
                     const cells = {};
+                    const kvasB = new Set(), kvasC = new Set();
                     for (const t of templates) {
                         const isOther = (t.file_group || '').trim().toLocaleLowerCase('tr') === 'diğer belgeler';
-                        const kvas = t.kva.length ? t.kva : ['all'];
+                        const scopes = [...(t.kva || []), ...(t.variants || [])];
+                        const kvas = scopes.length ? scopes : ['all'];
                         for (const kv of kvas) {
                             (isOther ? kvasC : kvasB).add(kv);
                             const cellKey = 'oc_' + p.product_qnid.slice(0,8) + '_' + String(t.reqId).replace(/[^a-zA-Z0-9]/g,'').slice(-12) + '_' + kv;
@@ -472,11 +485,11 @@
                         gorusPending : null, gorusRemoved : false,
                         tedasSaved, tedasPending : [], tedasRemoved : [],
                         cells, rowsB, rowsC,
+                        colsB : [...kvasB].filter(v => v !== 'all').sort(scopeCmp),
+                        colsC : [...kvasC].filter(v => v !== 'all').sort(scopeCmp),
                     });
                 }
-                const num = (v) => parseInt(v, 10) || 0;
-                this.kvaColsB = [...kvasB].filter(v => v !== 'all').sort((a,b) => num(a) - num(b));
-                this.kvaColsC = [...kvasC].filter(v => v !== 'all').sort((a,b) => num(a) - num(b));
+                // Columns are per product (it.colsB / it.colsC) — never a global union.
                 this.items = items;
                 this.viewMode = 'list';
                 if (this.activeIdx >= items.length) this.activeIdx = 0;
@@ -775,6 +788,13 @@
             libKey(prodCode, brand, standard, fileTitle, kva){
                 return [prodCode || '', brand || '', standard || '', fileTitle || '', kva || ''].join('||');
             },
+            scopeLabel(kv){
+                if (kv === 'all') return 'Tümü';
+                const s = String(kv);
+                if (/kva/i.test(s)) return s;
+                if (/^\d+$/.test(s)) return s + ' kVA';
+                return s;
+            },
             legacyLibKey(prodCode, standard, fileTitle, kva){
                 return [prodCode || '', standard || '', fileTitle || '', kva || ''].join('||');
             },
@@ -1009,7 +1029,7 @@
                 const note = this.noteOf(cell);
                 const history = cell.history || [];
                 const reqTitle = (cell.evrak_no ? cell.evrak_no + ' — ' : '') + (cell.file_title || 'Dosya');
-                const kvaLabel = cell.kva === 'all' ? 'Tüm güçler' : (cell.kva + ' kVA');
+                const kvaLabel = cell.kva === 'all' ? 'Tüm güçler' : this.scopeLabel(cell.kva);
                 const created = cell.savedFile?.created_at ? String(cell.savedFile.created_at).slice(0, 19) : '—';
                 const canRenew = !this.tenderLocked && !this.tenderInactive && !this.deadlinePassed;
                 const canReviewFile = this.canReview && !this.tenderLocked && !!cell.savedFile?.id;
@@ -1289,7 +1309,7 @@
                     if (!it.marka.trim()) missing.push((i+1) + '. ürün: Ürün Markası');
                     for (const ck in it.cells) {
                         const c = it.cells[ck];
-                        const label = (i+1) + '. ürün: ' + ((c.evrak_no ? c.evrak_no + ' — ' : '') + c.file_title) + (c.kva !== 'all' ? ' (' + c.kva + ' kVA)' : '');
+                        const label = (i+1) + '. ürün: ' + ((c.evrak_no ? c.evrak_no + ' — ' : '') + c.file_title) + (c.kva !== 'all' ? ' (' + this.scopeLabel(c.kva) + ')' : '');
                         if (c.expired) {
                             missing.push(label + ' (süresi doldu)');
                         } else if (!(c.state === 'pending' || (c.state === 'saved' && !c.removed))) {
@@ -1657,12 +1677,12 @@
                             <col style="width:5%;">
                             <col style="width:12%;">
                             <col style="width:24%;">
-                            <col v-for="kv in kvaColsB" :key="'colb'+kv" style="width:6.5%;">
+                            <col v-for="kv in it.colsB" :key="'colb'+kv" style="width:6.5%;">
                         </colgroup>
                         <thead>
                             <tr style="background:#e2e8f0;">
                                 <th>EVRAK NO</th><th>STANDART</th><th>TİP TEST RAPORU</th>
-                                <th v-for="kv in kvaColsB" :key="'b'+kv">{{ kv }} kVA</th>
+                                <th v-for="kv in it.colsB" :key="'b'+kv">{{ scopeLabel(kv) }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1671,7 +1691,7 @@
                                     <td>{{ row.tpl.evrak_no }}</td>
                                     <td>{{ row.tpl.standard }}</td>
                                     <td class="text-start">{{ row.tpl.file_title }}</td>
-                                    <td :colspan="kvaColsB.length || 1">
+                                    <td :colspan="it.colsB.length || 1">
                                         <IhFileCell
                                             :cell="row.span"
                                             :locked="tenderLocked || tenderInactive || deadlinePassed"
@@ -1685,7 +1705,7 @@
                                     <td>{{ row.tpl.evrak_no }}</td>
                                     <td>{{ row.tpl.standard }}</td>
                                     <td class="text-start">{{ row.tpl.file_title }}</td>
-                                    <td v-for="kv in kvaColsB" :key="'b'+kv+row.tpl.reqId">
+                                    <td v-for="kv in it.colsB" :key="'b'+kv+row.tpl.reqId">
                                         <span v-if="row.perKv[kv]">
                                             <IhFileCell
                                                 :cell="row.perKv[kv]"
@@ -1712,12 +1732,12 @@
                             <col style="width:5%;">
                             <col style="width:12%;">
                             <col style="width:26%;">
-                            <col v-for="kv in kvaColsC" :key="'colc'+kv" style="width:6.3%;">
+                            <col v-for="kv in it.colsC" :key="'colc'+kv" style="width:6.3%;">
                         </colgroup>
                         <thead>
                             <tr style="background:#e2e8f0;">
                                 <th>EVRAK NO</th><th>STANDART</th><th>BELGE</th>
-                                <th v-for="kv in kvaColsC" :key="'c'+kv">{{ kv }} kVA</th>
+                                <th v-for="kv in it.colsC" :key="'c'+kv">{{ scopeLabel(kv) }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1726,7 +1746,7 @@
                                     <td>{{ row.tpl.evrak_no }}</td>
                                     <td>{{ row.tpl.standard }}</td>
                                     <td class="text-start">{{ row.tpl.file_title }}</td>
-                                    <td :colspan="kvaColsC.length || 1">
+                                    <td :colspan="it.colsC.length || 1">
                                         <IhFileCell
                                             :cell="row.span"
                                             :locked="tenderLocked || tenderInactive || deadlinePassed"
@@ -1740,7 +1760,7 @@
                                     <td>{{ row.tpl.evrak_no }}</td>
                                     <td>{{ row.tpl.standard }}</td>
                                     <td class="text-start">{{ row.tpl.file_title }}</td>
-                                    <td v-for="kv in kvaColsC" :key="'c'+kv+row.tpl.reqId">
+                                    <td v-for="kv in it.colsC" :key="'c'+kv+row.tpl.reqId">
                                         <span v-if="row.perKv[kv]">
                                             <IhFileCell
                                                 :cell="row.perKv[kv]"

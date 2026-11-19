@@ -767,15 +767,15 @@ body,
 .rlist-card .pickletable thead th,
 .order-list-card:not(.tedarik-card) .pickletable thead th {
     background: #f8fafc !important;
-    color: #475569 !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: .06em !important;
+    color: #64748b !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: .07em !important;
     text-transform: uppercase !important;
     border-bottom: 1px solid #e2e8f0 !important;
     border-top: none !important;
     border-right: none !important;
-    padding: 10px 14px !important;
+    padding: 14px 18px !important;
     white-space: nowrap;
 }
 .rlist-card .pickletable thead th:last-child,
@@ -822,19 +822,30 @@ body,
 }
 .rlist-card .pickletable tbody tr:hover,
 .order-list-card:not(.tedarik-card) .pickletable tbody tr:hover {
-    background: #f8fafc !important;
+    background: #f0fbfc !important;
+}
+.rlist-card .pickletable tbody tr:hover td:first-child,
+.order-list-card:not(.tedarik-card) .pickletable tbody tr:hover td:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+.rlist-card .pickletable tbody tr:hover td:last-child,
+.order-list-card:not(.tedarik-card) .pickletable tbody tr:hover td:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
 }
 .rlist-card .pickletable tbody td,
 .order-list-card:not(.tedarik-card) .pickletable tbody td {
-    padding: 12px 14px !important;
-    font-size: 13px !important;
-    color: #0f172a !important;
+    padding: 15px 18px !important;
+    font-size: 13.5px !important;
+    color: #334155 !important;
     background: transparent !important;
     border: none !important;
     border-right: none !important;
     vertical-align: middle !important;
     overflow: hidden;
     white-space: nowrap;
+    transition: background .15s ease;
 }
 .rlist-card .pickletable tbody td:last-child,
 .order-list-card:not(.tedarik-card) .pickletable tbody td:last-child {
@@ -933,23 +944,23 @@ html body #kt_content .order-list-card:not(.tedarik-card) .pickletable thead th,
 html body #kt_content .dlist-card .pickletable thead th,
 html body #kt_content .card .pickletable thead th {
     background: #f8fafc !important;
-    color: #475569 !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: .06em !important;
+    color: #64748b !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: .07em !important;
     text-transform: uppercase !important;
     border-bottom: 1px solid #e2e8f0 !important;
     border-top: none !important;
     border-right: none !important;
-    padding: 10px 14px !important;
+    padding: 14px 18px !important;
 }
 html body #kt_content .rlist-card .pickletable tbody td,
 html body #kt_content .order-list-card:not(.tedarik-card) .pickletable tbody td,
 html body #kt_content .dlist-card .pickletable tbody td,
 html body #kt_content .card .pickletable tbody td {
-    padding: 12px 14px !important;
-    font-size: 13px !important;
-    color: #0f172a !important;
+    padding: 15px 18px !important;
+    font-size: 13.5px !important;
+    color: #334155 !important;
     background: transparent !important;
     border: none !important;
     vertical-align: middle !important;
@@ -961,7 +972,17 @@ html body #kt_content .order-list-card:not(.tedarik-card) .pickletable tbody tr 
 }
 html body #kt_content .rlist-card .pickletable tbody tr:hover,
 html body #kt_content .order-list-card:not(.tedarik-card) .pickletable tbody tr:hover {
-    background: #f8fafc !important;
+    background: #f0fbfc !important;
+}
+html body #kt_content .rlist-card .pickletable tbody tr:hover td:first-child,
+html body #kt_content .order-list-card:not(.tedarik-card) .pickletable tbody tr:hover td:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+html body #kt_content .rlist-card .pickletable tbody tr:hover td:last-child,
+html body #kt_content .order-list-card:not(.tedarik-card) .pickletable tbody tr:hover td:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
 }
 
 /* Offer matrix — file cell action modal (no default Swal title/actions) */

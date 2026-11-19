@@ -55,13 +55,33 @@ class KvaSeeder extends Seeder
                 'main_id' => $docId, 'conn_id' => 0, 'type_id' => $formId,
                 'sub_type_id' => $mainId, 'status' => 1, 'created_at' => $now, 'updated_at' => $now,
             ]);
-            foreach (['qnid' => $qnid, 'title' => 'KVA', 'code' => $s] as $tag => $val) {
+            foreach (['qnid' => $qnid, 'title' => $s.' kVA', 'code' => $s] as $tag => $val) {
                 DB::table('sys_con_entities')->insert([
                     'conn_id' => $conn, 'entity_tag' => $tag, 'entity_value' => (string) $val,
                     'table_tag' => 'sys_con_ops', 'created_at' => $now, 'updated_at' => $now,
                 ]);
             }
             echo "kVA {$s} Added..\n";
+        }
+
+        // Existing definitions: make titles self-describing ("50 kVA" instead of generic "KVA")
+        foreach ($standards as $s) {
+            $conn = DB::table('sys_con_entities as se')
+                ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                ->where('so.type_id', $formId)
+                ->where('se.entity_tag', 'code')
+                ->where('se.entity_value', $s)
+                ->value('se.conn_id');
+            if (! $conn) continue;
+
+            $mainId = DB::table('sys_con_ops')->where('id', $conn)->value('main_id');
+            DB::table('sys_con_entities')
+                ->where('conn_id', $conn)->where('entity_tag', 'title')
+                ->update(['entity_value' => $s.' kVA', 'updated_at' => now()]);
+            if ($mainId) {
+                DB::table('documents')->where('id', $mainId)
+                    ->update(['title' => $s.' kVA', 'updated_at' => now()]);
+            }
         }
 
         // legacy dict rows (unused — documents are the source of truth now)

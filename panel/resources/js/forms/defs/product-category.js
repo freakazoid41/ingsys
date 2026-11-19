@@ -121,7 +121,43 @@ export default (ctx) => ({
                                                         const code = g('code') || g('title');
                                                         if (!code) return null;
                                                         const t = g('title') || '';
-                                                        return { text : (t && t !== code) ? (t + ' ' + code) : (t || code), value : code };
+                                                        const label = (t && t !== code && !String(t).includes(String(code))) ? (t + ' ' + code) : (t || code);
+                                                        return { text : label, value : code };
+                                                    } catch(e) { return null; }
+                                                }).filter(Boolean);
+                                            } catch(e) { return []; }
+                                        },
+                                        oninput : (e) => ctx.submitDynamicChanges(e.target)
+                                    },{
+                                        class : ['form-control','mb-2','mb-md-0','form-item'],
+                                        type  : 'checks',
+                                        name  : 'variants',
+                                        col      : 12,
+                                        required : false,
+                                        label : 'Geçerli Tipler (boş = tümü)',
+                                        emptyText : 'Henüz kapsam tipi yok — Güç & Kapsam Tanımları sayfasından ekleyin.',
+                                        setOptions : async () => {
+                                            try {
+                                                const fd = new FormData();
+                                                fd.append('tableReq', JSON.stringify({ filter: [{ key : 'form-type', type : '=', value : 'op-doc-scope-value-form' }, { key : 'type', type : '=', value : 'op-doc-scope-value' }], scale : { page : 1, limit : 200 } }));
+                                                const r = await fetch('/api/v1/table/documents', {
+                                                    method : 'POST',
+                                                    credentials : 'include',
+                                                    headers : {
+                                                        'X-Requested-With' : 'XMLHttpRequest',
+                                                        ...(localStorage.getItem('token') ? { 'Authorization' : 'Bearer ' + localStorage.getItem('token') } : {})
+                                                    },
+                                                    body : fd
+                                                });
+                                                const j = await r.json();
+                                                const rows = j?.data?.data || j?.data || [];
+                                                return rows.map((row) => {
+                                                    try {
+                                                        const a = JSON.parse(row.main_attr || '[]');
+                                                        const g = (k) => (a.find(x => x.Key === k) || {}).Value;
+                                                        const code = g('code') || g('title');
+                                                        if (!code) return null;
+                                                        return { text : code, value : code };
                                                     } catch(e) { return null; }
                                                 }).filter(Boolean);
                                             } catch(e) { return []; }

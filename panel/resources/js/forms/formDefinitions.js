@@ -16,6 +16,7 @@ import clientDef from './defs/client.js';
 import ihaleDef from './defs/ihale.js';
 import productDef from './defs/product.js';
 import kvaDef from './defs/kva.js';
+import scopeValueDef from './defs/scope-value.js';
 import productCategoryDef from './defs/product-category.js';
 import offerDef from './defs/offer.js';
 import orderDef from './defs/order.js';
@@ -32,6 +33,7 @@ const DEFS = {
     'op-doc-ihale-form'          : ihaleDef,
     'op-doc-product-form'        : productDef,
     'op-doc-kva-form'            : kvaDef,
+    'op-doc-scope-value-form'    : scopeValueDef,
     'op-doc-product-category-form': productCategoryDef,
     'op-doc-offer-form'          : offerDef,
     'op-doc-order-form'          : orderDef,

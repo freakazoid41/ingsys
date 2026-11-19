@@ -89,6 +89,11 @@
                 document.getElementById('mainSearch').value = '';
                 this.table.setFilter([]);
             },
+            fmtDate(value){
+                const s = String(value ?? '');
+                const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+                return m ? `${m[3]}.${m[2]}.${m[1]} ${m[4]}:${m[5]}` : s;
+            },
             buildTestTable(){
                 const headers = [
                     {
@@ -96,16 +101,34 @@
                         key   : 'title',
                         order : true,
                         type  : 'string',
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const span = document.createElement('span');
+                            span.classList.add('kv-cell-title');
+                            span.textContent = columnData ?? '';
+                            return span;
+                        }
                     },{
                         title : 'Kod',
                         key   : 'code',
                         order : true,
                         type  : 'string',
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const pill = document.createElement('span');
+                            pill.classList.add('kv-pill','kv-pill-code');
+                            pill.textContent = columnData ?? '';
+                            return pill;
+                        }
                     },{
                         title : 'Oluşturulma',
                         key   : 'created_at',
                         order : true,
                         type  : 'string',
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const span = document.createElement('span');
+                            span.classList.add('kv-date');
+                            span.textContent = this.fmtDate(columnData);
+                            return span;
+                        }
                     },{
                         title : '',
                         key   : 'id',
@@ -114,7 +137,7 @@
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
                             const span = document.createElement('span');
-                            span.classList.add('d-flex','align-items-center','justify-content-center','gap-1');
+                            span.classList.add('d-flex','align-items-center','justify-content-end','gap-1');
 
                             const editBtn = document.createElement('button');
                             editBtn.classList.add('btn','btn-secondary','action-icon-btn');
@@ -251,4 +274,84 @@
     flex-wrap: wrap;
     gap: 8px;
 }
+
+/* ---- table row polish ---- */
+.rlist-card :deep(.divTable){ background: #fff; }
+.rlist-card :deep(table.dataTable){ border-collapse: separate; border-spacing: 0; }
+.rlist-card :deep(table.dataTable thead th){
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+.rlist-card :deep(table.dataTable tbody td){
+    padding: 15px 18px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 13.5px;
+    color: #334155;
+    background: transparent;
+    transition: background .15s ease;
+}
+.rlist-card :deep(table.dataTable tbody tr){ transition: background .15s ease; }
+.rlist-card :deep(table.dataTable tbody tr:hover td){ background: #f0fbfc; }
+.rlist-card :deep(table.dataTable tbody tr:hover td:first-child){
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+.rlist-card :deep(table.dataTable tbody tr:hover td:last-child){
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+.rlist-card :deep(.kv-cell-title){ font-weight: 700; color: #0f172a; }
+.rlist-card :deep(.kv-pill){
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 13px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.rlist-card :deep(.kv-pill-code){
+    background: #eef2ff;
+    color: #4338ca;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    letter-spacing: .01em;
+}
+.rlist-card :deep(.kv-date){
+    color: #94a3b8;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.rlist-card :deep(.action-icon-btn){
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    border: 1px solid transparent !important;
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    box-shadow: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s ease;
+}
+.rlist-card :deep(.action-icon-btn:hover){
+    background: #e6f7fa !important;
+    color: #0e8ea4 !important;
+    transform: translateY(-1px);
+}
+.rlist-card :deep(.action-icon-btn--danger){ background: #fef2f2 !important; color: #dc2626 !important; }
+.rlist-card :deep(.action-icon-btn--danger:hover){ background: #fee2e2 !important; color: #b91c1c !important; }
+.rlist-card :deep(.action-icon-btn > i){ font-size: 15px !important; }
 </style>

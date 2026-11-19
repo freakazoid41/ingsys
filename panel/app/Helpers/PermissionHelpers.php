@@ -108,6 +108,12 @@ if(!function_exists('checkPerm')){
                 'edit' => 'per-09-02',
                 'read' => 'per-09-01',
                 'status' => 'per-09-02',
+            ],
+            // Text scope-type definitions (functional units, TİP-A/B, HARİCİ/DAHİLİ)
+            'op-doc-scope-value' => [
+                'edit' => 'per-09-02',
+                'read' => 'per-09-01',
+                'status' => 'per-09-02',
             ]
         ];
         

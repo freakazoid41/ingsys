@@ -78,80 +78,91 @@
                         order : true,
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
-                            const span = document.createElement('span');
-                            switch (String(columnData)) {
-                                case '1':
-                                    span.style.color = 'green';
-                                    span.innerText   = 'Aktif';
-                                    break;
-                                case '0':
-                                    span.style.color = 'red';
-                                    span.innerText   ='Pasif';
-                                    break;
-                                 case '-1':
-                                    span.style.color = 'orange';
-                                    span.innerText   = 'Onay Bekliyor';
-                                    break;
-                                default:
-                                    span.innerText = 'Bilinmiyor';
-                                    break;
+                            const wrap = document.createElement('span');
+                            wrap.classList.add('d-inline-flex','align-items-center','gap-1','flex-wrap');
+
+                            const chip = document.createElement('span');
+                            chip.classList.add('kv-chip');
+                            const v = String(columnData);
+                            if (v === '1') {
+                                chip.classList.add('kv-chip--active');
+                                chip.textContent = 'Aktif';
+                            } else if (v === '0') {
+                                chip.classList.add('kv-chip--passive');
+                                chip.textContent = 'Pasif';
+                            } else if (v === '-1') {
+                                chip.classList.add('kv-chip--pending');
+                                chip.textContent = 'Onay Bekliyor';
+                            } else {
+                                chip.classList.add('kv-chip--neutral');
+                                chip.textContent = 'Bilinmiyor';
                             }
+                            wrap.appendChild(chip);
+
                             if(rowData.needs_refresh == 1){
-                                span.innerText += ' (Şifre Yenileme Bekliyor)';
+                                const note = document.createElement('span');
+                                note.classList.add('kv-chip','kv-chip--warn');
+                                note.textContent = 'Şifre Yenileme';
+                                wrap.appendChild(note);
                             }
-                            return span;
+                            return wrap;
                         }
                     },{
                         title : 'İsim',
                         key   : 'name',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const span = document.createElement('span');
+                            span.classList.add('kv-cell-title');
+                            span.textContent = columnData ?? '';
+                            return span;
+                        }
                     },{
                         title : 'Tip',
                         key   : 'type_title',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const chip = document.createElement('span');
+                            chip.classList.add('kv-chip','kv-chip--type');
+                            chip.textContent = columnData ?? '';
+                            return chip;
+                        }
                     },{
                         title : 'Rol',
                         key   : 'role_title',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const chip = document.createElement('span');
+                            chip.classList.add('kv-chip','kv-chip--role');
+                            chip.textContent = columnData ?? '';
+                            return chip;
+                        }
                     },{
                         title : 'Sistem',
                         key   : 'grp_code',
                         order : true,
                         type  : 'string',
                         columnFormatter : (elm,rowData,columnData) => {
-                            const span = document.createElement('span');
-                            span.style.padding = '4px 10px';
-                            span.style.borderRadius = '999px';
-                            span.style.fontWeight = '700';
-                            span.style.fontSize = '11px';
-                            span.style.border = '1px solid';
-                            span.style.display = 'inline-block';
+                            const chip = document.createElement('span');
+                            chip.classList.add('kv-chip');
                             const v = (columnData || '').toString().toUpperCase();
                             if(v === 'GDZ'){
-                                span.style.background = '#eff6ff';
-                                span.style.color = '#1e40af';
-                                span.style.borderColor = '#bfdbfe';
-                                span.innerText = 'GDZ';
+                                chip.classList.add('kv-chip--gdz');
+                                chip.textContent = 'GDZ';
                             } else if(v === 'ADM'){
-                                span.style.background = '#fff7ed';
-                                span.style.color = '#9a3412';
-                                span.style.borderColor = '#fed7aa';
-                                span.innerText = 'ADM';
+                                chip.classList.add('kv-chip--adm');
+                                chip.textContent = 'ADM';
                             } else if(v === 'BOTH'){
-                                span.style.background = 'linear-gradient(135deg,#eff6ff 0%,#fff7ed 100%)';
-                                span.style.color = '#0f172a';
-                                span.style.borderColor = '#cbd5e1';
-                                span.innerText = 'İki Sistemde Mevcut';
+                                chip.classList.add('kv-chip--both');
+                                chip.textContent = 'İki Sistemde Mevcut';
                             } else {
-                                span.style.background = '#f1f5f9';
-                                span.style.color = '#475569';
-                                span.style.borderColor = '#e2e8f0';
-                                span.innerText = columnData || '-';
+                                chip.classList.add('kv-chip--neutral');
+                                chip.textContent = columnData || '-';
                             }
-                            return span;
+                            return chip;
                         }
                     },{
                         title : 'Kullanıcı Adı',
@@ -160,11 +171,12 @@
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
                             const isActive = rowData.is_active;
-                            const icon = document.createElement('i'); 
-                            icon.classList.add('fs-5', 'fa', 'fa-user', 'selectable-icon');
-                            icon.style.color = isActive ? '#3CB371' : 'tomato';   
-                            
+                            const icon = document.createElement('i');
+                            icon.classList.add('fs-6', 'fa', 'fa-user', 'selectable-icon');
+                            icon.style.color = isActive ? '#3CB371' : 'tomato';
+
                             const span = document.createElement('span');
+                            span.classList.add('kv-username');
                             span.appendChild(icon);
                             span.appendChild(document.createTextNode(' '+columnData));
                             return span;
@@ -176,8 +188,18 @@
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
                             const div = document.createElement('div');
-                            div.classList.add('row','justify-content-center');
-                            const reset       = document.createElement('a');
+                            div.classList.add('d-flex','justify-content-end','gap-1');
+
+                            const actBtn = (cls, title, icon) => {
+                                const btn = document.createElement('button');
+                                btn.type = 'button';
+                                btn.classList.add('kv-act', cls);
+                                btn.title = title;
+                                btn.innerHTML = '<i class="fa '+icon+'"></i>';
+                                return btn;
+                            };
+
+                            const reset = actBtn('kv-act--reset', 'Şifre Sıfırla', 'fa-refresh');
                             reset.onclick   = () => {
                                 Swal.fire({
                                     title: 'Kullanıcı Şifresini Sıfırla',
@@ -212,21 +234,14 @@
                                     }
                                 });
                             };
-                            reset.style.width = 'auto';
-                            reset.innerHTML   = '<i class="fs-5 fa fa-refresh selectable-icon" style="color:#95818C"  role="img"></i>';
                             div.appendChild(reset);
 
-                            const edit       = document.createElement('a');
-                            edit.onclick   = () => this.$router.push({ name: 'UForm' , params: { id: columnData }});
-                            edit.style.width = 'auto';
-                            edit.innerHTML   = '<i class="fs-5 fa fa-pen selectable-icon" style="color:#95818C"  role="img"></i>';
+                            const edit = actBtn('kv-act--edit', 'Düzenle', 'fa-pen');
+                            edit.onclick = () => this.$router.push({ name: 'UForm' , params: { id: columnData }});
                             div.appendChild(edit);
 
-                            const del       = document.createElement('a');
-                            del.href        = 'javascript:;';
-                            del.style.width = 'auto';
-                            del.innerHTML   = '<i class="fs-5 fa fa-trash selectable-icon" style="color:#95818C"  role="img"></i>';
-                            del.onclick     = async () => {
+                            const del = actBtn('kv-act--del', 'Sil', 'fa-trash');
+                            del.onclick = async () => {
                                 this.navigationStore.toggle(true);
                                 await this.plib.request({
                                     url      : '/api/v1/persons/'+columnData,
@@ -239,7 +254,7 @@
                                 setTimeout(() => {
                                     this.navigationStore.toggle(false);
                                 }, 300);
-                                
+
                             };
                             div.appendChild(del);
 
@@ -324,3 +339,59 @@
         </div>
     </div>
 </template>
+
+<style scoped>
+.rlist-card :deep(.kv-cell-title){
+    font-weight: 700;
+    color: #0f172a;
+}
+.rlist-card :deep(.kv-chip){
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 11px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    white-space: nowrap;
+    background: #f1f5f9;
+    color: #475569;
+}
+.rlist-card :deep(.kv-chip--active){ background: #ecfdf5; color: #047857; }
+.rlist-card :deep(.kv-chip--passive){ background: #fef2f2; color: #dc2626; }
+.rlist-card :deep(.kv-chip--pending){ background: #fffbeb; color: #b45309; }
+.rlist-card :deep(.kv-chip--warn){ background: #fff7ed; color: #c2410c; }
+.rlist-card :deep(.kv-chip--neutral){ background: #f1f5f9; color: #475569; }
+.rlist-card :deep(.kv-chip--type){ background: #e6f7fa; color: #0e8ea4; }
+.rlist-card :deep(.kv-chip--role){ background: #eef2ff; color: #4338ca; }
+.rlist-card :deep(.kv-chip--gdz){ background: #eff6ff; color: #1e40af; }
+.rlist-card :deep(.kv-chip--adm){ background: #fff7ed; color: #9a3412; }
+.rlist-card :deep(.kv-chip--both){ background: linear-gradient(135deg,#eff6ff,#fff7ed); color: #0f172a; }
+.rlist-card :deep(.kv-username){
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    color: #475569;
+    white-space: nowrap;
+}
+.rlist-card :deep(.kv-act){
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: #f1f5f9;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .15s ease;
+    font-size: 14px;
+}
+.rlist-card :deep(.kv-act:hover){ transform: translateY(-1px); }
+.rlist-card :deep(.kv-act--reset){ background: #fffbeb; color: #b45309; }
+.rlist-card :deep(.kv-act--reset:hover){ background: #fef3c7; color: #92400e; }
+.rlist-card :deep(.kv-act--edit){ background: #e6f7fa; color: #0e8ea4; }
+.rlist-card :deep(.kv-act--edit:hover){ background: #cff0f5; color: #0b7285; }
+.rlist-card :deep(.kv-act--del){ background: #fef2f2; color: #dc2626; }
+.rlist-card :deep(.kv-act--del:hover){ background: #fee2e2; color: #b91c1c; }
+</style>

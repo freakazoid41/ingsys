@@ -26,6 +26,11 @@ php artisan migrate:fresh
 php artisan db:seed --class="SysSeeder"
 php artisan db:seed --class="SysRoleTemplateSeeder"
 php artisan db:seed --class="UserSeeder"
+php artisan db:seed --class="ProductCategorySeeder"
+php artisan db:seed --class="ProductSeeder"
+php artisan db:seed --class="KvaSeeder"
+php artisan db:seed --class="ScopeValueSeeder"
+php artisan db:seed --class="TedarikRealCatalogSeeder"
 php artisan db:seed --class="DataSeeder"
 
 rm -r storage/app/public/documents/*

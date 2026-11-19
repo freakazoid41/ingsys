@@ -207,11 +207,23 @@
                         key   : 'title',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const span = document.createElement('span');
+                            span.classList.add('kv-cell-title');
+                            span.textContent = columnData ?? '';
+                            return span;
+                        }
                     },{
                         title : 'Firma Kodu',
                         key   : 'clicode',
                         order : true,
                         type  : 'string', // if column is string then make type string
+                        columnFormatter : (elm,rowData,columnData) => {
+                            const pill = document.createElement('span');
+                            pill.classList.add('kv-pill','kv-pill-code');
+                            pill.textContent = columnData ?? '';
+                            return pill;
+                        }
                     },{
                         title : 'Sistem',
                         key   : 'client_system',
@@ -220,8 +232,9 @@
                         columnFormatter : (elm,rowData,col) => {
                             const sys = (col || rowData.client_system || 'GDZ').toString().toUpperCase();
                             const pill = document.createElement('span');
+                            pill.classList.add('kv-chip');
+                            pill.classList.add(sys === 'ADM' ? 'kv-chip--adm' : 'kv-chip--gdz');
                             pill.textContent = sys;
-                            pill.style.cssText = 'display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid '+(sys==='ADM'?'#bfdbfe;background:#eff6ff;color:#1e40af':'#fed7aa;background:#fff7ed;color:#9a3412');
                             return pill;
                         }
                     },{
@@ -234,6 +247,7 @@
                             const raw = col || rowData.lifnr || '-';
                             const display = raw !== '-' ? `${sys}-${raw}` : raw;
                             const span = document.createElement('span');
+                            span.classList.add('kv-pill','kv-pill-cari');
                             span.textContent = display;
                             span.title = display;
                             return span;
@@ -246,7 +260,7 @@
                         type  : 'string', // if column is string then make type string
                         columnFormatter : (elm,rowData,columnData) => {
                             const span = document.createElement('span');
-                            span.classList.add('d-flex','align-items-center','justify-content-center','gap-1');
+                            span.classList.add('d-flex','align-items-center','justify-content-end','gap-1');
 
                             const editBtn = document.createElement('button');
                             editBtn.classList.add('btn','btn-secondary','action-icon-btn');
@@ -463,12 +477,12 @@
 :deep(.pickletable thead) { --bs-emphasis-color: #475569; }
 :deep(.pickletable thead th) {
     background: #f8fafc !important;
-    color: #475569 !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: .06em !important;
+    color: #64748b !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: .07em !important;
     text-transform: uppercase !important;
-    padding: 10px 14px !important;
+    padding: 14px 18px !important;
     border: none !important;
     border-bottom: 1px solid #e2e8f0 !important;
     border-right: none !important;
@@ -478,11 +492,11 @@
 :deep(.pickletable thead th svg),
 :deep(.pickletable thead th i) { opacity: .45; color: #475569 !important; background: transparent !important; }
 :deep(.pickletable tbody tr) { border-bottom: 1px solid #f1f5f9 !important; background: #fff !important; transition: background .12s; }
-:deep(.pickletable tbody tr:hover) { background: #f8fafc !important; }
+:deep(.pickletable tbody tr:hover) { background: #f0fbfc !important; }
 :deep(.pickletable tbody td) {
-    padding: 12px 14px !important;
-    font-size: 13px !important;
-    color: #0f172a !important;
+    padding: 15px 18px !important;
+    font-size: 13.5px !important;
+    color: #334155 !important;
     background: transparent !important;
     border: none !important;
     vertical-align: middle !important;
@@ -490,24 +504,67 @@
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     max-width: 320px;
+    transition: background .15s ease;
 }
 :deep(.pickletable tbody td:last-child) { border-right: none !important; }
 
-:deep(.pickletable .action-icon-btn > i) { padding-right: 0 !important; }
+:deep(.pickletable .action-icon-btn > i) { padding-right: 0 !important; font-size: 15px !important; }
 :deep(.pickletable .btn-secondary) {
-    background: #f4f6fa !important;
-    color: #4b5675 !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 7px !important;
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
     width: 34px !important;
     height: 34px !important;
     padding: 0 !important;
+    box-shadow: none !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    transition: all .15s ease;
 }
-:deep(.pickletable .btn-secondary:hover) { background: #154b91 !important; color: #fff !important; border-color: #154b91 !important; }
-:deep(.pickletable .action-icon-btn--danger:hover) { background: #dc2626 !important; color: #fff !important; border-color: #dc2626 !important; }
+:deep(.pickletable .btn-secondary:hover) { background: #e6f7fa !important; color: #0e8ea4 !important; border-color: transparent !important; transform: translateY(-1px); }
+:deep(.pickletable .action-icon-btn--danger) { background: #fef2f2 !important; color: #dc2626 !important; }
+:deep(.pickletable .action-icon-btn--danger:hover) { background: #fee2e2 !important; color: #b91c1c !important; border-color: transparent !important; }
+
+/* ---- row polish extensions ---- */
+:deep(.kv-cell-title) { font-weight: 700; color: #0f172a; }
+:deep(.kv-pill) {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 13px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+:deep(.kv-pill-code) {
+    background: #eef2ff;
+    color: #4338ca;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    letter-spacing: .01em;
+}
+:deep(.kv-pill-cari) {
+    background: #f1f5f9;
+    color: #475569;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+}
+:deep(.kv-chip) {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 11px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    white-space: nowrap;
+}
+:deep(.kv-chip--adm) { background: #fff7ed; color: #9a3412; }
+:deep(.kv-chip--gdz) { background: #eff6ff; color: #1e40af; }
 
 :deep(.pickletable .divPagination) { display: flex !important; justify-content: flex-end !important; align-items: center !important; padding: 14px 18px !important; border-top: 1px solid #f1f5f9 !important; background: #fff !important; border-radius: 0 0 16px 16px !important; gap: 6px !important; flex-wrap: wrap !important; }
 :deep(.pickletable .divPagination button) { height: 36px !important; min-width: 36px !important; border-radius: 8px !important; font-size: 13px !important; font-weight: 600 !important; border: 1px solid #e2e8f0 !important; background: #fff !important; color: #475569 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; }

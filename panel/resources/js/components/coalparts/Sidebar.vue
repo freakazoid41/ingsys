@@ -396,7 +396,7 @@ export default {
                             <div class="menu-item">
                                 <router-link :to="{ name: 'KvList' }" class="menu-link sub-link">
                                     <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
-                                    <span class="menu-title">Güç Tanımları (kVA)</span>
+                                    <span class="menu-title">Güç &amp; Kapsam Tanımları</span>
                                 </router-link>
                             </div>
                             <div class="menu-item">

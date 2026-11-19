@@ -17,6 +17,7 @@ import PCList from "@/pages/coalsystem/ProductCategory/PCList.vue";
 import PCForm from "@/pages/coalsystem/ProductCategory/PCForm.vue";
 import KvList from "@/pages/coalsystem/Kva/KvList.vue";
 import KvForm from "@/pages/coalsystem/Kva/KvForm.vue";
+import SForm from "@/pages/coalsystem/Kva/SForm.vue";
 import PList from "@/pages/coalsystem/Product/PList.vue";
 import PForm from "@/pages/coalsystem/Product/PForm.vue";
 import UList from "@/pages/coalsystem/Users/UList.vue";
@@ -78,6 +79,7 @@ const router = createRouter({
         { path: "/coalpanel/product-categories/form/:id?", name: 'PCForm', component: PCForm},
         { path: "/coalpanel/kva", name: 'KvList', component: KvList},
         { path: "/coalpanel/kva/form/:id?", name: 'KvForm', component: KvForm},
+        { path: "/coalpanel/kva/scope-form/:id?", name: 'SForm', component: SForm},
         { path: "/coalpanel/products", name: 'PList', component: PList},
         { path: "/coalpanel/products/form/:id?", name: 'PForm', component: PForm},
         { path: "/coalpanel/users", name: 'UList', component: UList},

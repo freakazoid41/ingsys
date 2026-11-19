@@ -229,9 +229,17 @@
                             wrap.style.gap = '2px';
                             const span = document.createElement('span');
                             span.textContent = v;
+                            span.style.display = 'inline-flex';
+                            span.style.alignItems = 'center';
+                            span.style.padding = '3px 10px';
+                            span.style.borderRadius = '7px';
+                            span.style.background = '#eef2ff';
+                            span.style.color = '#4338ca';
+                            span.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+                            span.style.fontSize = '11.5px';
                             span.style.fontWeight = '700';
-                            span.style.color = '#0f172a';
-                            span.style.fontSize = '13px';
+                            span.style.letterSpacing = '.02em';
+                            span.style.width = 'fit-content';
                             span.title = v;
                             wrap.appendChild(span);
                             return wrap;
@@ -246,7 +254,8 @@
                             const span = document.createElement('span');
                             span.textContent = v;
                             span.title = v;
-                            span.style.color = '#334155';
+                            span.style.color = '#0f172a';
+                            span.style.fontWeight = '700';
                             span.style.display = 'inline-block';
                             span.style.maxWidth = '180px';
                             span.style.overflow = 'hidden';
@@ -265,7 +274,15 @@
                             const v = (row.row_count ?? 0) + ' kalem';
                             const s = document.createElement('span');
                             s.textContent = v;
-                            s.style.color = '#334155';
+                            s.style.display = 'inline-flex';
+                            s.style.alignItems = 'center';
+                            s.style.padding = '3px 10px';
+                            s.style.borderRadius = '7px';
+                            s.style.background = '#f1f5f9';
+                            s.style.color = '#475569';
+                            s.style.fontSize = '11.5px';
+                            s.style.fontWeight = '700';
+                            s.style.whiteSpace = 'nowrap';
                             return s;
                         }
                     },{
@@ -282,23 +299,22 @@
                             btn.style.display = 'inline-flex';
                             btn.style.alignItems = 'center';
                             btn.style.justifyContent = 'center';
-                            btn.style.padding = '5px 10px';
-                            btn.style.borderRadius = '6px';
+                            btn.style.padding = '4px 10px';
+                            btn.style.borderRadius = '8px';
                             btn.style.fontSize = '11.5px';
-                            btn.style.fontWeight = '600';
+                            btn.style.fontWeight = '700';
                             btn.style.whiteSpace = 'normal';
                             btn.style.lineHeight = '1.25';
                             btn.style.textAlign = 'center';
                             btn.style.maxWidth = '100%';
                             btn.style.cursor = 'default';
-                            btn.style.border = '1px solid transparent';
+                            btn.style.border = '1px solid ' + meta.color + '33';
                             btn.style.gap = '6px';
-                            btn.style.background = meta.color;
-                            btn.style.color = '#ffffff';
-                            btn.style.borderColor = meta.color;
+                            btn.style.background = meta.color + '14';
+                            btn.style.color = meta.color;
                             const icon = document.createElement('i');
                             icon.className = meta.icon;
-                            icon.style.fontSize = '14px';
+                            icon.style.fontSize = '13px';
                             btn.prepend(icon);
                             if (st.key === 'offer-rejected' && st.note) {
                                 btn.title = st.note;
@@ -314,7 +330,10 @@
                         columnFormatter : (elm,row) => {
                             const s = document.createElement('span');
                             s.textContent = this.formatDate(row.created_at_fmt || row.created_at || '—');
-                            s.style.color = '#334155';
+                            s.style.color = '#94a3b8';
+                            s.style.fontSize = '12.5px';
+                            s.style.fontVariantNumeric = 'tabular-nums';
+                            s.style.whiteSpace = 'nowrap';
                             return s;
                         }
                     },{
@@ -334,23 +353,39 @@
                             const st = this.offerStatus(rowData);
                             const canAct = this.canReview && (st.key === 'offer-sended' || !st.key);
 
+                            // Admin shell: icon buttons like every other admin list
+                            if (!this.isIhalePanel) {
+                                const mk = (cls, title, icon, handler) => {
+                                    const b = document.createElement('button');
+                                    b.type = 'button';
+                                    b.className = 'ihl-act ' + cls;
+                                    b.title = title;
+                                    b.innerHTML = '<i class="ki-outline ' + icon + '"></i>';
+                                    b.onclick = (e) => { e.stopPropagation(); handler(); };
+                                    return b;
+                                };
+                                if (canAct) wrap.appendChild(mk('ihl-act--more', 'Aksiyonlar', 'ki-dots-horizontal', () => this.openActionsModal(rowData, columnData)));
+                                wrap.appendChild(mk('ihl-act--edit', 'Detaylar', 'ki-eye', () => this.openOffer(columnData)));
+                                return wrap;
+                            }
+
                             if (canAct) {
                                 const aks = document.createElement('button');
                                 aks.textContent = 'Aksiyonlar';
                                 aks.className = 'btn';
-                                aks.style.background = '#8e8e93';
-                                aks.style.color = '#ffffff';
-                                aks.style.border = '1px solid #8e8e93';
+                                aks.style.background = '#f1f5f9';
+                                aks.style.color = '#475569';
+                                aks.style.border = '1px solid transparent';
                                 aks.style.borderRadius = '8px';
-                                aks.style.padding = '6px 14px';
-                                aks.style.fontSize = '0.78rem';
-                                aks.style.fontWeight = '600';
+                                aks.style.padding = '6px 12px';
+                                aks.style.fontSize = '11.5px';
+                                aks.style.fontWeight = '700';
                                 aks.style.cursor = 'pointer';
                                 aks.style.flex = '0 0 auto';
                                 aks.style.whiteSpace = 'nowrap';
-                                aks.style.minHeight = '32px';
-                                aks.onmouseenter = () => aks.style.background = '#7f7f84';
-                                aks.onmouseleave = () => aks.style.background = '#8e8e93';
+                                aks.style.minHeight = '30px';
+                                aks.onmouseenter = () => aks.style.background = '#e2e8f0';
+                                aks.onmouseleave = () => aks.style.background = '#f1f5f9';
                                 aks.onclick = (e) => { e.stopPropagation(); this.openActionsModal(rowData, columnData); };
                                 wrap.appendChild(aks);
                             }
@@ -358,19 +393,19 @@
                             const det = document.createElement('button');
                             det.textContent = 'Detaylar';
                             det.className = 'btn';
-                            det.style.background = '#0e8ea4';
-                            det.style.color = '#ffffff';
-                            det.style.border = '1px solid #0e8ea4';
+                            det.style.background = '#e6f7fa';
+                            det.style.color = '#0e8ea4';
+                            det.style.border = '1px solid transparent';
                             det.style.borderRadius = '8px';
-                            det.style.padding = '6px 14px';
-                            det.style.fontSize = '0.78rem';
-                            det.style.fontWeight = '600';
+                            det.style.padding = '6px 12px';
+                            det.style.fontSize = '11.5px';
+                            det.style.fontWeight = '700';
                             det.style.cursor = 'pointer';
                             det.style.flex = '0 0 auto';
                             det.style.whiteSpace = 'nowrap';
-                            det.style.minHeight = '32px';
-                            det.onmouseenter = () => det.style.background = '#0c7e90';
-                            det.onmouseleave = () => det.style.background = '#0e8ea4';
+                            det.style.minHeight = '30px';
+                            det.onmouseenter = () => det.style.background = '#cff0f5';
+                            det.onmouseleave = () => det.style.background = '#e6f7fa';
                             det.onclick = () => this.openOffer(columnData);
                             wrap.appendChild(det);
                             return wrap;
@@ -415,7 +450,46 @@
 </script>
 
 <template>
-    <div :class="['order-list-card', 'tedarik-card', { 'ihale-card': isIhalePanel }]">
+    <!-- ADMIN (CoalPanel) — admin list design -->
+    <div v-if="!isIhalePanel" class="card rlist-card mt-10">
+        <div class="card-header rlist-header">
+            <div class="rlist-search-group">
+                <div class="rlist-search-wrap">
+                    <i class="ki-duotone ki-magnifier fs-4 rlist-search-icon">
+                        <span class="path1"></span><span class="path2"></span>
+                    </i>
+                    <input type="text" id="mainSearch" class="rlist-search-input" placeholder="Teklif ara — ihale kodu, tedarikçi..." @keydown.enter="searchTable">
+                </div>
+                <select v-model="statusChoice" @change="pickStatus(statusChoice)" class="form-select rlist-system-select" style="min-width:190px; max-width:210px; border-radius:10px; border:1.5px solid #e2e8f0; font-weight:600; font-size:13px;">
+                    <option value="">Tüm Durumlar</option>
+                    <option value="offer-sended">Gönderilenler</option>
+                    <option value="offer-accepted">Kabul Edilenler</option>
+                    <option value="offer-rejected">Reddedilenler</option>
+                </select>
+                <button type="button" class="rlist-btn rlist-btn-primary" @click="searchTable">
+                    <i class="ki-outline ki-magnifier fs-5"></i> Ara
+                </button>
+                <button type="button" class="rlist-btn rlist-btn-ghost" @click="resetSearch">Sıfırla</button>
+                <button
+                    v-if="filteredIhale"
+                    type="button"
+                    class="rlist-btn rlist-btn-ghost"
+                    @click="clearIhaleFilter(); table.setFilter([]);"
+                >
+                    İhale Filtresini Kaldır
+                </button>
+                <button type="button" class="rlist-btn rlist-btn-ghost" @click="exportTable">
+                    <i class="ki-outline ki-exit-down fs-5"></i> Excel
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div id="div_table"></div>
+        </div>
+    </div>
+
+    <!-- İHALE PANEL (front shell) — tedarik design -->
+    <div v-else class="order-list-card tedarik-card ihale-card">
         <div class="tedarik-list-top">
             <div class="tedarik-list-title">
                 <span>Teklif Listesi</span>
@@ -639,4 +713,25 @@
 .tedarik-card :deep(.pickletable .divPagination button.current){
     background: #fff !important; color: #059669 !important; border-color: #059669 !important; font-weight: 700 !important;
 }
+
+/* Admin shell — action icon buttons match every other admin list */
+.rlist-card :deep(.ihl-act){
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: #f1f5f9;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .15s ease;
+    font-size: 15px;
+}
+.rlist-card :deep(.ihl-act:hover){ transform: translateY(-1px); }
+.rlist-card :deep(.ihl-act--more){ background: #f1f5f9; color: #475569; }
+.rlist-card :deep(.ihl-act--more:hover){ background: #e2e8f0; color: #0f172a; }
+.rlist-card :deep(.ihl-act--edit){ background: #e6f7fa; color: #0e8ea4; }
+.rlist-card :deep(.ihl-act--edit:hover){ background: #cff0f5; color: #0b7285; }
 </style>

@@ -1541,10 +1541,13 @@ class DocumentController extends Controller
                 if ($title === '') continue;
                 $kva = json_decode((string) ($r['kva'] ?? '[]'), true);
                 if (!is_array($kva)) $kva = [];
+                $variants = json_decode((string) ($r['variants'] ?? '[]'), true);
+                if (!is_array($variants)) $variants = [];
                 $out[] = [
                     'standard' => trim((string) ($r['standard'] ?? '')),
                     'file_title' => $title,
                     'kva' => array_values(array_map('strval', $kva)),
+                    'variants' => array_values(array_map('strval', $variants)),
                 ];
             }
             return $out;
@@ -1603,11 +1606,15 @@ class DocumentController extends Controller
             $brand = (string) ($brands[$productQnid] ?? '');
 
             foreach ($this->categoryFileTemplates($categoryQnid) as $tpl) {
-                $kvas = $tpl['kva'] ?: ['all'];
-                foreach ($kvas as $kva) {
-                    $key = ClientDocsService::matchKey($prodCode, $brand, $tpl['standard'], $tpl['file_title'], $kva);
+                $scopes = array_values(array_unique(array_merge(
+                    array_map('strval', $tpl['kva'] ?? []),
+                    array_map('strval', $tpl['variants'] ?? [])
+                )));
+                if (empty($scopes)) $scopes = ['all'];
+                foreach ($scopes as $scope) {
+                    $key = ClientDocsService::matchKey($prodCode, $brand, $tpl['standard'], $tpl['file_title'], $scope);
                     if (! isset($available[$key])) {
-                        $label = $tpl['file_title'].($brand !== '' ? ' — marka: '.$brand : '');
+                        $label = $tpl['file_title'].($scope !== 'all' ? ' ['.$scope.']' : '').($brand !== '' ? ' — marka: '.$brand : '');
                         return 'Eksik veya süresi dolmuş evrak: '.$label.' ('.$row['product_title'].')';
                     }
                 }

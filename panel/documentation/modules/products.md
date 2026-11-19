@@ -76,10 +76,11 @@ Readback: `GET /v1/document/{qnid}` → `formFormat['op-doc-*-form'][rowId].enti
 ## 6. Category File Templates (Pointer Definitions, NOT Files)
 
 Each `category_files` row declares one document the future collection module will demand:
-`{evrak_no?, file_title, file_group, file_types, kva[]}`.
+`{evrak_no?, file_title, file_group, file_types, kva[], variants[]}`.
 - **No `document_files` rows are created** — these never touch storage. They are requirement templates only.
 - The future module reads them via `getFormData(categoryQnid)` (or raw `sys_con_entities` by `group_key='category_files'`) and will create real file links + `document_files` rows with that relation when collecting from suppliers.
 - `kva: []` = required for all power ratings. Non-empty = only the listed ratings (matched against product variant codes).
+- `variants: []` = required for all text scopes. Non-empty = only the listed scope-type codes (functional units, TİP-A/B, HARİCİ/DAHİLİ) — the sheet's "aranmaz" semantics.
 
 ---
 
@@ -105,7 +106,7 @@ Each `category_files` row declares one document the future collection module wil
 
 ## 9. Tagbox Engine Field (`type: 'checks'` in `Form.vue`)
 
-Generic tag-input used today for per-row kVA selection; reusable for any multi-pick:
+Generic tag-input used today for per-row kVA selection and per-row scope-type selection (`variants`); reusable for any multi-pick:
 - Schema: `{type:'checks', name, col, label, emptyText?, setOptions: async () => [{text, value}] }`. Loads options via `setOptions` (kVA: `POST /v1/table/documents` op-doc-kva, text `KVA 1600`, value `1600`).
 - Renders a tag box: textbox filters dropdown (TR-aware lowercase), Enter/click adds pill, ×/Backspace removes, Esc closes.
 - Storage: **JSON array string** in one entity (e.g. `["250","1000"]`). Change handler submits a synthetic element to `submitDynamicChanges` (real checkboxes can't represent multi-value).
@@ -144,7 +145,32 @@ Users: admin `redv@kontent.com.tr` (all 37 perms incl. per-09) for create/edit; 
 
 ---
 
-## 13. Gotchas
+## 14. Real TEDAŞ Catalog (2026-11-19, rebuilt)
+
+`catalog:purge --force` wipes the catalog domain (categories, products, tenders, offers, supplier evrak registry `op-doc-client-docs`) with EAV/files/transactions/logs; add `--definitions` to also wipe the kVA + scope-value dictionaries for a full fresh reset. `TedarikRealCatalogSeeder` then seeds the **5 official TEDAŞ categories** from the tanzim tables with their full file-requirement templates (117 rows total) and **one example product per category**. Idempotent — refreshes rows in place, matched by `code` entity; self-calls `ProductCategorySeeder → ProductSeeder → KvaSeeder → ScopeValueSeeder`.
+
+| Code | Title | FRM | Şartname | Scope | Example product |
+|---|---|---|---|---|---|
+| `TRF-33KV` | 33 kV Hermetik Dağıtım Transformatörü | 847 | TEDAŞ-MLZ/99-032.E | 9 kVA (50–1600) | `TRF-33-630` |
+| `GY-HUCRE` | Metal Mahfazalı Gaz Yalıtımlı YG Hücre | 843 | TEDAŞ-MLZ/2006-002.D | 7 fonksiyonel birim | `GYH-630` |
+| `HY-HUCRE` | Metal Mahfazalı Hava Yalıtımlı YG Hücre | 846 | TEDAŞ-MLZ/95-007.E | 9 fonksiyonel birim | `HYH-630` |
+| `AG-PANO` | AG Dağıtım Panosu | 865 | TEDAS-MLZ-2003-006 B | 7 combined (`100 kVA Harici`, `160/250/400 kVA Harici+Dahili`) + plain `630/1000/1250/1600 kVA` | `AGP-630` |
+| `SDK` | Saha Dağıtım Kutusu | 869 | TEDAŞ-MLZ/2004-046.B | TİP-A / TİP-B | `SDK-A` |
+
+- **Scope values are first-class documents**, exactly like kVA: `ScopeValueSeeder` adds `op-doc-scope-value(-form)` + **24 text values** (15 hücre birimleri, `TİP-A/B`, 7 pano combined values). Requirement rows connect by `code` — `variants` JSON lists every applicable code explicitly (`[]` = no text dimension). Verified zero orphans against both dictionaries.
+- **Subcategories are flattened, never split** (2026-11-19 rule from Master): a definition like `50 kVA (Harici, Dahili)` is stored as two plain values — `50 kVA Harici`, `50 kVA Dahili`. `HARİCİ`/`DAHİLİ` standalone values are retired; `ScopeValueSeeder` prunes them. **Exact FRM.865 mapping:** `100 kVA Harici`; `160 kVA Harici + Dahili`; `250 kVA Harici + Dahili`; `400 kVA Harici + Dahili`; `630/1000/1250/1600` plain kVA (no subcategory). PANO rows: `variants` = 7 combined codes, `kva: ["630","1000","1250","1600"]`, `scope_kind: kva_variant`.
+- **Excel cross-check (ALL GREEN, 2026-11-19):** `tests/e2e/excel-crosscheck.php` parses the 5 real tanzim xlsx files (merged cells included) and compares every requirement row (117), title, standard, group and scope mapping against the DB. Latest run: **0 mismatches**. Fixes it surfaced: PANO variant mapping corrected (160/250/400 both variants; 630/1000/1250/1600 plain), HY row 24 now `YA. TRF KOR + GER. TRF`, and titles/standards aligned to the sheet wording (slash spacing, trailing comma, parenthesized SDK standard).
+- **kVA definitions are self-describing:** `KvaSeeder` sets each title to `50 kVA` … `1600 kVA` (code stays numeric), and the Güç tab shows one name column (no duplicate value column).
+- Row entities: `evrak_no, standard, file_title, file_group, file_types, kva, variants` (`**category_files**{rowKey}` suffix, one conn per category). `kva` keeps the engine convention: explicit array = per-rating; `[]` = all powers (spanning rows).
+- Category metadata entities (main conn): `sartname_kodu`, `sartname_adi`, `scope_kind` (`kva|variant|kva_variant`), `scope_headers` (column labels JSON), `scope_values` (every connected scope code JSON), `scope_variants` (kva→HARİCİ/DAHİLİ map, AG-PANO only), `row_count`.
+- The tender/offer matrix still consumes only `kva` — text `variants` are seeded and connected but **not yet expanded into cells (pending mechanic)**.
+- **UI:** Ürün → **Güç & Kapsam Tanımları** (`/coalpanel/kva`) is a two-tab page — **Güç (kVA)** + **Kapsam Tipleri** (scope values). Scope create/edit/delete via `SForm` route `/coalpanel/kva/scope-form/:id?` (`op-doc-scope-value-form` def in `forms/defs/scope-value.js`), gated `per-09-01` read / `per-09-02` edit, Excel export model `scopevalues`. Verified live: tabs, 24 rows, create → list → search. Row polish: one name column, `dd.mm.yyyy HH:ii` dates, 34px tinted action buttons, hover row highlight. **No group concept** — definitions are a flat list (Başlık + Kod only); `scope_group` was removed from list/filter/export/form and pruned from the DB.
+- **Product lists row polish (2026-11-19):** `/coalpanel/products` (PList) — `prod_code` indigo monospace pills, bold short names, unit chips (ST/KG/M), category chips (teal), formatted dates, tinted 34px action buttons, hover rows. `/coalpanel/product-categories` (PCList) — bold category titles, `code` pills, formatted dates, same row styling. `/coalpanel/client` (CList) — bold titles, `clicode` pills, system chips (ADM orange / GDZ blue), `lifnr` cari pills, same action buttons; mobile card view kept. `/coalpanel/users` (UList) — status chips (Aktif green / Pasif red / Onay Bekliyor amber + Şifre Yenileme warn chip), bold names, Tip teal chip, Rol indigo chip, Sistem chips, monospace usernames with active-dot icon, amber/teal/red 34px action buttons (reset/edit/delete). The shared design lives in `public/coaltheme/css/custom.css` (FINAL OVERRIDE block; bundled via Vite — **rebuild required after edits**): header 14px 18px / 11px 800 uppercase, rows 15px 18px, hover `#f0fbfc` with rounded edges. Applies to all `.rlist-card` admin tables. Verified live: client/products/categories/kva/users all read 15px 18px + hover `rgb(240,251,252)`; tenant chips consistent (GDZ rgb(239,246,255) / ADM rgb(255,247,237)).
+- **Category form now exposes the connections:** each `category_files` row renders two tagboxes — `Geçerli Güçler` (kVA docs) and `Geçerli Tipler` (scope-value docs, **bare codes, no group prefix**). Both load existing pills and re-seed `dynamicF` on build so untouched rows keep their links. Verified live: TRF 11 rows × 9 kVA (`50 kVA` … `1600 kVA`); GY 7 units (row 13 → KES. ÇIK, row 26 → 3 units); HY 9 units (row 24 → YA. TRF KOR + GER. TRF); PANO 4 plain kVA pills (630/1000/1250/1600) + 7 combined type pills; SDK TİP-A/TİP-B every row. Save-without-change keeps rows, metadata and single-conn shape intact.
+- Live build: `prjBuildLive` runs `ProductCategorySeeder → ProductSeeder → KvaSeeder → ScopeValueSeeder → TedarikRealCatalogSeeder`. On an already-populated DB: `php artisan catalog:purge --force && php artisan db:seed --class=TedarikRealCatalogSeeder`.
+- Open data questions (Master): FRM.865 evrak no 1 missing in source; 1600 kVA HARİCİ/DAHİLİ tag absent; FRM.869 row 13 standard reads "61439-1 Madde 10.2.101" (kept literal, likely a 61439-5 typo).
+
+## 15. Gotchas
 
 1. **Readonly/hidden link fields are invisible to validation** — category link is enforced in `submitForm`, not via `required`.
 2. **Always inject page-owned values into `formData.dynamicF` at submit time** — DOM writes alone can be lost on re-render (Form rebuilds inputs from store).

@@ -31,7 +31,8 @@
             }
         },
         mounted(){
-            document.body.classList.add('ihf-form-open');
+            this._bodyClass = this.isIhalePanel ? 'ihf-form-open' : 'ihf-form-admin';
+            document.body.classList.add(this._bodyClass);
             // delegated: readonly product field opens the picker even if the
             // Form engine (re)builds its inputs asynchronously (PForm pattern)
             this._prodClickHandler = (e) => {
@@ -69,7 +70,8 @@
             });
         },
         beforeUnmount(){
-            document.body.classList.remove('ihf-form-open');
+            if (this._bodyClass) document.body.classList.remove(this._bodyClass);
+            document.body.classList.remove('ihf-form-open', 'ihf-form-admin');
             if (this._prodClickHandler) {
                 document.removeEventListener('click', this._prodClickHandler);
                 this._prodClickHandler = null;
@@ -93,6 +95,7 @@
         },
         computed: {
             listRouteName(){ return this.$route.path.startsWith('/ihalepanel') ? 'IhalePanelIhList' : 'IhList'; },
+            isIhalePanel(){ return this.$route.path.startsWith('/ihalepanel'); },
             isEdit(){ return this.id !== undefined && this.id !== ''; },
         },
         methods: {
@@ -308,7 +311,7 @@
 </script>
 
 <template>
-    <div class="ihf-page">
+    <div :class="['ihf-page', isIhalePanel ? 'ihf-page--panel' : 'ihf-page--admin']">
         <section class="ihf-head">
             <div>
                 <div class="ihf-eyebrow"><i class="ki-outline ki-plus-square"></i> İHALE YÖNETİMİ</div>
@@ -625,6 +628,61 @@
     .ihf-head { flex-direction: column; align-items: flex-start; }
     .ihf-card { padding: 1rem; }
 }
+
+/* ============ ADMIN theme (management shell) — neutral + teal ============ */
+.ihf-page--admin .ihf-head {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 8px 24px rgba(15,23,42,.05);
+}
+.ihf-page--admin .ihf-eyebrow { color: #0e8ea4; }
+.ihf-page--admin .ihf-head h1 { color: #0f172a; }
+.ihf-page--admin .ihf-head p { color: #94a3b8; }
+.ihf-page--admin .ihf-chip--new { background: #e6f7fa; color: #0e8ea4; border-color: #b8e6ee; }
+.ihf-page--admin .ihf-chip--edit { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+.ihf-page--admin .ihf-btn:hover { border-color: #b8e6ee; }
+.ihf-page--admin .ihf-btn--primary { background: #0e8ea4; border-color: #0e8ea4; }
+.ihf-page--admin .ihf-btn--primary:hover { background: #0c7e90; border-color: #0c7e90; box-shadow: 0 8px 20px rgba(14,142,164,.28); }
+.ihf-page--admin .ihf-card { border-color: #e2e8f0; border-radius: 16px; }
+.ihf-page--admin .ihf-note i { color: #0e8ea4; }
+.ihf-page--admin .ihf-card :deep(.form-section-heading) {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-top: 3px solid #0e8ea4 !important;
+    color: #334155 !important;
+}
+.ihf-page--admin .ihf-card :deep(.input-label) { color: #475569 !important; }
+.ihf-page--admin .ihf-card :deep(.form-control:focus) {
+    border-color: #0e8ea4;
+    box-shadow: 0 0 0 4px rgba(14,142,164,.12);
+    outline: none;
+}
+.ihf-page--admin .ihf-card :deep(.multiple-item-card) {
+    border: 1px solid #e2e8f0 !important;
+    border-top: 3px solid #0e8ea4 !important;
+    box-shadow: 0 6px 18px rgba(15,23,42,.06) !important;
+}
+.ihf-page--admin .ihf-card :deep(.multiple-item-row .input-label) { color: #475569 !important; }
+.ihf-page--admin .ihf-card :deep(.input-group-text) { background: #e6f7fa !important; color: #0e8ea4 !important; }
+.ihf-page--admin .ihf-card :deep(i[id*="subadd"]) {
+    background: #0e8ea4 !important;
+    box-shadow: 0 4px 12px rgba(14,142,164,.25);
+}
+.ihf-page--admin .ihf-card :deep(i[id*="subadd"]:hover) { background: #0c7e90 !important; }
+.ihf-page--admin .ihf-modal-title i { color: #0e8ea4; }
+.ihf-page--admin .ihf-searchbox:focus-within {
+    border-color: #0e8ea4;
+    box-shadow: 0 0 0 4px rgba(14,142,164,.12);
+}
+.ihf-page--admin #ih_prod_table .divPagination .active button,
+.ihf-page--admin #ih_prod_table .divPagination button.active,
+.ihf-page--admin #ih_prod_table .divPagination button.current {
+    background: #0e8ea4 !important;
+    border-color: #0e8ea4 !important;
+}
+.ihf-page--admin #ih_prod_table tbody tr:hover {
+    box-shadow: 0 6px 18px rgba(14,142,164,.14) !important;
+}
 </style>
 
 <style>
@@ -695,4 +753,65 @@ body.ihf-form-open .flatpickr-day.today { border-color: #a7f3d0 !important; }
     white-space: nowrap;
 }
 #ih_prod_table .ihf-pick-btn:hover { background: #047857; transform: translateY(-1px); }
+
+/* ============ ADMIN shell: neutral + teal variants ============ */
+body.ihf-form-admin .fab-btns-wrapper {
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, .10) !important;
+    background: rgba(255, 255, 255, .97) !important;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 16px !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: .4rem .6rem !important;
+    gap: 10px !important;
+}
+body.ihf-form-admin .fab-btns-wrapper .btn-danger {
+    background: #0e8ea4 !important;
+    border-color: #0e8ea4 !important;
+    color: #fff !important;
+    border-radius: 11px !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 20px rgba(14,142,164,.28) !important;
+}
+body.ihf-form-admin .fab-btns-wrapper .btn-danger:hover,
+body.ihf-form-admin .fab-btns-wrapper .btn-danger.is-btn-hover {
+    background: #0c7e90 !important;
+    border-color: #0c7e90 !important;
+}
+body.ihf-form-admin .fab-btns-wrapper .btn-cancel {
+    background: #fff !important;
+    color: #0e8ea4 !important;
+    border: 1px solid #b8e6ee !important;
+    border-radius: 11px !important;
+    font-weight: 700 !important;
+}
+body.ihf-form-admin .fab-btns-wrapper .btn-cancel:hover,
+body.ihf-form-admin .fab-btns-wrapper .btn-cancel.is-btn-hover {
+    background: #e6f7fa !important;
+    color: #0e8ea4 !important;
+}
+@media (min-width: 993px) {
+    body.ihf-form-admin .fab-btns-wrapper {
+        left: calc(50% + 120px) !important;
+    }
+}
+@media (max-width: 992px) {
+    body.ihf-form-admin .fab-btns-wrapper {
+        left: 50% !important;
+        width: calc(100vw - 32px) !important;
+    }
+}
+body.ihf-form-admin .flatpickr-day.selected,
+body.ihf-form-admin .flatpickr-day.selected:hover {
+    background: #0e8ea4 !important;
+    border-color: #0e8ea4 !important;
+}
+body.ihf-form-admin .flatpickr-day.today { border-color: #b8e6ee !important; }
+body.ihf-form-admin #ih_prod_table .ihf-pick-btn {
+    background: #0e8ea4;
+    box-shadow: 0 4px 12px rgba(14,142,164,.25);
+}
+body.ihf-form-admin #ih_prod_table .ihf-pick-btn:hover {
+    background: #0c7e90;
+}
 </style>
