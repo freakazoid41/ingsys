@@ -192,6 +192,7 @@ Source workbook: `Teknik Değerlendirme Saha İşgücü Modülü Eşleştirme Ta
 - 987 imported + 5 example products = **992 products** in the catalog.
 
 **Verification:** `php tests/e2e/saha-isgucu-crosscheck.php` parses the workbook independently, applies the rules and diffs code/name/unit/category link/title against the DB — **ALL GREEN (987 products, 0 mismatches)**. `php tests/e2e/saha-isgucu-generate.php [xlsx]` regenerates the seed data file byte-identically. Fresh scratch-DB build through the `prjBuildLive` chain: 992 products / 36 categories / 9 kVA / 24 scope values / 117 requirement rows; both this cross-check and `excel-crosscheck.php` green.
+- **Zero-requirement categories are saveable:** the repeatable `category_files` group always renders one blank template row. `PCForm.submitForm` now treats a completely untouched row as empty — its `required` flags are relaxed only for validation (restored immediately) and its hidden tagbox entities/files are stripped from the payload. Verified live: saving `AER-KABLO` with 0 requirements → 200, still 0 requirement entities; saving a real category (`GY-HUCRE`, 28 rows) preserved all 196 entities.
 
 ## 16. Gotchas
 

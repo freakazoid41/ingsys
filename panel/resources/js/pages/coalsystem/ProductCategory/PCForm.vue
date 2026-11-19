@@ -72,7 +72,47 @@
                 this.formData = formData;
                 this.navigationStore.toggle(true);
                 this.formData.typeKey = 'op-doc-product-category';
+
+                // Zero-requirement categories: the repeatable category_files
+                // group always renders one blank template row. A completely
+                // untouched row is not a requirement — relax its required flags
+                // for validation only (restored right after) so the category can
+                // be saved with an empty file list.
+                const relaxed = [];
+                const emptyRowIds = [];
+                document.querySelectorAll('.area-target[data-tag="op-doc-product-category-form"] .multiple-item-row').forEach(row => {
+                    const names = ['evrak_no','standard','file_title','file_group','file_types'];
+                    const empty = names.every(n => {
+                        const el = row.querySelector('[name^="'+n+'"]');
+                        return !el || String(el.value || '').trim() === '';
+                    });
+                    if (!empty) return;
+                    const anyName = row.querySelector('[name*="**category_files**"]')?.name || '';
+                    const rowId = anyName.split('**')[2] || '';
+                    if (rowId) emptyRowIds.push(rowId);
+                    row.querySelectorAll('.form-item').forEach(el => {
+                        if (el.required) { relaxed.push(el); el.required = false; }
+                    });
+                });
                 const rsp = this.plib.checkForm('.form-item');
+                relaxed.forEach(el => { el.required = true; });
+
+                // Drop the untouched template row from the payload as well —
+                // its hidden tagboxes would otherwise create a phantom blank
+                // requirement row on the server.
+                if (emptyRowIds.length) {
+                    for (const key of Object.keys(this.formData.dynamicF || {})) {
+                        const ents = this.formData.dynamicF[key]?.entities;
+                        if (!ents) continue;
+                        for (const tag of Object.keys(ents)) {
+                            if (emptyRowIds.some(id => tag.includes('**category_files**' + id))) delete ents[tag];
+                        }
+                        if (Object.keys(ents).length === 0) delete this.formData.dynamicF[key];
+                    }
+                    for (const fk of Object.keys(this.formData.files || {})) {
+                        if (emptyRowIds.some(id => fk.includes('**category_files**' + id))) delete this.formData.files[fk];
+                    }
+                }
                 if(rsp.valid){
                     const   envelope  = new FormData();
                         envelope.append('data',JSON.stringify(this.formData));
