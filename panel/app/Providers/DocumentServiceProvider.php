@@ -2328,6 +2328,23 @@ class DocumentServiceProvider extends ServiceProvider
         return $this->setStatus($orderQnid, 'doc_trans_order_sevk_started', $note ?? 'Sevk onayına alındı');
     }
 
+    /** Are any active proforma/irsaliye versions currently rejected? */
+    private function sevkDocsRejected(int $orderId): bool
+    {
+        $row = DB::selectOne(
+            "SELECT COUNT(*) c FROM document_files df
+             JOIN sys_con_entities sce ON sce.entity_value = df.id::text AND sce.table_tag='document_files'
+             JOIN sys_con_ops sco ON sco.id = sce.conn_id
+             JOIN documents d ON d.id = sco.main_id
+             WHERE d.id = ? AND df.status = 1
+               AND (sce.entity_tag LIKE '%proforma%' OR sce.entity_tag LIKE '%irsaliye%')
+               AND (SELECT so.op_key FROM transactions t JOIN sys_options so ON so.id=t.type_id
+                    WHERE t.target_id = df.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) = 'doc_file_rejected'",
+            [$orderId]
+        );
+        return ($row->c ?? 0) > 0;
+    }
+
     /** Generic Sevk step: stamp fields then setStatus (guard enforces chain). */
     public function advanceSevk(string $orderQnid, string $toKey, array $fields = [], ?string $note = null): array
     {
@@ -2362,18 +2379,7 @@ class DocumentServiceProvider extends ServiceProvider
             if (($hasPro->c ?? 0) < 1 || ($hasIrs->c ?? 0) < 1) {
                 return ['success' => false, 'msg' => 'Proforma ve irsaliye dosyaları zorunlu'];
             }
-            $rejectedDocs = DB::selectOne(
-                "SELECT COUNT(*) c FROM document_files df
-                 JOIN sys_con_entities sce ON sce.entity_value = df.id::text AND sce.table_tag='document_files'
-                 JOIN sys_con_ops sco ON sco.id = sce.conn_id
-                 JOIN documents d ON d.id = sco.main_id
-                 WHERE d.id = ? AND df.status = 1
-                   AND (sce.entity_tag LIKE '%proforma%' OR sce.entity_tag LIKE '%irsaliye%')
-                   AND (SELECT so.op_key FROM transactions t JOIN sys_options so ON so.id=t.type_id
-                        WHERE t.target_id = df.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) = 'doc_file_rejected'",
-                [$order->id]
-            );
-            if (($rejectedDocs->c ?? 0) > 0) {
+            if ($this->sevkDocsRejected($order->id)) {
                 return ['success' => false, 'msg' => 'Reddedilen proforma/irsaliye dosyası var — önce yeniden yükleyin'];
             }
         }
@@ -2383,6 +2389,9 @@ class DocumentServiceProvider extends ServiceProvider
                 ->where('sco.main_id', $order->id)->where('sce.entity_tag', 'sevk_kontrol_ok')->value('sce.entity_value');
             if ($flag !== '1') {
                 return ['success' => false, 'msg' => 'Lojistik kontrol onayı (Uygun) gerekli'];
+            }
+            if ($this->sevkDocsRejected($order->id)) {
+                return ['success' => false, 'msg' => 'Reddedilen proforma/irsaliye dosyası var — önce yeniden yükleyin'];
             }
         }
         if (!empty($fields)) $this->saveSevkFields($orderQnid, $fields);
