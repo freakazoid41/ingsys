@@ -341,21 +341,23 @@ class Document_files extends Model
                     case 'all':
                         $value = $f['value'];
                         $where .= ' and (';
-                        //set columns   
+                        // Cheap scalar columns only. The JSON per-row subqueries
+                        // (relation_detail / old_versions / last_status) and the
+                        // COALESCE lookups made a text search scan 6k+ rows with
+                        // heavy correlated work (20s+). Order/supplier/serial text
+                        // is covered by the EAV exists below instead.
                         $i = 0;
-                        foreach($columns as $k=>$v){
-                            if($k !== 'file'){
-                                if($i!=0) $where.=' or ';
-                                $column = $colExpr($columns[$k]);
-                                if($column === 'i.created_at'){
-                                    $where .= " ".$column."::text ilike '%" . $value . "%' " ;
-                                }else{
-                                    $where.=' '.$column.'::text ilike '."'%" . $value . "%' ";
-                                }
-                                
-                                $i++;
-                            }
+                        $keep = ['id', 'type_title', 'type_key', 'file_type', 'file_type_key', 'relation', 'relation_qnid', 'relation_type', 'entity_tag', 'created_at'];
+                        foreach($keep as $k){
+                            if(!isset($columns[$k])) continue;
+                            if($i!=0) $where.=' or ';
+                            $where.=' '.$colExpr($columns[$k]).'::text ilike '."'%" . $value . "%' ";
+                            $i++;
                         }
+                        if($i!=0) $where.=' or ';
+                        $where .= " exists (select 1 from sys_con_ops so8 join sys_con_entities se8 on se8.conn_id = so8.id
+                                    where so8.main_id in (d.id, d.parent_id)
+                                    and se8.entity_value ilike '%".$value."%') ";
                         $where .= ' ) ';
                     break;
                     default:

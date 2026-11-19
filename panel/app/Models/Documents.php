@@ -630,13 +630,13 @@ class Documents extends Model
                     case 'all':
                         $value = $f['value'];
                         $where .= ' and (';
-                        //set columns
+                        // Cheap scalar columns only — status/last_trans_at/main_attr are
+                        // per-row subqueries that make an ilike scan over thousands of
+                        // rows unusable (12s+ searches).
                         $i = 0;
+                        $skip = ['document_status', 'status', 'last_trans_at', 'main_id', 'person_id', 'client_system', 'addional', 'main_attr'];
                         foreach($columns as $k=>$v){
-                            //document_status is an internal flag, not searchable text: every active
-                            //row holds '1', so including it would make a "1" search match everything
-                            if($k == 'document_status') continue;
-
+                            if(in_array($k, $skip, true)) continue;
                             if($i!=0) $where.=' or ';
                             // alias strip must use LAST " as " — columns contain inner " as t" (single) inside subqueries.
                             // original explode('as  ') (double space) avoided inner split but broke late4 last_trans_at (single space).
@@ -644,11 +644,15 @@ class Documents extends Model
                             $pos = strripos($colStr, ' as ');
                             $column = $pos !== false ? trim(substr($colStr, 0, $pos)) : trim($colStr);
 
-                            if($k == 'main_attr') $column = 'main_attr.main_attr';
-
-                            $where .= " $column::text ilike '%$value%' ".' COLLATE "tr-TR-x-icu" ';
+                            $where .= " $column::text ilike '%$value%' COLLATE \"tr-TR-x-icu\" ";
                             $i++;
                         }
+                        // EAV text search via the indexed form conn — replaces the
+                        // main_attr JSON lateral (order_no, ctitle, spec_code, ...).
+                        if($i!=0) $where .= ' or ';
+                        $where .= " exists (select 1 from sys_con_ops soq join sys_con_entities seq on seq.conn_id = soq.id
+                                    where soq.main_id = i.id and soq.conn_id = 0
+                                    and seq.entity_value ilike '%$value%' COLLATE \"tr-TR-x-icu\") ";
                         $where .= ' ) ';
                     break;
                     default:
