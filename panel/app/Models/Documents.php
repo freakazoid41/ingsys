@@ -653,6 +653,23 @@ class Documents extends Model
                         $where .= " exists (select 1 from sys_con_ops soq join sys_con_entities seq on seq.conn_id = soq.id
                                     where soq.main_id = i.id and soq.conn_id = 0
                                     and seq.entity_value ilike '%$value%' COLLATE \"tr-TR-x-icu\") ";
+                        // status text (op_key/title/note) via the indexed transaction
+                        // history — replaces the per-row status subquery in the OR.
+                        // The CASE maps UI pill labels that are not stored literally.
+                        $where .= ' or ';
+                        $where .= " exists (select 1 from transactions tq join sys_options soq2 on soq2.id = tq.type_id
+                                    where tq.target_id = i.id and tq.op_id = 1
+                                    and (soq2.op_key ilike '%$value%' COLLATE \"tr-TR-x-icu\"
+                                         or soq2.title ilike '%$value%' COLLATE \"tr-TR-x-icu\"
+                                         or coalesce(tq.note,'') ilike '%$value%' COLLATE \"tr-TR-x-icu\"
+                                         or (case soq2.op_key
+                                                when 'doc_file_waiting' then 'Beklemede'
+                                                when 'doc_trans_order_created' then 'Beklemede'
+                                                when 'doc_file_accepted' then 'Onaylandı'
+                                                when 'doc_file_rejected' then 'Reddedildi'
+                                                when 'doc_trans_order_rejected' then 'Reddedildi'
+                                                else soq2.title
+                                             end) ilike '%$value%' COLLATE \"tr-TR-x-icu\")) ";
                         $where .= ' ) ';
                     break;
                     default:

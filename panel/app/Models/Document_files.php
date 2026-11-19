@@ -358,6 +358,21 @@ class Document_files extends Model
                         $where .= " exists (select 1 from sys_con_ops so8 join sys_con_entities se8 on se8.conn_id = so8.id
                                     where so8.main_id in (d.id, d.parent_id)
                                     and se8.entity_value ilike '%".$value."%') ";
+                        // file status text (op_key/title/note) via the indexed
+                        // transaction history — no per-row JSON needed. The CASE
+                        // maps UI pill labels that are not stored literally.
+                        $where .= ' or ';
+                        $where .= " exists (select 1 from transactions t9 join sys_options so9 on so9.id = t9.type_id
+                                    where t9.target_id = i.id and t9.op_id = 1
+                                    and (so9.op_key ilike '%".$value."%'
+                                         or so9.title ilike '%".$value."%'
+                                         or coalesce(t9.note,'') ilike '%".$value."%'
+                                         or (case so9.op_key
+                                                when 'doc_file_waiting' then 'Beklemede'
+                                                when 'doc_file_accepted' then 'Onaylandı'
+                                                when 'doc_file_rejected' then 'Reddedildi'
+                                                else so9.title
+                                             end) ilike '%".$value."%')) ";
                         $where .= ' ) ';
                     break;
                     default:
