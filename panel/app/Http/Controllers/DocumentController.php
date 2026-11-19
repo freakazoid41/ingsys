@@ -784,6 +784,15 @@ class DocumentController extends Controller
         if ($key === 'op-doc-order' && !docPermCheck('op-doc-order','cancel')) {
             return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır (per-05-04 İptal / Parça Sil)...'],403);
         }
+        if ($key === 'op-doc-order') {
+            $last = $this->docs->latestOrderStatus($request->id);
+            if (in_array($last, ['doc_trans_order_approved', 'doc_trans_order_sevk_shipped'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Sevkiyat tamamlanmış / onaylanmış sipariş silinemez.',
+                ], 422);
+            }
+        }
         // A category still referenced by active products cannot be deleted —
         // otherwise those products keep a dangling category_qnid and disappear
         // from the category picker while their offer matrix keeps resolving.
@@ -1090,8 +1099,10 @@ class DocumentController extends Controller
                 return response()->json(['success'=>false,'msg'=>'Yetki yok ('.implode('/', $cfg['perms']).')'], 403);
             }
         }
-        // supplier steps: must own order (reseller LIFNR scope); admin bypass
-        if (in_array($request->op_key, ['doc_trans_order_sevk_dated','doc_trans_order_sevk_proforma','doc_trans_order_sevk_shipped'], true)) {
+        // supplier steps: must own order (reseller LIFNR scope); admin bypass.
+        // Dated is intentionally also allowed for per-05-06 logistics (map check
+        // above); proforma/shipped remain supplier-edit steps.
+        if (in_array($request->op_key, ['doc_trans_order_sevk_proforma','doc_trans_order_sevk_shipped'], true)) {
             if (!docPermCheck('op-doc-order','edit')) return response()->json(['success'=>false,'msg'=>'Yetki yok'], 403);
         }
         // Direct-qnid IDOR guard: a reseller may only advance their own orders.

@@ -183,6 +183,26 @@ class DocumentControllerRegressionTest extends TestCase
         return $order->fresh();
     }
 
+    /** Attach the two mandatory transfer forms so transfer_sent is allowed. */
+    private function attachTransferForms(Documents $order): void
+    {
+        $ops = Sys_con_ops::where('main_id', $order->id)->where('conn_id', 0)->first();
+        foreach (['transfer_kabul_file**transfer_kabul**1', 'transfer_cins_file**transfer_cins**1'] as $tag) {
+            $df = new Document_files();
+            $df->qnid = (string) Str::uuid();
+            $df->description = (new \App\Providers\EncryptionProvider())->encrypt($tag.'.pdf');
+            $df->relation = 'documents';
+            $df->relation_id = $order->id;
+            $df->status = 1;
+            $df->type_id = Sys_options::where('op_key', 'op-'.explode('**', $tag)[0])->value('id') ?? 0;
+            $df->save();
+            Sys_con_entities::create([
+                'conn_id' => $ops->id, 'table_tag' => 'document_files',
+                'entity_tag' => $tag, 'entity_value' => (string) $df->id,
+            ]);
+        }
+    }
+
     // ── Tests ───────────────────────────────────────────────────────────────
 
     public function test_post_create_client_and_qnid_is_used_as_clicode(): void
@@ -319,6 +339,7 @@ class DocumentControllerRegressionTest extends TestCase
         $person = $this->createPerson('op-pert-admin','GDZ');
         $this->createUserFor($person, 'admin_status@test.local', ['per-05-03','per-05-02'], 'op-pert-admin');
         $order = $this->createOrderDirect('3510000888','0000300184','4000','GDZ','doc_trans_order_created');
+        $this->attachTransferForms($order);
 
         // valid: created → transfer_sent
         $resp = $this->withSession(session()->all())->postJson('/api/v1/trans/set-status', [

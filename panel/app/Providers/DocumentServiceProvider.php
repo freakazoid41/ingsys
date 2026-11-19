@@ -1278,6 +1278,14 @@ class DocumentServiceProvider extends ServiceProvider
             // Order status guard — like offer's editableStatuses, enforce valid transitions
             // Sevk Onayı (doc_trans_order_approved) is allowed from ANY status
             if (($documentType->op_key ?? null) === 'op-doc-order') {
+                // Sending to file review must always carry both acceptance forms —
+                // the generic status route must not bypass processOrderTransfer.
+                if ($statusKey === 'doc_trans_order_transfer_sent') {
+                    $fileError = $this->orderTransferFilesError((int) $document->id);
+                    if ($fileError) {
+                        return ['success' => false, 'msg' => $fileError];
+                    }
+                }
                 $allowed = [
                     'doc_trans_order_created' => ['doc_trans_order_transfer_sent','doc_trans_order_approved'],
                     'doc_trans_order_transfer_sent' => ['doc_trans_order_ready_for_shipment','doc_trans_order_approved','doc_trans_order_rejected'],
@@ -1623,6 +1631,7 @@ class DocumentServiceProvider extends ServiceProvider
                 // get file
                 $file = Document_files::where('qnid', $id)->first();
                 if (empty($file)) { DB::rollBack(); return ['success' => false, 'id' => 0, 'message' => 'Dosya bulunamadı']; }
+                if ((int) $file->status !== 1) { DB::rollBack(); return ['success' => false, 'id' => 0, 'message' => 'Pasif / eski dosya sürümü değerlendirilemez']; }
                 $type = Sys_options::rowOf($statusKey);
                 if (empty($type)) { DB::rollBack(); return ['success' => false, 'id' => 0, 'message' => 'Bilinmeyen dosya durumu']; }
                 $entity = Sys_con_entities::where(['entity_value' => $file->id, 'table_tag' => 'document_files'])->first();
@@ -1917,6 +1926,43 @@ class DocumentServiceProvider extends ServiceProvider
     }
 
     /**
+     * Both acceptance forms must exist and neither may be the latest rejected
+     * version. Shared by processOrderTransfer and the generic set-status path.
+     */
+    private function orderTransferFilesError(int $orderId): ?string
+    {
+        $doc = Documents::where('id', $orderId)->first();
+        if (! $doc) return 'Sipariş bulunamadı';
+        $detail = $this->getFormData($doc->qnid);
+        $entities = [];
+        foreach (($detail['formFormat']['op-doc-order-form'] ?? []) as $connRow) {
+            foreach (($connRow['entities'] ?? []) as $k => $v) {
+                if (! isset($entities[$k])) $entities[$k] = $v;
+            }
+        }
+        $hasKabul = false; $hasCins = false; $rejected = false;
+        foreach ($entities as $k => $v) {
+            $isKabul = str_starts_with((string) $k, 'transfer_kabul_file');
+            $isCins  = str_starts_with((string) $k, 'transfer_cins_file');
+            if (! $isKabul && ! $isCins) continue;
+            if (empty($v)) continue;
+            if ($isKabul) $hasKabul = true;
+            if ($isCins) $hasCins = true;
+            $info = is_string($v) ? json_decode($v, true) : null;
+            if (($info['last_status']['op_key'] ?? '') === 'doc_file_rejected') {
+                $rejected = true;
+            }
+        }
+        if (! $hasKabul || ! $hasCins) {
+            return 'Malzeme Kabul Formu ve Malzeme Cins-Miktar Kabul Formu yüklenmelidir. Lütfen her iki formu da 5. adımda yükleyip tekrar Gönder ile kontrole gönderin.';
+        }
+        if ($rejected) {
+            return 'Reddedilen Malzeme Kabul / Cins-Miktar formunu yeniden yükleyin.';
+        }
+        return null;
+    }
+
+    /**
       * Order System: send an order to transfer. Runs from the SAME order-detail save endpoint.
      *
      * @param  string  $orderQnid  order qnid
@@ -1930,6 +1976,9 @@ class DocumentServiceProvider extends ServiceProvider
         $order = Documents::where('qnid', $orderQnid)->first();
         if (empty($order)) {
             return ['success' => false, 'msg' => 'Sipariş bulunamadı: '.$orderQnid];
+        }
+        if ((int) $order->status !== 1) {
+            return ['success' => false, 'msg' => 'İptal edilmiş sipariş transfer edilemez.'];
         }
         $docType = Sys_options::where('id', $order->type_id)->first();
         if (($docType->op_key ?? null) !== 'op-doc-order') {
@@ -1955,18 +2004,11 @@ class DocumentServiceProvider extends ServiceProvider
             }
         }
 
-        // Mechanics guard: a transfer without both acceptance forms must not
-        // exist. The UI blocks this (OForm "Eksik Dosya" Swal), but the API
-        // must enforce it too — otherwise a raw PUT can push the order to
-        // transfer_sent with zero files for admin to review.
-        $hasKabul = false;
-        $hasCins  = false;
-        foreach ($entities as $k => $v) {
-            if (str_starts_with((string) $k, 'transfer_kabul_file') && ! empty($v)) { $hasKabul = true; }
-            if (str_starts_with((string) $k, 'transfer_cins_file') && ! empty($v))  { $hasCins  = true; }
-        }
-        if (! $hasKabul || ! $hasCins) {
-            return ['success' => false, 'msg' => 'Malzeme Kabul Formu ve Malzeme Cins-Miktar Kabul Formu yüklenmelidir. Lütfen her iki formu da 5. adımda yükleyip tekrar Gönder ile kontrole gönderin.'];
+        // Mechanics guard: both acceptance forms must exist and must not be
+        // the rejected version. The UI blocks this, the API must too.
+        $fileErr = $this->orderTransferFilesError((int) $order->id);
+        if ($fileErr) {
+            return ['success' => false, 'msg' => $fileErr];
         }
 
         $baseNo = $entities['order_no'] ?? '';
@@ -2150,25 +2192,40 @@ class DocumentServiceProvider extends ServiceProvider
 
         // At-once: the order itself is the transfer being sent.
         // Process serials for all items if provided.
-        if (! empty($itemSerials)) {
-            foreach ($itemSerials as $itemSerial) {
-                $itemQnid = $itemSerial['qnid'] ?? '';
-                $serials = $itemSerial['serials'] ?? [];
-                if (empty($itemQnid) || empty($serials)) continue;
-                $itemDoc = Documents::where('qnid', $itemQnid)->first();
-                if ($itemDoc) {
+        DB::beginTransaction();
+        try {
+            if (! empty($itemSerials)) {
+                foreach ($itemSerials as $itemSerial) {
+                    $itemQnid = $itemSerial['qnid'] ?? '';
+                    $serials = $itemSerial['serials'] ?? [];
+                    if (empty($itemQnid) || empty($serials)) continue;
+                    $itemDoc = Documents::where('qnid', $itemQnid)->first();
+                    if (! $itemDoc || (int) $itemDoc->parent_id !== (int) $order->id) {
+                        DB::rollBack();
+                        return ['success' => false, 'msg' => 'Seri eklenecek kalem bu siparişe ait değil: '.$itemQnid];
+                    }
+                    $itemTypeKey = Sys_options::where('id', $itemDoc->type_id)->value('op_key');
+                    if ($itemTypeKey !== 'op-doc-order-item') {
+                        DB::rollBack();
+                        return ['success' => false, 'msg' => 'Seri eklenecek belge sipariş kalemi değil: '.$itemQnid];
+                    }
                     $this->createSerialEntries($itemDoc->id, $serials);
                 }
             }
-        }
 
-        $st = $this->setStatus($order->qnid, 'doc_trans_order_transfer_sent', 'Transfer gönderildi (tek seferde)');
-        if (! ($st['success'] ?? false)) {
-            return ['success' => false, 'msg' => 'Sipariş durumu güncellenemedi: '.($st['msg'] ?? '')];
-        }
+            $st = $this->setStatus($order->qnid, 'doc_trans_order_transfer_sent', 'Transfer gönderildi (tek seferde)');
+            if (! ($st['success'] ?? false)) {
+                DB::rollBack();
+                return ['success' => false, 'msg' => 'Sipariş durumu güncellenemedi: '.($st['msg'] ?? '')];
+            }
 
-        // Store transfer_mode as EAV entity so frontend can display it read-only after first send.
-        $this->saveTransferModeEntity($order, $mode);
+            // Store transfer_mode as EAV entity so frontend can display it read-only after first send.
+            $this->saveTransferModeEntity($order, $mode);
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return ['success' => false, 'msg' => $e->getMessage()];
+        }
 
         return ['success' => true, 'msg' => 'Transfer gönderildi (tek seferde)'];
     }
@@ -2224,8 +2281,14 @@ class DocumentServiceProvider extends ServiceProvider
     {
         $order = Documents::where('qnid', $orderQnid)->first();
         if (empty($order)) return ['success' => false, 'msg' => 'Sipariş bulunamadı'];
+        if ((int) $order->status !== 1) return ['success' => false, 'msg' => 'İptal edilmiş sipariş sevk onayına alınamaz'];
         if ($this->getLatestOrderStatus($order->id) !== 'doc_trans_order_ready_for_shipment') {
             return ['success' => false, 'msg' => 'Sevk onayı yalnızca Sevke Hazır siparişlerde başlatılabilir'];
+        }
+        // Both mandatory acceptance forms must be present and current.
+        $formError = $this->orderTransferFilesError((int) $order->id);
+        if ($formError) {
+            return ['success' => false, 'msg' => $formError];
         }
         // All reviewed files must be explicitly accepted — a manually-flagged
         // ready order with pending/waiting files must not enter Sevk.
@@ -2276,6 +2339,7 @@ class DocumentServiceProvider extends ServiceProvider
         if (!in_array($toKey, $allowed, true)) return ['success' => false, 'msg' => 'Geçersiz sevk adımı'];
         $order = Documents::where('qnid', $orderQnid)->first();
         if (empty($order)) return ['success' => false, 'msg' => 'Sipariş bulunamadı'];
+        if ((int) $order->status !== 1) return ['success' => false, 'msg' => 'İptal edilmiş sipariş için sevk adımı işlenemez'];
         // date sanity lives here too (controller validates as well) — takvim stub: Y-m-d, earliest tomorrow
         if ($toKey === 'doc_trans_order_sevk_dated') {
             $dv = trim((string)($fields['sevk_tarihi'] ?? ''));
@@ -2297,6 +2361,20 @@ class DocumentServiceProvider extends ServiceProvider
                    AND (sce.entity_tag LIKE '%irsaliye%')", [$order->id]);
             if (($hasPro->c ?? 0) < 1 || ($hasIrs->c ?? 0) < 1) {
                 return ['success' => false, 'msg' => 'Proforma ve irsaliye dosyaları zorunlu'];
+            }
+            $rejectedDocs = DB::selectOne(
+                "SELECT COUNT(*) c FROM document_files df
+                 JOIN sys_con_entities sce ON sce.entity_value = df.id::text AND sce.table_tag='document_files'
+                 JOIN sys_con_ops sco ON sco.id = sce.conn_id
+                 JOIN documents d ON d.id = sco.main_id
+                 WHERE d.id = ? AND df.status = 1
+                   AND (sce.entity_tag LIKE '%proforma%' OR sce.entity_tag LIKE '%irsaliye%')
+                   AND (SELECT so.op_key FROM transactions t JOIN sys_options so ON so.id=t.type_id
+                        WHERE t.target_id = df.id AND t.op_id = 1 ORDER BY t.id DESC LIMIT 1) = 'doc_file_rejected'",
+                [$order->id]
+            );
+            if (($rejectedDocs->c ?? 0) > 0) {
+                return ['success' => false, 'msg' => 'Reddedilen proforma/irsaliye dosyası var — önce yeniden yükleyin'];
             }
         }
         // shipped requires kontrol-ok flag (set only by lojistik control)
@@ -2804,6 +2882,10 @@ class DocumentServiceProvider extends ServiceProvider
         }
         if ((int) $document->status === 0) {
             return ['success' => false, 'msg' => 'Sipariş zaten iptal edilmiş.'];
+        }
+        $lastStatus = $this->getLatestOrderStatus($document->id);
+        if (in_array($lastStatus, ['doc_trans_order_approved', 'doc_trans_order_sevk_shipped'], true)) {
+            return ['success' => false, 'msg' => 'Sevkiyat tamamlanmış / onaylanmış sipariş iptal edilemez.'];
         }
 
         try {

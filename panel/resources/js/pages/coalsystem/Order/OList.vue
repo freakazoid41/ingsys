@@ -779,7 +779,6 @@
                                         html:`<div class="d-flex flex-column gap-2 p-2">
                                             ${mkBtn('doc_trans_order_approved','Sevk Onayı Ver','ki-outline ki-check-circle','#22c55e')}
                                             ${mkBtn('doc_trans_order_ready_for_shipment','Sipariş Sevke Hazır','ki-outline ki-truck','#facc15','#713f12')}
-                                            ${mkBtn('doc_trans_order_sevk_started','Sevk Onayına Al','ki-outline ki-delivery','#8b5cf6')}
                                             ${mkBtn('doc_trans_order_transfer_sent','Dosyalar Kontrol Ediliyor','ki-outline ki-magnifier','#f97316')}
                                             ${mkBtn('doc_trans_order_rejected','Reddedildi','ki-outline ki-cross-circle','#ef4444')}
                                             <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:4px;">Mevcut: <b style="color:#0f172a;">${STATUS_LABEL_MAP[current] || current}</b></div>
