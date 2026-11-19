@@ -406,6 +406,27 @@
             async buildDynamicFForm(tag,dynamicId = 'new-'+(new Date).getTime(),data = {},selector = null){
                 const form   = this.forms[tag];
                 const rowId    = dynamicId;
+
+                // Seed the submit payload with the loaded values. Without this,
+                // an edit where the user does not retype every field submits an
+                // empty dynamicF and server-side required-field validation fails
+                // (tender edit was 422ing on its own unchanged data).
+                if (data?.entities && typeof data.entities === 'object') {
+                    const seedKey = tag + '**' + rowId;
+                    if (!this.formData.dynamicF[seedKey]) {
+                        this.formData.dynamicF[seedKey] = { entities: {}, tag: tag };
+                    }
+                    for (const [k, v] of Object.entries(data.entities)) {
+                        if (k === 'qnid') continue;
+                        // File entities are serialized objects — the Form engine
+                        // manages those through the files map, never as text.
+                        if (typeof v === 'string' && v.trim().startsWith('{"description"')) continue;
+                        if (this.formData.dynamicF[seedKey].entities[k] === undefined) {
+                            this.formData.dynamicF[seedKey].entities[k] = v;
+                        }
+                    }
+                }
+
                 const row    = document.createElement('div');
                 const rowSub = document.createElement('div');
                 let target;

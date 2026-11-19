@@ -38,13 +38,28 @@ class SystemController extends Controller
         // scopes reseller offers to their own bound clients.
         $tableReq = json_decode((string) ($req['tableReq'] ?? '{}'), true);
         if (! is_array($tableReq)) $tableReq = [];
-        $sensitiveDocTypes = ['op-doc-ihale', 'op-doc-ihale-offer', 'op-doc-ihale-offer-item'];
+        // Read-gate every document-backed table. The UI already hides menus, but
+        // the API must not let a supplier or unrelated role list orders/catalog
+        // rows by calling the table endpoint directly.
+        $tableReadMap = [
+            'op-doc-ihale'            => 'op-doc-ihale',
+            'op-doc-ihale-offer'      => 'op-doc-ihale-offer',
+            'op-doc-ihale-offer-item' => 'op-doc-ihale-offer-item',
+            'op-doc-order'            => 'op-doc-order',
+            'op-doc-order-item'       => 'op-doc-order-item',
+            'op-doc-order-serial'     => 'op-doc-order-serial',
+            'op-doc-product'          => 'op-doc-product',
+            'op-doc-product-category' => 'op-doc-product-category',
+            'op-doc-kva'              => 'op-doc-kva',
+            'op-doc-scope-value'      => 'op-doc-scope-value',
+            'op-doc-client'           => 'op-doc-client',
+        ];
         foreach (($tableReq['filter'] ?? []) as $f) {
             if (($f['key'] ?? '') !== 'type') continue;
             $docType = (string) ($f['value'] ?? '');
             // Check every type filter: TableList uses the last one, so a caller
-            // must not be able to hide a tender/offer type behind a permitted one.
-            if (in_array($docType, $sensitiveDocTypes, true) && ! docPermCheck($docType, 'read')) {
+            // must not be able to hide a protected type behind a permitted one.
+            if (isset($tableReadMap[$docType]) && ! docPermCheck($tableReadMap[$docType], 'read')) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         }

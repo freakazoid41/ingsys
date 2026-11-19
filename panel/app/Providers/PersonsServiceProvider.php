@@ -697,6 +697,13 @@ class PersonsServiceProvider extends ServiceProvider
             $permittedUsers = [];
             foreach($data as $d){
                 $permissions = json_decode($d->entity_value, true);
+                // Notification groups are stored either as a JSON array or as a
+                // plain single key (legacy import / user form). json_decode of a
+                // plain string returns null, which used to blow up the foreach
+                // and silently drop ALL recipients for that query.
+                if (!is_array($permissions)) {
+                    $permissions = [trim((string) $d->entity_value)];
+                }
                 foreach ($permissions as $key) {
                     if($opKey != null && $key != $opKey) continue;
                     $member = [

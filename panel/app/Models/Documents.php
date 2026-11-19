@@ -316,6 +316,13 @@ class Documents extends Model
                 // Admin sees all clients across GDZ/ADM — system column shows pill, no tenant filter (Master request: admin sees all)
                 // Reseller already limited above via qnid list, so no extra filter
                 break;
+            case 'op-doc-product':
+            case 'op-doc-product-category':
+            case 'op-doc-kva':
+            case 'op-doc-scope-value':
+                // Catalog is global: one definition set is shared by GDZ and ADM.
+                // Tenant-filtering it emptied the catalog on the ADM host.
+                break;
             default:
                 if(isset($GLOBALS['SYS_CODE'])) $where .= " and i.grp_code ilike '%".$GLOBALS['SYS_CODE']."%'";
             break;

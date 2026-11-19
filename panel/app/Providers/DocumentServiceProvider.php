@@ -407,9 +407,21 @@ class DocumentServiceProvider extends ServiceProvider
 
                 // set new field
                 $conn = new Sys_con_ops;
-                // for value update
+                // for value update — only accept a conn that belongs to THIS
+                // document and carries THIS form type. The conn id comes from
+                // the client payload; without this check a product editor could
+                // reparent/rewrite a category (or any other) EAV connection.
                 if (strpos($id, 'new') === false) {
                     $conn = Sys_con_ops::where('id', $id)->first();
+                    if (! $conn
+                        || (int) $conn->main_id !== (int) $document->id
+                        || (int) $conn->type_id !== (int) $typeId) {
+                        return [
+                            'success' => false,
+                            'id'      => 0,
+                            'message' => 'Geçersiz form bağlantısı (belge/bağlantı uyuşmuyor).',
+                        ];
+                    }
                 }
 
                 // last add connection
@@ -557,6 +569,15 @@ class DocumentServiceProvider extends ServiceProvider
                         $entity->entity_tag = $entityTagToUse;
                         $entity->entity_value = strip_tags($fileId);
                         $entity->save();
+                        // A new/replaced proforma or irsaliye invalidates the logistics
+                        // control — force a fresh "Uygun" before shipping.
+                        if ($typeKey === 'op-doc-order' &&
+                            (str_starts_with($typeTag, 'proforma') || str_starts_with($typeTag, 'irsaliye'))) {
+                            Sys_con_entities::updateOrInsert(
+                                ['conn_id' => $conn->id, 'entity_tag' => 'sevk_kontrol_ok', 'table_tag' => 'sys_con_ops'],
+                                ['entity_value' => '0', 'updated_at' => now(), 'created_at' => now()]
+                            );
+                        }
                         $lastFileEntity = $entity;
                         // Track if this was a replacement of a rejected file → needs tedarik-03 mail after commit.
                         if (!empty($existingFileId) && $existingFileId > 0 && !$refreshedFromRejected) {
@@ -935,6 +956,11 @@ class DocumentServiceProvider extends ServiceProvider
         if (empty($document)) return ['success' => false, 'msg' => 'Belge bulunamadı'];
         $docTypeKey = Sys_options::where('id', $document->type_id)->value('op_key');
 
+        // Idempotent delete: already inactive → nothing to restore/deactivate.
+        if ((int) $document->status === 0) {
+            return ['success' => true, 'msg' => 'Belge zaten silinmiş.'];
+        }
+
         // Terminal tender/offer documents cannot be passivated, regardless of caller.
         if ($docTypeKey === 'op-doc-ihale') {
             $lastTenderOp = DB::table('transactions as t')
@@ -945,6 +971,20 @@ class DocumentServiceProvider extends ServiceProvider
                 ->value('so.op_key');
             if ($lastTenderOp === 'tender-complated') {
                 return ['success' => false, 'msg' => 'İhale tamamlandı — silinemez.'];
+            }
+            // A tender with live offers must not disappear: offers would remain
+            // addressable by qnid against a hidden tender.
+            $offerType = Sys_options::where('op_key', 'op-doc-ihale-offer')->value('id');
+            $offerCount = $offerType ? DB::table('sys_con_entities as se')
+                ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                ->join('documents as o', 'o.id', '=', 'so.main_id')
+                ->where('se.entity_tag', 'ihale_qnid')
+                ->where('se.entity_value', $document->qnid)
+                ->where('o.type_id', $offerType)
+                ->where('o.status', 1)
+                ->count() : 0;
+            if ($offerCount > 0) {
+                return ['success' => false, 'msg' => 'İhaleye '.$offerCount.' teklif verilmiş — ihale silinemez.'];
             }
         }
 
@@ -1259,8 +1299,19 @@ class DocumentServiceProvider extends ServiceProvider
                     ->value('so.op_key');
                 // if no history yet, treat as created is allowed to go anywhere in its outgoing list
                 if ($lastOpKey) {
-                    // Kalite from any status — bypass guard for this one key
-                    if ($statusKey !== 'doc_trans_order_approved') {
+                    if ($statusKey === 'doc_trans_order_approved') {
+                        // Kalite closure is allowed from active states, but never from
+                        // a terminal/cancelled order and never twice.
+                        if ((int) $document->status === 0) {
+                            return ['success' => false, 'msg' => 'İptal edilmiş sipariş onaylanamaz.'];
+                        }
+                        if ($lastOpKey === 'doc_trans_order_approved') {
+                            return ['success' => false, 'msg' => 'Sipariş zaten onaylanmış.'];
+                        }
+                        if ($lastOpKey === 'doc_trans_order_rejected') {
+                            return ['success' => false, 'msg' => 'Reddedilmiş sipariş onaylanamaz.'];
+                        }
+                    } else {
                         $allowedNext = $allowed[$lastOpKey] ?? null;
                         // terminal states have no entry or empty array → no outgoing allowed
                         if ($allowedNext === null || !in_array($statusKey,$allowedNext)) {
@@ -1270,6 +1321,8 @@ class DocumentServiceProvider extends ServiceProvider
                             ];
                         }
                     }
+                } elseif ((int) $document->status === 0) {
+                    return ['success' => false, 'msg' => 'İptal edilmiş siparişe durum yazılamaz.'];
                 }
             }
 
@@ -1780,14 +1833,22 @@ class DocumentServiceProvider extends ServiceProvider
                 }
             }
 
+            $cur = $this->getLatestOrderStatus($doc->id);
+            // Terminal orders are closed: file review must not reopen them.
+            if (in_array($cur, ['doc_trans_order_approved', 'doc_trans_order_rejected'], true)) {
+                return;
+            }
+            // Sevk chain owns its own transitions — file review must not yank it.
+            $isSevk = $cur && str_starts_with($cur, 'doc_trans_order_sevk_');
+
             if ($hasRejected) {
-                $this->applyOrderStatus($doc, 'doc_trans_order_files_rejected', $rejectedNote ?? 'Dosya reddedildi');
+                if (! $isSevk) {
+                    $this->applyOrderStatus($doc, 'doc_trans_order_files_rejected', $rejectedNote ?? 'Dosya reddedildi');
+                }
             } elseif ($allAccepted && ! empty($orderFileRows)) {
                 // Sevk chain owns its own transitions — a file upload (e.g. proforma/irsaliye
                 // via registerContent) must never yank a sevk_* order back to ready.
                 // Exception: files_rejected recovery still lands on ready (→ re-enter sevk via start).
-                $cur = $this->getLatestOrderStatus($doc->id);
-                $isSevk = $cur && str_starts_with($cur, 'doc_trans_order_sevk_');
                 if (! $isSevk) {
                     $this->applyOrderStatus($doc, 'doc_trans_order_ready_for_shipment', 'Tüm aktif dosyalar kabul edildi');
                 }
@@ -1918,6 +1979,9 @@ class DocumentServiceProvider extends ServiceProvider
         }
 
         if ($mode === 'partial') {
+            if (empty($selectedItems)) {
+                return ['success' => false, 'msg' => 'Parçalı gönderim için en az bir kalem seçmelisiniz.'];
+            }
             // Compute next EBELN-X suffix for this base order number.
             $x = 1;
             $clones = DB::select(
@@ -1944,21 +2008,43 @@ class DocumentServiceProvider extends ServiceProvider
                 // Lock base order row for the duration of the split
                 Documents::where('id', $order->id)->lockForUpdate()->first();
                 if (!empty($selectedItems)) {
+                    $seenItems = [];
+                    $totals = [];
+                    $validSelections = 0;
                     foreach ($selectedItems as $chk) {
                         $chkQnid = is_array($chk) ? ($chk['qnid'] ?? '') : $chk;
                         $chkAmt = is_array($chk) ? (float) ($chk['amount'] ?? 0) : 0;
                         if (empty($chkQnid) || $chkAmt <= 0) continue;
+                        if (isset($seenItems[$chkQnid])) {
+                            DB::rollBack();
+                            return ['success' => false, 'msg' => 'Aynı kalem birden fazla kez seçilemez: ' . $chkQnid];
+                        }
+                        $seenItems[$chkQnid] = true;
+                        $validSelections++;
                         $chkDoc = Documents::where('qnid', $chkQnid)->lockForUpdate()->first();
-                        if (!$chkDoc) continue;
+                        if (!$chkDoc || (int) $chkDoc->parent_id !== (int) $order->id) {
+                            DB::rollBack();
+                            return ['success' => false, 'msg' => 'Seçilen kalem bu siparişe ait değil: ' . $chkQnid];
+                        }
+                        $chkTypeKey = Sys_options::where('id', $chkDoc->type_id)->value('op_key');
+                        if ($chkTypeKey !== 'op-doc-order-item') {
+                            DB::rollBack();
+                            return ['success' => false, 'msg' => 'Seçilen belge sipariş kalemi değil: ' . $chkQnid];
+                        }
                         $curQty = $this->getItemQuantityForTransfer((int) $chkDoc->id);
                         if ($curQty <= 0) {
                             DB::rollBack();
                             return ['success' => false, 'msg' => 'Kalem tükendi (stok 0) — başka partisyona gönderilemez: ' . $chkQnid];
                         }
-                        if ($chkAmt > $curQty) {
+                        $totals[$chkQnid] = ($totals[$chkQnid] ?? 0) + $chkAmt;
+                        if ($totals[$chkQnid] > $curQty + 0.00001) {
                             DB::rollBack();
-                            return ['success' => false, 'msg' => 'Kalem için bölme miktarı stoktan fazla: ' . $chkQnid . ' (' . $chkAmt . ' > ' . $curQty . ')'];
+                            return ['success' => false, 'msg' => 'Kalem için bölme miktarı stoktan fazla: ' . $chkQnid . ' (' . $totals[$chkQnid] . ' > ' . $curQty . ')'];
                         }
+                    }
+                    if ($validSelections === 0) {
+                        DB::rollBack();
+                        return ['success' => false, 'msg' => 'Parçalı gönderim için geçerli miktarda en az bir kalem seçmelisiniz.'];
                     }
                 }
             } catch (\Throwable $e) {
@@ -2203,11 +2289,11 @@ class DocumentServiceProvider extends ServiceProvider
                 return ['success' => false, 'msg' => 'Proforma ve irsaliye dosyaları zorunlu'];
             }
         }
-        // shipped requires kontrol-ok flag (set by lojistik control)
+        // shipped requires kontrol-ok flag (set only by lojistik control)
         if ($toKey === 'doc_trans_order_sevk_shipped') {
             $flag = DB::table('sys_con_entities as sce')->join('sys_con_ops as sco', 'sco.id', '=', 'sce.conn_id')
                 ->where('sco.main_id', $order->id)->where('sce.entity_tag', 'sevk_kontrol_ok')->value('sce.entity_value');
-            if ($flag !== '1' && (($fields['sevk_kontrol_ok'] ?? null) != '1')) {
+            if ($flag !== '1') {
                 return ['success' => false, 'msg' => 'Lojistik kontrol onayı (Uygun) gerekli'];
             }
         }

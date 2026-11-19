@@ -29,7 +29,64 @@ class ExportController extends Controller
                 $filter[$i] = json_decode($item,true);
             }
         }
+
+        // Server-side read gates for catalog/order/tender exports (the UI
+        // hides the buttons, but the endpoint is directly addressable).
+        $exportReadMap = [
+            'products'          => 'op-doc-product',
+            'productcategories' => 'op-doc-product-category',
+            'kvas'              => 'op-doc-kva',
+            'scopevalues'       => 'op-doc-scope-value',
+            'orders'            => 'op-doc-order',
+            'clients'           => 'op-doc-client',
+            'ihale'             => 'op-doc-ihale',
+            'ihale-offer'       => 'op-doc-ihale-offer',
+        ];
+        if (isset($exportReadMap[$model]) && ! docPermCheck($exportReadMap[$model], 'read')) {
+            return response()->json(['success' => false, 'msg' => 'Bu dışa aktarma için yetkiniz yok.'], 403);
+        }
         switch($model){
+            case 'orders':
+                $filename = 'siparisler.xlsx';
+                $headers = [
+                    'transfer_no'   => 'Sipariş No',
+                    'buying_no'     => 'Alım No',
+                    'ctitle'        => 'Firma',
+                    'sys_code'      => 'Sistem',
+                    'spec_code'     => 'Cari Kodu',
+                    'siparis_tarih' => 'Sipariş Tarihi',
+                    'ekleme_tarih'  => 'Ekleme Tarihi',
+                    'status_title'  => 'Durum',
+                ];
+
+                $data = (array)\App\Models\Documents::tableList([
+                    'filter' => array_merge($filter, [
+                        ['key'=>'form-type','type'=>'=','value'=>'op-doc-order-form'],
+                        ['key'=>'type','type'=>'=','value'=>'op-doc-order']
+                    ])
+                ])['data'];
+
+                foreach ($data as $value) {
+                    $docCreated = $value->created_at ?? '';
+                    $mainAttr = \json_decode($value->main_attr, true);
+                    foreach ((array) $mainAttr as $ma) {
+                        $value->{$ma['Key']} = $ma['Value'];
+                    }
+                    $parts = explode('**', (string) ($value->status ?? ''));
+                    $value->status_title = $parts[1] ?? ($parts[0] ?? '');
+                    $value->transfer_no = ($value->transfer_no ?? '') ?: ($value->order_no ?? '');
+                    $value->siparis_tarih = $value->created_at ?? '';
+                    $value->ekleme_tarih = $docCreated;
+                }
+
+                $rowCallback = function ($row, $key, $label, $rowIndex, $columnIndex) {
+                    $row = (array) $row;
+                    if ($key === 'ekleme_tarih' && ! empty($row[$key])) {
+                        try { return \Carbon\Carbon::parse($row[$key])->format('d.m.Y H:i'); } catch (\Throwable $e) {}
+                    }
+                    return $row[$key] ?? '';
+                };
+                break;
             case 'clients':
                 $filename = 'cariler.xlsx';
                 $headers = [

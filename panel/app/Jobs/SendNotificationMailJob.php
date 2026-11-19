@@ -1166,7 +1166,7 @@ class SendNotificationMailJob implements ShouldQueue
     protected function tenderLink(array $payload, bool $offer): string
     {
         $qnid = $payload['offer_qnid'] ?? $payload['ihale_qnid'] ?? $payload['qnid'] ?? null;
-        $path = $offer && $qnid ? '/tedarikpanel/ihaleler/teklif/'.$qnid : '/tedarikpanel/ihaleler';
+        $path = $offer && $qnid ? '/ihalepanel/ihaleler/teklif/'.$qnid : '/ihalepanel/ihaleler';
         return \App\Services\TedarikMailHelper::gateway($path);
     }
 

@@ -106,7 +106,7 @@ class DocumentController extends Controller
                 }
             }
         }
-        if (empty($suppliers) && in_array($method, ['GET','PUT','DELETE'], true) && !empty($request->id)) {
+        if (in_array($method, ['GET','PUT','DELETE'], true) && !empty($request->id)) {
             try {
                 $detail = $this->docs->getFormData($request->id);
                 foreach (($detail['formFormat']['op-doc-ihale-offer-form'] ?? []) as $cr) {
@@ -278,7 +278,7 @@ class DocumentController extends Controller
         $catalogRead = false;
         if ($method === 'GET' && in_array($key, ['op-doc-product', 'op-doc-product-category'], true)) {
             $auth = auth('sanctum')->user() ?? auth()->user();
-            $catalogRead = $auth && $this->perms->has($auth, 'per-041-03-01');
+            $catalogRead = $auth && ($this->perms->has($auth, 'per-041-03-01') || $this->perms->has($auth, 'per-041-03'));
         }
 
         if (!docPermCheck($key, ($method === 'GET' ? 'read' : 'edit')) && ! $catalogRead) {
@@ -339,6 +339,7 @@ class DocumentController extends Controller
         $hasDeadline = false;
         $hasSpecTitle = false;
         $deadlineValue = '';
+        $productQnids = [];
         foreach (($decoded['dynamicF'] ?? []) as $row) {
             foreach (($row['entities'] ?? []) as $k => $v) {
                 if ($k === 'ihale_kodu' && trim((string) $v) !== '') $hasCode = true;
@@ -348,6 +349,14 @@ class DocumentController extends Controller
                     $deadlineValue = trim((string) $v);
                 }
                 if (str_starts_with((string) $k, 'product_qnid**ihale_product_rows') && trim((string) $v) !== '') {
+                    $pid = trim((string) $v);
+                    if (isset($productQnids[$pid])) {
+                        return response()->json([
+                            'success' => false,
+                            'msg'     => 'Aynı ürün ihalede birden fazla kez yer alamaz.',
+                        ], 422);
+                    }
+                    $productQnids[$pid] = true;
                     $hasProduct = true;
                 }
             }
@@ -385,6 +394,64 @@ class DocumentController extends Controller
         return null;
     }
 
+    /** First value of an entity tag across the decoded form payload. */
+    private function firstEntity(?array $decoded, string $name): string
+    {
+        foreach (($decoded['dynamicF'] ?? []) as $row) {
+            foreach (($row['entities'] ?? []) as $k => $v) {
+                if ($k === $name || str_starts_with((string) $k, $name.'**')) {
+                    return trim((string) $v);
+                }
+            }
+        }
+        return '';
+    }
+
+    /** Does an active document of this form already carry this entity value? */
+    private function entityDocExists(string $formKey, string $tag, string $value, ?string $excludeQnid = null): bool
+    {
+        $formId = \Illuminate\Support\Facades\DB::table('sys_options')->where('op_key', $formKey)->value('id');
+        if (! $formId || $value === '') return false;
+        $q = \Illuminate\Support\Facades\DB::table('sys_con_entities as se')
+            ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+            ->join('documents as d', 'd.id', '=', 'so.main_id')
+            ->where('so.type_id', $formId)
+            ->where('d.status', 1)
+            ->where('se.entity_value', $value)
+            ->where(function ($qq) use ($tag) {
+                $qq->where('se.entity_tag', $tag)->orWhere('se.entity_tag', 'like', $tag.'**%');
+            });
+        if ($excludeQnid) $q->where('d.qnid', '<>', $excludeQnid);
+        return $q->exists();
+    }
+
+    /** Active document id for a qnid of an expected type, or null. */
+    private function activeDocIdByQnid(string $qnid, string $opKey): ?int
+    {
+        if (! $this->isValidUuid($qnid)) return null;
+        $typeId = \App\Models\Sys_options::where('op_key', $opKey)->value('id');
+        if (! $typeId) return null;
+        $id = \App\Models\Documents::where('qnid', $qnid)->where('type_id', $typeId)->where('status', 1)->value('id');
+        return $id ? (int) $id : null;
+    }
+
+    /** How many active category requirement rows reference this kVA/scope code? */
+    private function catalogCodeUsage(string $tag, string $code): int
+    {
+        if ($code === '') return 0;
+        $formId = \App\Models\Sys_options::where('op_key', 'op-doc-product-category-form')->value('id');
+        if (! $formId) return 0;
+        return (int) \Illuminate\Support\Facades\DB::table('sys_con_entities as se')
+            ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+            ->join('documents as d', 'd.id', '=', 'so.main_id')
+            ->where('so.type_id', $formId)
+            ->where('d.status', 1)
+            ->where('se.entity_tag', 'like', $tag.'**%')
+            ->whereRaw("se.entity_value ~ '^\\s*\\['")
+            ->whereRaw('se.entity_value::jsonb @> ?::jsonb', [json_encode([$code])])
+            ->count();
+    }
+
     private function handleStore(Request $request, ?array $decoded, ?string $key)    {
         $files = $request->files->all();
         $this->mergeTempUploadReferences($request->all(), $files);
@@ -412,6 +479,30 @@ class DocumentController extends Controller
                 return response()->json([
                     'success' => false,
                     'msg'     => 'Malzeme grubu (kategori) seçmeden ürün oluşturulamaz.',
+                ], 422);
+            }
+            $catQnid = $this->firstEntity($decoded, 'category_qnid');
+            if (! $this->activeDocIdByQnid($catQnid, 'op-doc-product-category')) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Geçerli ve aktif bir kategori seçmelisiniz.',
+                ], 422);
+            }
+            $code = $this->firstEntity($decoded, 'prod_code');
+            if ($code !== '' && $this->entityDocExists('op-doc-product-form', 'prod_code', $code)) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Bu ürün kodu zaten kullanılıyor: '.$code,
+                ], 422);
+            }
+        }
+
+        if ($key === 'op-doc-product-category') {
+            $code = $this->firstEntity($decoded, 'code');
+            if ($code !== '' && $this->entityDocExists('op-doc-product-category-form', 'code', $code)) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Bu kategori kodu zaten kullanılıyor: '.$code,
                 ], 422);
             }
         }
@@ -484,6 +575,42 @@ class DocumentController extends Controller
         $refError = $this->assertTempReferencesOwned($files);
         if ($refError) return $refError;
         $this->stripResellerGorus($key, $files, $decoded);
+
+        // Product/category code uniqueness on edit too (exclude the current doc).
+        if ($key === 'op-doc-product') {
+            $code = $this->firstEntity($decoded, 'prod_code');
+            if ($code !== '' && $this->entityDocExists('op-doc-product-form', 'prod_code', $code, (string) $request->id)) {
+                return response()->json(['success' => false, 'msg' => 'Bu ürün kodu zaten kullanılıyor: '.$code], 422);
+            }
+            $catQnid = $this->firstEntity($decoded, 'category_qnid');
+            if (! $this->activeDocIdByQnid($catQnid, 'op-doc-product-category')) {
+                return response()->json(['success' => false, 'msg' => 'Geçerli ve aktif bir kategori seçmelisiniz.'], 422);
+            }
+        }
+        if ($key === 'op-doc-product-category') {
+            $code = $this->firstEntity($decoded, 'code');
+            if ($code !== '' && $this->entityDocExists('op-doc-product-category-form', 'code', $code, (string) $request->id)) {
+                return response()->json(['success' => false, 'msg' => 'Bu kategori kodu zaten kullanılıyor: '.$code], 422);
+            }
+        }
+        if (in_array($key, ['op-doc-kva', 'op-doc-scope-value'], true)) {
+            $newCode = $this->firstEntity($decoded, 'code');
+            $docId = \App\Models\Documents::where('qnid', $request->id)->value('id');
+            $oldCode = $docId ? \App\Models\Sys_con_entities::where('conn_id', function ($q) use ($docId, $key) {
+                $q->select('id')->from('sys_con_ops')->where('main_id', $docId)
+                  ->where('type_id', \App\Models\Sys_options::where('op_key', $key.'-form')->value('id'))->limit(1);
+            })->where('entity_tag', 'code')->value('entity_value') : null;
+            if ($newCode !== '' && $oldCode && $newCode !== $oldCode) {
+                $tag = $key === 'op-doc-kva' ? 'kva' : 'variants';
+                $used = $this->catalogCodeUsage($tag, (string) $oldCode);
+                if ($used > 0) {
+                    return response()->json([
+                        'success' => false,
+                        'msg'     => 'Bu tanım '.$used.' kategori satırında kullanılıyor — kodu değiştirmeden önce bağlantıları güncelleyin.',
+                    ], 422);
+                }
+            }
+        }
 
         // Same tender header rules as creation — a PUT must not be able to strip
         // the required code/deadline/spec/product after the tender exists.
@@ -628,6 +755,39 @@ class DocumentController extends Controller
     {
         if ($key === 'op-doc-order' && !docPermCheck('op-doc-order','cancel')) {
             return response()->json(['success'=>false,'msg'=>'İşlem için yetkiniz bulunmamaktadır (per-05-04 İptal / Parça Sil)...'],403);
+        }
+        // A category still referenced by active products cannot be deleted —
+        // otherwise those products keep a dangling category_qnid and disappear
+        // from the category picker while their offer matrix keeps resolving.
+        if (in_array($key, ['op-doc-kva', 'op-doc-scope-value'], true)) {
+            $docId = \App\Models\Documents::where('qnid', $request->id)->value('id');
+            $oldCode = $docId ? \App\Models\Sys_con_entities::where('conn_id', function ($q) use ($docId, $key) {
+                $q->select('id')->from('sys_con_ops')->where('main_id', $docId)
+                  ->where('type_id', \App\Models\Sys_options::where('op_key', $key.'-form')->value('id'))->limit(1);
+            })->where('entity_tag', 'code')->value('entity_value') : null;
+            $tag = $key === 'op-doc-kva' ? 'kva' : 'variants';
+            $used = $this->catalogCodeUsage($tag, (string) $oldCode);
+            if ($used > 0) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Bu tanım '.$used.' kategori satırında kullanılıyor — önce bağlantıları güncelleyin.',
+                ], 422);
+            }
+        }
+        if ($key === 'op-doc-product-category') {
+            $used = \Illuminate\Support\Facades\DB::table('sys_con_entities as se')
+                ->join('sys_con_ops as so', 'so.id', '=', 'se.conn_id')
+                ->join('documents as d', 'd.id', '=', 'so.main_id')
+                ->where('se.entity_tag', 'category_qnid')
+                ->where('se.entity_value', (string) $request->id)
+                ->where('d.status', 1)
+                ->count();
+            if ($used > 0) {
+                return response()->json([
+                    'success' => false,
+                    'msg'     => 'Bu kategoriye bağlı '.$used.' ürün var — önce ürünleri başka kategoriye taşıyın.',
+                ], 422);
+            }
         }
         $res = $this->docs->removeContent($request->id);
         return response()->json(['success'=>$res['success'] ?? false]);
@@ -866,6 +1026,10 @@ class DocumentController extends Controller
         if (!$id || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', (string) $id)) {
             return response()->json(['success'=>false,'msg'=>'Missing Parameters'], 422);
         }
+        $order = $this->docs->resolveOrderFromQnid((string) $id);
+        if (!$order || !$this->docs->canCurrentResellerAccessOrder($order)) {
+            return response()->json(['success'=>false,'msg'=>'Yetki yok'], 403);
+        }
         $rsp = $this->docs->orderPartitions($id);
         return response()->json($rsp, ($rsp['success'] ?? false) ? 200 : 422);
     }
@@ -886,7 +1050,7 @@ class DocumentController extends Controller
             'doc_trans_order_sevk_addressed' => ['perms' => ['per-05-06'], 'fields' => ['sevk_adresi','sevk_adres_diger']],
             'doc_trans_order_sevk_dated' => ['perms' => ['per-05-02','per-05-06'], 'fields' => ['sevk_tarihi']],
             'doc_trans_order_sevk_proforma' => ['perms' => null, 'fields' => []],
-            'doc_trans_order_sevk_shipped' => ['perms' => null, 'fields' => ['sevk_kontrol_ok']],
+            'doc_trans_order_sevk_shipped' => ['perms' => null, 'fields' => []],
         ];
         $cfg = $map[$request->op_key] ?? null;
         if (!$cfg) return response()->json(['success'=>false,'msg'=>'Geçersiz sevk adımı'], 422);
@@ -901,6 +1065,11 @@ class DocumentController extends Controller
         // supplier steps: must own order (reseller LIFNR scope); admin bypass
         if (in_array($request->op_key, ['doc_trans_order_sevk_dated','doc_trans_order_sevk_proforma','doc_trans_order_sevk_shipped'], true)) {
             if (!docPermCheck('op-doc-order','edit')) return response()->json(['success'=>false,'msg'=>'Yetki yok'], 403);
+        }
+        // Direct-qnid IDOR guard: a reseller may only advance their own orders.
+        $order = $this->docs->resolveOrderFromQnid($request->id);
+        if (!$order || !$this->docs->canCurrentResellerAccessOrder($order)) {
+            return response()->json(['success'=>false,'msg'=>'Bu sipariş size bağlı cariye ait değil...'], 403);
         }
         $fields = [];
         foreach ($cfg['fields'] as $f) {
@@ -1587,6 +1756,9 @@ class DocumentController extends Controller
         $available = [];
         foreach (($listing['data']['slots'] ?? []) as $slot) {
             if (empty($slot['file']) || !empty($slot['expired'])) continue;
+            // A rejected file cannot satisfy the requirement until it is replaced.
+            $fileStatus = (string) ($slot['file']['last_status']['op_key'] ?? '');
+            if (in_array($fileStatus, ['offer-file-rejected', 'doc_file_rejected'], true)) continue;
             $available[(string) ($slot['match_key'] ?? '')] = true;
         }
 
@@ -1717,8 +1889,7 @@ class DocumentController extends Controller
 
             $expected = $tenderRows[$p]['quantity'];
             $actual = trim((string) ($e['quantity'] ?? ''));
-            if ($expected !== '' && is_numeric($expected) && is_numeric($actual)
-                && abs((float) $expected - (float) $actual) > 0.0001) {
+            if ($expected !== '' && (!is_numeric($actual) || abs((float) $expected - (float) $actual) > 0.0001)) {
                 return 'Ürün miktarı ihale miktarıyla eşleşmiyor: '.$tenderRows[$p]['product_title'];
             }
             if (trim((string) ($e['imalatci_firma_adi'] ?? '')) === '') {
