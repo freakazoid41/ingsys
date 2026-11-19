@@ -139,6 +139,15 @@ class Document_files extends Model
 
         $limit = '';
         $order = '';
+
+        // Strip the SQL alias safely: some definitions use "as  x" (double
+        // space), others "as x" (single) — explode('as  ') leaked the alias
+        // into WHERE/ORDER and produced "... as last_trans_at::text" syntax errors.
+        $colExpr = function ($col) {
+            $pos = strripos($col, ' as ');
+            return $pos !== false ? trim(substr($col, 0, $pos)) : trim($col);
+        };
+
         // NOTE: se join is restricted to table_tag='document_files' (1:1 via
         // idx_sce_table_value) — without it every scalar entity whose value
         // happens to equal a file id multiplies the row. sf is a lateral
@@ -215,7 +224,7 @@ class Document_files extends Model
         if (isset($obj['order'])){
             switch($obj['order']['key']){
                 default:
-                    $column = explode('as  ',$columns[$obj['order']['key']])[0];
+                    $column = $colExpr($columns[$obj['order']['key']]);
                 break;
             }
             $order = ' order by ' .$column. ' ' . $obj['order']['style'].' ';
@@ -337,9 +346,9 @@ class Document_files extends Model
                         foreach($columns as $k=>$v){
                             if($k !== 'file'){
                                 if($i!=0) $where.=' or ';
-                                $column = explode('as  ',$columns[$k])[0];
+                                $column = $colExpr($columns[$k]);
                                 if($column === 'i.created_at'){
-                                    " ".$column."::text ilike '%" . $value . "%' " ;
+                                    $where .= " ".$column."::text ilike '%" . $value . "%' " ;
                                 }else{
                                     $where.=' '.$column.'::text ilike '."'%" . $value . "%' ";
                                 }
@@ -350,7 +359,7 @@ class Document_files extends Model
                         $where .= ' ) ';
                     break;
                     default:
-                        $column = explode('  as  ',$columns[$f['key']] ?? $columns['relation_detail'])[0];
+                        $column = $colExpr($columns[$f['key']] ?? $columns['relation_detail']);
                         if(trim($f['value']) != ''){
                             if(($f['type'] ?? '=') != 'like'){
                                 $where.=" and ".$column." ='".$f['value']."' ";
