@@ -129,6 +129,8 @@ SELECT order_no FROM sys_con_entities se JOIN sys_con_ops so ON so.id=se.conn_id
 
 - `transfer_mode` locked after first send. `at_once` forbidden after partial (`hasActivePartitions`). Delete clones (`status=0`) to unlock.
 - Clone owns files by design — base shows 0 after partial, second partial needs fresh upload.
+- **Partial inventory rule (2026-11-19):** selected items must be direct children of the order and `op-doc-order-item`; duplicate qnids are rejected; the cumulative stock cap applies to **ST only**. **KG/M splits may exceed the recorded quantity and the original remainder intentionally goes negative** — real deliveries over-ship slightly because of unit conversion/rounding, and the negative is how the system shows it. ST never goes below 0. Direct item edits may carry a negative quantity only for KG/M; serial quantities are never negative.
+- **Partial file move is intentional (2026-11-19):** after the clone is created, all order-level files move to the clone (`moveOrderFilesToDocument`) and each selected item's files move to the cloned item (form-key filtered). It relinks `document_files.relation_id` and rewrites the entity tag's conn id — the base intentionally shows 0 files. Do not turn this into a copy; the admin must review exactly the shipment's files.
 - `imalatci` print trap: `tedarikImalatci.trim() || getFieldValue || entities` — DOM query alone is empty.
 - `ST>=300` no serial UI, `ST<300` auto N rows qty1, KG/M sum must match split.
 - `PUT multipart` via `parsePut`, `entity_tag ** count`: single `**` = version, `**img-` multi = append.
