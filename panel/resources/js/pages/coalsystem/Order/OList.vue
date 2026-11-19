@@ -1284,8 +1284,6 @@
                 </div>
                 <button class="order-btn order-btn-primary" @click="searchTable">Ara</button>
                 <button class="order-btn order-btn-ghost" @click="resetSearch">Sıfırla</button>
-                <button class="order-btn order-btn-ghost" @click="handleDetayliChoice('sevk_sureci')"><i class="ki-outline ki-delivery"></i> Sevk Onay Süreci</button>
-                <button class="order-btn order-btn-ghost" @click="handleDetayliChoice('fabrika')"><i class="ki-outline ki-setting-2"></i> Fabrika Kabul</button>
                 <button class="order-btn order-btn-ghost" @click="exportTable"><i class="ki-outline ki-exit-down"></i> Excel</button>
             </div>
         </div>
@@ -1296,8 +1294,6 @@
               
             </div>
             <div class="tedarik-filters">
-                <a href="javascript:;" class="tedarik-filter" :class="{active: detayliChoice==='sevk_sureci'}" @click="handleDetayliChoice('sevk_sureci')"><i class="ki-outline ki-delivery"></i> Sevk Onay Süreci</a>
-                <a href="javascript:;" class="tedarik-filter" :class="{active: detayliChoice==='fabrika'}" @click="handleDetayliChoice('fabrika')"><i class="ki-outline ki-setting-2"></i> Fabrika Kabul</a>
                 <a href="javascript:;" class="tedarik-filter" @click="toggleDetailed"><i class="ki-outline ki-filter"></i> Detaylı Filtre</a>
                 <div class="tedarik-filter-dd-wrap" ref="detayliWrap">
                     <a href="javascript:;" class="tedarik-filter" :class="{active: showDetayli}" @click="toggleDetayli"><i class="ki-outline ki-filter"></i> Filtreler</a>
